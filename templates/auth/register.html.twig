@@ -1,0 +1,226 @@
+{% extends 'layout/auth_layout.html.twig' %}
+{% block title %}Créer un compte — Plateforme GEI{% endblock %}
+
+{% block auth_form %}
+{# ── En-tête ── #}
+<div class="auth-form-header">
+    <h1 class="auth-title">Créer un compte</h1>
+    <p class="auth-subtitle">
+        Déjà inscrit ?
+        <a href="{{ path('app_login') }}" class="auth-link">Se connecter</a>
+    </p>
+</div>
+
+{# ── Erreurs de validation ── #}
+{% if errors is defined and errors|length %}
+<div class="auth-error">
+    <i class="fa-solid fa-circle-xmark auth-error-icon"></i>
+    <div>
+        <p class="auth-error-title">Erreur de validation</p>
+        {% for error in errors %}
+            <p class="auth-error-msg">{{ error }}</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ── Formulaire ── #}
+<form method="post" action="{{ path('app_register') }}" class="auth-fields" novalidate>
+
+    {# Prénom + Nom côte à côte #}
+    <div class="auth-row-2col">
+        <div class="auth-field-wrap">
+            <label class="auth-label" for="prenom">
+                <i class="fa-regular fa-user me-1.5 opacity-60"></i>Prénom
+            </label>
+            <div class="auth-input-wrap">
+                <input
+                    type="text"
+                    id="prenom"
+                    name="prenom"
+                    placeholder="Prénom"
+                    value="{{ formData.prenom ?? '' }}"
+                    class="auth-input"
+                    autocomplete="given-name"
+                    required
+                >
+            </div>
+        </div>
+
+        <div class="auth-field-wrap">
+            <label class="auth-label" for="nom">
+                <i class="fa-regular fa-id-card me-1.5 opacity-60"></i>Nom
+            </label>
+            <div class="auth-input-wrap">
+                <input
+                    type="text"
+                    id="nom"
+                    name="nom"
+                    placeholder="Nom de famille"
+                    value="{{ formData.nom ?? '' }}"
+                    class="auth-input"
+                    autocomplete="family-name"
+                    required
+                >
+            </div>
+        </div>
+    </div>
+
+    {# Email #}
+    <div class="auth-field-wrap">
+        <label class="auth-label" for="email">
+            <i class="fa-regular fa-envelope me-1.5 opacity-60"></i>Adresse email professionnelle
+        </label>
+        <div class="auth-input-wrap">
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="nom@gei.org"
+                value="{{ formData.email ?? '' }}"
+                class="auth-input"
+                autocomplete="email"
+                required
+            >
+        </div>
+    </div>
+
+    {# Fonction + Marché #}
+    <div class="auth-row-2col">
+        <div class="auth-field-wrap">
+            <label class="auth-label" for="fonction">
+                <i class="fa-solid fa-briefcase me-1.5 opacity-60"></i>Fonction
+            </label>
+            <div class="auth-input-wrap">
+                <input
+                    type="text"
+                    id="fonction"
+                    name="fonction"
+                    placeholder="Agent terrain, PFT…"
+                    value="{{ formData.fonction ?? '' }}"
+                    class="auth-input"
+                    autocomplete="off"
+                >
+            </div>
+        </div>
+        <div class="auth-field-wrap">
+            <label class="auth-label" for="pays">
+                <i class="fa-solid fa-earth-africa me-1.5 opacity-60"></i>Pays / Marché
+            </label>
+            <div class="auth-input-wrap">
+                <input
+                    type="text"
+                    id="pays"
+                    name="pays"
+                    placeholder="Bénin, Togo…"
+                    value="{{ formData.pays ?? '' }}"
+                    class="auth-input"
+                    autocomplete="off"
+                >
+            </div>
+        </div>
+    </div>
+
+    {# Mot de passe #}
+    <div class="auth-field-wrap">
+        <label class="auth-label" for="reg_password">
+            <i class="fa-solid fa-lock me-1.5 opacity-60"></i>Mot de passe
+        </label>
+        <div class="auth-input-wrap auth-input-icon-right">
+            <input
+                type="password"
+                id="reg_password"
+                name="password"
+                placeholder="Minimum 8 caractères"
+                class="auth-input"
+                autocomplete="new-password"
+                required
+                oninput="checkPasswordStrength(this.value)"
+            >
+            <button type="button" class="auth-input-btn" id="toggleRegPwdBtn"
+                    onclick="togglePassword('reg_password', 'toggleRegPwdBtn')" tabindex="-1">
+                <i class="fa-regular fa-eye"></i>
+            </button>
+        </div>
+        {# Barre de force #}
+        <div class="pwd-strength-wrap" id="pwdStrengthWrap">
+            <div class="pwd-strength-bar" id="pwdStrengthBar"></div>
+        </div>
+        <p class="pwd-strength-label" id="pwdStrengthLabel"></p>
+    </div>
+
+    {# Confirmer mot de passe #}
+    <div class="auth-field-wrap">
+        <label class="auth-label" for="reg_password_confirm">
+            <i class="fa-solid fa-lock-open me-1.5 opacity-60"></i>Confirmer le mot de passe
+        </label>
+        <div class="auth-input-wrap auth-input-icon-right">
+            <input
+                type="password"
+                id="reg_password_confirm"
+                name="password_confirm"
+                placeholder="Répétez le mot de passe"
+                class="auth-input"
+                autocomplete="new-password"
+                required
+            >
+            <button type="button" class="auth-input-btn" id="toggleConfirmBtn"
+                    onclick="togglePassword('reg_password_confirm', 'toggleConfirmBtn')" tabindex="-1">
+                <i class="fa-regular fa-eye"></i>
+            </button>
+        </div>
+    </div>
+
+    {# Checkbox CGU #}
+    <div class="auth-checkbox-row">
+        <label class="auth-checkbox-label">
+            <input type="checkbox" name="terms" class="auth-checkbox" required id="termsCheck">
+            <span class="auth-checkbox-custom"></span>
+            <span>
+                J'accepte les
+                <a href="#" class="auth-link">Conditions d'utilisation</a>
+                et la politique de confidentialité GEI
+            </span>
+        </label>
+    </div>
+
+    <input type="hidden" name="_token" value="{{ csrf_token('register') }}">
+
+    {# Bouton principal #}
+    <button type="submit" class="auth-submit-btn">
+        <i class="fa-solid fa-user-plus me-2"></i>
+        Créer le compte
+    </button>
+
+</form>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function checkPasswordStrength(val) {
+    const bar   = document.getElementById('pwdStrengthBar');
+    const label = document.getElementById('pwdStrengthLabel');
+    if (!bar || !label) return;
+
+    let strength = 0;
+    if (val.length >= 8)  strength++;
+    if (/[A-Z]/.test(val)) strength++;
+    if (/[0-9]/.test(val)) strength++;
+    if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+    const levels = [
+        { w: '0%',   color: 'transparent', text: '' },
+        { w: '25%',  color: '#ef4444',      text: 'Très faible' },
+        { w: '50%',  color: '#fb923c',      text: 'Faible' },
+        { w: '75%',  color: '#fbbf24',      text: 'Correct' },
+        { w: '100%', color: '#34d399',      text: 'Fort' },
+    ];
+
+    bar.style.width           = levels[strength].w;
+    bar.style.backgroundColor = levels[strength].color;
+    label.textContent         = levels[strength].text;
+    label.style.color         = levels[strength].color;
+}
+</script>
+{% endblock %}

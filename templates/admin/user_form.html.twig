@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{% if is_new %}Créer Utilisateur{% else %}Éditer Utilisateur{% endif %} — GEI{% endblock %}
+{% block header_title %}{% if is_new %}Créer un Utilisateur GEI{% else %}Éditer l'Utilisateur {{ user.nomComplet }}{% endif %}{% endblock %}
+
+{% block body %}
+<div class="max-w-3xl mx-auto">
+    <div class="bg-slate-900/90 border border-slate-800 rounded-[1.75rem] p-5 sm:p-7 shadow-[0_30px_70px_-30px_rgba(15,23,42,1)]">
+        <div class="mb-6 pb-4 border-b border-slate-800 flex items-center justify-between gap-4">
+            <div>
+                <p class="text-[10px] uppercase tracking-[0.22em] text-amber-400 font-bold">Compte utilisateur</p>
+                <h3 class="text-xl font-bold text-white mt-2">{% if is_new %}Créer un nouvel accès{% else %}Modifier le profil{% endif %}</h3>
+            </div>
+            <div class="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-amber-300 text-[10px] font-bold uppercase tracking-[0.18em]">
+                {% if is_new %}Nouveau{% else %}Édition{% endif %}
+            </div>
+        </div>
+
+        {{ form_start(form, {'attr': {'class': 'space-y-5'}}) }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.prenom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.prenom, {'attr': {'class': 'form-input'}}) }}
+                </div>
+                <div>
+                    {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.nom, {'attr': {'class': 'form-input'}}) }}
+                </div>
+            </div>
+
+            <div>
+                {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.email, {'attr': {'class': 'form-input'}}) }}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    {{ form_label(form.role, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.role, {'attr': {'class': 'form-select'}}) }}
+                </div>
+                <div>
+                    {{ form_label(form.market, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.market, {'attr': {'class': 'form-select'}}) }}
+                </div>
+            </div>
+
+            <div>
+                {{ form_label(form.plainPassword, null, {'label_attr': {'class': 'form-label'}}) }}
+                {{ form_widget(form.plainPassword, {'attr': {'class': 'form-input'}}) }}
+            </div>
+
+            <div class="rounded-2xl bg-slate-950/60 border border-slate-800 p-4">
+                <label class="flex items-center justify-between gap-4 cursor-pointer">
+                    <div>
+                        <span class="block text-sm font-semibold text-white">Compte actif</span>
+                        <span class="block text-xs text-slate-400">Autoriser l’accès immédiat à la plateforme</span>
+                    </div>
+                    <span class="inline-flex items-center">
+                        {{ form_widget(form.actif, {'attr': {'class': 'form-checkbox h-5 w-5'}}) }}
+                    </span>
+                </label>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <a href="{{ path('app_dashboard_superadmin') }}" class="inline-flex items-center justify-center px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-2xl border border-slate-700 transition">Annuler</a>
+                <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-2xl shadow-[0_18px_30px_-18px_rgba(251,191,36,0.9)] transition-all">
+                    Enregistrer
+                </button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+</div>
+{% endblock %}

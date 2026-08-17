@@ -1,0 +1,166 @@
+{# Composant filtres pour écran "Registre / Liste des alertes" - Partie E.1 #}
+
+{% macro filter_registre() %}
+<div class="space-y-4 p-4 sm:p-6 bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+    <h3 class="text-lg font-semibold text-navy-900 dark:text-white">Filtres</h3>
+    
+    <form method="GET" class="space-y-4" id="filters-form">
+        <!-- Marché(s) — multi-sélection -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Marché(s)
+            </label>
+            <select name="marches[]" multiple class="form-input mt-1">
+                <option value="benin">Bénin</option>
+                <option value="togo">Togo</option>
+                <option value="ghana">Ghana</option>
+                <option value="ci">Côte d'Ivoire</option>
+                <option value="mali">Mali</option>
+                <option value="niger">Niger</option>
+                <option value="senegal">Sénégal</option>
+                <option value="guinee">Guinée</option>
+                <option value="angola">Angola</option>
+                <option value="cameroun">Cameroun</option>
+                <option value="rdc">RDC</option>
+            </select>
+        </div>
+
+        <!-- Statut — multi-sélection -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Statut
+            </label>
+            <select name="statuts[]" multiple class="form-input mt-1">
+                <option value="nouveau">Nouveau</option>
+                <option value="en_cours">En cours</option>
+                <option value="a_investiguer">À investiguer</option>
+                <option value="suivi">Suivi</option>
+                <option value="ouvert">Ouvert</option>
+                <option value="clos">Clos</option>
+                <option value="archive">Archivé</option>
+                <option value="transmis">Transmis</option>
+            </select>
+        </div>
+
+        <!-- Priorité — multi-sélection -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Niveau de priorité
+            </label>
+            <select name="priorites[]" multiple class="form-input mt-1">
+                <option value="critique">Critique</option>
+                <option value="eleve">Élevé</option>
+                <option value="modere">Modéré</option>
+                <option value="faible">Faible</option>
+            </select>
+        </div>
+
+        <!-- Plage de score -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Plage de score (0-100)
+            </label>
+            <div class="flex gap-2 mt-1">
+                <input type="number" name="score_min" min="0" max="100" placeholder="Min" class="form-input flex-1">
+                <input type="number" name="score_max" min="0" max="100" placeholder="Max" class="form-input flex-1">
+            </div>
+        </div>
+
+        <!-- Urgence -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Urgence
+            </label>
+            <select name="urgence" class="form-input mt-1">
+                <option value="">-- Toutes --</option>
+                <option value="immediat">Immédiat</option>
+                <option value="72h">72h</option>
+                <option value="routine">Routine</option>
+            </select>
+        </div>
+
+        <!-- Période -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Période
+            </label>
+            <div class="flex gap-2 mt-1">
+                <input type="date" name="date_debut" class="form-input flex-1">
+                <input type="date" name="date_fin" class="form-input flex-1">
+            </div>
+            <div class="flex gap-2 mt-2 flex-wrap">
+                <button type="button" class="px-3 py-1 text-xs bg-slate-200 dark:bg-navy-800 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-navy-700">Aujourd'hui</button>
+                <button type="button" class="px-3 py-1 text-xs bg-slate-200 dark:bg-navy-800 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-navy-700">7 jours</button>
+                <button type="button" class="px-3 py-1 text-xs bg-slate-200 dark:bg-navy-800 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-navy-700">30 jours</button>
+                <button type="button" class="px-3 py-1 text-xs bg-slate-200 dark:bg-navy-800 rounded text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-navy-700">Mois actuel</button>
+            </div>
+        </div>
+
+        <!-- Agent émetteur -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Agent émetteur
+            </label>
+            <select name="agent_id" class="form-input mt-1">
+                <option value="">-- Tous --</option>
+                <!-- Les options sont peuplées dynamiquement selon les marchés sélectionnés -->
+            </select>
+        </div>
+
+        <!-- Origine -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Origine
+            </label>
+            <select name="origine" class="form-input mt-1">
+                <option value="">-- Tous --</option>
+                <option value="saisie_agent">Saisie agent</option>
+                <option value="import_excel">Import Excel</option>
+            </select>
+        </div>
+
+        <!-- Recherche texte libre -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Recherche libre
+            </label>
+            <input type="text" name="q" placeholder="Code alerte, corridor, mots-clés..." class="form-input mt-1">
+        </div>
+
+        <!-- Cas urgence 72h uniquement -->
+        <div class="flex items-center gap-2">
+            <input type="checkbox" id="urgence_72h" name="urgence_72h_only" class="form-checkbox">
+            <label for="urgence_72h" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Cas urgence 72h uniquement
+            </label>
+        </div>
+
+        <!-- Tri -->
+        <div>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Tri
+            </label>
+            <select name="sort" class="form-input mt-1">
+                <option value="-date">Date décroissante (défaut)</option>
+                <option value="-score">Score décroissant</option>
+                <option value="sla_restant">SLA restant croissant</option>
+            </select>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="flex gap-2 pt-4">
+            <button type="submit" class="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors">
+                Appliquer filtres
+            </button>
+            <button type="reset" class="flex-1 h-11 bg-slate-200 dark:bg-navy-800 text-slate-700 dark:text-slate-200 rounded-lg font-semibold hover:bg-slate-300 dark:hover:bg-navy-700 transition-colors">
+                Réinitialiser
+            </button>
+        </div>
+
+        <!-- Compteur de résultats -->
+        <div class="pt-2 text-sm text-slate-600 dark:text-slate-400">
+            {{ resultsCount is defined ? resultsCount ~ ' résultats' : 'Appliquez les filtres pour voir les résultats' }}
+        </div>
+    </form>
+</div>
+{% endmacro %}

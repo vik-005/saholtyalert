@@ -1,0 +1,19 @@
+{% if priority is defined and priority %}
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border 
+        {% if priority.value == 'critique' %}
+            bg-red-500/10 text-red-400 border-red-500/30
+        {% elseif priority.value == 'eleve' %}
+            bg-orange-500/10 text-orange-400 border-orange-500/30
+        {% elseif priority.value == 'modere' %}
+            bg-amber-500/10 text-amber-400 border-amber-500/30
+        {% else %}
+            bg-emerald-500/10 text-emerald-400 border-emerald-500/30
+        {% endif %}">
+        <span>{{ priority.icon }}</span>
+        <span>{{ priority.label }}</span>
+    </span>
+{% elseif status is defined and status %}
+    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+        {{ status.label }}
+    </span>
+{% endif %}

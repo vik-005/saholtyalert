@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Registre Consolidé GEI</title>
+    <style>
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #1e293b; margin: 0; padding: 15px; }
+        .header { border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 15px; width: 100%; }
+        .title { font-size: 16px; font-weight: bold; color: #0f172a; }
+        table.registre { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table.registre th, table.registre td { border: 1px solid #cbd5e1; padding: 5px; text-align: left; }
+        table.registre th { background-color: #0f172a; color: #ffffff; font-size: 8px; text-transform: uppercase; }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; font-size: 8px; color: #64748b; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table style="width: 100%;">
+            <tr>
+                <td>
+                    <div class="title">REGISTRE CONSOLIDÉ D'ALERTES GEI</div>
+                    <div style="color: #64748b; font-size: 9px;">GROUPE D'ÉCHANGE D'INFORMATIONS</div>
+                </td>
+                <td style="text-align: right; font-size: 9px; color: #64748b;">
+                    Généré le {{ date_impression|date('d/m/Y H:i') }} | Total : {{ alerts|length }} alertes
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <table class="registre">
+        <thead>
+            <tr>
+                <th>Code GEI</th>
+                <th>Date</th>
+                <th>Zone</th>
+                <th>Corridor</th>
+                <th>Catégorie</th>
+                <th>Résumé Exécutif</th>
+                <th>Score</th>
+                <th>Priorité</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alert in alerts %}
+                <tr>
+                    <td style="font-family: monospace; font-weight: bold;">{{ alert.codeGei ?? 'BROUILLON' }}</td>
+                    <td>{{ alert.dateCreation|date('d/m/Y') }}</td>
+                    <td>{{ alert.market.nom }}</td>
+                    <td>{{ alert.portCorridor ?? '-' }}</td>
+                    <td>{{ alert.categorie ? alert.categorie.label : '-' }}</td>
+                    <td style="max-width: 250px;">{{ alert.resumeExecutif }}</td>
+                    <td style="font-weight: bold; text-align: center;">{{ alert.effectiveScore ?? '-' }}</td>
+                    <td>{{ alert.effectiveNiveauPriorite ? alert.effectiveNiveauPriorite.label : '-' }}</td>
+                    <td>{{ alert.statut.label }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 15px;">Aucune alerte enregistrée.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        DOCUMENT CONFIDENTIEL — DISPOSITIF REGIONAL GEI/AIT
+    </div>
+</body>
+</html>

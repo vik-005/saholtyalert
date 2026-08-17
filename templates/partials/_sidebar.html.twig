@@ -1,0 +1,154 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Sidebar GEI — layout inspiré COINEST, couleurs dark navy + amber GEI
+   Font Awesome 6 Free utilisé pour toutes les icônes
+───────────────────────────────────────────────────────────────────────── #}
+<aside id="gei-sidebar" class="gei-sidebar flex flex-col flex-shrink-0">
+
+    {# ── Logo ── #}
+    <div class="sidebar-logo">
+        <div class="logo-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div class="logo-text">
+            <span class="logo-title">GEI Platform</span>
+            <span class="logo-sub">Renseignement Opérationnel</span>
+        </div>
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Réduire le menu">
+            <i class="fa-solid fa-angles-left"></i>
+        </button>
+    </div>
+
+    {# ── Search ── #}
+    <div class="sidebar-search">
+        <i class="fa-solid fa-magnifying-glass sidebar-search-icon"></i>
+        <input type="text" placeholder="Rechercher…" class="sidebar-search-input" id="sidebarSearch">
+    </div>
+
+    {# ── Navigation ── #}
+    <nav class="sidebar-nav flex-1 overflow-y-auto">
+
+        {# Tableaux de bord #}
+        <p class="sidebar-section-label">Tableaux de bord</p>
+
+        <a href="{{ path('app_dashboard_operationnel') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_operationnel' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-gauge-high"></i></span>
+            <span class="sidebar-link-text">Opérationnel</span>
+        </a>
+
+        {% if is_granted('ROLE_PFT') %}
+        <a href="{{ path('app_dashboard_urgence') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_urgence' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-stopwatch text-amber-400"></i></span>
+            <span class="sidebar-link-text">Urgence 72h</span>
+            <span class="sidebar-badge badge-amber">SLA</span>
+        </a>
+        {% endif %}
+
+        {% if is_granted('ROLE_COMITE_AIT') %}
+        <a href="{{ path('app_dashboard_kpi') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_kpi' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-chart-pie text-emerald-400"></i></span>
+            <span class="sidebar-link-text">KPI Stratégiques</span>
+        </a>
+        {% endif %}
+
+        {# Gestion alertes #}
+        <p class="sidebar-section-label">Gestion Alertes</p>
+
+        <a href="{{ path('app_alert_index') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') starts with 'app_alert' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-file-shield"></i></span>
+            <span class="sidebar-link-text">Registre GEI</span>
+        </a>
+
+        <a href="{{ path('app_alert_new') }}" class="sidebar-link sidebar-link-cta">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-circle-plus"></i></span>
+            <span class="sidebar-link-text">Nouvelle Fiche</span>
+        </a>
+
+        <a href="{{ path('app_alert_import') }}" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-file-arrow-up text-emerald-400"></i></span>
+            <span class="sidebar-link-text">Import Excel</span>
+        </a>
+
+        <a href="{{ path('app_export_registre') }}" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-file-arrow-down text-blue-400"></i></span>
+            <span class="sidebar-link-text">Export Registre</span>
+        </a>
+
+        {# Outils d'analyse #}
+        <p class="sidebar-section-label">Analyse</p>
+
+        <a href="{{ path('app_dashboard_statistiques') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_statistiques' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-chart-bar text-purple-400"></i></span>
+            <span class="sidebar-link-text">Statistiques</span>
+        </a>
+
+        <a href="#" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-magnifying-glass-chart text-purple-400"></i></span>
+            <span class="sidebar-link-text">Filtres avancés</span>
+        </a>
+
+        <a href="#" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-map-location-dot text-cyan-400"></i></span>
+            <span class="sidebar-link-text">Carte corridors</span>
+            <span class="sidebar-badge badge-blue">Bêta</span>
+        </a>
+
+        {# Administration #}
+        {% if is_granted('ROLE_SUPERADMIN') %}
+        <p class="sidebar-section-label">Administration</p>
+
+        <a href="{{ path('app_dashboard_superadmin') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_superadmin' %}active{% endif %}">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-screwdriver-wrench text-purple-400"></i></span>
+            <span class="sidebar-link-text">Console Admin</span>
+        </a>
+
+        <a href="#" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-users-gear text-slate-300"></i></span>
+            <span class="sidebar-link-text">Utilisateurs</span>
+        </a>
+
+        <a href="{{ path('app_admin_rule_index') }}" class="sidebar-link">
+            <span class="sidebar-link-icon"><i class="fa-solid fa-sliders text-slate-300"></i></span>
+            <span class="sidebar-link-text">Règles scoring</span>
+        </a>
+        {% endif %}
+
+    </nav>
+
+        {# Notifications rapides ── #}
+        <div class="sidebar-notif" id="sidebarNotifZone">
+            <div class="sidebar-notif-header">
+                <span><i class="fa-solid fa-bell text-amber-400 me-1.5"></i> Notifications</span>
+                <span class="sidebar-badge badge-red" id="sidebarNotifBadge">…</span>
+            </div>
+            <div id="sidebarNotifList">
+                <div class="sidebar-notif-item">
+                    <span class="notif-dot notif-dot-amber"></span>
+                    <span class="text-slate-500 text-xs">Chargement…</span>
+                </div>
+            </div>
+        </div>
+
+    {# ── Profil utilisateur ── #}
+    <div class="sidebar-profile">
+        <div class="profile-avatar">
+            {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
+        </div>
+        <div class="profile-info">
+            <span class="profile-name">{{ app.user.nomComplet }}</span>
+            <span class="profile-role">{{ app.user.role.label }}</span>
+        </div>
+        <a href="{{ path('app_logout') }}" class="profile-logout" title="Déconnexion">
+            <i class="fa-solid fa-right-from-bracket"></i>
+        </a>
+    </div>
+
+</aside>
+
+{# Overlay mobile #}
+<div id="sidebarOverlay" class="sidebar-overlay hidden" onclick="closeSidebar()"></div>

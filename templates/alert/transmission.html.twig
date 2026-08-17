@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Transmission — {{ alert.codeGei }}{% endblock %}
+{% block header_title %}Décision de Transmission Institutionnelle{% endblock %}
+
+{% block body %}
+<div class="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
+    <div class="mb-6 pb-4 border-b border-slate-800">
+        <h3 class="text-lg font-bold text-white">Transmission de l'alerte {{ alert.codeGei }}</h3>
+        <p class="text-xs text-slate-400">Transmettre l'information qualifiée aux autorités compétentes</p>
+    </div>
+
+    {{ form_start(form, {'attr': {'class': 'space-y-4'}}) }}
+        <div>
+            {{ form_label(form.destinataire) }}
+            {{ form_widget(form.destinataire) }}
+        </div>
+
+        <div>
+            {{ form_label(form.noteTransmission) }}
+            {{ form_widget(form.noteTransmission) }}
+        </div>
+
+        <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+            <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-lg">Annuler</a>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow">
+                Confirmer la Transmission
+            </button>
+        </div>
+    {{ form_end(form) }}
+</div>
+{% endblock %}

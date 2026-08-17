@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   AUTH LAYOUT — Design splitté inspiré AMU
+   Gauche  : slideshow automatique (images + caption + dots)
+   Droite  : formulaire (connexion ou inscription)
+   Couleurs: dark navy #090e1a + amber #fbbf24 — ZÉRO dégradé criard
+════════════════════════════════════════════════════════════════════════════ #}
+
+{% block body_login %}
+<div class="auth-shell">
+
+    {# ══════════════════════════════════════════════
+       PANNEAU GAUCHE — Slideshow
+    ══════════════════════════════════════════════ #}
+    <div class="auth-slide-panel" id="slidePanel">
+
+        {# Logo GEI en haut à gauche #}
+        <div class="slide-header">
+            <a href="/" class="slide-logo">
+                <span class="slide-logo-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                <span class="slide-logo-text">GEI Platform</span>
+            </a>
+            <a href="{{ path('app_dashboard_operationnel') }}" class="slide-back-btn">
+                Retour au site <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i>
+            </a>
+        </div>
+
+        {# Slides — 4 images plein-panel avec overlay texte #}
+        <div class="slides-container" id="slidesContainer">
+
+            {# Slide 1 — Opérationnel #}
+            <div class="slide slide-active" id="slide-0">
+                <div class="slide-bg"
+                     style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=900&q=80&auto=format')">
+                </div>
+                <div class="slide-overlay"></div>
+                <div class="slide-caption">
+                    <p class="slide-caption-tag"><i class="fa-solid fa-satellite-dish me-1.5"></i>Renseignement</p>
+                    <h2 class="slide-caption-title">Qualifier l'information,<br>Sécuriser la décision.</h2>
+                </div>
+            </div>
+
+            {# Slide 2 — Corridors #}
+            <div class="slide" id="slide-1">
+                <div class="slide-bg"
+                     style="background-image: url('https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=900&q=80&auto=format')">
+                </div>
+                <div class="slide-overlay"></div>
+                <div class="slide-caption">
+                    <p class="slide-caption-tag"><i class="fa-solid fa-route me-1.5"></i>Corridors</p>
+                    <h2 class="slide-caption-title">Surveiller les flux,<br>Anticiper les risques.</h2>
+                </div>
+            </div>
+
+            {# Slide 3 — Analyse #}
+            <div class="slide" id="slide-2">
+                <div class="slide-bg"
+                     style="background-image: url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&q=80&auto=format')">
+                </div>
+                <div class="slide-overlay"></div>
+                <div class="slide-caption">
+                    <p class="slide-caption-tag"><i class="fa-solid fa-chart-line me-1.5"></i>Analyse</p>
+                    <h2 class="slide-caption-title">Scorer chaque alerte,<br>Agir avec précision.</h2>
+                </div>
+            </div>
+
+            {# Slide 4 — Terrain #}
+            <div class="slide" id="slide-3">
+                <div class="slide-bg"
+                     style="background-image: url('https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=900&q=80&auto=format')">
+                </div>
+                <div class="slide-overlay"></div>
+                <div class="slide-caption">
+                    <p class="slide-caption-tag"><i class="fa-solid fa-shield-halved me-1.5"></i>Terrain</p>
+                    <h2 class="slide-caption-title">Protéger les marchés,<br>Renforcer la coopération.</h2>
+                </div>
+            </div>
+
+        </div>
+
+        {# Dots de navigation #}
+        <div class="slide-dots" id="slideDots">
+            <button class="slide-dot slide-dot-active" onclick="goToSlide(0)" id="dot-0"></button>
+            <button class="slide-dot" onclick="goToSlide(1)" id="dot-1"></button>
+            <button class="slide-dot" onclick="goToSlide(2)" id="dot-2"></button>
+            <button class="slide-dot" onclick="goToSlide(3)" id="dot-3"></button>
+        </div>
+
+    </div>
+
+    {# ══════════════════════════════════════════════
+       PANNEAU DROIT — Formulaire
+    ══════════════════════════════════════════════ #}
+    <div class="auth-form-panel">
+        <div class="auth-form-inner">
+            {% block auth_form %}{% endblock %}
+        </div>
+
+        {# Footer discret #}
+        <p class="auth-footer-note">
+            <i class="fa-solid fa-lock fa-xs me-1.5"></i>
+            Dispositif GEI/AIT — Document confidentiel — Accès restreint
+        </p>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block stylesheets %}{{ parent() }}{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ── Slideshow automatique ── */
+let currentSlide = 0;
+const totalSlides = 4;
+let slideInterval;
+
+function goToSlide(n) {
+    // Retirer active du slide courant
+    document.getElementById('slide-' + currentSlide)?.classList.remove('slide-active');
+    document.getElementById('dot-' + currentSlide)?.classList.remove('slide-dot-active');
+
+    currentSlide = (n + totalSlides) % totalSlides;
+
+    document.getElementById('slide-' + currentSlide)?.classList.add('slide-active');
+    document.getElementById('dot-' + currentSlide)?.classList.add('slide-dot-active');
+}
+
+function nextSlide() { goToSlide(currentSlide + 1); }
+
+function startSlideshow() {
+    slideInterval = setInterval(nextSlide, 5000);
+}
+function stopSlideshow() {
+    clearInterval(slideInterval);
+}
+
+// Pause au survol
+document.getElementById('slidePanel')?.addEventListener('mouseenter', stopSlideshow);
+document.getElementById('slidePanel')?.addEventListener('mouseleave', startSlideshow);
+
+startSlideshow();
+
+/* ── Toggle mot de passe ── */
+function togglePassword(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const icon  = document.getElementById(btnId).querySelector('i');
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+</script>
+{% endblock %}

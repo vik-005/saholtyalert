@@ -1,0 +1,111 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Topbar GEI — style COINEST adapté dark navy + amber
+───────────────────────────────────────────────────────────────────────── #}
+<header class="gei-topbar">
+
+    {# ── Gauche : hamburger + titre + marché ── #}
+    <div class="topbar-left">
+        <button class="topbar-hamburger" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="topbar-breadcrumb">
+            <span class="topbar-page-title">{% block header_title %}Dashboard{% endblock %}</span>
+            {% if app.user.market %}
+                <span class="topbar-market">
+                    <span class="market-dot"></span>
+                    {{ app.user.market.nom }}
+                    <span class="market-iso">{{ app.user.market.codeIso3 }}</span>
+                </span>
+            {% else %}
+                <span class="topbar-market topbar-market-multi">
+                    <span class="market-dot market-dot-amber"></span>
+                    Vue Régionale
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Centre : barre de recherche ── #}
+    <div class="topbar-search-wrap">
+        <i class="fa-solid fa-magnifying-glass topbar-search-icon"></i>
+        <input type="text" placeholder="Rechercher un code GEI, corridor, pays…" class="topbar-search-input">
+        <kbd class="topbar-search-kbd">⌘K</kbd>
+    </div>
+
+    {# ── Droite : actions + notifications + profil ── #}
+    <div class="topbar-right">
+
+        {# Bouton "Nouvelle fiche" ── visible desktop #}
+        <a href="{{ path('app_alert_new') }}" class="topbar-cta-btn">
+            <i class="fa-solid fa-plus"></i>
+            <span>Nouvelle alerte</span>
+        </a>
+
+        {# Notifications ── #}
+        <div class="topbar-notif-wrap" id="notifDropdownWrap">
+            <button class="topbar-icon-btn" id="notifBtn" onclick="toggleNotifPanel()" aria-label="Notifications">
+                <i class="fa-solid fa-bell"></i>
+                <span class="topbar-badge" id="topbarNotifBadge" style="display:none">0</span>
+            </button>
+
+            <div class="notif-panel hidden" id="notifPanel">
+                <div class="notif-panel-header">
+                    <span><i class="fa-solid fa-bell me-1.5"></i>Notifications</span>
+                    <button class="notif-mark-all" onclick="toggleNotifPanel()">
+                        <i class="fa-solid fa-check-double me-1"></i>Tout lire
+                    </button>
+                </div>
+                <div class="notif-list">
+                    <a href="{{ path('app_dashboard_urgence') }}" class="notif-item notif-unread">
+                        <span class="notif-icon-wrap notif-icon-red">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </span>
+                        <div class="notif-body">
+                            <p class="notif-title">Alerte Critique — Urgence 72h activée</p>
+                            <span class="notif-meta">GEI-BEN-2026-001 • Score 25 • il y a 12 min</span>
+                        </div>
+                    </a>
+                    <a href="{{ path('app_dashboard_operationnel') }}" class="notif-item notif-unread">
+                        <span class="notif-icon-wrap notif-icon-amber">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </span>
+                        <div class="notif-body">
+                            <p class="notif-title">Validation SAHOLTY requise</p>
+                            <span class="notif-meta">GEI-CIV-2026-004 • Score 16 • il y a 34 min</span>
+                        </div>
+                    </a>
+                    <a href="{{ path('app_dashboard_operationnel') }}" class="notif-item">
+                        <span class="notif-icon-wrap notif-icon-emerald">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </span>
+                        <div class="notif-body">
+                            <p class="notif-title">Nouvelle alerte soumise — Bénin</p>
+                            <span class="notif-meta">GEI-BEN-2026-005 • Corridor Cotonou-Niamey • il y a 1h</span>
+                        </div>
+                    </a>
+                </div>
+                <a href="#" class="notif-panel-footer">
+                    Voir toutes les notifications <i class="fa-solid fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        {# Messages ── #}
+        <button class="topbar-icon-btn" aria-label="Messages">
+            <i class="fa-regular fa-message"></i>
+        </button>
+
+        {# Profil ── #}
+        <div class="topbar-user">
+            <div class="topbar-avatar">
+                {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
+            </div>
+            <div class="topbar-user-info">
+                <span class="topbar-user-name">{{ app.user.prenom }} {{ app.user.nom|slice(0,1) }}.</span>
+                <span class="topbar-user-role">{{ app.user.role.label }}</span>
+            </div>
+        </div>
+
+    </div>
+</header>

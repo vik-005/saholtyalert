@@ -1,0 +1,364 @@
+{% extends 'base.html.twig' %}
+{% block title %}Qualification — {{ alert.codeGei }}{% endblock %}
+{% block header_title %}Qualification GEI{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="fa-solid fa-star-half-stroke me-1.5 text-amber-400"></i>
+                Annexe C — Qualification Manager
+            </p>
+            <h2 class="page-title">Qualifier {{ alert.codeGei ?? 'la fiche' }}</h2>
+            <p class="page-subtitle">
+                Remplissez les sections 6, 7 et 8 (Manager). Le score GEI sera calculé
+                <strong class="text-amber-400">automatiquement</strong> dès validation.
+            </p>
+        </div>
+        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+            <i class="fa-solid fa-arrow-left me-1.5"></i>Retour à la fiche
+        </a>
+    </div>
+
+    {# ── Layout 2 colonnes : formulaire + calculateur live #}
+    <div class="qualify-layout">
+
+        {# ── COLONNE GAUCHE : Formulaire Manager ── #}
+        <div class="qualify-form-col">
+
+            {# Rappel fiabilité Agent (lecture seule) #}
+            <div class="qualify-agent-recap">
+                <p class="qualify-section-label">
+                    <i class="fa-solid fa-user me-1.5 text-slate-400"></i>
+                    Données Agent — Section 3 (lecture seule)
+                </p>
+                <div class="qualify-recap-grid">
+                    <span class="qualify-recap-label">Fiabilité source (déclarée)</span>
+                    <span class="qualify-recap-val fiab-{{ alert.fiabiliteSource ? alert.fiabiliteSource.value|lower : 'nd' }}">
+                        {% if alert.fiabiliteSource %}
+                            {{ alert.fiabiliteSource.value }} — {{ alert.fiabiliteSource.label }}
+                        {% else %}
+                            <span class="text-slate-500">Non renseignée</span>
+                        {% endif %}
+                    </span>
+                    <span class="qualify-recap-label">Résumé exécutif</span>
+                    <span class="qualify-recap-text">{{ alert.resumeExecutif|slice(0, 120) }}{% if alert.resumeExecutif|length > 120 %}…{% endif %}</span>
+                    <span class="qualify-recap-label">Éléments factuels</span>
+                    <span class="qualify-recap-text">{{ (alert.elementsFactuels ?: '—')|slice(0, 100) }}{% if alert.elementsFactuels|length > 100 %}…{% endif %}</span>
+                </div>
+            </div>
+
+            {{ form_start(form, {'attr': {'class': 'qualify-form', 'id': 'qualificationForm'}}) }}
+
+            {# ── Section 6 — Qualification ── #}
+            <div class="qualify-section">
+                <p class="qualify-section-label">
+                    <span class="form-section-num">6</span>
+                    Qualification GEI — Critères Annexe C
+                </p>
+
+                {# Crédibilité #}
+                <div class="qualify-field">
+                    <div class="qualify-field-header">
+                        {{ form_label(form.credibiliteContenu, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        <span class="qualify-field-hint">Inversée : 1 = plus crédible = score 4</span>
+                    </div>
+                    {{ form_widget(form.credibiliteContenu, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_credibiliteContenu'}}) }}
+                    {{ form_errors(form.credibiliteContenu) }}
+                </div>
+
+                <div class="qualify-row-3">
+                    <div class="qualify-field">
+                        {{ form_label(form.urgence, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.urgence, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_urgence'}}) }}
+                    </div>
+                    <div class="qualify-field">
+                        {{ form_label(form.impact, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.impact, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_impact'}}) }}
+                    </div>
+                    <div class="qualify-field">
+                        {{ form_label(form.exploitabilite, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.exploitabilite, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_exploitabilite'}}) }}
+                    </div>
+                </div>
+            </div>
+
+            {# ── Section 7 — Recommandation ── #}
+            <div class="qualify-section">
+                <p class="qualify-section-label">
+                    <span class="form-section-num">7</span>
+                    Recommandation & Actions
+                </p>
+                <div class="qualify-field">
+                    {{ form_label(form.recommandation, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                    {{ form_widget(form.recommandation, {'attr': {'class': 'form-select'}}) }}
+                </div>
+                <div class="qualify-field mt-3">
+                    {{ form_label(form.actionsEnCours, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                    {{ form_widget(form.actionsEnCours, {'attr': {'class': 'form-textarea', 'rows': 3}}) }}
+                </div>
+                <div class="qualify-field mt-3">
+                    {{ form_label(form.responsableSuivi, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                    {{ form_widget(form.responsableSuivi, {'attr': {'class': 'form-select'}}) }}
+                </div>
+                <div class="qualify-field mt-3">
+                    {{ form_label(form.commentaires, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                    {{ form_widget(form.commentaires, {'attr': {'class': 'form-textarea', 'rows': 3, 'placeholder': 'Observations, besoins complémentaires, justification…'}}) }}
+                </div>
+            </div>
+
+            {# ── Section 8 — Confidentialité ── #}
+            <div class="qualify-section">
+                <p class="qualify-section-label">
+                    <span class="form-section-num">8</span>
+                    Confidentialité & Diffusion
+                </p>
+                <div class="qualify-row-2">
+                    <div class="qualify-field">
+                        {{ form_label(form.sensibilite, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.sensibilite, {'attr': {'class': 'form-select'}}) }}
+                    </div>
+                    <div class="qualify-field">
+                        {{ form_label(form.transmission, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.transmission, {'attr': {'class': 'form-select'}}) }}
+                    </div>
+                </div>
+            </div>
+
+            {# Boutons ── #}
+            <div class="form-actions">
+                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                    <i class="fa-solid fa-ban me-1.5"></i>Annuler
+                </a>
+                <button type="submit" class="auth-submit-btn" style="width:auto;padding:0 28px;">
+                    <i class="fa-solid fa-check me-2"></i>Valider la Qualification
+                </button>
+            </div>
+
+            {{ form_end(form) }}
+        </div>
+
+        {# ── COLONNE DROITE : Calculateur live + Surcharge Manager ── #}
+        <div class="qualify-side-col">
+
+            {# Score live ── #}
+            <div class="qualify-score-card">
+                <p class="db-card-eyebrow mb-3">
+                    <i class="fa-solid fa-bolt me-1.5"></i>Score GEI — Calcul en temps réel
+                </p>
+                <div class="qualify-score-display">
+                    <div id="liveScore" class="qualify-score-val {{ alert.effectiveScore ? (alert.effectiveScore >= 18 ? 'score-critique' : (alert.effectiveScore >= 14 ? 'score-eleve' : (alert.effectiveScore >= 10 ? 'score-modere' : 'score-faible'))) : 'text-slate-500' }}">
+                        {{ alert.effectiveScore ?? '—' }}
+                    </div>
+                    <div class="qualify-score-max">/25</div>
+                </div>
+                <div id="livePriorite" class="qualify-prio-badge mt-2">
+                    {{ alert.effectiveNiveauPriorite ? alert.effectiveNiveauPriorite.label : 'En attente des critères' }}
+                </div>
+                <div id="liveFormula" class="qualify-formula mt-3 hidden">
+                    <code id="liveFormulaText" class="text-amber-400 text-xs"></code>
+                </div>
+            </div>
+
+            {# Rappel formule ── #}
+            <div class="qualify-formula-box">
+                <p class="qualify-formula-title">Formule Annexe C</p>
+                <code class="qualify-formula-code">Score = (Fiabilité × Crédibilité) + Urgence + Impact + Exploitabilité</code>
+                <div class="qualify-thresholds">
+                    <span class="threshold-item threshold-critique"><i class="fa-solid fa-circle-radiation fa-xs me-1"></i>≥ 18 Critique</span>
+                    <span class="threshold-item threshold-eleve"><i class="fa-solid fa-fire fa-xs me-1"></i>14–17 Élevé</span>
+                    <span class="threshold-item threshold-modere"><i class="fa-solid fa-circle-exclamation fa-xs me-1"></i>10–13 Modéré</span>
+                    <span class="threshold-item threshold-faible"><i class="fa-solid fa-circle-check fa-xs me-1"></i>≤ 9 Faible</span>
+                </div>
+            </div>
+
+            {# Surcharge Manager ── #}
+            {% if is_granted('ROLE_PFT') or is_granted('ROLE_SAHOLTY') %}
+            <div class="qualify-override-card">
+                <p class="qualify-section-label">
+                    <i class="fa-solid fa-pen-to-square me-1.5 text-amber-400"></i>
+                    Surcharge manuelle (Manager)
+                </p>
+                <p class="text-xs text-slate-500 mb-3">
+                    À utiliser uniquement avec justification. Le score calculé reste affiché en parallèle.
+                </p>
+                <form method="post" action="{{ path('app_alert_override_score', {id: alert.id}) }}" class="space-y-3">
+                    <div class="qualify-field">
+                        <label class="qualify-label">Score surchargé (1–25)</label>
+                        <input type="number" name="score_surcharge" min="1" max="25"
+                               value="{{ alert.scoreSurcharge }}" placeholder="ex. 19"
+                               class="form-input">
+                    </div>
+                    <div class="qualify-field">
+                        <label class="qualify-label">Priorité surchargée</label>
+                        <select name="priorite_surcharge" class="form-select">
+                            <option value="">Automatique (calculée)</option>
+                            <option value="critique" {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'critique' %}selected{% endif %}>🔴 Critique</option>
+                            <option value="eleve"    {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'eleve'    %}selected{% endif %}>🟠 Élevé</option>
+                            <option value="modere"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'modere'   %}selected{% endif %}>🟡 Modéré</option>
+                            <option value="faible"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'faible'   %}selected{% endif %}>🟢 Faible</option>
+                        </select>
+                    </div>
+                    <div class="qualify-field">
+                        <label class="qualify-label">Justification <span class="text-red-400">*</span></label>
+                        <textarea name="justification_surcharge" rows="2" required
+                                  placeholder="Motif de la décision de surcharge…"
+                                  class="form-textarea">{{ alert.justificationSurcharge }}</textarea>
+                    </div>
+                    <button type="submit" class="db-btn db-btn-amber w-full justify-center">
+                        <i class="fa-solid fa-floppy-disk me-1.5"></i>Enregistrer la surcharge
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<style>
+.qualify-layout { display:grid; grid-template-columns:1fr 320px; gap:20px; align-items:start; }
+@media(max-width:1024px){ .qualify-layout { grid-template-columns:1fr; } }
+
+.qualify-form-col  { display:flex; flex-direction:column; gap:16px; }
+.qualify-side-col  { display:flex; flex-direction:column; gap:14px; position:sticky; top:80px; }
+
+.qualify-agent-recap {
+    background:var(--navy-950); border:1px solid var(--border);
+    border-left:3px solid rgba(148,163,184,.3);
+    border-radius:var(--radius); padding:14px 16px;
+}
+.qualify-recap-grid { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:11.5px; margin-top:8px; }
+.qualify-recap-label { color:var(--text-muted); white-space:nowrap; }
+.qualify-recap-val { font-weight:700; }
+.qualify-recap-text { color:var(--text-dim); font-size:11px; }
+.fiab-a { color:#34d399; } .fiab-b { color:var(--amber); }
+.fiab-c { color:#fb923c; } .fiab-d { color:#f87171; }
+
+.qualify-section {
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius); padding:18px;
+}
+.qualify-section-label {
+    display:flex; align-items:center; gap:8px;
+    font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--text-muted); margin-bottom:14px;
+}
+.qualify-field     { display:flex; flex-direction:column; gap:6px; }
+.qualify-label     { font-size:12px; font-weight:600; color:var(--text-muted); }
+.qualify-field-header { display:flex; align-items:center; justify-content:space-between; }
+.qualify-field-hint { font-size:10px; color:var(--text-muted); font-style:italic; }
+.qualify-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.qualify-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:640px){ .qualify-row-3,.qualify-row-2 { grid-template-columns:1fr; } }
+
+/* Score live */
+.qualify-score-card {
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:20px; text-align:center;
+}
+.qualify-score-display { display:flex; align-items:baseline; justify-content:center; gap:6px; }
+.qualify-score-val { font-size:64px; font-weight:900; line-height:1; transition:color .3s; }
+.qualify-score-max { font-size:20px; color:var(--text-muted); }
+.qualify-prio-badge {
+    font-size:12px; font-weight:700;
+    padding:5px 16px; border-radius:99px;
+    background:var(--navy-800); color:var(--text-muted); border:1px solid var(--border);
+    display:inline-block; transition:all .3s;
+}
+.qualify-formula { text-align:left; background:var(--navy-950); border-radius:8px; padding:8px 12px; }
+
+.qualify-formula-box {
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius); padding:14px 16px;
+}
+.qualify-formula-title { font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; }
+.qualify-formula-code {
+    display:block; font-size:11px; color:var(--amber);
+    background:var(--navy-950); border-radius:8px; padding:8px 12px;
+    font-family:monospace; margin-bottom:10px;
+}
+.qualify-thresholds { display:flex; flex-wrap:wrap; gap:6px; }
+
+.qualify-override-card {
+    background:var(--navy-900); border:1px solid var(--amber-border);
+    border-radius:var(--radius); padding:16px;
+}
+.w-full { width:100%; }
+.justify-center { justify-content:center; }
+</style>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const scoreEl   = document.getElementById('liveScore');
+    const prioEl    = document.getElementById('livePriorite');
+    const formulaEl = document.getElementById('liveFormula');
+    const formulaTxt= document.getElementById('liveFormulaText');
+
+    const prioColors = {
+        critique: { bg:'rgba(239,68,68,.1)', color:'#f87171', border:'rgba(239,68,68,.25)' },
+        eleve:    { bg:'rgba(251,146,60,.1)', color:'#fb923c', border:'rgba(251,146,60,.25)' },
+        modere:   { bg:'rgba(251,191,36,.1)', color:'#fbbf24', border:'rgba(251,191,36,.25)' },
+        faible:   { bg:'rgba(52,211,153,.1)', color:'#34d399', border:'rgba(52,211,153,.25)' },
+    };
+    const scoreClasses = ['score-critique','score-eleve','score-modere','score-faible','text-slate-500'];
+
+    function updatePreview() {
+        const credibilite   = document.getElementById('qualification_credibiliteContenu')?.value;
+        const urgence       = document.getElementById('qualification_urgence')?.value;
+        const impact        = document.getElementById('qualification_impact')?.value;
+        const exploitabilite= document.getElementById('qualification_exploitabilite')?.value;
+        // Fiabilité vient de l'alerte existante — on passe la valeur stockée
+        const fiabilite     = '{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : "B" }}';
+
+        if (!credibilite || !urgence || !impact || !exploitabilite) return;
+
+        fetch('{{ path("app_alert_preview_score") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fiabilite, credibilite, urgence, impact, exploitabilite })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.score === undefined) return;
+
+            // Mettre à jour le score
+            scoreEl.textContent = data.score;
+            scoreClasses.forEach(c => scoreEl.classList.remove(c));
+            const scoreClass = data.score >= 18 ? 'score-critique'
+                : data.score >= 14 ? 'score-eleve'
+                : data.score >= 10 ? 'score-modere' : 'score-faible';
+            scoreEl.classList.add(scoreClass);
+
+            // Badge priorité
+            prioEl.textContent = data.niveau_label;
+            const pc = prioColors[data.niveau] || prioColors.faible;
+            prioEl.style.background   = pc.bg;
+            prioEl.style.color        = pc.color;
+            prioEl.style.borderColor  = pc.border;
+
+            // Formule détaillée
+            if (data.detail) {
+                const d = data.detail;
+                formulaTxt.textContent = `(Fiab. ${fiabilite}=${d.fiabilite} × Créd.=${d.credibilite}) + Urg.=${d.urgence} + Imp.=${d.impact} + Exp.=${d.exploitabilite} = ${data.score}`;
+                formulaEl.classList.remove('hidden');
+            }
+        })
+        .catch(() => {});
+    }
+
+    // Déclencher sur changement de chaque critère
+    document.querySelectorAll('.js-score-trigger').forEach(el => {
+        el.addEventListener('change', updatePreview);
+    });
+
+    // Calcul initial si critères déjà remplis
+    updatePreview();
+});
+</script>
+{% endblock %}

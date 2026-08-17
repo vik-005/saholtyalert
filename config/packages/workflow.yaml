@@ -1,0 +1,50 @@
+framework:
+    workflows:
+        alert_lifecycle:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'statut'
+            supports:
+                - App\Entity\Alert
+            initial_marking: nouveau
+            places:
+                - nouveau
+                - en_cours
+                - a_completer
+                - a_investiguer
+                - a_valider_saholty
+                - transmis
+                - suivi
+                - archive
+                - clos
+            transitions:
+                traiter:
+                    from: nouveau
+                    to: en_cours
+                demander_complement:
+                    from: [nouveau, en_cours, a_investiguer]
+                    to: a_completer
+                orienter_investigation:
+                    from: [nouveau, en_cours, a_completer]
+                    to: a_investiguer
+                soumettre_validation:
+                    from: [en_cours, a_investiguer]
+                    to: a_valider_saholty
+                transmettre:
+                    from: [en_cours, a_investiguer, a_valider_saholty]
+                    to: transmis
+                passer_en_suivi:
+                    from: [transmis, en_cours]
+                    to: suivi
+                archiver:
+                    from: [nouveau, en_cours, a_completer, a_investiguer, transmis, suivi]
+                    to: archive
+                cloturer:
+                    from: [transmis, suivi, a_investiguer]
+                    to: clos
+                rouvrir:
+                    from: [archive, clos]
+                    to: en_cours

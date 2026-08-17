@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+{% block title %}Notifications — GEI{% endblock %}
+{% block header_title %}Notifications{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow"><i class="fa-solid fa-bell me-1.5 text-amber-400"></i>Centre de notifications</p>
+            <h2 class="page-title">Mes notifications</h2>
+            <p class="page-subtitle">
+                {{ unread_count }} non lue{{ unread_count > 1 ? 's' : '' }} sur {{ notifications|length }} au total
+            </p>
+        </div>
+        {% if unread_count > 0 %}
+        <form method="post" action="{{ path('app_notification_read_all') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('read_all') }}">
+            <button type="submit" class="db-btn db-btn-ghost">
+                <i class="fa-solid fa-check-double me-1.5"></i>Tout marquer comme lu
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="notif-list-card">
+        {% for notif in notifications %}
+        {% set typeIcon = {
+            'urgence':      'fa-circle-radiation',
+            'sla_proche':   'fa-stopwatch',
+            'validation':   'fa-clipboard-check',
+            'tache':        'fa-list-check',
+            'statut_change':'fa-rotate',
+            'info':         'fa-circle-info',
+            'warning':      'fa-triangle-exclamation',
+            'escalade':     'fa-arrow-up-right-dots',
+        }[notif.type] ?? 'fa-bell' %}
+        {% set typeColor = {
+            'urgence':      'activity-icon-red',
+            'sla_proche':   'activity-icon-red',
+            'validation':   'activity-icon-amber',
+            'tache':        'activity-icon-amber',
+            'statut_change':'activity-icon-blue',
+            'escalade':     'activity-icon-red',
+            'info':         'activity-icon-slate',
+            'warning':      'activity-icon-amber',
+        }[notif.type] ?? 'activity-icon-slate' %}
+
+        <a href="{{ path('app_notification_read', {id: notif.id}) }}"
+           class="notif-list-item {% if not notif.lu %}notif-list-item-unread{% endif %}">
+            <div class="activity-icon-wrap {{ typeColor }} flex-shrink-0">
+                <i class="fa-solid {{ typeIcon }} fa-xs"></i>
+            </div>
+            <div class="notif-list-body">
+                <p class="notif-list-text">{{ notif.contenu|raw }}</p>
+                <div class="notif-list-meta">
+                    {% if notif.alert %}
+                        <span class="notif-list-code">
+                            <i class="fa-solid fa-hashtag fa-xs me-1 opacity-50"></i>
+                            {{ notif.alert.codeGei ?? 'Alerte #' ~ notif.alert.id }}
+                        </span>
+                        <span class="mx-1 text-slate-700">·</span>
+                    {% endif %}
+                    <span>{{ notif.createdAt|date('d/m/Y à H:i') }}</span>
+                    {% if not notif.lu %}
+                        <span class="notif-list-new-badge">Nouveau</span>
+                    {% endif %}
+                </div>
+            </div>
+            <i class="fa-solid fa-chevron-right text-slate-700 fa-xs flex-shrink-0"></i>
+        </a>
+        {% else %}
+        <div class="db-empty-state">
+            <i class="fa-regular fa-bell-slash fa-2x text-slate-600 mb-3"></i>
+            <p>Aucune notification</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<style>
+.notif-list-card {
+    background: var(--navy-900);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+.notif-list-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    transition: background .2s;
+}
+.notif-list-item:last-child { border-bottom: none; }
+.notif-list-item:hover { background: rgba(255,255,255,.025); }
+.notif-list-item-unread { background: rgba(251,191,36,.03); }
+.notif-list-item-unread .notif-list-text { color: #fff; }
+.notif-list-body { flex: 1; min-width: 0; }
+.notif-list-text { font-size: 13px; color: var(--text-dim); line-height: 1.5; margin-bottom: 6px; }
+.notif-list-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap; }
+.notif-list-code { font-family: monospace; color: var(--amber); font-weight: 700; }
+.notif-list-new-badge {
+    font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 99px;
+    background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber-border);
+}
+</style>
+{% endblock %}

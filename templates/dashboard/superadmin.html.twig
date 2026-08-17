@@ -1,0 +1,118 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Console Superadmin — GEI{% endblock %}
+{% block header_title %}Console d'Administration & Traçabilité System{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    <div class="p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] shadow-[0_30px_80px_-35px_rgba(15,23,42,1)]">
+        <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div>
+                <h3 class="text-lg font-bold text-white">Gestion des Utilisateurs & Rôles GEI</h3>
+                <p class="text-xs text-slate-400">Contrôle d'accès basé sur les rôles (RBAC Annexe D)</p>
+            </div>
+            <a href="{{ path('app_admin_user_new') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl shadow transition">
+                + Créer un utilisateur
+            </a>
+        </div>
+
+        <div class="mb-4 flex flex-col sm:flex-row gap-3">
+            <input type="text" placeholder="Rechercher un utilisateur..." class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+            <select class="rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
+                <option value="">Tous les statuts</option>
+                <option value="actif">Actif</option>
+                <option value="inactif">Inactif</option>
+                <option value="en-attente">En attente</option>
+            </select>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="p-3">Utilisateur</th>
+                        <th class="p-3">Email</th>
+                        <th class="p-3">Rôle GEI</th>
+                        <th class="p-3">Marché</th>
+                        <th class="p-3">Statut</th>
+                        <th class="p-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for u in users %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="p-3 font-semibold text-white">{{ u.nomComplet }}</td>
+                            <td class="p-3 text-slate-400 font-mono">{{ u.email }}</td>
+                            <td class="p-3">
+                                <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold text-2xs">
+                                    {{ u.role.label }}
+                                </span>
+                            </td>
+                            <td class="p-3 text-slate-300">{{ u.market ? u.market.nom : 'Global / Régional' }}</td>
+                            <td class="p-3">
+                                {% if u.actif %}
+                                    <span class="status-badge status-active">Actif</span>
+                                {% else %}
+                                    <span class="status-badge status-inactive">Inactif</span>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-right">
+                                <div class="inline-flex items-center gap-2">
+                                    <a href="{{ path('app_admin_user_edit', {id: u.id}) }}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-2xs">Éditer</a>
+                                    <button type="button" class="delete-trigger px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl border border-red-500/20 text-2xs" data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}" data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">Supprimer</button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Rule Config Thresholds -->
+    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
+        <h3 class="text-lg font-bold text-white mb-4">Seuils du Moteur de Règles (§3.2)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for rule in rules %}
+                <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
+                    <div>
+                        <div class="font-mono font-bold text-amber-400 text-xs">{{ rule.cle }}</div>
+                        <div class="text-xs text-slate-400 truncate max-w-xs">{{ rule.description }}</div>
+                        <div class="text-sm font-extrabold text-white mt-1">Valeur: {{ rule.valeur }}</div>
+                    </div>
+                    <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}" class="px-2.5 py-1 bg-slate-800 text-slate-200 text-2xs rounded">Modifier</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Access Logs -->
+    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
+        <h3 class="text-lg font-bold text-white mb-4">Journal d'Audit & Traçabilité AccessLog (Annexe D §6/§8)</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                    <tr>
+                        <th class="p-3">Horodatage</th>
+                        <th class="p-3">Utilisateur</th>
+                        <th class="p-3">Action</th>
+                        <th class="p-3">Alerte liée</th>
+                        <th class="p-3">IP</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800">
+                    {% for log in logs %}
+                        <tr class="hover:bg-slate-800/40">
+                            <td class="p-3 text-slate-400 font-mono whitespace-nowrap">{{ log.dateAction|date('d/m/Y H:i:s') }}</td>
+                            <td class="p-3 font-semibold text-white">{{ log.user ? log.user.nomComplet : 'Anonyme' }}</td>
+                            <td class="p-3 font-bold text-amber-400">{{ log.action }}</td>
+                            <td class="p-3 font-mono text-slate-300">{{ log.alert ? log.alert.codeGei : '-' }}</td>
+                            <td class="p-3 text-slate-400 font-mono">{{ log.ipAdresse ?? '-' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

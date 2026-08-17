@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+<div class="min-h-screen flex flex-col">
+    <!-- Topbar -->
+    {% include 'partials/_navbar.html.twig' %}
+
+    <div class="flex flex-1">
+        <!-- Sidebar -->
+        {% include 'partials/_sidebar.html.twig' %}
+
+        <!-- Main content -->
+        <main class="flex-1 p-4 sm:p-6 overflow-y-auto bg-slate-50 dark:bg-navy-950">
+            <!-- Alerts/Flashes -->
+            {% for label, messages in app.flashes %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ label }} mb-4 p-4 rounded-lg flex items-center justify-between shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-navy-900 text-slate-900 dark:text-slate-100">
+                        <span>{{ message }}</span>
+                        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+
+            {% block body_content %}{% endblock %}
+        </main>
+    </div>
+</div>
+{% endblock %}

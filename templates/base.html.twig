@@ -1,24 +1,238 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <title>{% block title %}Welcome!{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
-        {% block stylesheets %}
-        {% endblock %}
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Plateforme GEI — Renseignement Opérationnel{% endblock %}</title>
+    <meta name="description" content="Plateforme GEI de renseignement opérationnel, suivi des alertes et tableaux de bord stratégiques.">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
 
-        {% block javascripts %}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
+    {# ── Google Fonts — Inter ── #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-        {% set frankenphp_hot_reload = app.request.server.get('FRANKENPHP_HOT_RELOAD') %}
-        {% if frankenphp_hot_reload %}
-        <meta name="frankenphp-hot-reload:url" content="{{ frankenphp_hot_reload }}">
-        <script src="https://cdn.jsdelivr.net/npm/idiomorph"></script>
-        <script src="https://cdn.jsdelivr.net/npm/frankenphp-hot-reload/+esm" type="module"></script>
-        {% endif %}
-    </head>
-    <body>
-        {% block body %}{% endblock %}
-    </body>
+    {# ── Font Awesome 6 Free ── #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    {# ── Tailwind CDN ── #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            '50':  '#f0f4f9',
+                            '100': '#dfe7f1',
+                            '200': '#bfd3e3',
+                            '300': '#9fbace',
+                            '400': '#6e8fb3',
+                            '500': '#4a6fa5',
+                            '600': '#38568e',
+                            '700': '#2d4575',
+                            '800': '#1f3a61',
+                            '900': '#0f1729',
+                            '950': '#090e1a',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    {# ── Chart.js ── #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    {# ── CSS principal ── #}
+    <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+
+{% if app.user %}
+    <div class="gei-shell">
+        {# Sidebar #}
+        {% include 'partials/_sidebar.html.twig' %}
+
+        {# Zone principale #}
+        <div class="gei-main">
+            {# Topbar #}
+            {% include 'partials/_navbar.html.twig' %}
+
+            {# Contenu #}
+            <main class="gei-content">
+
+                {# Flash messages #}
+                {% for label, messages in app.flashes %}
+                    {% for message in messages %}
+                        <div class="flash-msg flash-{{ label }}">
+                            <div class="flash-inner">
+                                {% if label == 'success' %}
+                                    <i class="fa-solid fa-circle-check flash-icon"></i>
+                                {% elseif label == 'danger' or label == 'error' %}
+                                    <i class="fa-solid fa-circle-xmark flash-icon"></i>
+                                {% elseif label == 'warning' %}
+                                    <i class="fa-solid fa-triangle-exclamation flash-icon"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-info flash-icon"></i>
+                                {% endif %}
+                                <span>{{ message }}</span>
+                            </div>
+                            <button onclick="this.parentElement.remove()" class="flash-close">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+
+                {% block body %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+{% else %}
+    <main class="auth-main">
+        {% block body_login %}{% endblock %}
+    </main>
+{% endif %}
+
+{# ── Modale de confirmation ── #}
+<div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div>
+                <p class="modal-eyebrow"><i class="fa-solid fa-triangle-exclamation me-1.5"></i>Confirmation requise</p>
+                <h3 class="modal-title">Confirmer la suppression ?</h3>
+            </div>
+            <button class="modal-close-btn modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="modal-body-text">Cette action est irréversible. L'élément sera définitivement supprimé.</p>
+        <form id="deleteConfirmForm" method="post" class="modal-actions">
+            <input type="hidden" name="_token" id="deleteTokenInput" value="">
+            <button type="button" class="btn-secondary modal-close">
+                <i class="fa-solid fa-ban me-1.5"></i>Annuler
+            </button>
+            <button type="submit" class="btn-danger">
+                <i class="fa-solid fa-trash me-1.5"></i>Supprimer
+            </button>
+        </form>
+    </div>
+</div>
+
+{{ importmap('app') }}
+
+{# ── Scripts globaux ── #}
+<script>
+/* ─── Sidebar toggle ─── */
+function toggleSidebar() {
+    const shell = document.querySelector('.gei-shell');
+    const overlay = document.getElementById('sidebarOverlay');
+    shell.classList.toggle('sidebar-collapsed');
+    overlay.classList.toggle('hidden');
+}
+function closeSidebar() {
+    document.querySelector('.gei-shell').classList.remove('sidebar-collapsed');
+    document.getElementById('sidebarOverlay').classList.add('hidden');
+}
+document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => {
+    document.querySelector('.gei-shell').classList.toggle('sidebar-mini');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const icon = btn.querySelector('i');
+    icon.classList.toggle('fa-angles-left');
+    icon.classList.toggle('fa-angles-right');
+});
+
+/* ─── Polling notifications (toutes les 30s — badge sans rechargement) ─── */
+let notifPollInterval;
+async function pollNotifications() {
+    try {
+        const r = await fetch('/api/notifications/count', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!r.ok) return;
+        const data = await r.json();
+
+        // Badge topbar
+        const badge = document.getElementById('topbarNotifBadge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.style.display = 'grid';
+                // Badge rouge si urgences
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Badge sidebar
+        const sidebarBadge = document.getElementById('sidebarNotifBadge');
+        if (sidebarBadge) {
+            sidebarBadge.textContent = data.count > 0 ? data.count : '0';
+        }
+
+        // Mettre à jour la liste sidebar
+        const sidebarList = document.getElementById('sidebarNotifList');
+        if (sidebarList && data.notifications && data.notifications.length > 0) {
+            sidebarList.innerHTML = data.notifications.slice(0, 2).map(n => {
+                const dot = n.type === 'urgence' ? 'notif-dot-red' : 'notif-dot-amber';
+                const text = n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 45) + '…' : '';
+                return `<div class="sidebar-notif-item">
+                    <span class="notif-dot ${dot}"></span>
+                    <span>${text}</span>
+                </div>`;
+            }).join('');
+        } else if (sidebarList) {
+            sidebarList.innerHTML = '<div class="sidebar-notif-item"><span class="text-slate-500 text-xs">Aucune notification</span></div>';
+        }
+
+        // Mettre à jour le panel dropdown topbar
+        if (data.notifications && window._notifPanelOpen !== true) {
+            const list = document.querySelector('.notif-list');
+            if (list && data.notifications.length > 0) {
+                list.innerHTML = data.notifications.map(n => {
+                    const iconClass = n.type === 'urgence' ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
+                    const icon = n.type === 'urgence' ? 'fa-triangle-exclamation' : n.type === 'tache' ? 'fa-clipboard-check' : 'fa-circle-check';
+                    const href = n.alertId ? `/notification/${n.id}/read` : '/notification/' + n.id + '/read';
+                    return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'}">
+                        <span class="notif-icon-wrap ${iconClass}"><i class="fa-solid ${icon}"></i></span>
+                        <div class="notif-body">
+                            <p class="notif-title">${n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—'}</p>
+                            <span class="notif-meta">${n.codeGei ? n.codeGei + ' · ' : ''}${n.date}</span>
+                        </div>
+                    </a>`;
+                }).join('');
+            }
+        }
+    } catch (e) { /* Silencieux — pas critique */ }
+}
+
+// Premier appel immédiat + polling toutes les 30s
+document.addEventListener('DOMContentLoaded', () => {
+    pollNotifications();
+    notifPollInterval = setInterval(pollNotifications, 30000);
+});
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    panel.classList.toggle('hidden');
+    window._notifPanelOpen = !panel.classList.contains('hidden');
+}
+
+
+/* ─── Modale confirm ─── */
+document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('confirmModal').classList.add('hidden');
+    });
+});
+</script>
+
+{% block javascripts %}{% endblock %}
+</body>
 </html>

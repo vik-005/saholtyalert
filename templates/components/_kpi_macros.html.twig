@@ -1,0 +1,56 @@
+{# Macro pour cartes KPI / indicateurs #}
+{% macro kpi_card(title, value, subtitle = '', trend = null, trendValue = '', icon = '', class = '') %}
+<div class="bg-white dark:bg-navy-900 border border-slate-200 dark:border-slate-700 rounded-lg p-6 hover:shadow-sm transition-shadow {{ class }}">
+    <!-- En-tête -->
+    <div class="flex items-start justify-between gap-4">
+        <div class="flex-1">
+            <h3 class="text-sm font-medium text-slate-600 dark:text-slate-400">{{ title }}</h3>
+            <p class="text-3xl sm:text-4xl font-bold text-navy-900 dark:text-white mt-2">
+                {{ value }}
+            </p>
+            {% if subtitle %}
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        {% if icon %}
+            <div class="flex-shrink-0 text-3xl opacity-20">{{ icon }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Trend (variation %) -->
+    {% if trend %}
+        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div class="flex items-center gap-1">
+                {% if trend == 'up' %}
+                    <span class="text-green-600 dark:text-green-400 text-sm font-semibold">↑ {{ trendValue }}</span>
+                    <span class="text-xs text-green-600 dark:text-green-400">vs période précédente</span>
+                {% elseif trend == 'down' %}
+                    <span class="text-red-600 dark:text-red-400 text-sm font-semibold">↓ {{ trendValue }}</span>
+                    <span class="text-xs text-red-600 dark:text-red-400">vs période précédente</span>
+                {% else %}
+                    <span class="text-slate-600 dark:text-slate-400 text-sm font-semibold">= {{ trendValue }}</span>
+                    <span class="text-xs text-slate-600 dark:text-slate-400">vs période précédente</span>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Macro pour barre de progression SLA #}
+{% macro sla_progress(codeAlerte, heuresEcoulees, heuresCibles = 72) %}
+  {% set pourcentage = (heuresEcoulees / heuresCibles * 100)|round(0) > 100 ? 100 : (heuresEcoulees / heuresCibles * 100)|round(0) %}
+  {% set color = pourcentage < 80 ? 'bg-orange-500' : (pourcentage < 100 ? 'bg-yellow-500' : 'bg-red-600') %}
+  
+  <div class="space-y-2">
+    <div class="flex items-center justify-between">
+      <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ codeAlerte }}</span>
+      <span class="text-xs text-slate-500 dark:text-slate-400">{{ heuresEcoulees }}h / {{ heuresCibles }}h</span>
+    </div>
+    <div class="h-2 bg-slate-200 dark:bg-navy-800 rounded-full overflow-hidden">
+      <div class="h-full {{ color }} transition-all duration-300" style="width: {{ pourcentage }}%"></div>
+    </div>
+  </div>
+{% endmacro %}
+
+

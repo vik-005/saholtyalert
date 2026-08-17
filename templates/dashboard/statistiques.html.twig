@@ -1,0 +1,812 @@
+{% extends 'base.html.twig' %}
+{% block title %}Statistiques GEI{% endblock %}
+{% block header_title %}Statistiques{% endblock %}
+
+{% block body %}
+<div class="db-wrapper" id="statsPage">
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   FILTRES GLOBAUX — s'appliquent à tous les graphiques simultanément
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-filter-bar" id="globalFilters">
+    <form method="get" id="filterForm" class="stats-filter-form">
+        <div class="stats-filter-group">
+            <label class="stats-filter-label"><i class="fa-regular fa-calendar me-1.5"></i>Période</label>
+            <input type="date" name="debut" value="{{ debut }}" class="stats-input" id="filterDebut">
+            <span class="text-slate-500 text-xs">→</span>
+            <input type="date" name="fin"   value="{{ fin }}"   class="stats-input" id="filterFin">
+        </div>
+
+        <div class="stats-filter-group">
+            <label class="stats-filter-label"><i class="fa-solid fa-earth-africa me-1.5"></i>Marchés</label>
+            <div class="stats-market-checks">
+                {% for m in all_markets %}
+                <label class="stats-check-label">
+                    <input type="checkbox" name="markets[]" value="{{ m.id }}"
+                           {% if m.id in selected_markets or selected_markets is empty %}checked{% endif %}
+                           class="stats-checkbox">
+                    <span>{{ m.codeIso3 }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="stats-filter-actions">
+            <button type="submit" class="stats-apply-btn">
+                <i class="fa-solid fa-rotate me-1.5"></i>Appliquer
+            </button>
+            <a href="{{ path('app_dashboard_statistiques') }}" class="stats-reset-btn">
+                <i class="fa-solid fa-xmark me-1"></i>Reset
+            </a>
+        </div>
+    </form>
+
+    <div class="stats-period-shortcuts">
+        <button class="stats-shortcut" onclick="setPeriod(7)">7j</button>
+        <button class="stats-shortcut" onclick="setPeriod(30)">30j</button>
+        <button class="stats-shortcut" onclick="setPeriod(90)">3 mois</button>
+        <button class="stats-shortcut" onclick="setPeriod(365)">1 an</button>
+    </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 1 — 2 JAUGES + Score Moyen
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-gauge-row">
+
+    {# Jauge SLA 72h #}
+    <div class="stats-card stats-gauge-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-stopwatch me-1.5"></i>SLA Urgence 72h</p>
+                <p class="db-card-title">Conformité des délais</p>
+            </div>
+        </div>
+        {% set sla = jauge_sla %}
+        <div class="gauge-wrap">
+            <canvas id="gaugeSla" width="200" height="110"></canvas>
+            <div class="gauge-label">
+                {% if sla.taux is not null %}
+                    <span class="gauge-val {{ sla.color_class }}">{{ sla.taux }}%</span>
+                    <span class="gauge-sub">{{ sla.respectees }}/{{ sla.cloturees }} cas</span>
+                {% else %}
+                    <span class="gauge-val gauge-gray">N/A</span>
+                    <span class="gauge-sub">Aucun cas clôturé</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="gauge-thresholds">
+            <span class="gauge-t gauge-t-red">< 70% Critique</span>
+            <span class="gauge-t gauge-t-amber">70–89% Moyen</span>
+            <span class="gauge-t gauge-t-green">≥ 90% Bon</span>
+        </div>
+    </div>
+
+    {# Jauge Exploitables #}
+    <div class="stats-card stats-gauge-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-bolt me-1.5"></i>Exploitabilité</p>
+                <p class="db-card-title">Alertes actionnables</p>
+            </div>
+        </div>
+        {% set exp = jauge_exploitables %}
+        <div class="gauge-wrap">
+            <canvas id="gaugeExploitables" width="200" height="110"></canvas>
+            <div class="gauge-label">
+                <span class="gauge-val {{ exp.color_class }}">{{ exp.taux }}%</span>
+                <span class="gauge-sub">{{ exp.actionnables }}/{{ exp.total }}</span>
+            </div>
+        </div>
+        <div class="gauge-thresholds">
+            <span class="gauge-t gauge-t-red">< 40%</span>
+            <span class="gauge-t gauge-t-amber">40–59%</span>
+            <span class="gauge-t gauge-t-green">≥ 60%</span>
+        </div>
+    </div>
+
+    {# Évolution temporelle — line chart #}
+    <div class="stats-card stats-card-wide">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-chart-line me-1.5"></i>Évolution</p>
+                <p class="db-card-title">Soumissions vs Transmises</p>
+            </div>
+        </div>
+        <div class="db-chart-legend">
+            <span class="chart-legend-item chart-legend-amber"><span class="chart-legend-dot"></span>Soumises</span>
+            <span class="chart-legend-item chart-legend-emerald"><span class="chart-legend-dot"></span>Transmises</span>
+        </div>
+        <canvas id="chartEvolution" height="100"></canvas>
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 2 — VOLUME PAR PAYS + SCORE MOYEN PAR PAYS
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-row-2col">
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-bars-staggered me-1.5"></i>Volume par pays</p>
+                <p class="db-card-title">Nb alertes — trié décroissant</p>
+            </div>
+        </div>
+        <canvas id="chartVolumeParPays" height="200"></canvas>
+    </div>
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-star-half-stroke me-1.5"></i>Score moyen par pays</p>
+                <p class="db-card-title">Zones les plus sensibles</p>
+            </div>
+        </div>
+        <canvas id="chartScoreMoyenPays" height="200"></canvas>
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 3 — STATUTS EMPILÉS + TAUX TRANSMISSION
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-row-2col">
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-layer-group me-1.5"></i>Statuts par pays</p>
+                <p class="db-card-title">Répartition empilée</p>
+            </div>
+        </div>
+        <canvas id="chartStatutsParPays" height="220"></canvas>
+    </div>
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-paper-plane me-1.5"></i>Taux transmission</p>
+                <p class="db-card-title">Par marché (%)</p>
+            </div>
+        </div>
+        <canvas id="chartTauxTransmission" height="220"></canvas>
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 4 — CATÉGORIES DONUT + TOP CORRIDORS
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-row-2col">
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-chart-pie me-1.5"></i>Catégories</p>
+                <p class="db-card-title">Répartition par type</p>
+            </div>
+        </div>
+        <div style="display:flex; gap:20px; align-items:center;">
+            <div style="position:relative; width:180px; flex-shrink:0;">
+                <canvas id="chartCategories" width="180" height="180"></canvas>
+            </div>
+            <div id="catLegend" class="donut-legend" style="flex:1;"></div>
+        </div>
+    </div>
+
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-route me-1.5"></i>Top corridors actifs</p>
+                <p class="db-card-title">Top {{ top_corridors|length }}</p>
+            </div>
+        </div>
+        <div style="overflow-y:auto; max-height:260px;">
+            <canvas id="chartTopCorridors" height="250"></canvas>
+        </div>
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 5 — HEATMAP FIABILITÉ×CRÉDIBILITÉ + ACTIVITÉ PAR AGENT
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-row-2col">
+
+    {# Heatmap Annexe C #}
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-grid-2 me-1.5"></i>Matrice Annexe C</p>
+                <p class="db-card-title">Fiabilité × Crédibilité — nb alertes réelles</p>
+            </div>
+        </div>
+        <div class="heatmap-wrap">
+            {# Axe crédibilité (colonnes) : 1 (plus crédible) → 4 #}
+            <div class="heatmap-grid">
+                <div class="heatmap-corner"></div>
+                {% for c in 1..4 %}
+                <div class="heatmap-col-header">
+                    Créd. {{ c }}
+                    {% if c == 1 %}<span class="heatmap-best">★</span>{% endif %}
+                </div>
+                {% endfor %}
+
+                {# Lignes : A (plus fiable) → D #}
+                {% for f in ['A','B','C','D'] %}
+                <div class="heatmap-row-header">
+                    <span class="heatmap-fiab heatmap-fiab-{{ f|lower }}">{{ f }}</span>
+                </div>
+                    {% for c in 1..4 %}
+                    {% set nb = heatmap[f][c] ?? 0 %}
+                    {# Couleur de la cellule = couleur officielle Annexe C #}
+                    {% set score_f = {'A': 4, 'B': 3, 'C': 2, 'D': 1}[f] %}
+                    {% set score_c = {1: 4, 2: 3, 3: 2, 4: 1}[c] %}
+                    {% set product = score_f * score_c %}
+                    {% if product >= 12 %}
+                        {% set cell_class = 'heatmap-cell-critique' %}
+                    {% elseif product >= 9 %}
+                        {% set cell_class = 'heatmap-cell-eleve' %}
+                    {% elseif product >= 6 %}
+                        {% set cell_class = 'heatmap-cell-modere' %}
+                    {% else %}
+                        {% set cell_class = 'heatmap-cell-faible' %}
+                    {% endif %}
+                    <div class="heatmap-cell {{ cell_class }} {% if nb > 0 %}heatmap-cell-active{% endif %}"
+                         title="Fiabilité {{ f }}, Crédibilité {{ c }} — Score produit: {{ product }} — {{ nb }} alerte(s)">
+                        {% if nb > 0 %}<span class="heatmap-nb">{{ nb }}</span>{% endif %}
+                    </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            <div class="heatmap-legend-row">
+                <span class="heatmap-leg heatmap-cell-critique">Critique ≥12</span>
+                <span class="heatmap-leg heatmap-cell-eleve">Élevé 9–11</span>
+                <span class="heatmap-leg heatmap-cell-modere">Modéré 6–8</span>
+                <span class="heatmap-leg heatmap-cell-faible">Faible ≤5</span>
+            </div>
+        </div>
+    </div>
+
+    {# Activité par agent #}
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-users me-1.5"></i>Activité agents</p>
+                <p class="db-card-title">Nb soumissions par agent</p>
+            </div>
+        </div>
+        <div style="overflow-y:auto; max-height:300px;">
+            <canvas id="chartActiviteAgents" height="280"></canvas>
+        </div>
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   LIGNE 6 — DÉLAI MOYEN DE TRAITEMENT
+════════════════════════════════════════════════════════════════════════════ #}
+<div class="stats-row-1col">
+    <div class="stats-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-clock me-1.5"></i>Délai de traitement</p>
+                <p class="db-card-title">Heures moyennes soumission → clôture par pays</p>
+            </div>
+        </div>
+        <canvas id="chartDelaiMoyen" height="80"></canvas>
+    </div>
+</div>
+
+</div>{# /db-wrapper #}
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   DONNÉES INJECTÉES + SCRIPTS CHART.JS
+   Bibliothèque : Chart.js 4.4 (déjà chargée dans base.html.twig)
+   Palette : dark navy #090e1a, amber #fbbf24, rouge/vert/orange statuts uniquement
+════════════════════════════════════════════════════════════════════════════ #}
+{% block javascripts %}{{ parent() }}
+<script>
+// ─── Constantes de couleurs (charte GEI — ne pas modifier) ────────────────
+const C = {
+    amber:    '#fbbf24',
+    orange:   '#fb923c',
+    red:      '#ef4444',
+    emerald:  '#34d399',
+    blue:     '#60a5fa',
+    purple:   '#c084fc',
+    cyan:     '#22d3ee',
+    slate:    '#64748b',
+    bg:       '#090e1a',
+    card:     '#0f172a',
+    border:   'rgba(148,163,184,0.1)',
+    text:     '#94a3b8',
+    // Statuts
+    statut: {
+        nouveau: '#60a5fa', ouvert: '#60a5fa',
+        en_cours: '#fbbf24', en_cours_analyse: '#fbbf24',
+        a_completer: '#fb923c', a_investiguer: '#c084fc',
+        ouvert_prioritaire: '#ef4444',
+        a_valider_saholty: '#f97316',
+        transmis: '#34d399',
+        suivi: '#94a3b8',
+        archive: '#475569', clos: '#1e293b',
+    },
+    priorite: {
+        critique: 'rgba(239,68,68,0.85)',
+        eleve: 'rgba(251,146,60,0.85)',
+        modere: 'rgba(251,191,36,0.85)',
+        faible: 'rgba(52,211,153,0.85)',
+    }
+};
+
+// ─── Defaults Chart.js communs ─────────────────────────────────────────────
+Chart.defaults.color       = C.text;
+Chart.defaults.borderColor = C.border;
+Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+Chart.defaults.font.size   = 11;
+
+const TOOLTIP = {
+    backgroundColor: '#1e293b',
+    borderColor: 'rgba(148,163,184,0.2)',
+    borderWidth: 1,
+    padding: 10,
+    titleFont: { size: 12, weight: '700' },
+    bodyFont: { size: 11 },
+};
+
+// ─── Données serveur ───────────────────────────────────────────────────────
+const DATA = {
+    sla:          {{ jauge_sla|json_encode|raw }},
+    exploitables: {{ jauge_exploitables|json_encode|raw }},
+    evolution:    {{ evolution|json_encode|raw }},
+    volumePays:   {{ volume_par_pays|json_encode|raw }},
+    scorePays:    {{ score_moyen_pays|json_encode|raw }},
+    statutsPays:  {{ statuts_par_pays|json_encode|raw }},
+    txTransmission: {{ tx_transmission|json_encode|raw }},
+    categories:   {{ repartition_categorie|json_encode|raw }},
+    corridors:    {{ top_corridors|json_encode|raw }},
+    agents:       {{ activite_agents|json_encode|raw }},
+    delaiMoyen:   {{ delai_moyen|json_encode|raw }},
+};
+
+// ─── 1. Jauges semi-circulaires ────────────────────────────────────────────
+function buildGauge(canvasId, value, color, max = 100) {
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
+    if (!ctx) return;
+    const taux = value ?? 0;
+    const rest = max - taux;
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [taux, rest],
+                backgroundColor: [color, 'rgba(148,163,184,0.08)'],
+                borderWidth: 0,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: false,
+            circumference: 180,
+            rotation: -90,
+            cutout: '75%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            animation: { duration: 900, easing: 'easeOutCubic' },
+        }
+    });
+}
+const slaColor = DATA.sla.taux === null ? C.slate
+    : DATA.sla.taux >= 90 ? C.emerald
+    : DATA.sla.taux >= 70 ? C.amber : C.red;
+const expColor = DATA.exploitables.taux >= 60 ? C.emerald
+    : DATA.exploitables.taux >= 40 ? C.amber : C.red;
+
+buildGauge('gaugeSla',         DATA.sla.taux ?? 0,           slaColor);
+buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
+
+// ─── 2. Évolution temporelle (area line) ──────────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartEvolution')?.getContext('2d');
+    if (!ctx || !DATA.evolution.labels) return;
+    const ga = ctx.createLinearGradient(0,0,0,180);
+    ga.addColorStop(0, 'rgba(251,191,36,0.25)'); ga.addColorStop(1, 'rgba(251,191,36,0.01)');
+    const ge = ctx.createLinearGradient(0,0,0,180);
+    ge.addColorStop(0, 'rgba(52,211,153,0.18)'); ge.addColorStop(1, 'rgba(52,211,153,0.01)');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: DATA.evolution.labels,
+            datasets: [
+                { label:'Soumises',  data: DATA.evolution.soumises,  borderColor: C.amber,
+                  backgroundColor: ga, fill: true, tension: 0.4, borderWidth: 2.5,
+                  pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: C.amber, pointBorderColor: C.bg },
+                { label:'Transmises', data: DATA.evolution.transmises, borderColor: C.emerald,
+                  backgroundColor: ge, fill: true, tension: 0.4, borderWidth: 2,
+                  pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: C.emerald, pointBorderColor: C.bg },
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false } },
+                y: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+            }
+        }
+    });
+})();
+
+// ─── 3. Volume par pays (bâtons verticaux, tri décroissant) ───────────────
+(function() {
+    const ctx = document.getElementById('chartVolumeParPays')?.getContext('2d');
+    if (!ctx || !DATA.volumePays.length) return;
+    const sorted = [...DATA.volumePays].sort((a,b) => b.nb - a.nb);
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(d => d.iso3 || d.pays),
+            datasets: [{ label:'Alertes', data: sorted.map(d => d.nb),
+                backgroundColor: C.amber + 'CC', borderColor: C.amber,
+                borderWidth: 1, borderRadius: 6 }]
+        },
+        options: {
+            responsive: true, plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
+                callbacks: { title: ctx => DATA.volumePays.find(d => d.iso3 === ctx[0].label || d.pays === ctx[0].label)?.pays || ctx[0].label }
+            }},
+            scales: {
+                x: { grid: { display: false }, ticks: { color: C.text } , border: { display: false }},
+                y: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+            }
+        }
+    });
+})();
+
+// ─── 4. Score moyen par pays (bâtons horizontaux) ─────────────────────────
+(function() {
+    const ctx = document.getElementById('chartScoreMoyenPays')?.getContext('2d');
+    if (!ctx || !DATA.scorePays.length) return;
+    const sorted = [...DATA.scorePays].sort((a,b) => b.score_moyen - a.score_moyen);
+    const colors = sorted.map(d => d.score_moyen >= 18 ? C.red : d.score_moyen >= 14 ? C.orange : d.score_moyen >= 10 ? C.amber : C.emerald);
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(d => d.pays),
+            datasets: [{ label:'Score moyen', data: sorted.map(d => d.score_moyen),
+                backgroundColor: colors.map(c => c + 'CC'), borderColor: colors,
+                borderWidth: 1, borderRadius: 5 }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, min: 0, max: 25 },
+                y: { grid: { display: false }, ticks: { color: C.text }, border: { display: false } },
+            }
+        }
+    });
+})();
+
+// ─── 5. Statuts empilés par pays ──────────────────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartStatutsParPays')?.getContext('2d');
+    if (!ctx || !DATA.statutsPays.length) return;
+
+    // Pivot : pays → {statut: nb}
+    const paysSet = [...new Set(DATA.statutsPays.map(r => r.pays))];
+    const statutSet = [...new Set(DATA.statutsPays.map(r => r.statut))];
+
+    const datasets = statutSet.map(st => ({
+        label: st,
+        data: paysSet.map(p => {
+            const row = DATA.statutsPays.find(r => r.pays === p && r.statut === st);
+            return row ? row.nb : 0;
+        }),
+        backgroundColor: (C.statut[st] || C.slate) + 'CC',
+        borderColor: C.statut[st] || C.slate,
+        borderWidth: 0, borderRadius: 3,
+    }));
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: { labels: paysSet, datasets },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: C.text, boxWidth: 12, padding: 10, font: { size: 10 } } },
+                tooltip: TOOLTIP,
+            },
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { color: C.text }, border: { display: false } },
+                y: { stacked: true, grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+            }
+        }
+    });
+})();
+
+// ─── 6. Taux de transmission par pays (bâtons horizontaux %) ──────────────
+(function() {
+    const ctx = document.getElementById('chartTauxTransmission')?.getContext('2d');
+    if (!ctx || !DATA.txTransmission.length) return;
+    const sorted = [...DATA.txTransmission].sort((a,b) => b.taux - a.taux);
+    const colors = sorted.map(d => d.taux >= 80 ? C.emerald : d.taux >= 50 ? C.amber : C.red);
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sorted.map(d => d.pays),
+            datasets: [{ label:'Taux (%)', data: sorted.map(d => d.taux),
+                backgroundColor: colors.map(c => c + 'CC'), borderColor: colors,
+                borderWidth: 1, borderRadius: 5 }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
+                callbacks: { label: ctx => ` ${ctx.parsed.x}% (${DATA.txTransmission.find(d=>d.pays===ctx.label)?.transmis ?? 0} transmises)` }
+            }},
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate, callback: v => v + '%' },
+                     border: { display: false }, min: 0, max: 100 },
+                y: { grid: { display: false }, ticks: { color: C.text }, border: { display: false } },
+            }
+        }
+    });
+})();
+
+// ─── 7. Donut catégories ──────────────────────────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartCategories')?.getContext('2d');
+    if (!ctx || !DATA.categories.length) return;
+    const palette = [C.amber, C.orange, C.red, C.emerald, C.blue, C.purple, C.cyan, '#f0abfc','#fde68a','#6ee7b7','#7dd3fc','#a5b4fc','#fca5a5','#fcd34d'];
+    const top8 = DATA.categories.slice(0, 8);
+    const otherNb = DATA.categories.slice(8).reduce((s, d) => s + Number(d.nb), 0);
+    if (otherNb > 0) top8.push({ categorie: 'Autre', nb: otherNb });
+
+    const chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: top8.map(d => d.categorie),
+            datasets: [{ data: top8.map(d => d.nb),
+                backgroundColor: palette.slice(0, top8.length),
+                borderColor: C.bg, borderWidth: 3, hoverOffset: 6 }]
+        },
+        options: {
+            responsive: false, cutout: '65%',
+            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+        }
+    });
+
+    // Légende externe
+    const legend = document.getElementById('catLegend');
+    if (legend) {
+        legend.innerHTML = top8.map((d, i) => `
+            <div class="donut-legend-item">
+                <span class="donut-dot" style="background:${palette[i]}"></span>
+                <span class="donut-legend-label" style="font-size:10.5px">${d.categorie}</span>
+                <span class="donut-legend-val">${d.nb}</span>
+            </div>`).join('');
+    }
+})();
+
+// ─── 8. Top corridors (bâtons horizontaux) ────────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartTopCorridors')?.getContext('2d');
+    if (!ctx || !DATA.corridors.length) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DATA.corridors.map(d => d.corridor.length > 30 ? d.corridor.slice(0,30)+'…' : d.corridor),
+            datasets: [{ label:'Alertes', data: DATA.corridors.map(d => d.nb),
+                backgroundColor: C.blue + 'CC', borderColor: C.blue, borderWidth: 1, borderRadius: 5 }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
+                callbacks: { title: ctx => DATA.corridors[ctx[0].dataIndex]?.corridor || ctx[0].label }
+            }},
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+                y: { grid: { display: false }, ticks: { color: C.text, font: { size: 10 } }, border: { display: false } },
+            }
+        }
+    });
+})();
+
+// ─── 9. Activité agents (bâtons horizontaux) ─────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartActiviteAgents')?.getContext('2d');
+    if (!ctx || !DATA.agents.length) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DATA.agents.map(d => d.agent),
+            datasets: [{ label:'Soumissions', data: DATA.agents.map(d => d.nb),
+                backgroundColor: C.purple + 'CC', borderColor: C.purple, borderWidth: 1, borderRadius: 5 }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+                y: { grid: { display: false }, ticks: { color: C.text, font: { size: 10 } }, border: { display: false } },
+            }
+        }
+    });
+})();
+
+// ─── 10. Délai moyen de traitement ────────────────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartDelaiMoyen')?.getContext('2d');
+    if (!ctx || !DATA.delaiMoyen.length) return;
+    const colors = DATA.delaiMoyen.map(d => d.delai_moyen_h <= 72 ? C.emerald : d.delai_moyen_h <= 120 ? C.amber : C.red);
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DATA.delaiMoyen.map(d => d.pays),
+            datasets: [
+                { label:'Délai moyen (h)', data: DATA.delaiMoyen.map(d => d.delai_moyen_h),
+                  backgroundColor: colors.map(c => c + 'CC'), borderColor: colors, borderWidth: 1, borderRadius: 5 },
+                // Ligne SLA cible = 72h
+                { label:'SLA cible (72h)', data: DATA.delaiMoyen.map(() => 72),
+                  type: 'line', borderColor: C.red + '80', borderWidth: 1.5, borderDash: [5,3],
+                  pointRadius: 0, fill: false, tension: 0 }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { tooltip: TOOLTIP,
+                legend: { position: 'top', labels: { color: C.text, boxWidth: 12, padding: 12, font: { size: 10 } } } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: C.text }, border: { display: false } },
+                y: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate, callback: v => v+'h' },
+                     border: { display: false }, beginAtZero: true },
+            }
+        }
+    });
+})();
+
+// ─── Filtres globaux — raccourcis période ─────────────────────────────────
+function setPeriod(days) {
+    const fin   = new Date();
+    const debut = new Date(fin - days * 86400000);
+    const fmt   = d => d.toISOString().slice(0, 10);
+    document.getElementById('filterDebut').value = fmt(debut);
+    document.getElementById('filterFin').value   = fmt(fin);
+    document.getElementById('filterForm').submit();
+}
+</script>
+
+<style>
+/* ── Layout statistiques ── */
+.stats-filter-bar {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap; margin-bottom: 0;
+}
+.stats-filter-form { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; flex: 1; }
+.stats-filter-group { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.stats-filter-label { color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+.stats-input {
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 9px; padding: 7px 10px; font-size: 12px; color: var(--text);
+    outline: none; transition: border-color .2s;
+}
+.stats-input:focus { border-color: var(--amber); }
+.stats-market-checks { display: flex; gap: 6px; flex-wrap: wrap; }
+.stats-check-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600;
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 8px; padding: 4px 9px; cursor: pointer;
+    color: var(--text-muted); transition: all .2s;
+}
+.stats-check-label:has(input:checked) { background: var(--amber-dim); border-color: var(--amber-border); color: var(--amber); }
+.stats-checkbox { display: none; }
+.stats-filter-actions { display: flex; gap: 8px; }
+.stats-apply-btn {
+    display: inline-flex; align-items: center;
+    background: var(--amber); color: var(--navy-950);
+    font-size: 12px; font-weight: 700;
+    border: none; border-radius: 10px; padding: 8px 16px; cursor: pointer;
+}
+.stats-reset-btn {
+    display: inline-flex; align-items: center;
+    background: var(--navy-800); color: var(--text-muted);
+    font-size: 12px; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px;
+    text-decoration: none;
+}
+.stats-period-shortcuts { display: flex; gap: 6px; }
+.stats-shortcut {
+    background: var(--navy-800); border: 1px solid var(--border);
+    color: var(--text-muted); font-size: 11px; font-weight: 600;
+    border-radius: 8px; padding: 5px 10px; cursor: pointer;
+    transition: all .2s;
+}
+.stats-shortcut:hover { color: var(--amber); border-color: var(--amber-border); background: var(--amber-dim); }
+
+.stats-gauge-row { display: grid; grid-template-columns: 220px 220px 1fr; gap: 16px; }
+.stats-row-2col  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stats-row-1col  { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.stats-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px;
+}
+.stats-card-wide { }
+.stats-gauge-card { display: flex; flex-direction: column; align-items: center; }
+
+/* Jauge */
+.gauge-wrap { position: relative; display: flex; justify-content: center; margin: 8px 0; }
+.gauge-label {
+    position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    text-align: center; pointer-events: none;
+}
+.gauge-val { display: block; font-size: 26px; font-weight: 900; line-height: 1; }
+.gauge-sub { display: block; font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+.gauge-green { color: #34d399; }
+.gauge-amber { color: var(--amber); }
+.gauge-red   { color: #f87171; }
+.gauge-gray  { color: var(--text-muted); }
+.gauge-thresholds { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.gauge-t { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 99px; }
+.gauge-t-green { background: rgba(52,211,153,.1); color: #34d399; }
+.gauge-t-amber { background: rgba(251,191,36,.1); color: var(--amber); }
+.gauge-t-red   { background: rgba(239,68,68,.1);  color: #f87171; }
+
+/* Heatmap */
+.heatmap-wrap { overflow-x: auto; }
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: 52px repeat(4, 1fr);
+    gap: 4px;
+    min-width: 300px;
+}
+.heatmap-corner    { }
+.heatmap-col-header, .heatmap-row-header {
+    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+}
+.heatmap-best { color: var(--amber); margin-left: 2px; }
+.heatmap-fiab {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 800;
+}
+.heatmap-fiab-a { background: rgba(52,211,153,.15); color: #34d399; }
+.heatmap-fiab-b { background: rgba(251,191,36,.15); color: var(--amber); }
+.heatmap-fiab-c { background: rgba(251,146,60,.15); color: #fb923c; }
+.heatmap-fiab-d { background: rgba(239,68,68,.15);  color: #f87171; }
+.heatmap-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    opacity: 0.35;
+    transition: opacity .2s;
+    position: relative;
+    min-height: 44px;
+}
+.heatmap-cell-active { opacity: 1; }
+.heatmap-cell-critique { background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.35); }
+.heatmap-cell-eleve    { background: rgba(251,146,60,0.25); border: 1px solid rgba(251,146,60,0.35); }
+.heatmap-cell-modere   { background: rgba(251,191,36,0.2);  border: 1px solid rgba(251,191,36,0.3); }
+.heatmap-cell-faible   { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.2); }
+.heatmap-nb {
+    font-size: 15px; font-weight: 800; color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.heatmap-legend-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.heatmap-leg { font-size: 9.5px; font-weight: 600; padding: 3px 8px; border-radius: 99px; }
+
+@media(max-width:1200px) {
+    .stats-gauge-row { grid-template-columns: 1fr 1fr; }
+    .stats-gauge-card:last-child { grid-column: 1 / -1; }
+}
+@media(max-width:900px) {
+    .stats-gauge-row, .stats-row-2col { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+{% endblock %}

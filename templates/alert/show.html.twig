@@ -1,0 +1,355 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Alerte {{ alert.codeGei }} — GEI{% endblock %}
+{% block header_title %}Fiche {{ alert.codeGei ?? 'BROUILLON' }}{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── BANDEAU ÉTAT — workflow visible ── #}
+    <div class="show-header-card">
+        <div class="show-header-left">
+            <h2 class="show-code">
+                <i class="fa-solid fa-file-shield me-2 text-amber-400"></i>
+                {{ alert.codeGei ?? 'BROUILLON' }}
+            </h2>
+            <div class="show-badges">
+                {# Badge priorité #}
+                {% set prio = alert.effectiveNiveauPriorite %}
+                {% if prio %}
+                    <span class="priority-badge priority-{{ prio.value }}">
+                        {% if prio.value == 'critique' %}<i class="fa-solid fa-circle-radiation fa-xs me-1"></i>
+                        {% elseif prio.value == 'eleve' %}<i class="fa-solid fa-fire fa-xs me-1"></i>
+                        {% elseif prio.value == 'modere' %}<i class="fa-solid fa-circle-exclamation fa-xs me-1"></i>
+                        {% else %}<i class="fa-solid fa-circle-check fa-xs me-1"></i>{% endif %}
+                        {{ prio.label }}
+                    </span>
+                {% endif %}
+                {# Badge statut #}
+                <span class="status-pill status-{{ alert.statut.value }}">
+                    <span class="status-dot"></span>{{ alert.statut.label }}
+                </span>
+                {# Flags #}
+                {% if alert.surveillanceRenforcee %}
+                    <span class="show-flag show-flag-amber">
+                        <i class="fa-solid fa-eye fa-xs me-1"></i>Surveillance renforcée
+                    </span>
+                {% endif %}
+                {% if alert.transmissionPrioritaire %}
+                    <span class="show-flag show-flag-red">
+                        <i class="fa-solid fa-bolt fa-xs me-1"></i>Transmission prioritaire
+                    </span>
+                {% endif %}
+            </div>
+            <p class="show-meta">
+                <i class="fa-solid fa-earth-africa fa-xs me-1.5 text-amber-400"></i>
+                {{ alert.market.nom }}
+                {% if alert.portCorridor %}
+                    <span class="mx-2 text-slate-600">·</span>
+                    <i class="fa-solid fa-route fa-xs me-1 opacity-50"></i>{{ alert.portCorridor }}
+                {% endif %}
+                <span class="mx-2 text-slate-600">·</span>
+                <i class="fa-regular fa-calendar fa-xs me-1 opacity-50"></i>{{ alert.dateCreation|date('d/m/Y') }}
+                <span class="mx-2 text-slate-600">·</span>
+                <i class="fa-solid fa-user fa-xs me-1 opacity-50"></i>{{ alert.emetteur.nomComplet }}
+            </p>
+        </div>
+
+        {# Boutons d'action #}
+        <div class="show-actions">
+            <a href="{{ path('app_alert_edit', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                <i class="fa-solid fa-pen-to-square me-1.5"></i>Modifier
+            </a>
+            {% if is_granted('ALERT_QUALIFY', alert) %}
+                <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber">
+                    <i class="fa-solid fa-star-half-stroke me-1.5"></i>
+                    {% if alert.scoreGei %}Requalifier{% else %}Qualifier{% endif %}
+                </a>
+            {% endif %}
+            {% if is_granted('ALERT_TRANSMIT', alert) and alert.scoreGei %}
+                <a href="{{ path('app_alert_transmit', {id: alert.id}) }}" class="db-btn" style="background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.2)">
+                    <i class="fa-solid fa-paper-plane me-1.5"></i>Transmettre
+                </a>
+            {% endif %}
+            <a href="{{ path('app_alert_pdf', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                <i class="fa-solid fa-file-pdf me-1.5 text-red-400"></i>PDF
+            </a>
+        </div>
+    </div>
+
+    {# ── BANNIÈRE D'ÉTAT WORKFLOW — guide utilisateur ── #}
+    {% if not alert.scoreGei %}
+    <div class="workflow-banner workflow-banner-amber">
+        <i class="fa-solid fa-circle-exclamation text-amber-400 fa-lg flex-shrink-0"></i>
+        <div>
+            <p class="workflow-banner-title">Score non calculé — Qualification Manager requise</p>
+            <p class="workflow-banner-sub">
+                Cette fiche a été soumise par l'Agent. Un Manager doit remplir les sections de qualification
+                (Crédibilité, Urgence, Impact, Exploitabilité) via le bouton <strong>Qualifier</strong> pour
+                que le score GEI soit calculé automatiquement.
+            </p>
+        </div>
+        {% if is_granted('ALERT_QUALIFY', alert) %}
+        <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber flex-shrink-0">
+            <i class="fa-solid fa-star-half-stroke me-1.5"></i>Qualifier maintenant
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
+    <div class="workflow-banner workflow-banner-red">
+        <span class="urgence-pulse"></span>
+        <i class="fa-solid fa-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
+        <div>
+            <p class="workflow-banner-title">⚠️ URGENCE 72h ACTIVE — {{ alert.urgence72hCase.heuresRestantes }} h restantes</p>
+            <p class="workflow-banner-sub">Procédure d'urgence déclenchée automatiquement (score ≥ 18). Suivi requis.</p>
+        </div>
+        <a href="{{ path('app_dashboard_urgence') }}" class="db-btn flex-shrink-0" style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.2)">
+            <i class="fa-solid fa-stopwatch me-1.5"></i>Suivi SLA
+        </a>
+    </div>
+    {% endif %}
+
+    {# ── SCORE GEI (si calculé) ── #}
+    {% if alert.effectiveScore %}
+    <div class="show-score-bar">
+        {% set score = alert.effectiveScore %}
+        <div class="show-score-main">
+            <span class="show-score-label">Score GEI</span>
+            <span class="show-score-val score-badge {% if score >= 18 %}score-critique{% elseif score >= 14 %}score-eleve{% elseif score >= 10 %}score-modere{% else %}score-faible{% endif %}">
+                {{ score }}
+            </span>
+            <span class="show-score-max">/25</span>
+            {% if alert.scoreSurcharge %}
+                <span class="show-score-surcharge">
+                    <i class="fa-solid fa-pen-to-square fa-xs me-1"></i>Surchargé par Manager
+                </span>
+            {% endif %}
+        </div>
+        <div class="show-score-details">
+            <div class="show-score-item">
+                <span class="show-score-item-label">Fiabilité</span>
+                <span class="show-score-item-val">{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : '—' }}</span>
+            </div>
+            <span class="show-score-sep">×</span>
+            <div class="show-score-item">
+                <span class="show-score-item-label">Crédibilité</span>
+                <span class="show-score-item-val">{{ alert.credibiliteContenu ?? '—' }}/4</span>
+            </div>
+            <span class="show-score-op">+</span>
+            <div class="show-score-item">
+                <span class="show-score-item-label">Urgence</span>
+                <span class="show-score-item-val">{{ alert.urgence ? alert.urgence.label : '—' }}</span>
+            </div>
+            <span class="show-score-op">+</span>
+            <div class="show-score-item">
+                <span class="show-score-item-label">Impact</span>
+                <span class="show-score-item-val">{{ alert.impact ? alert.impact.label : '—' }}</span>
+            </div>
+            <span class="show-score-op">+</span>
+            <div class="show-score-item">
+                <span class="show-score-item-label">Exploitabilité</span>
+                <span class="show-score-item-val">{{ alert.exploitabilite ? alert.exploitabilite.label : '—' }}</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── CONTENU 2 COLONNES ── #}
+    <div class="show-grid">
+
+        {# Colonne gauche #}
+        <div class="show-col">
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">2</span>
+                    Résumé Exécutif
+                </h3>
+                <p class="show-text">{{ alert.resumeExecutif }}</p>
+            </div>
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num show-section-num-amber">4</span>
+                    Éléments Factuels
+                </h3>
+                <p class="show-text">{{ alert.elementsFactuels ?: '—' }}</p>
+            </div>
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">5</span>
+                    Hypothèses Analytiques
+                </h3>
+                <p class="show-text">{{ alert.hypothesesAnalytiques ?: '—' }}</p>
+            </div>
+
+            {% if alert.recommandation or alert.actionsEnCours %}
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">7</span>
+                    Recommandation & Actions
+                </h3>
+                {% if alert.recommandation %}
+                    <p class="show-field-row">
+                        <span class="show-field-label">Recommandation</span>
+                        <span class="text-amber-400 font-600">{{ alert.recommandation.label }}</span>
+                    </p>
+                {% endif %}
+                {% if alert.actionsEnCours %}
+                    <p class="show-text mt-2">{{ alert.actionsEnCours }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# Colonne droite — métadonnées #}
+        <div class="show-col">
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">1</span>
+                    Identification
+                </h3>
+                <div class="show-meta-grid">
+                    <span class="show-field-label">Code GEI</span>
+                    <span class="font-mono font-700 text-amber-400">{{ alert.codeGei ?? 'Non attribué' }}</span>
+                    <span class="show-field-label">Catégorie</span>
+                    <span>{{ alert.categorie ? alert.categorie.label : '—' }}</span>
+                    <span class="show-field-label">Zone / Marché</span>
+                    <span>{{ alert.market.nom }}</span>
+                    <span class="show-field-label">Corridor</span>
+                    <span>{{ alert.portCorridor ?: '—' }}</span>
+                    <span class="show-field-label">Créé le</span>
+                    <span>{{ alert.dateCreation|date('d/m/Y') }}</span>
+                    <span class="show-field-label">Réf. doc.</span>
+                    <span class="font-mono text-xs">{{ alert.referenceDocumentaire ?: '—' }}</span>
+                </div>
+            </div>
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">3</span>
+                    Source & Fiabilité
+                </h3>
+                <div class="show-meta-grid">
+                    <span class="show-field-label">Type source</span>
+                    <span>{{ alert.typeSource ? alert.typeSource.label : '—' }}</span>
+                    <span class="show-field-label">Anonymisation</span>
+                    <span>{{ alert.anonymisation ? alert.anonymisation.label : '—' }}</span>
+                    <span class="show-field-label">Fiabilité (A–D)</span>
+                    <span class="font-700 text-white">{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : '—' }}</span>
+                    {% if alert.historiqueSource %}
+                    <span class="show-field-label">Historique source</span>
+                    <span class="text-slate-400 text-xs">{{ alert.historiqueSource }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <span class="show-section-num">8</span>
+                    Confidentialité
+                </h3>
+                <div class="show-meta-grid">
+                    <span class="show-field-label">Sensibilité</span>
+                    <span>{{ alert.sensibilite ? alert.sensibilite.label : '—' }}</span>
+                    <span class="show-field-label">Transmission</span>
+                    <span>{{ alert.transmission ? alert.transmission.label : '—' }}</span>
+                    <span class="show-field-label">Pièces dispo.</span>
+                    <span>{{ alert.piecesDisponibles ? ('Oui' ~ (alert.piecesType ? ' — ' ~ alert.piecesType : '')) : 'Non' }}</span>
+                    {% if alert.responsableSuivi %}
+                    <span class="show-field-label">Responsable</span>
+                    <span>{{ alert.responsableSuivi.nomComplet }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if alert.commentaires %}
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <i class="fa-solid fa-comment-dots me-1.5 text-amber-400"></i>
+                    Commentaires Manager
+                </h3>
+                <p class="show-text">{{ alert.commentaires }}</p>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<style>
+.show-header-card {
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:22px 24px;
+    flex-wrap:wrap;
+}
+.show-code { font-size:22px; font-weight:900; color:#fff; font-family:monospace; margin-bottom:8px; }
+.show-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.show-flag { font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:99px; }
+.show-flag-amber { background:rgba(251,191,36,.1); color:var(--amber); border:1px solid var(--amber-border); }
+.show-flag-red   { background:rgba(239,68,68,.1);  color:#f87171;    border:1px solid rgba(239,68,68,.2); }
+.show-meta { font-size:11.5px; color:var(--text-muted); }
+.show-actions { display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+
+.workflow-banner {
+    display:flex; align-items:center; gap:14px;
+    border-radius:var(--radius); padding:14px 18px;
+    flex-wrap:wrap;
+}
+.workflow-banner-amber { background:rgba(251,191,36,.06); border:1px solid rgba(251,191,36,.25); }
+.workflow-banner-red   { background:rgba(239,68,68,.06);  border:1px solid rgba(239,68,68,.25); }
+.workflow-banner-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:3px; }
+.workflow-banner-sub   { font-size:11.5px; color:var(--text-muted); }
+
+.show-score-bar {
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius-lg); padding:16px 20px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.show-score-main { display:flex; align-items:baseline; gap:8px; }
+.show-score-label { font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); }
+.show-score-val { font-size:28px !important; width:52px !important; height:36px !important; }
+.show-score-max { font-size:14px; color:var(--text-muted); }
+.show-score-surcharge { font-size:10px; color:var(--amber); background:var(--amber-dim); padding:2px 8px; border-radius:99px; }
+.show-score-details { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.show-score-item { text-align:center; }
+.show-score-item-label { display:block; font-size:9.5px; color:var(--text-muted); text-transform:uppercase; }
+.show-score-item-val   { display:block; font-size:13px; font-weight:700; color:#fff; }
+.show-score-sep, .show-score-op { font-size:16px; color:var(--text-muted); font-weight:700; }
+
+.show-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:900px){ .show-grid { grid-template-columns:1fr; } }
+.show-col  { display:flex; flex-direction:column; gap:14px; }
+.show-section {
+    background:var(--navy-900); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 18px;
+}
+.show-section-title {
+    display:flex; align-items:center; gap:10px;
+    font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.1em; color:var(--text-muted);
+    margin-bottom:12px; padding-bottom:10px;
+    border-bottom:1px solid var(--border);
+}
+.show-section-num {
+    width:22px; height:22px; background:var(--navy-800);
+    border:1px solid var(--border); border-radius:6px;
+    display:grid; place-items:center;
+    font-size:11px; font-weight:800; color:var(--text-muted);
+    flex-shrink:0;
+}
+.show-section-num-amber { background:var(--amber-dim); border-color:var(--amber-border); color:var(--amber); }
+.show-text { font-size:12.5px; color:var(--text-dim); line-height:1.7; white-space:pre-line; }
+.show-meta-grid { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12px; }
+.show-field-label { color:var(--text-muted); white-space:nowrap; }
+.show-field-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+.font-700 { font-weight:700; }
+</style>
+{% endblock %}

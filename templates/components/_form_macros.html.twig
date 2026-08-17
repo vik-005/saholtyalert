@@ -1,0 +1,86 @@
+{# Macro pour champ texte/email/password #}
+{% macro input(name, label, type = 'text', value = '', error = null, required = false, placeholder = '', class = '') %}
+<div class="flex flex-col gap-1.5">
+  <label for="{{ name }}" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+    {{ label }}{% if required %} <span class="text-orange-500">*</span>{% endif %}
+  </label>
+  <input
+    type="{{ type }}"
+    id="{{ name }}"
+    name="{{ name }}"
+    value="{{ value }}"
+    placeholder="{{ placeholder }}"
+    class="h-11 px-3.5 rounded-lg border 
+           {% if error %}border-red-400 focus:ring-red-400{% else %}border-slate-300 dark:border-slate-700 focus:ring-orange-500{% endif %}
+           bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100
+           focus:outline-none focus:ring-2 focus:border-transparent transition-colors
+           placeholder:text-slate-400 dark:placeholder:text-slate-500
+           {{ class }}"
+  >
+  {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# Macro pour sélecteur #}
+{% macro select(name, label, options = {}, value = '', error = null, required = false, class = '') %}
+<div class="flex flex-col gap-1.5">
+  <label for="{{ name }}" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+    {{ label }}{% if required %} <span class="text-orange-500">*</span>{% endif %}
+  </label>
+  <select
+    id="{{ name }}"
+    name="{{ name }}"
+    class="h-11 px-3.5 rounded-lg border
+           {% if error %}border-red-400 focus:ring-red-400{% else %}border-slate-300 dark:border-slate-700 focus:ring-orange-500{% endif %}
+           bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100
+           focus:outline-none focus:ring-2 focus:border-transparent transition-colors
+           {{ class }}"
+  >
+    <option value="">-- Sélectionner --</option>
+    {% for optValue, optLabel in options %}
+      <option value="{{ optValue }}" {% if optValue == value %}selected{% endif %}>{{ optLabel }}</option>
+    {% endfor %}
+  </select>
+  {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# Macro pour checkbox #}
+{% macro checkbox(name, label, value = '', checked = false, error = null, class = '') %}
+<div class="flex items-center gap-2">
+  <input
+    type="checkbox"
+    id="{{ name }}"
+    name="{{ name }}"
+    value="{{ value }}"
+    {% if checked %}checked{% endif %}
+    class="w-4 h-4 rounded accent-orange-500 cursor-pointer"
+  >
+  <label for="{{ name }}" class="text-sm font-medium text-slate-700 dark:text-slate-200 cursor-pointer">
+    {{ label }}
+  </label>
+  {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{# Macro pour textarea #}
+{% macro textarea(name, label, value = '', error = null, required = false, placeholder = '', rows = 4, class = '') %}
+<div class="flex flex-col gap-1.5">
+  <label for="{{ name }}" class="text-sm font-medium text-slate-700 dark:text-slate-200">
+    {{ label }}{% if required %} <span class="text-orange-500">*</span>{% endif %}
+  </label>
+  <textarea
+    id="{{ name }}"
+    name="{{ name }}"
+    rows="{{ rows }}"
+    placeholder="{{ placeholder }}"
+    class="px-3.5 py-2.5 rounded-lg border
+           {% if error %}border-red-400 focus:ring-red-400{% else %}border-slate-300 dark:border-slate-700 focus:ring-orange-500{% endif %}
+           bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100
+           focus:outline-none focus:ring-2 focus:border-transparent transition-colors
+           placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none
+           {{ class }}"
+  >{{ value }}</textarea>
+  {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}

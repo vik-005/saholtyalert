@@ -1,0 +1,388 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import Registre Excel — GEI{% endblock %}
+{% block header_title %}Importation Registre (.xlsx){% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow"><i class="fa-solid fa-file-arrow-up me-1.5 text-emerald-400"></i>Import en masse</p>
+            <h2 class="page-title">Importer le Registre GEI</h2>
+            <p class="page-subtitle">
+                Déposez le fichier Excel du registre GEI (Annexe B).
+                Le système détecte automatiquement les colonnes, importe les fiches, calcule les scores
+                et signale les lignes incomplètes pour complétion par le Manager.
+            </p>
+        </div>
+        <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">
+            <i class="fa-solid fa-arrow-left me-1.5"></i>Retour
+        </a>
+    </div>
+
+    <div class="import-layout">
+
+        {# ── Formulaire d'upload ── #}
+        <div class="import-upload-card">
+            <div class="import-dropzone" id="dropzone">
+                <i class="fa-solid fa-cloud-arrow-up import-dz-icon"></i>
+                <p class="import-dz-title">Glissez-déposez votre fichier .xlsx</p>
+                <p class="import-dz-sub">ou cliquez pour sélectionner</p>
+
+                {{ form_start(form, {
+                    'attr': {'class': 'import-form', 'id': 'importForm', 'enctype': 'multipart/form-data'}
+                }) }}
+                    <div class="import-file-wrap">
+                        {{ form_widget(form.file, {'attr': {
+                            'class': 'import-file-input',
+                            'id': 'importFileInput',
+                            'accept': '.xlsx',
+                            'onchange': 'onFileSelected(this)'
+                        }}) }}
+                        {{ form_errors(form.file) }}
+                    </div>
+                    <p id="fileNameDisplay" class="import-file-name hidden"></p>
+                {{ form_end(form, {'render_rest': false}) }}
+            </div>
+
+            {# Info format #}
+            <div class="import-info-grid">
+                <div class="import-info-item">
+                    <i class="fa-solid fa-table text-emerald-400"></i>
+                    <div>
+                        <p class="import-info-label">Colonnes détectées auto</p>
+                        <p class="import-info-val">23 colonnes Annexe B</p>
+                    </div>
+                </div>
+                <div class="import-info-item">
+                    <i class="fa-solid fa-star-half-stroke text-amber-400"></i>
+                    <div>
+                        <p class="import-info-label">Score GEI</p>
+                        <p class="import-info-val">Recalculé systématiquement</p>
+                    </div>
+                </div>
+                <div class="import-info-item">
+                    <i class="fa-solid fa-copy text-blue-400"></i>
+                    <div>
+                        <p class="import-info-label">Doublons</p>
+                        <p class="import-info-val">Mise à jour (pas de doublon)</p>
+                    </div>
+                </div>
+                <div class="import-info-item">
+                    <i class="fa-solid fa-clipboard-list text-purple-400"></i>
+                    <div>
+                        <p class="import-info-label">Lignes incomplètes</p>
+                        <p class="import-info-val">Signalées pour complétion</p>
+                    </div>
+                </div>
+            </div>
+
+            {# Bouton #}
+            <button type="submit" form="importForm" class="import-submit-btn" id="importSubmitBtn">
+                <i class="fa-solid fa-upload me-2"></i>Lancer l'importation
+            </button>
+        </div>
+
+        {# ── Résultat de l'import ── #}
+        {% if result %}
+        <div class="import-result-card">
+
+            {# KPI #}
+            <div class="import-kpi-row">
+                <div class="import-kpi import-kpi-green">
+                    <i class="fa-solid fa-circle-check import-kpi-icon"></i>
+                    <span class="import-kpi-val">{{ result.success_count }}</span>
+                    <span class="import-kpi-label">Créées</span>
+                </div>
+                <div class="import-kpi import-kpi-blue">
+                    <i class="fa-solid fa-rotate import-kpi-icon"></i>
+                    <span class="import-kpi-val">{{ result.update_count }}</span>
+                    <span class="import-kpi-label">Mises à jour</span>
+                </div>
+                <div class="import-kpi import-kpi-amber">
+                    <i class="fa-solid fa-triangle-exclamation import-kpi-icon"></i>
+                    <span class="import-kpi-val">{{ result.lignes_incompletes|length }}</span>
+                    <span class="import-kpi-label">À compléter</span>
+                </div>
+                <div class="import-kpi import-kpi-red">
+                    <i class="fa-solid fa-circle-xmark import-kpi-icon"></i>
+                    <span class="import-kpi-val">{{ result.error_count }}</span>
+                    <span class="import-kpi-label">Erreurs</span>
+                </div>
+            </div>
+
+            <p class="import-batch-id">
+                <i class="fa-solid fa-fingerprint me-1.5 text-slate-500"></i>
+                Batch ID : <code>{{ result.batch_id }}</code>
+            </p>
+
+            {# ── Lignes incomplètes (à compléter par le Manager) ── #}
+            {% if result.lignes_incompletes|length > 0 %}
+            <div class="import-incomplete-section">
+                <div class="import-section-header">
+                    <i class="fa-solid fa-clipboard-list text-amber-400"></i>
+                    <span>{{ result.lignes_incompletes|length }} ligne(s) à compléter</span>
+                    <span class="import-section-badge badge-amber">Action Manager requise</span>
+                </div>
+                <p class="import-section-sub">
+                    Ces fiches ont été importées mais contiennent des champs manquants ou non reconnus.
+                    Cliquez sur <strong>Compléter</strong> pour ouvrir chaque fiche directement.
+                </p>
+                <div class="import-incomplete-list">
+                    {% for li in result.lignes_incompletes %}
+                    <div class="import-incomplete-item">
+                        <div class="import-incomplete-left">
+                            <span class="import-incomplete-id">
+                                <i class="fa-solid fa-hashtag fa-xs me-1 opacity-50"></i>
+                                {{ li.id }}
+                            </span>
+                            <div class="import-incomplete-tags">
+                                {% for champ in li.champs_manquants %}
+                                <span class="import-field-tag">{{ champ }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% if li.alert_id is defined %}
+                        <a href="{{ path('app_alert_qualify', {id: li.alert_id}) }}"
+                           class="import-complete-btn">
+                            <i class="fa-solid fa-pen-to-square me-1.5"></i>Qualifier
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── Erreurs techniques ── #}
+            {% if result.errors|length > 0 %}
+            <div class="import-errors-section">
+                <div class="import-section-header">
+                    <i class="fa-solid fa-circle-xmark text-red-400"></i>
+                    <span>{{ result.errors|length }} erreur(s) technique(s)</span>
+                </div>
+                <div class="import-errors-list">
+                    {% for err in result.errors %}
+                    <div class="import-error-item">
+                        <i class="fa-solid fa-xmark text-red-400 fa-xs flex-shrink-0 mt-0.5"></i>
+                        <span>{{ err }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# ── Succès total ── #}
+            {% if result.error_count == 0 and result.lignes_incompletes|length == 0 %}
+            <div class="import-success-banner">
+                <i class="fa-solid fa-circle-check text-emerald-400 fa-lg"></i>
+                <div>
+                    <p class="font-700 text-white">Import parfait — aucune ligne incomplète ni erreur</p>
+                    <p class="text-xs text-slate-400 mt-1">
+                        {{ result.success_count + result.update_count }} fiches enregistrées.
+                        Les scores GEI ont été calculés automatiquement.
+                    </p>
+                </div>
+                <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-emerald">
+                    <i class="fa-solid fa-gauge-high me-1.5"></i>Voir le dashboard
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<style>
+.import-layout { display: grid; grid-template-columns: 420px 1fr; gap: 20px; align-items: start; }
+@media(max-width:900px) { .import-layout { grid-template-columns: 1fr; } }
+
+/* Upload card */
+.import-upload-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+}
+.import-dropzone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+}
+.import-dropzone:hover {
+    border-color: var(--amber);
+    background: var(--amber-dim);
+}
+.import-dz-icon { font-size: 36px; color: var(--amber); margin-bottom: 12px; display: block; }
+.import-dz-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.import-dz-sub { font-size: 12px; color: var(--text-muted); }
+.import-file-wrap { margin-top: 14px; }
+.import-file-input {
+    width: 100%; font-size: 12px; color: var(--text-dim);
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px; cursor: pointer;
+}
+.import-file-name {
+    font-size: 11.5px; color: var(--amber);
+    font-weight: 600; margin-top: 8px;
+    text-align: center;
+}
+.import-form { margin: 0; }
+
+/* Info grid */
+.import-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.import-info-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    font-size: 12px;
+}
+.import-info-label { color: var(--text-muted); font-size: 10.5px; }
+.import-info-val   { color: #fff; font-weight: 600; font-size: 11.5px; }
+.import-info-item > i { margin-top: 3px; flex-shrink: 0; }
+
+.import-submit-btn {
+    width: 100%;
+    height: 48px;
+    background: linear-gradient(135deg, #fbbf24, #f97316);
+    color: var(--navy-950);
+    font-size: 14px; font-weight: 800;
+    border: none; border-radius: 12px;
+    cursor: pointer; transition: all .2s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(251,191,36,.25);
+}
+.import-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(251,191,36,.35); }
+
+/* Résultat */
+.import-result-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 24px;
+    display: flex; flex-direction: column; gap: 20px;
+}
+.import-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.import-kpi {
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.import-kpi-icon { font-size: 18px; margin-bottom: 2px; }
+.import-kpi-val  { font-size: 32px; font-weight: 900; line-height: 1; color: #fff; }
+.import-kpi-label{ font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.import-kpi-green .import-kpi-icon { color: #34d399; }
+.import-kpi-blue  .import-kpi-icon { color: #60a5fa; }
+.import-kpi-amber .import-kpi-icon { color: var(--amber); }
+.import-kpi-red   .import-kpi-icon { color: #f87171; }
+
+.import-batch-id { font-size: 11px; color: var(--text-muted); }
+.import-batch-id code { font-family: monospace; color: var(--text-dim); }
+
+/* Incomplètes */
+.import-incomplete-section,
+.import-errors-section {
+    background: var(--navy-950); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+}
+.import-incomplete-section { border-color: rgba(251,191,36,.2); }
+.import-errors-section     { border-color: rgba(239,68,68,.2); }
+
+.import-section-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 700; color: #fff;
+    margin-bottom: 8px;
+}
+.import-section-badge { font-size: 9.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+.import-section-sub { font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px; }
+
+.import-incomplete-list { display: flex; flex-direction: column; gap: 8px; }
+.import-incomplete-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px;
+}
+.import-incomplete-left { flex: 1; min-width: 0; }
+.import-incomplete-id { font-family: monospace; font-size: 12px; font-weight: 700; color: var(--amber); display: block; margin-bottom: 4px; }
+.import-incomplete-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.import-field-tag {
+    font-size: 9.5px; font-weight: 600; padding: 2px 7px;
+    background: rgba(251,191,36,.1); color: var(--amber);
+    border: 1px solid rgba(251,191,36,.2); border-radius: 99px;
+}
+.import-complete-btn {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 600; color: var(--amber);
+    background: var(--amber-dim); border: 1px solid var(--amber-border);
+    border-radius: 8px; padding: 6px 12px; white-space: nowrap;
+    text-decoration: none; transition: all .2s;
+    flex-shrink: 0;
+}
+.import-complete-btn:hover { background: rgba(251,191,36,.2); }
+
+.import-errors-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+.import-error-item {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 11px; color: var(--text-dim);
+    font-family: monospace;
+    background: var(--navy-900); border-radius: 8px; padding: 6px 10px;
+}
+
+.import-success-banner {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(52,211,153,.08); border: 1px solid rgba(52,211,153,.25);
+    border-radius: var(--radius); padding: 16px;
+}
+.import-success-banner > div { flex: 1; }
+</style>
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function onFileSelected(input) {
+    const display = document.getElementById('fileNameDisplay');
+    const dz = document.getElementById('dropzone');
+    if (input.files.length > 0) {
+        const name = input.files[0].name;
+        const size = (input.files[0].size / 1024 / 1024).toFixed(2);
+        display.textContent = `📎 ${name} (${size} Mo)`;
+        display.classList.remove('hidden');
+        dz.style.borderColor = 'var(--amber)';
+        dz.style.background  = 'var(--amber-dim)';
+    }
+}
+
+// Drag & drop
+const dz = document.getElementById('dropzone');
+const fi = document.getElementById('importFileInput');
+
+dz?.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--amber)'; });
+dz?.addEventListener('dragleave',  () => { dz.style.borderColor = ''; });
+dz?.addEventListener('drop', e => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && fi) {
+        // Créer un DataTransfer pour assigner les fichiers
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        fi.files = dt.files;
+        onFileSelected(fi);
+    }
+});
+
+// Indicateur chargement
+document.getElementById('importForm')?.addEventListener('submit', () => {
+    const btn = document.getElementById('importSubmitBtn');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Importation en cours…';
+        btn.disabled = true;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

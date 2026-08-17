@@ -1,0 +1,61 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Urgence 72h — GEI{% endblock %}
+{% block header_title %}Suivi Temps Réel Urgence 72h (Annexe E){% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
+        <h3 class="text-lg font-bold text-white mb-2">Dossiers d'Urgence 72h Actifs</h3>
+        <p class="text-xs text-slate-400 mb-6">Workflow SLA en 5 phases : Détection (T0) → Qualification (T+6h) → Validation (T+24h) → Coordination (T+48h) → Suivi (T+72h)</p>
+
+        <div class="space-y-6">
+            {% for case in active_cases %}
+                <div class="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <span class="font-mono font-bold text-amber-400 text-lg">{{ case.alert.codeGei }}</span>
+                            <span class="ml-3 font-semibold text-white">{{ case.alert.market.nom }}</span>
+                            <span class="ml-2 text-xs text-slate-400">Activé le {{ case.dateActivation|date('d/m/Y H:i') }}</span>
+                        </div>
+                        {% include 'components/_sla_timer.html.twig' with {case: case} %}
+                    </div>
+
+                    <!-- Phase progress bar -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
+                        {% for phase in case.phases %}
+                            <div class="p-3 rounded-lg border text-xs relative flex flex-col justify-between
+                                {% if phase.isTerminee %}
+                                    bg-emerald-500/10 border-emerald-500/30 text-emerald-300
+                                {% elseif phase.isEnRetard %}
+                                    bg-red-500/10 border-red-500/30 text-red-300 animate-pulse
+                                {% else %}
+                                    bg-slate-900 border-slate-800 text-slate-400
+                                {% endif %}">
+                                <div>
+                                    <div class="font-bold mb-1">{{ phase.phase.label }}</div>
+                                    <div class="text-2xs opacity-80">SLA: T+{{ phase.phase.slaHeures }}h</div>
+                                </div>
+                                <div class="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                                    {% if phase.isTerminee %}
+                                        <span class="font-bold text-emerald-400">✓ Terminé</span>
+                                    {% else %}
+                                        <span class="font-bold text-amber-400">En cours</span>
+                                        <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}">
+                                            <button type="submit" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-2xs rounded">Valider</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="p-8 text-center text-slate-500 italic bg-slate-950 border border-slate-800 rounded-xl">
+                    Aucun cas d'urgence 72h actif actuellement.
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
