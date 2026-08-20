@@ -38,6 +38,11 @@
             <a href="{{ path('app_dashboard_statistiques') }}" class="stats-reset-btn">
                 <i class="fa-solid fa-xmark me-1"></i>Reset
             </a>
+            <a href="{{ path('app_export_statistiques') }}?debut={{ debut }}&fin={{ fin }}&markets={{ selected_markets|join(',') }}"
+               class="stats-apply-btn" style="background:#16856b;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px;"
+               title="Exporter les statistiques en Excel">
+                <i class="fa-solid fa-file-excel"></i> Excel
+            </a>
         </div>
     </form>
 

@@ -5,6 +5,7 @@ namespace App\Controller\Alert;
 use App\Entity\Alert;
 use App\Repository\AlertRepository;
 use App\Service\ExportService;
+use App\Service\ExportStatsService;
 use App\Service\PdfExportService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,10 +19,17 @@ class ExportController extends AbstractController
     #[Route('/export/registre', name: 'app_export_registre', methods: ['GET'])]
     public function exportExcel(Request $request, ExportService $exportService): Response
     {
-        $pays = $request->query->get('pays');
-        $statut = $request->query->get('statut');
+        $user = $this->getUser();
+        if (!$user instanceof \App\Entity\User) {
+            throw $this->createAccessDeniedException();
+        }
 
-        return $exportService->exportRegistre($pays, $statut);
+        $pays   = $request->query->get('pays');
+        $statut = $request->query->get('statut');
+        $from   = $request->query->get('from')  ? new \DateTime($request->query->get('from'))  : null;
+        $to     = $request->query->get('to')    ? new \DateTime($request->query->get('to'))    : null;
+
+        return $exportService->exportRegistre($pays, $statut, $from, $to);
     }
 
     #[Route('/alert/{id}/pdf', name: 'app_alert_pdf', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -52,6 +60,17 @@ class ExportController extends AbstractController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('attachment; filename="Registre_GEI_%s.pdf"', date('Y-m-d')),
         ]);
+    }
+
+    #[Route('/export/statistiques', name: 'app_export_statistiques', methods: ['GET'])]
+    public function exportStatistiques(Request $request, ExportStatsService $exportStatsService): Response
+    {
+        $debut     = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
+        $fin       = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
+        $marketIds = array_filter(explode(',', $request->query->get('markets', '')), 'is_numeric');
+        $marketIds = array_map('intval', $marketIds);
+
+        return $exportStatsService->exportStats($debut, $fin, $marketIds);
     }
 }
 
