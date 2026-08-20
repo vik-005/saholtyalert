@@ -54,11 +54,10 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     public function findByRoleAndMarket(UserRoleEnum $role, Market $market): array
     {
         return $this->createQueryBuilder('u')
-            ->leftJoin('u.marchesPrimaires', 'mp')
-            ->leftJoin('u.marchesSecondaires', 'ms')
+            ->leftJoin('u.markets', 'managedMarket')
             ->where('u.role = :role')
             ->andWhere('u.actif = true')
-            ->andWhere('mp = :market OR ms = :market OR u.market = :market')
+            ->andWhere('managedMarket = :market OR u.market = :market')
             ->setParameter('role', $role->value)
             ->setParameter('market', $market)
             ->orderBy('u.nom', 'ASC')

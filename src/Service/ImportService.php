@@ -78,12 +78,12 @@ class ImportService
             'immédiat' => 'immediat',
             'immediate'=> 'immediat',
         ],
-        // Impact
+        // Impact : les anciennes variantes sont normalisées vers les trois niveaux GEI.
         AlertImpact::class => [
-            'très élevé'   => 'tres_eleve',
-            'tres eleve'   => 'tres_eleve',
-            'moyen à élevé'=> 'moyen_eleve',
-            'moyen a eleve'=> 'moyen_eleve',
+            'très élevé'   => 'eleve',
+            'tres eleve'   => 'eleve',
+            'moyen à élevé'=> 'moyen',
+            'moyen a eleve'=> 'moyen',
             'élevé'        => 'eleve',
             'moyen'        => 'moyen',
             'faible'       => 'faible',

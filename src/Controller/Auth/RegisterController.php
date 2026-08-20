@@ -38,6 +38,9 @@ class RegisterController extends AbstractController
         $formData = [];
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('register', (string) $request->request->get('_token'))) {
+                $errors[] = 'Votre session a expiré. Veuillez réessayer.';
+            }
             $formData = [
                 'prenom'   => trim($request->request->get('prenom', '')),
                 'nom'      => trim($request->request->get('nom', '')),
@@ -59,8 +62,8 @@ class RegisterController extends AbstractController
             if (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) {
                 $errors[] = 'Adresse email invalide.';
             }
-            if (strlen($password) < 8) {
-                $errors[] = 'Le mot de passe doit contenir au minimum 8 caractères.';
+            if (strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/\d/', $password)) {
+                $errors[] = 'Le mot de passe doit contenir 12 caractères, une majuscule, une minuscule et un chiffre.';
             }
             if ($password !== $passwordConfirm) {
                 $errors[] = 'Les mots de passe ne correspondent pas.';
@@ -83,6 +86,7 @@ class RegisterController extends AbstractController
                 $user->setPrenom($formData['prenom']);
                 $user->setNom($formData['nom']);
                 $user->setEmail($formData['email']);
+                $user->setFonction($formData['fonction'] ?: null);
                 $user->setRole(UserRoleEnum::EMETTEUR_TERRAIN);
                 $user->setActif(false); // activation manuelle par admin
                 $user->setPassword($hasher->hashPassword($user, $password));

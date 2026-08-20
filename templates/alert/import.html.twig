@@ -251,15 +251,14 @@
 .import-submit-btn {
     width: 100%;
     height: 48px;
-    background: linear-gradient(135deg, #fbbf24, #f97316);
-    color: var(--navy-950);
+    background: #16856b;
+    color: #fff;
     font-size: 14px; font-weight: 800;
     border: none; border-radius: 12px;
-    cursor: pointer; transition: all .2s;
+    cursor: pointer; transition: background .2s, border-color .2s;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 6px 20px rgba(251,191,36,.25);
 }
-.import-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(251,191,36,.35); }
+.import-submit-btn:hover { background: #0d715b; }
 
 /* Résultat */
 .import-result-card {
@@ -384,5 +383,4 @@ document.getElementById('importForm')?.addEventListener('submit', () => {
     }
 });
 </script>
-{% endblock %}
 {% endblock %}

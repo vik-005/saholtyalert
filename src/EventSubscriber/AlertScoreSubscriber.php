@@ -112,7 +112,7 @@ class AlertScoreSubscriber
         $notif->setAlert($alert);
         $notif->setType('statut_change');
         $notif->setContenu(sprintf(
-            'Votre alerte %s a changé de statut : <strong>%s</strong>.',
+            'Votre alerte %s a changé de statut : %s.',
             $alert->getCodeGei() ?? '#' . $alert->getId(),
             $statutLabel
         ));

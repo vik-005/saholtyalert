@@ -1,144 +1,77 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Registre des Alertes — GEI{% endblock %}
-{% block header_title %}Registre National & Régional d'Alertes GEI{% endblock %}
+{% block title %}Registre des alertes — GEI{% endblock %}
+{% block header_title %}Registre des alertes{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
+<section class="registry-page">
+    <header class="registry-hero">
         <div>
-            <h3 class="text-xl font-bold text-white">Alertes enregistrées ({{ alerts|length }})</h3>
-            <p class="text-xs text-slate-400">Cliquer sur <span class="text-amber-400 font-bold">[+]</span> pour afficher l'intégralité des 23 colonnes de la fiche</p>
+            <p class="registry-kicker"><i class="fa-solid fa-shield-halved me-1"></i>Suivi opérationnel</p>
+            <h1 class="registry-title">Registre national & régional</h1>
+            <p class="registry-subtitle">Centralisez, qualifiez et suivez les fiches d’alerte GEI en toute clarté.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ path('app_alert_import') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                Importer Excel (.xlsx)
-            </a>
-            <a href="{{ path('app_export_registre') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-2">
-                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Exporter Excel (.xlsx)
-            </a>
-            <a href="{{ path('app_export_registre_pdf') }}" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-2">
-                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V7.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 1H7a2 2 0 00-2 2v16a2 2 0 002 2z"/></svg>
-                Rapport PDF
-            </a>
-            <a href="{{ path('app_alert_new') }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow">
-                + Nouvelle Fiche d'Alerte
-            </a>
+        <div class="registry-actions">
+            <a href="{{ path('app_alert_import') }}" class="registry-action"><i class="fa-solid fa-file-arrow-up"></i><span>Importer Excel</span></a>
+            <a href="{{ path('app_export_registre') }}" class="registry-action"><i class="fa-solid fa-file-excel"></i><span>Exporter</span></a>
+            <a href="{{ path('app_export_registre_pdf') }}" class="registry-action"><i class="fa-solid fa-file-pdf"></i><span>Rapport PDF</span></a>
+            <a href="{{ path('app_alert_new') }}" class="registry-action registry-action-primary"><i class="fa-solid fa-plus"></i><span>Nouvelle alerte</span></a>
         </div>
-    </div>
+    </header>
 
-    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800 text-2xs">
+    <div class="registry-card">
+        <div class="registry-toolbar">
+            <span class="registry-count">{{ alerts|length }} alerte{{ alerts|length > 1 ? 's' : '' }} enregistrée{{ alerts|length > 1 ? 's' : '' }}</span>
+            <span class="registry-hint"><i class="fa-solid fa-circle-info me-1"></i>Ouvrez une ligne pour consulter les informations détaillées.</span>
+        </div>
+        <div class="registry-table-wrap">
+            <table class="registry-table">
+                <thead><tr>
+                    <th>Détails</th><th>Code GEI</th><th>Date</th><th>Zone / pays</th><th>Catégorie</th><th>Résumé</th><th>Score</th><th>Priorité</th><th>Statut</th><th></th>
+                </tr></thead>
+                <tbody>
+                {% for alert in alerts %}
                     <tr>
-                        <th class="p-3 w-10 text-center">Détails</th>
-                        <th class="p-3">Code GEI</th>
-                        <th class="p-3">Date</th>
-                        <th class="p-3">Zone / Pays</th>
-                        <th class="p-3">Catégorie</th>
-                        <th class="p-3">Type d'Alerte</th>
-                        <th class="p-3">Résumé</th>
-                        <th class="p-3 text-center">Score</th>
-                        <th class="p-3">Priorité</th>
-                        <th class="p-3">Statut</th>
-                        <th class="p-3 text-right">Actions</th>
+                        <td><button type="button" onclick="toggleDetailsIndex({{ alert.id }})" id="btn-idx-toggle-{{ alert.id }}" class="registry-expand" aria-label="Afficher les détails">+</button></td>
+                        <td><a class="registry-code" href="{{ path('app_alert_show', {id: alert.id}) }}">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
+                        <td>{{ alert.dateCreation|date('d/m/Y') }}</td>
+                        <td>{{ alert.market.nom }}</td>
+                        <td>{{ alert.categorie ? alert.categorie.label : '—' }}</td>
+                        <td><div class="registry-summary">{{ alert.resumeExecutif ?: 'Aucun résumé renseigné' }}</div></td>
+                        <td><span class="registry-score">{{ alert.effectiveScore ?? '—' }}</span></td>
+                        <td>{% include 'components/_alert_badge.html.twig' with {priority: alert.effectiveNiveauPriorite} %}</td>
+                        <td>{% include 'components/_alert_badge.html.twig' with {status: alert.statut} %}</td>
+                        <td><div class="registry-buttons">
+                            <a class="registry-icon-btn" title="Consulter" href="{{ path('app_alert_show', {id: alert.id}) }}"><i class="fa-solid fa-eye"></i></a>
+                            {% if is_granted('ALERT_QUALIFY', alert) %}<a class="registry-icon-btn" title="Qualifier" href="{{ path('app_alert_qualify', {id: alert.id}) }}"><i class="fa-solid fa-pen-to-square"></i></a>{% endif %}
+                        </div></td>
                     </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800/60">
-                    {% for alert in alerts %}
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-3 text-center">
-                                <button onclick="toggleDetailsIndex({{ alert.id }})" id="btn-idx-toggle-{{ alert.id }}" class="w-6 h-6 rounded bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-amber-400 font-extrabold text-sm flex items-center justify-center transition border border-slate-700">
-                                    +
-                                </button>
-                            </td>
-                            <td class="p-3 font-mono font-bold text-amber-400 whitespace-nowrap">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="hover:underline">{{ alert.codeGei ?? 'BROUILLON' }}</a>
-                            </td>
-                            <td class="p-3 whitespace-nowrap text-slate-400">{{ alert.dateCreation|date('d/m/Y') }}</td>
-                            <td class="p-3 font-semibold text-white whitespace-nowrap">{{ alert.market.nom }}</td>
-                            <td class="p-3 text-slate-300 whitespace-nowrap">{{ alert.categorie ? alert.categorie.label : '-' }}</td>
-                            <td class="p-3 text-slate-300 whitespace-nowrap">{{ alert.typeAlerte ? alert.typeAlerte.label : '-' }}</td>
-                            <td class="p-3 max-w-sm truncate text-slate-300">{{ alert.resumeExecutif }}</td>
-                            <td class="p-3 text-center font-bold text-sm text-white">{{ alert.effectiveScore ?? '-' }}</td>
-                            <td class="p-3 whitespace-nowrap">
-                                {% include 'components/_alert_badge.html.twig' with {priority: alert.effectiveNiveauPriorite} %}
-                            </td>
-                            <td class="p-3 whitespace-nowrap">
-                                {% include 'components/_alert_badge.html.twig' with {status: alert.statut} %}
-                            </td>
-                            <td class="p-3 text-right whitespace-nowrap space-x-2">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="px-2.5 py-1 bg-slate-800 text-slate-200 font-semibold rounded text-2xs">Consulter</a>
-                                <a href="{{ path('app_alert_pdf', {id: alert.id}) }}" class="px-2 py-1 bg-red-500/10 text-red-400 font-semibold rounded text-2xs border border-red-500/20">PDF</a>
-                                {% if is_granted('ALERT_QUALIFY', alert) %}
-                                    <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="px-2.5 py-1 bg-amber-500/20 text-amber-400 font-semibold rounded text-2xs border border-amber-500/30">Qualifier</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-
-                        <!-- Expandable Collapsible Detailed Row -->
-                        <tr id="idx-details-row-{{ alert.id }}" class="hidden bg-slate-950/90 border-l-4 border-amber-500">
-                            <td colspan="10" class="p-5">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-                                    <div class="space-y-2">
-                                        <span class="font-bold text-amber-400 uppercase text-2xs tracking-wider">Éléments Factuels</span>
-                                        <p class="p-3 bg-slate-900 border border-slate-800 rounded text-slate-300 leading-relaxed whitespace-pre-line">
-                                            {{ alert.elementsFactuels ?: 'Non renseigné' }}
-                                        </p>
-                                    </div>
-
-                                    <div class="space-y-2">
-                                        <span class="font-bold text-amber-400 uppercase text-2xs tracking-wider">Hypothèses Analytiques</span>
-                                        <p class="p-3 bg-slate-900 border border-slate-800 rounded text-slate-300 leading-relaxed whitespace-pre-line">
-                                            {{ alert.hypothesesAnalytiques ?: 'Non renseigné' }}
-                                        </p>
-                                    </div>
-
-                                    <div class="space-y-3 bg-slate-900 p-4 border border-slate-800 rounded-lg">
-                                        <span class="font-bold text-white uppercase text-2xs tracking-wider">Détails Registre (23 colonnes)</span>
-                                        <div class="grid grid-cols-2 gap-2 text-2xs">
-                                            <div><span class="text-slate-500">Corridor:</span> <span class="text-slate-200 font-semibold">{{ alert.portCorridor ?? '-' }}</span></div>
-                                            <div><span class="text-slate-500">Type alerte:</span> <span class="text-slate-200 font-semibold">{{ alert.typeAlerte ? alert.typeAlerte.label : '-' }}</span></div>
-                                            <div><span class="text-slate-500">Type source:</span> <span class="text-slate-200 font-semibold">{{ alert.typeSource ? alert.typeSource.label : '-' }}</span></div>
-                                            <div><span class="text-slate-500">Fiabilité:</span> <span class="text-slate-200 font-semibold">{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : '-' }}</span></div>
-                                            <div><span class="text-slate-500">Crédibilité:</span> <span class="text-slate-200 font-semibold">{{ alert.credibiliteContenu ?? '-' }}</span></div>
-                                            <div><span class="text-slate-500">Transmission:</span> <span class="text-slate-200 font-semibold">{{ alert.transmission.label }}</span></div>
-                                            <div><span class="text-slate-500">Sensibilité:</span> <span class="text-slate-200 font-semibold">{{ alert.sensibilite.label }}</span></div>
-                                        </div>
-                                        <div class="pt-2 border-t border-slate-800 text-2xs">
-                                            <span class="text-slate-500">Recommandation:</span>
-                                            <span class="text-amber-400 font-bold block">{{ alert.recommandation ? alert.recommandation.label : '-' }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                    <tr id="idx-details-row-{{ alert.id }}" class="registry-detail hidden">
+                        <td colspan="10"><div class="registry-detail-grid">
+                            <div class="registry-detail-block"><span class="registry-detail-label">Éléments factuels</span>{{ alert.elementsFactuels ?: 'Non renseigné' }}</div>
+                            <div class="registry-detail-block"><span class="registry-detail-label">Hypothèses analytiques</span>{{ alert.hypothesesAnalytiques ?: 'Non renseigné' }}</div>
+                            <div class="registry-detail-block"><span class="registry-detail-label">Informations de suivi</span><strong>Corridor :</strong> {{ alert.portCorridor ?? '—' }}<br><strong>Source :</strong> {{ alert.typeSource ? alert.typeSource.label : '—' }}<br><strong>Transmission :</strong> {{ alert.transmission.label }}<br><strong>Sensibilité :</strong> {{ alert.sensibilite.label }}</div>
+                        </div></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="10" class="registry-empty"><i class="fa-regular fa-folder-open fa-2x"></i><p class="mt-2">Aucune alerte ne correspond aux critères actuels.</p></td></tr>
+                {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-</div>
+</section>
+{% endblock %}
 
+{% block javascripts %}
 <script>
 function toggleDetailsIndex(id) {
     const row = document.getElementById('idx-details-row-' + id);
-    const btn = document.getElementById('btn-idx-toggle-' + id);
-
-    if (row.classList.contains('hidden')) {
-        row.classList.remove('hidden');
-        btn.textContent = '−';
-        btn.classList.remove('text-amber-400', 'bg-slate-800');
-        btn.classList.add('text-slate-950', 'bg-amber-500');
-    } else {
-        row.classList.add('hidden');
-        btn.textContent = '+';
-        btn.classList.remove('text-slate-950', 'bg-amber-500');
-        btn.classList.add('text-amber-400', 'bg-slate-800');
-    }
+    const button = document.getElementById('btn-idx-toggle-' + id);
+    const isHidden = row.classList.contains('hidden');
+    row.classList.toggle('hidden', !isHidden);
+    button.textContent = isHidden ? '−' : '+';
+    button.setAttribute('aria-label', isHidden ? 'Masquer les détails' : 'Afficher les détails');
 }
 </script>
 {% endblock %}

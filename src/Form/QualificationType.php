@@ -54,11 +54,12 @@ class QualificationType extends AbstractType
             ])
             ->add('impact', EnumType::class, [
                 'class'        => AlertImpact::class,
-                'label'        => 'Impact potentiel',
-                'placeholder'  => 'Sélectionnez l\'impact',
+                'label'        => 'Impact potentiel (Élevé, Moyen ou Faible)',
+                'placeholder'  => 'Sélectionnez un niveau d’impact',
                 'required'     => false,
                 'choice_label' => fn(AlertImpact $i) => $i->label(),
                 'attr'         => ['class' => 'form-select js-score-trigger'],
+                'help'         => 'Élevé = 3 points, Moyen = 2 points, Faible = 1 point.',
             ])
             ->add('exploitabilite', EnumType::class, [
                 'class'        => AlertExploitabilite::class,

@@ -136,11 +136,11 @@
 
     {# ── Profil utilisateur ── #}
     <div class="sidebar-profile">
-        <div class="profile-avatar">
+        <a href="{{ path('app_account_settings') }}" class="profile-avatar" title="Mon compte">
             {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
-        </div>
+        </a>
         <div class="profile-info">
-            <span class="profile-name">{{ app.user.nomComplet }}</span>
+            <a href="{{ path('app_account_settings') }}" class="profile-name">{{ app.user.nomComplet }}</a>
             <span class="profile-role">{{ app.user.role.label }}</span>
         </div>
         <a href="{{ path('app_logout') }}" class="profile-logout" title="Déconnexion">

@@ -9,6 +9,7 @@ use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -64,11 +65,14 @@ class NotificationController extends AbstractController
      * Marque TOUTES les notifications de l'utilisateur comme lues.
      */
     #[Route('/notification/read-all', name: 'app_notification_read_all', methods: ['POST'])]
-    public function readAll(): Response
+    public function readAll(Request $request): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
+        }
+        if (!$this->isCsrfTokenValid('read_all', (string) $request->request->get('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
         }
 
         $unread = $this->notifRepo->findUnreadForUser($user, 100);

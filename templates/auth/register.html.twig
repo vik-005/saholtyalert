@@ -131,7 +131,7 @@
                 type="password"
                 id="reg_password"
                 name="password"
-                placeholder="Minimum 8 caractères"
+                placeholder="12 caractères minimum"
                 class="auth-input"
                 autocomplete="new-password"
                 required
@@ -204,7 +204,7 @@ function checkPasswordStrength(val) {
     if (!bar || !label) return;
 
     let strength = 0;
-    if (val.length >= 8)  strength++;
+    if (val.length >= 12) strength++;
     if (/[A-Z]/.test(val)) strength++;
     if (/[0-9]/.test(val)) strength++;
     if (/[^A-Za-z0-9]/.test(val)) strength++;

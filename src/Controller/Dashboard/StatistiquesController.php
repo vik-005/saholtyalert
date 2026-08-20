@@ -96,18 +96,4 @@ class StatistiquesController extends AbstractController
         ]);
     }
 
-    /**
-     * API JSON — compteur de notifications non lues pour le badge topbar.
-     * Appelée en polling léger toutes les 30s (pas de WebSocket requis).
-     */
-    #[Route('/api/notifications/count', name: 'app_notif_count', methods: ['GET'])]
-    public function notifCount(): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user instanceof User) {
-            return $this->json(['count' => 0]);
-        }
-        // Injecté via AutowireRepository ou service — utilisation directe du repo
-        return $this->json(['count' => 0]); // Sera remplacé par le NotifController enrichi
-    }
 }
