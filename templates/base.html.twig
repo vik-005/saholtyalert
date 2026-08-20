@@ -184,7 +184,7 @@ async function pollNotifications() {
                 const text = n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 45) + '…' : '';
                 return `<div class="sidebar-notif-item">
                     <span class="notif-dot ${dot}"></span>
-                    <span>${text}</span>
+                    <span>${escapeHtml(text)}</span>
                 </div>`;
             }).join('');
         } else if (sidebarList) {
@@ -202,14 +202,20 @@ async function pollNotifications() {
                     return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'}">
                         <span class="notif-icon-wrap ${iconClass}"><i class="fa-solid ${icon}"></i></span>
                         <div class="notif-body">
-                            <p class="notif-title">${n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—'}</p>
-                            <span class="notif-meta">${n.codeGei ? n.codeGei + ' · ' : ''}${n.date}</span>
+                            <p class="notif-title">${escapeHtml(n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—')}</p>
+                            <span class="notif-meta">${n.codeGei ? escapeHtml(n.codeGei) + ' · ' : ''}${escapeHtml(n.date)}</span>
                         </div>
                     </a>`;
                 }).join('');
             }
         }
     } catch (e) { /* Silencieux — pas critique */ }
+}
+
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value;
+    return element.innerHTML;
 }
 
 // Premier appel immédiat + polling toutes les 30s
@@ -223,6 +229,31 @@ function toggleNotifPanel() {
     panel.classList.toggle('hidden');
     window._notifPanelOpen = !panel.classList.contains('hidden');
 }
+
+/* ─── Dark / Night mode ─── */
+(function() {
+    if (localStorage.getItem('gei-dark') === '1') {
+        document.body.classList.add('dark');
+    }
+})();
+document.addEventListener('DOMContentLoaded', function() {
+    const btn  = document.getElementById('darkModeBtn');
+    const icon = document.getElementById('darkModeIcon');
+    if (!btn) return;
+    function applyDark(on) {
+        document.body.classList.toggle('dark', on);
+        if (icon) {
+            icon.className = on ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        localStorage.setItem('gei-dark', on ? '1' : '0');
+    }
+    // Init icon on page load
+    const isDark = document.body.classList.contains('dark');
+    if (icon) icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    btn.addEventListener('click', function() {
+        applyDark(!document.body.classList.contains('dark'));
+    });
+});
 
 
 /* ─── Modale confirm ─── */

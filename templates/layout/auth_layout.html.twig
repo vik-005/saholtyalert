@@ -1,160 +1,126 @@
 {% extends 'base.html.twig' %}
 
-{# ═══════════════════════════════════════════════════════════════════════════
-   AUTH LAYOUT — Design splitté inspiré AMU
-   Gauche  : slideshow automatique (images + caption + dots)
-   Droite  : formulaire (connexion ou inscription)
-   Couleurs: dark navy #090e1a + amber #fbbf24 — ZÉRO dégradé criard
-════════════════════════════════════════════════════════════════════════════ #}
-
 {% block body_login %}
-<div class="auth-shell">
+<div class="auth-shell auth-shell-pro">
 
-    {# ══════════════════════════════════════════════
-       PANNEAU GAUCHE — Slideshow
-    ══════════════════════════════════════════════ #}
-    <div class="auth-slide-panel" id="slidePanel">
+    {# ══════════════════════════════════════════════════════════════════
+       PANNEAU GAUCHE — fond vert institutionnel + slideshow photo
+    ══════════════════════════════════════════════════════════════════ #}
+    <aside class="auth-brand-panel">
 
-        {# Logo GEI en haut à gauche #}
-        <div class="slide-header">
-            <a href="/" class="slide-logo">
-                <span class="slide-logo-icon"><i class="fa-solid fa-shield-halved"></i></span>
-                <span class="slide-logo-text">GEI Platform</span>
-            </a>
-            <a href="{{ path('app_dashboard_operationnel') }}" class="slide-back-btn">
-                Retour au site <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i>
-            </a>
+        {# ── Diaporama fond ── #}
+        <div class="auth-slide-wrap" id="authSlideWrap">
+            {#
+                Images issues de Unsplash (libres de droits, thème opérationnel / sécurité).
+                Remplacez les URLs par vos propres assets si besoin.
+            #}
+            <div class="auth-slide-item auth-slide-active"
+                 style="background-image:url('https://images.unsplash.com/photo-1557597774-9d475d030a6d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=900&q=80&auto=format&fit=crop')">
+            </div>
         </div>
 
-        {# Slides — 4 images plein-panel avec overlay texte #}
-        <div class="slides-container" id="slidesContainer">
+        {# ── Overlay vert semi-transparent ── #}
+        <div class="auth-slide-overlay"></div>
 
-            {# Slide 1 — Opérationnel #}
-            <div class="slide slide-active" id="slide-0">
-                <div class="slide-bg"
-                     style="background-image: url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=900&q=80&auto=format')">
-                </div>
-                <div class="slide-overlay"></div>
-                <div class="slide-caption">
-                    <p class="slide-caption-tag"><i class="fa-solid fa-satellite-dish me-1.5"></i>Renseignement</p>
-                    <h2 class="slide-caption-title">Qualifier l'information,<br>Sécuriser la décision.</h2>
-                </div>
-            </div>
+        {# ── Contenu branding (au-dessus de l'overlay) ── #}
+        <a href="{{ path('app_login') }}" class="auth-brand">
+            <span><i class="fa-solid fa-shield-halved"></i></span>GEI Platform
+        </a>
 
-            {# Slide 2 — Corridors #}
-            <div class="slide" id="slide-1">
-                <div class="slide-bg"
-                     style="background-image: url('https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=900&q=80&auto=format')">
-                </div>
-                <div class="slide-overlay"></div>
-                <div class="slide-caption">
-                    <p class="slide-caption-tag"><i class="fa-solid fa-route me-1.5"></i>Corridors</p>
-                    <h2 class="slide-caption-title">Surveiller les flux,<br>Anticiper les risques.</h2>
-                </div>
-            </div>
-
-            {# Slide 3 — Analyse #}
-            <div class="slide" id="slide-2">
-                <div class="slide-bg"
-                     style="background-image: url('https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=900&q=80&auto=format')">
-                </div>
-                <div class="slide-overlay"></div>
-                <div class="slide-caption">
-                    <p class="slide-caption-tag"><i class="fa-solid fa-chart-line me-1.5"></i>Analyse</p>
-                    <h2 class="slide-caption-title">Scorer chaque alerte,<br>Agir avec précision.</h2>
-                </div>
-            </div>
-
-            {# Slide 4 — Terrain #}
-            <div class="slide" id="slide-3">
-                <div class="slide-bg"
-                     style="background-image: url('https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=900&q=80&auto=format')">
-                </div>
-                <div class="slide-overlay"></div>
-                <div class="slide-caption">
-                    <p class="slide-caption-tag"><i class="fa-solid fa-shield-halved me-1.5"></i>Terrain</p>
-                    <h2 class="slide-caption-title">Protéger les marchés,<br>Renforcer la coopération.</h2>
-                </div>
-            </div>
-
+        <div class="auth-brand-copy">
+            <p class="auth-brand-tag">Groupe d'échange d'informations</p>
+            <h2>Une information mieux qualifiée.<br>Une décision mieux protégée.</h2>
+            <p>Plateforme sécurisée de collecte, qualification et suivi des alertes opérationnelles.</p>
         </div>
 
-        {# Dots de navigation #}
-        <div class="slide-dots" id="slideDots">
-            <button class="slide-dot slide-dot-active" onclick="goToSlide(0)" id="dot-0"></button>
-            <button class="slide-dot" onclick="goToSlide(1)" id="dot-1"></button>
-            <button class="slide-dot" onclick="goToSlide(2)" id="dot-2"></button>
-            <button class="slide-dot" onclick="goToSlide(3)" id="dot-3"></button>
+        <ul class="auth-brand-points">
+            <li><i class="fa-solid fa-circle-check"></i>Accès contrôlé par rôle</li>
+            <li><i class="fa-solid fa-circle-check"></i>Traçabilité des opérations</li>
+            <li><i class="fa-solid fa-circle-check"></i>Suivi des urgences sous 72 h</li>
+        </ul>
+
+        <p class="auth-brand-footer"><i class="fa-solid fa-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
+
+        {# ── Points de navigation ── #}
+        <div class="auth-slide-dots" id="authSlideDots">
+            <button class="auth-slide-dot auth-dot-active" data-slide="0" aria-label="Slide 1"></button>
+            <button class="auth-slide-dot" data-slide="1" aria-label="Slide 2"></button>
+            <button class="auth-slide-dot" data-slide="2" aria-label="Slide 3"></button>
+            <button class="auth-slide-dot" data-slide="3" aria-label="Slide 4"></button>
         </div>
 
-    </div>
+    </aside>
 
-    {# ══════════════════════════════════════════════
-       PANNEAU DROIT — Formulaire
-    ══════════════════════════════════════════════ #}
-    <div class="auth-form-panel">
-        <div class="auth-form-inner">
-            {% block auth_form %}{% endblock %}
+    {# ══════════════════════════════════════════════════════════════════
+       PANNEAU DROIT — formulaire
+    ══════════════════════════════════════════════════════════════════ #}
+    <main class="auth-form-panel auth-form-panel-pro">
+        <div class="auth-mobile-brand">
+            <span><i class="fa-solid fa-shield-halved"></i></span> GEI Platform
         </div>
-
-        {# Footer discret #}
-        <p class="auth-footer-note">
-            <i class="fa-solid fa-lock fa-xs me-1.5"></i>
-            Dispositif GEI/AIT — Document confidentiel — Accès restreint
-        </p>
-    </div>
+        <div class="auth-form-inner">{% block auth_form %}{% endblock %}</div>
+        <p class="auth-footer-note">© {{ 'now'|date('Y') }} · Plateforme GEI</p>
+    </main>
 
 </div>
 {% endblock %}
 
-{% block stylesheets %}{{ parent() }}{% endblock %}
-
 {% block javascripts %}
 {{ parent() }}
 <script>
-/* ── Slideshow automatique ── */
-let currentSlide = 0;
-const totalSlides = 4;
-let slideInterval;
+/* ── Slideshow panneau gauche ── */
+(function() {
+    const slides = document.querySelectorAll('.auth-slide-item');
+    const dots   = document.querySelectorAll('.auth-slide-dots .auth-slide-dot');
+    if (!slides.length) return;
 
-function goToSlide(n) {
-    // Retirer active du slide courant
-    document.getElementById('slide-' + currentSlide)?.classList.remove('slide-active');
-    document.getElementById('dot-' + currentSlide)?.classList.remove('slide-dot-active');
+    let current = 0;
+    let timer   = null;
 
-    currentSlide = (n + totalSlides) % totalSlides;
+    function goTo(idx) {
+        slides[current].classList.remove('auth-slide-active');
+        dots[current]?.classList.remove('auth-dot-active');
+        current = (idx + slides.length) % slides.length;
+        slides[current].classList.add('auth-slide-active');
+        dots[current]?.classList.add('auth-dot-active');
+    }
 
-    document.getElementById('slide-' + currentSlide)?.classList.add('slide-active');
-    document.getElementById('dot-' + currentSlide)?.classList.add('slide-dot-active');
-}
+    function next() { goTo(current + 1); }
 
-function nextSlide() { goToSlide(currentSlide + 1); }
+    function startAuto() {
+        clearInterval(timer);
+        timer = setInterval(next, 5000);
+    }
 
-function startSlideshow() {
-    slideInterval = setInterval(nextSlide, 5000);
-}
-function stopSlideshow() {
-    clearInterval(slideInterval);
-}
+    // Clic sur les dots
+    dots.forEach(function(dot) {
+        dot.addEventListener('click', function() {
+            goTo(parseInt(dot.dataset.slide, 10));
+            startAuto(); // reset du timer
+        });
+    });
 
-// Pause au survol
-document.getElementById('slidePanel')?.addEventListener('mouseenter', stopSlideshow);
-document.getElementById('slidePanel')?.addEventListener('mouseleave', startSlideshow);
+    startAuto();
+})();
 
-startSlideshow();
-
-/* ── Toggle mot de passe ── */
+/* ── Afficher/masquer mot de passe ── */
 function togglePassword(inputId, btnId) {
     const input = document.getElementById(inputId);
-    const icon  = document.getElementById(btnId).querySelector('i');
-    if (!input) return;
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.replace('fa-eye', 'fa-eye-slash');
-    } else {
-        input.type = 'password';
-        icon.classList.replace('fa-eye-slash', 'fa-eye');
-    }
+    const icon  = document.getElementById(btnId)?.querySelector('i');
+    if (!input || !icon) return;
+    const visible = input.type === 'password';
+    input.type = visible ? 'text' : 'password';
+    icon.classList.toggle('fa-eye',      !visible);
+    icon.classList.toggle('fa-eye-slash', visible);
 }
 </script>
 {% endblock %}

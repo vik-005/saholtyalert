@@ -52,40 +52,17 @@
             <div class="notif-panel hidden" id="notifPanel">
                 <div class="notif-panel-header">
                     <span><i class="fa-solid fa-bell me-1.5"></i>Notifications</span>
-                    <button class="notif-mark-all" onclick="toggleNotifPanel()">
+                    <form method="post" action="{{ path('app_notification_read_all') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('read_all') }}">
+                        <button type="submit" class="notif-mark-all">
                         <i class="fa-solid fa-check-double me-1"></i>Tout lire
-                    </button>
+                        </button>
+                    </form>
                 </div>
                 <div class="notif-list">
-                    <a href="{{ path('app_dashboard_urgence') }}" class="notif-item notif-unread">
-                        <span class="notif-icon-wrap notif-icon-red">
-                            <i class="fa-solid fa-triangle-exclamation"></i>
-                        </span>
-                        <div class="notif-body">
-                            <p class="notif-title">Alerte Critique — Urgence 72h activée</p>
-                            <span class="notif-meta">GEI-BEN-2026-001 • Score 25 • il y a 12 min</span>
-                        </div>
-                    </a>
-                    <a href="{{ path('app_dashboard_operationnel') }}" class="notif-item notif-unread">
-                        <span class="notif-icon-wrap notif-icon-amber">
-                            <i class="fa-solid fa-clipboard-check"></i>
-                        </span>
-                        <div class="notif-body">
-                            <p class="notif-title">Validation SAHOLTY requise</p>
-                            <span class="notif-meta">GEI-CIV-2026-004 • Score 16 • il y a 34 min</span>
-                        </div>
-                    </a>
-                    <a href="{{ path('app_dashboard_operationnel') }}" class="notif-item">
-                        <span class="notif-icon-wrap notif-icon-emerald">
-                            <i class="fa-solid fa-circle-check"></i>
-                        </span>
-                        <div class="notif-body">
-                            <p class="notif-title">Nouvelle alerte soumise — Bénin</p>
-                            <span class="notif-meta">GEI-BEN-2026-005 • Corridor Cotonou-Niamey • il y a 1h</span>
-                        </div>
-                    </a>
+                    <div class="notif-item"><span class="notif-body"><span class="notif-meta">Chargement des notifications…</span></span></div>
                 </div>
-                <a href="#" class="notif-panel-footer">
+                <a href="{{ path('app_notifications_list') }}" class="notif-panel-footer">
                     Voir toutes les notifications <i class="fa-solid fa-arrow-right ms-1"></i>
                 </a>
             </div>
@@ -96,8 +73,13 @@
             <i class="fa-regular fa-message"></i>
         </button>
 
+        {# Dark / Night mode ── #}
+        <button class="dark-mode-btn" id="darkModeBtn" aria-label="Basculer mode nuit" title="Mode nuit">
+            <i class="fa-solid fa-moon" id="darkModeIcon"></i>
+        </button>
+
         {# Profil ── #}
-        <div class="topbar-user">
+        <a href="{{ path('app_account_settings') }}" class="topbar-user" title="Mon compte">
             <div class="topbar-avatar">
                 {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
             </div>
@@ -105,7 +87,7 @@
                 <span class="topbar-user-name">{{ app.user.prenom }} {{ app.user.nom|slice(0,1) }}.</span>
                 <span class="topbar-user-role">{{ app.user.role.label }}</span>
             </div>
-        </div>
+        </a>
 
     </div>
 </header>
