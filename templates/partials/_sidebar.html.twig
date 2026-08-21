@@ -108,12 +108,14 @@
             <span class="sidebar-link-text">Console Admin</span>
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="{{ path('app_admin_user_index') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') starts with 'app_admin_user' %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-users-gear"></i></span>
             <span class="sidebar-link-text">Utilisateurs</span>
         </a>
 
-        <a href="{{ path('app_admin_rule_index') }}" class="sidebar-link">
+        <a href="{{ path('app_admin_rule_index') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') starts with 'app_admin_rule' %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-sliders"></i></span>
             <span class="sidebar-link-text">Règles scoring</span>
         </a>
@@ -130,7 +132,7 @@
             <div id="sidebarNotifList">
                 <div class="sidebar-notif-item">
                     <span class="notif-dot notif-dot-amber"></span>
-                    <span class="text-slate-500 text-xs">Chargement…</span>
+                    <span style="color:var(--muted);font-size:10px">Chargement…</span>
                 </div>
             </div>
         </div>

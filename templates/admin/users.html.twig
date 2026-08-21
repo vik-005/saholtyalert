@@ -1,73 +1,204 @@
 {% extends 'base.html.twig' %}
-
-{% block title %}Gestion Utilisateurs — GEI{% endblock %}
-{% block header_title %}Gestion des Utilisateurs GEI{% endblock %}
+{% block title %}Utilisateurs — GEI{% endblock %}
+{% block header_title %}Utilisateurs{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
         <div>
-            <p class="text-[10px] uppercase tracking-[0.2em] text-amber-400 font-bold">Utilisateurs</p>
-            <h3 class="text-xl font-bold text-white mt-2">Utilisateurs enregistrés</h3>
+            <p class="page-eyebrow"><i class="fa-solid fa-users me-1.5"></i>Administration · RBAC Annexe D</p>
+            <h2 class="page-title">Gestion des utilisateurs</h2>
+            <p class="page-subtitle">
+                {{ users|length }} utilisateur{{ users|length > 1 ? 's' : '' }} enregistré{{ users|length > 1 ? 's' : '' }}
+                sur la plateforme GEI.
+            </p>
         </div>
-        <a href="{{ path('app_admin_user_new') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs rounded-2xl shadow-[0_18px_30px_-18px_rgba(251,191,36,0.9)]">
-            <span class="text-lg leading-none">+</span>
-            Créer un Utilisateur
+        <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber">
+            <i class="fa-solid fa-user-plus me-1.5"></i>Créer un utilisateur
         </a>
     </div>
 
-    <div class="bg-slate-900/90 border border-slate-800 rounded-[1.5rem] overflow-hidden shadow-[0_30px_80px_-35px_rgba(15,23,42,1)]">
-        <div class="p-4 border-b border-slate-800 bg-slate-950/60">
-            <div class="flex flex-col sm:flex-row gap-3">
-                <input type="text" placeholder="Rechercher un utilisateur..." class="w-full rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20" />
-                <select class="rounded-2xl border border-slate-700 bg-slate-900 px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
-                    <option value="">Tous les statuts</option>
-                    <option value="actif">Actif</option>
-                    <option value="inactif">Inactif</option>
-                    <option value="en-attente">En attente</option>
-                </select>
+    {# ── Barre de recherche ── #}
+    <div class="db-chart-card" style="padding:12px 16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <div class="db-search-wrap" style="flex:1;min-width:200px">
+                <i class="fa-solid fa-magnifying-glass db-search-icon"></i>
+                <input type="text" placeholder="Rechercher par nom, email, rôle…"
+                       class="db-search-input" style="width:100%"
+                       id="userSearchInput" oninput="filterUsers(this.value)">
             </div>
+            <select class="db-select" id="userRoleFilter" onchange="filterUsers()">
+                <option value="">Tous les rôles</option>
+                <option value="TERRAIN">Terrain</option>
+                <option value="PFT">Manager PFT</option>
+                <option value="SAHOLTY">Saholty</option>
+                <option value="SUPERADMIN">Superadmin</option>
+            </select>
+            <select class="db-select" id="userStatusFilter" onchange="filterUsers()">
+                <option value="">Tous les statuts</option>
+                <option value="actif">Actif</option>
+                <option value="inactif">Inactif</option>
+            </select>
         </div>
+    </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+    {# ── Tableau ── #}
+    <div class="db-table-card">
+        <div class="db-table-wrap">
+            <table class="db-table" id="usersTable">
+                <thead>
                     <tr>
-                        <th class="p-3">Nom Complet</th>
-                        <th class="p-3">Email</th>
-                        <th class="p-3">Rôle GEI</th>
-                        <th class="p-3">Marché</th>
-                        <th class="p-3">Statut</th>
-                        <th class="p-3 text-right">Actions</th>
+                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Nom complet</th>
+                        <th><i class="fa-regular fa-envelope me-1 opacity-50"></i>Email</th>
+                        <th><i class="fa-solid fa-shield-halved me-1 opacity-50"></i>Rôle GEI</th>
+                        <th><i class="fa-solid fa-earth-africa me-1 opacity-50"></i>Marché</th>
+                        <th><i class="fa-solid fa-circle-dot me-1 opacity-50"></i>Statut</th>
+                        <th class="text-right"><i class="fa-solid fa-ellipsis me-1 opacity-50"></i>Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
+                <tbody>
                     {% for u in users %}
-                        <tr class="hover:bg-slate-800/40 transition">
-                            <td class="p-3 font-bold text-white">{{ u.nomComplet }}</td>
-                            <td class="p-3 text-slate-400 font-mono">{{ u.email }}</td>
-                            <td class="p-3"><span class="px-2.5 py-1 bg-amber-500/10 text-amber-400 font-bold rounded-full border border-amber-500/20">{{ u.role.label }}</span></td>
-                            <td class="p-3">{{ u.market ? u.market.nom : 'Global' }}</td>
-                            <td class="p-3">
-                                {% if u.actif is same as(true) %}
-                                    <span class="status-badge status-active">Actif</span>
-                                {% elseif u.actif is same as(false) %}
-                                    <span class="status-badge status-inactive">Inactif</span>
-                                {% else %}
-                                    <span class="status-badge status-pending">En attente</span>
-                                {% endif %}
-                            </td>
-                            <td class="p-3 text-right">
-                                <div class="inline-flex items-center gap-2">
-                                    <a href="{{ path('app_admin_user_edit', {id: u.id}) }}" class="inline-flex items-center justify-center px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 text-2xs font-semibold">Éditer</a>
-                                    <button type="button" class="delete-trigger inline-flex items-center justify-center px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl border border-red-500/20 text-2xs font-semibold" data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}" data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">Supprimer</button>
+                    <tr class="db-tr user-row"
+                        data-name="{{ u.nomComplet|lower }}"
+                        data-email="{{ u.email|lower }}"
+                        data-role="{{ u.role.label|lower }}"
+                        data-status="{{ u.actif ? 'actif' : 'inactif' }}">
+
+                        <td>
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="profile-avatar"
+                                     style="width:30px;height:30px;font-size:10px;font-weight:800;border-radius:8px;flex-shrink:0">
+                                    {{ u.prenom|slice(0,1) }}{{ u.nom|slice(0,1) }}
                                 </div>
-                            </td>
-                        </tr>
+                                <div>
+                                    <span style="display:block;font-weight:600;color:var(--text);font-size:12px">{{ u.nomComplet }}</span>
+                                    {% if u.fonction %}
+                                        <span style="display:block;font-size:10px;color:var(--muted)">{{ u.fonction }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <td style="font-family:monospace;color:var(--muted);font-size:11px">
+                            {{ u.email }}
+                        </td>
+
+                        <td>
+                            {% set roleColor = {
+                                'ROLE_SUPERADMIN':     'priority-critique',
+                                'ROLE_SAHOLTY':        'priority-eleve',
+                                'ROLE_PFT':            'priority-modere',
+                                'ROLE_EMETTEUR_TERRAIN':'priority-faible',
+                                'ROLE_COMITE_AIT':     'priority-modere',
+                                'ROLE_SECRETARIAT_GEI':'priority-faible',
+                            } %}
+                            <span class="priority-badge {{ roleColor[u.role.value] ?? 'priority-faible' }}" style="font-size:10px">
+                                <i class="fa-solid fa-shield-halved fa-xs me-1"></i>
+                                {{ u.role.label }}
+                            </span>
+                        </td>
+
+                        <td style="color:var(--dim);font-size:12px">
+                            {% if u.market %}
+                                <i class="fa-solid fa-location-dot fa-xs me-1" style="color:var(--muted)"></i>
+                                {{ u.market.nom }}
+                            {% else %}
+                                <span style="color:var(--muted)">Global / Régional</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if u.actif is same as(true) %}
+                                <span class="status-pill status-transmis">
+                                    <span class="status-dot"></span>Actif
+                                </span>
+                            {% elseif u.actif is same as(false) %}
+                                <span class="status-pill status-archive">
+                                    <span class="status-dot"></span>Inactif
+                                </span>
+                            {% else %}
+                                <span class="status-pill">
+                                    <span class="status-dot"></span>En attente
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ path('app_admin_user_edit', {id: u.id}) }}"
+                                   class="tbl-btn tbl-btn-ghost" title="Éditer l'utilisateur">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+                                <button type="button"
+                                        class="delete-trigger tbl-btn tbl-btn-red"
+                                        title="Supprimer l'utilisateur"
+                                        data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}"
+                                        data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="db-empty-state">
+                                <i class="fa-regular fa-user fa-2x" style="color:var(--muted);margin-bottom:8px;display:block"></i>
+                                <p>Aucun utilisateur enregistré.</p>
+                                <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber" style="margin-top:12px">
+                                    <i class="fa-solid fa-plus me-1.5"></i>Créer le premier utilisateur
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ── Filtrage live côté client ── */
+function filterUsers(val) {
+    const search = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+    const role   = (document.getElementById('userRoleFilter').value || '').toLowerCase();
+    const status = (document.getElementById('userStatusFilter').value || '').toLowerCase();
+
+    document.querySelectorAll('.user-row').forEach(row => {
+        const name   = row.dataset.name   || '';
+        const email  = row.dataset.email  || '';
+        const rLabel = row.dataset.role   || '';
+        const rVal   = row.dataset.status || '';
+
+        const matchSearch = !search || name.includes(search) || email.includes(search) || rLabel.includes(search);
+        const matchRole   = !role   || rLabel.includes(role);
+        const matchStatus = !status || rVal === status;
+
+        row.style.display = (matchSearch && matchRole && matchStatus) ? '' : 'none';
+    });
+}
+
+/* ── Modale de confirmation suppression ── */
+document.querySelectorAll('.delete-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const url   = btn.dataset.deleteUrl;
+        const token = btn.dataset.deleteToken;
+        const form  = document.getElementById('deleteConfirmForm');
+        const inp   = document.getElementById('deleteTokenInput');
+        if (form && url) {
+            form.action = url;
+            if (inp) inp.value = token ?? '';
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

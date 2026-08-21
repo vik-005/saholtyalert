@@ -1,118 +1,238 @@
 {% extends 'base.html.twig' %}
-
-{% block title %}Console Superadmin — GEI{% endblock %}
-{% block header_title %}Console d'Administration & Traçabilité System{% endblock %}
+{% block title %}Console Admin — GEI{% endblock %}
+{% block header_title %}Console d'Administration{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] shadow-[0_30px_80px_-35px_rgba(15,23,42,1)]">
-        <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow"><i class="fa-solid fa-screwdriver-wrench me-1.5"></i>Accès SUPERADMIN · Annexe D</p>
+            <h2 class="page-title">Console d'administration</h2>
+            <p class="page-subtitle">Gestion des utilisateurs, règles de scoring et journal d'audit.</p>
+        </div>
+        <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber">
+            <i class="fa-solid fa-user-plus me-1.5"></i>Créer un utilisateur
+        </a>
+    </div>
+
+    {# ── Tableau Utilisateurs ── #}
+    <div class="db-table-card">
+        <div class="db-card-header db-card-header-border" style="padding:14px 16px">
             <div>
-                <h3 class="text-lg font-bold text-white">Gestion des Utilisateurs & Rôles GEI</h3>
-                <p class="text-xs text-slate-400">Contrôle d'accès basé sur les rôles (RBAC Annexe D)</p>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-users me-1.5"></i>Contrôle d'accès RBAC</p>
+                <p class="db-card-title">Gestion des utilisateurs & rôles</p>
             </div>
-            <a href="{{ path('app_admin_user_new') }}" class="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl shadow transition">
-                + Créer un utilisateur
-            </a>
+            <div class="db-card-actions">
+                <a href="{{ path('app_admin_user_index') }}" class="db-btn db-btn-ghost" style="font-size:11px">
+                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Vue complète
+                </a>
+                <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber" style="font-size:11px">
+                    <i class="fa-solid fa-plus me-1"></i>Créer
+                </a>
+            </div>
         </div>
-
-        <div class="mb-4 flex flex-col sm:flex-row gap-3">
-            <input type="text" placeholder="Rechercher un utilisateur..." class="w-full rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
-            <select class="rounded-2xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20">
-                <option value="">Tous les statuts</option>
-                <option value="actif">Actif</option>
-                <option value="inactif">Inactif</option>
-                <option value="en-attente">En attente</option>
-            </select>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+        <div class="db-table-wrap">
+            <table class="db-table">
+                <thead>
                     <tr>
-                        <th class="p-3">Utilisateur</th>
-                        <th class="p-3">Email</th>
-                        <th class="p-3">Rôle GEI</th>
-                        <th class="p-3">Marché</th>
-                        <th class="p-3">Statut</th>
-                        <th class="p-3 text-right">Actions</th>
+                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Utilisateur</th>
+                        <th><i class="fa-regular fa-envelope me-1 opacity-50"></i>Email</th>
+                        <th><i class="fa-solid fa-shield-halved me-1 opacity-50"></i>Rôle GEI</th>
+                        <th><i class="fa-solid fa-earth-africa me-1 opacity-50"></i>Marché</th>
+                        <th><i class="fa-solid fa-circle-dot me-1 opacity-50"></i>Statut</th>
+                        <th class="text-right"><i class="fa-solid fa-ellipsis me-1 opacity-50"></i>Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
+                <tbody>
                     {% for u in users %}
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-3 font-semibold text-white">{{ u.nomComplet }}</td>
-                            <td class="p-3 text-slate-400 font-mono">{{ u.email }}</td>
-                            <td class="p-3">
-                                <span class="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold text-2xs">
-                                    {{ u.role.label }}
-                                </span>
-                            </td>
-                            <td class="p-3 text-slate-300">{{ u.market ? u.market.nom : 'Global / Régional' }}</td>
-                            <td class="p-3">
-                                {% if u.actif %}
-                                    <span class="status-badge status-active">Actif</span>
-                                {% else %}
-                                    <span class="status-badge status-inactive">Inactif</span>
-                                {% endif %}
-                            </td>
-                            <td class="p-3 text-right">
-                                <div class="inline-flex items-center gap-2">
-                                    <a href="{{ path('app_admin_user_edit', {id: u.id}) }}" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-2xs">Éditer</a>
-                                    <button type="button" class="delete-trigger px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-xl border border-red-500/20 text-2xs" data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}" data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">Supprimer</button>
+                    <tr class="db-tr">
+                        <td>
+                            <div style="display:flex;align-items:center;gap:9px">
+                                <div class="profile-avatar" style="width:28px;height:28px;font-size:10px;border-radius:8px;flex-shrink:0">
+                                    {{ u.prenom|slice(0,1) }}{{ u.nom|slice(0,1) }}
                                 </div>
-                            </td>
-                        </tr>
+                                <span style="font-weight:600;color:var(--text)">{{ u.nomComplet }}</span>
+                            </div>
+                        </td>
+                        <td style="font-family:monospace;color:var(--muted);font-size:11px">{{ u.email }}</td>
+                        <td>
+                            <span class="priority-badge priority-modere" style="font-size:10px">
+                                <i class="fa-solid fa-shield-halved fa-xs me-1"></i>{{ u.role.label }}
+                            </span>
+                        </td>
+                        <td style="color:var(--dim)">{{ u.market ? u.market.nom : 'Global / Régional' }}</td>
+                        <td>
+                            {% if u.actif %}
+                                <span class="status-pill status-transmis">
+                                    <span class="status-dot"></span>Actif
+                                </span>
+                            {% else %}
+                                <span class="status-pill status-archive">
+                                    <span class="status-dot"></span>Inactif
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="table-actions">
+                                <a href="{{ path('app_admin_user_edit', {id: u.id}) }}"
+                                   class="tbl-btn tbl-btn-ghost" title="Éditer">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </a>
+                                <button type="button"
+                                        class="delete-trigger tbl-btn tbl-btn-red" title="Supprimer"
+                                        data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}"
+                                        data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="db-empty-state">
+                                <i class="fa-regular fa-user fa-2x" style="color:var(--muted);margin-bottom:8px"></i>
+                                <p>Aucun utilisateur enregistré.</p>
+                                <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber" style="margin-top:12px">
+                                    <i class="fa-solid fa-plus me-1"></i>Créer le premier utilisateur
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Rule Config Thresholds -->
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
-        <h3 class="text-lg font-bold text-white mb-4">Seuils du Moteur de Règles (§3.2)</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {# ── Règles de scoring ── #}
+    <div class="db-chart-card">
+        <div class="db-card-header db-card-header-border">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-sliders me-1.5"></i>Moteur de règles §3.2</p>
+                <p class="db-card-title">Seuils de scoring configurés</p>
+            </div>
+            <a href="{{ path('app_admin_rule_index') }}" class="db-btn db-btn-ghost" style="font-size:11px">
+                <i class="fa-solid fa-list me-1"></i>Toutes les règles
+            </a>
+        </div>
+        <div class="kpi-rules-grid">
             {% for rule in rules %}
-                <div class="p-4 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
-                    <div>
-                        <div class="font-mono font-bold text-amber-400 text-xs">{{ rule.cle }}</div>
-                        <div class="text-xs text-slate-400 truncate max-w-xs">{{ rule.description }}</div>
-                        <div class="text-sm font-extrabold text-white mt-1">Valeur: {{ rule.valeur }}</div>
-                    </div>
-                    <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}" class="px-2.5 py-1 bg-slate-800 text-slate-200 text-2xs rounded">Modifier</a>
+            <div class="kpi-rule-item">
+                <div style="min-width:0;flex:1">
+                    <p style="font-family:monospace;font-size:11.5px;font-weight:700;color:var(--amber);margin-bottom:3px">{{ rule.cle }}</p>
+                    <p style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ rule.description }}</p>
+                    <p style="font-size:16px;font-weight:800;color:var(--text);margin-top:6px">{{ rule.valeur }}</p>
                 </div>
+                <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}"
+                   class="tbl-btn tbl-btn-ghost" title="Modifier" style="flex-shrink:0;margin-left:10px">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+            </div>
+            {% else %}
+            <div style="color:var(--muted);font-size:12px;grid-column:1/-1">
+                <i class="fa-solid fa-circle-info me-1.5"></i>Aucune règle configurée.
+            </div>
             {% endfor %}
         </div>
     </div>
 
-    <!-- Access Logs -->
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
-        <h3 class="text-lg font-bold text-white mb-4">Journal d'Audit & Traçabilité AccessLog (Annexe D §6/§8)</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+    {# ── Journal d'audit ── #}
+    <div class="db-table-card">
+        <div class="db-card-header db-card-header-border" style="padding:14px 16px">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-clock-rotate-left me-1.5"></i>Traçabilité — Annexe D §6/§8</p>
+                <p class="db-card-title">Journal d'audit & AccessLog</p>
+            </div>
+        </div>
+        <div class="db-table-wrap">
+            <table class="db-table">
+                <thead>
                     <tr>
-                        <th class="p-3">Horodatage</th>
-                        <th class="p-3">Utilisateur</th>
-                        <th class="p-3">Action</th>
-                        <th class="p-3">Alerte liée</th>
-                        <th class="p-3">IP</th>
+                        <th><i class="fa-regular fa-clock me-1 opacity-50"></i>Horodatage</th>
+                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Utilisateur</th>
+                        <th><i class="fa-solid fa-bolt me-1 opacity-50"></i>Action</th>
+                        <th><i class="fa-solid fa-file-shield me-1 opacity-50"></i>Alerte liée</th>
+                        <th><i class="fa-solid fa-network-wired me-1 opacity-50"></i>IP</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-800">
+                <tbody>
                     {% for log in logs %}
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-3 text-slate-400 font-mono whitespace-nowrap">{{ log.dateAction|date('d/m/Y H:i:s') }}</td>
-                            <td class="p-3 font-semibold text-white">{{ log.user ? log.user.nomComplet : 'Anonyme' }}</td>
-                            <td class="p-3 font-bold text-amber-400">{{ log.action }}</td>
-                            <td class="p-3 font-mono text-slate-300">{{ log.alert ? log.alert.codeGei : '-' }}</td>
-                            <td class="p-3 text-slate-400 font-mono">{{ log.ipAdresse ?? '-' }}</td>
-                        </tr>
+                    <tr class="db-tr">
+                        <td style="font-family:monospace;color:var(--muted);white-space:nowrap;font-size:11px">
+                            {{ log.dateAction|date('d/m/Y H:i:s') }}
+                        </td>
+                        <td style="font-weight:600;color:var(--text)">
+                            {{ log.user ? log.user.nomComplet : 'Anonyme' }}
+                        </td>
+                        <td>
+                            <span class="priority-badge priority-modere" style="font-size:10px">
+                                {{ log.action }}
+                            </span>
+                        </td>
+                        <td style="font-family:monospace;color:var(--amber);font-size:11px">
+                            {{ log.alert ? log.alert.codeGei : '—' }}
+                        </td>
+                        <td style="font-family:monospace;color:var(--muted);font-size:11px">
+                            {{ log.ipAdresse ?? '—' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="db-empty-state">
+                                <i class="fa-regular fa-folder-open fa-2x" style="color:var(--muted);margin-bottom:8px"></i>
+                                <p>Aucune entrée dans le journal.</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
+
+<style>
+.kpi-rules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+.kpi-rule-item {
+    display: flex;
+    align-items: flex-start;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    overflow: hidden;
+}
+@media(max-width:1024px) { .kpi-rules-grid { grid-template-columns: repeat(2, 1fr); } }
+@media(max-width:640px)  { .kpi-rules-grid { grid-template-columns: 1fr; } }
+</style>
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* Boutons suppression — déclenche la modale de confirmation globale */
+document.querySelectorAll('.delete-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const url   = btn.dataset.deleteUrl;
+        const token = btn.dataset.deleteToken;
+        const form  = document.getElementById('deleteConfirmForm');
+        const inp   = document.getElementById('deleteTokenInput');
+        if (form && url) {
+            form.action = url;
+            if (inp) inp.value = token ?? '';
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

@@ -1214,3 +1214,92 @@ body.dark .topbar-user-name { color: #e2ede8 !important; }
 
 /* ── Export button icône cohérente ─────────────────────────────────────── */
 .db-btn .fa-file-excel { color: inherit; } /* pas de text-emerald-400 inline */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPLÉMENTS DESIGN SYSTEM — badges statut user, finitions pro
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Badges statut utilisateur (actif/inactif/en attente) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+.status-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.status-active   { background: rgba(52,211,153,.10); color: var(--green); border-color: rgba(52,211,153,.2); }
+.status-inactive { background: rgba(148,163,184,.08); color: var(--muted); border-color: var(--border); }
+.status-pending  { background: rgba(251,191,36,.10);  color: var(--amber); border-color: var(--amber-bd); }
+
+/* Taille de texte minuscule */
+.text-2xs { font-size: 9.5px; }
+
+/* ── Boutons d'action dans les tableaux — taille tactile garantie ────── */
+.tbl-btn {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  display: grid; place-items: center;
+  font-size: 12px;
+  border: 1px solid transparent;
+  transition: all .15s;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+@media(max-width:640px) {
+  .tbl-btn { width: 40px; height: 40px; font-size: 14px; }
+}
+.tbl-btn-ghost { background: var(--card2); border-color: var(--border); color: var(--muted); }
+.tbl-btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+.tbl-btn-amber { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bd); }
+.tbl-btn-amber:hover { background: rgba(22,133,107,.18); }
+.tbl-btn-red { background: rgba(239,68,68,.08); color: #f87171; border-color: rgba(239,68,68,.18); }
+.tbl-btn-red:hover { background: rgba(239,68,68,.18); border-color: rgba(239,68,68,.3); }
+
+/* ── Finition dark mode : tbl-btn ────────────────────────────────────── */
+body.dark .tbl-btn-ghost  { background: var(--card2); border-color: var(--border); }
+body.dark .tbl-btn-ghost:hover { color: var(--text); }
+
+/* ── Export Excel : page 302 redirige le navigateur → c'est normal ───── */
+/* Pas de rendu HTML à corriger pour /export/registre                     */
+
+/* ── db-empty-state ─────────────────────────────────────────────────── */
+.db-empty-state {
+  padding: 40px 20px;
+  display: flex; flex-direction: column; align-items: center;
+  text-align: center; color: var(--muted); font-size: 12px;
+}
+
+/* ── Correction Tailwind classes utilisées dans les vieilles pages ───── */
+/* Évite que des pages non-réécrites cassent l'interface                  */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.divide-y > * + * { border-top: 1px solid var(--border); }
+
+/* ── Sidebar active state barre — overflow fix ───────────────────────── */
+.gei-sidebar { overflow: visible; }
+.sidebar-nav { overflow-y: auto; overflow-x: visible; }
+
+/* ── Responsive : tables admin/users ────────────────────────────────── */
+@media(max-width:768px) {
+  .db-table th:nth-child(3),
+  .db-table td:nth-child(3) { display: none; } /* masque colonne rôle sur mobile */
+}
+@media(max-width:560px) {
+  .db-table th:nth-child(4),
+  .db-table td:nth-child(4) { display: none; } /* masque marché */
+}
