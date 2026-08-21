@@ -113,6 +113,24 @@
                 </div>
             </div>
 
+            {# ── Avertissements structure colonnes (non bloquants) ── #}
+            {% if result.errors|length > 0 and result.success_count > 0 %}
+            <div class="import-errors-section" style="border-color:rgba(251,191,36,.2);">
+                <div class="import-section-header">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i>
+                    <span>Structure partielle détectée</span>
+                </div>
+                <div class="import-errors-list">
+                    {% for err in result.errors %}
+                    <div class="import-error-item" style="color:var(--muted)">
+                        <i class="fa-solid fa-circle-info fa-xs flex-shrink-0 mt-0.5" style="color:var(--amber)"></i>
+                        <span>{{ err }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <p class="import-batch-id">
                 <i class="fa-solid fa-fingerprint me-1.5 text-slate-500"></i>
                 Batch ID : <code>{{ result.batch_id }}</code>

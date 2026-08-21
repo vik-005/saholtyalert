@@ -920,3 +920,297 @@ body.dark .dark-mode-btn:hover { color: var(--amber); }
   background: #45e3b8;
   width: 32px;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CORRECTIONS GLOBALES — Parties C, D, E, H
+   Design system cohérent, icônes neutres, hover/active distincts, responsive
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── PARTIE A : Font Awesome — fallback si Asset Mapper échoue ─────────── */
+/* Le link dans base.html.twig pointe vers asset('vendor/@fortawesome/...') */
+/* En cas d'échec le navigateur n'affiche rien — pas de CDN fallback voulu  */
+
+/* ── PARTIE C : Design system — texte, champs, dark mode sur TOUTES pages ─ */
+
+/* Forcer la couleur de texte du design system sur tous les inputs natifs    */
+/* (y compris form_widget Symfony qui génère des <input> sans classe custom) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  color: var(--text);
+  background: var(--card);
+  border-color: var(--border);
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--amber);
+  outline: none;
+}
+/* Dark mode : les inputs passent en surface sombre */
+body.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.dark select,
+body.dark textarea {
+  color: var(--text);
+  background: var(--card2);
+  border-color: var(--border);
+}
+
+/* Labels Symfony form_label sans classe custom */
+label {
+  color: var(--dim);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+body.dark label { color: var(--dim); }
+
+/* form_errors styling */
+.form-error-text, ul.form-errors li {
+  color: var(--red);
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+/* Page notifications — dark mode */
+body.dark .notif-list-card { background: var(--card) !important; }
+body.dark .notif-list-item:hover { background: rgba(255,255,255,.04) !important; }
+body.dark .notif-list-item-unread { background: rgba(22,133,107,.06) !important; }
+body.dark .notif-list-text { color: var(--text) !important; }
+
+/* Page account — dark mode */
+body.dark .account-card { background: var(--card) !important; border-color: var(--border) !important; }
+body.dark .account-card h2 { color: var(--text) !important; }
+body.dark .account-card-head p { color: var(--muted) !important; }
+body.dark .account-readonly { background: var(--card2) !important; }
+body.dark .registry-title { color: var(--text) !important; }
+body.dark .registry-subtitle { color: var(--muted) !important; }
+body.dark .registry-kicker { color: var(--amber) !important; }
+
+/* Page import — dark mode */
+body.dark .import-upload-card,
+body.dark .import-result-card { background: var(--card) !important; }
+body.dark .import-dz-title { color: var(--text) !important; }
+body.dark .import-info-item { background: var(--card2) !important; }
+body.dark .import-info-val  { color: var(--text) !important; }
+body.dark .import-section-header { color: var(--text) !important; }
+body.dark .import-kpi        { background: var(--card2) !important; }
+body.dark .import-kpi-val    { color: var(--text) !important; }
+body.dark .import-incomplete-item { background: var(--card) !important; }
+
+/* Page transmission — form_widget labels/inputs sans classe */
+.transmission-form label { color: var(--dim); font-size: 11.5px; font-weight: 600; }
+.transmission-form select,
+.transmission-form textarea {
+  width: 100%; padding: 7px 11px;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 12px; color: var(--text);
+  font-family: inherit; outline: none;
+  transition: border-color .15s;
+}
+.transmission-form select:focus,
+.transmission-form textarea:focus { border-color: var(--amber); }
+body.dark .transmission-form select,
+body.dark .transmission-form textarea {
+  background: var(--card2); color: var(--text); border-color: var(--border);
+}
+
+/* Page qualification — form_widget */
+.qualify-form .form-select,
+.qualify-form .form-input,
+.qualify-form .form-textarea {
+  color: var(--text) !important;
+  background: var(--card2) !important;
+}
+body.dark .qualify-section,
+body.dark .qualify-score-card,
+body.dark .qualify-formula-box,
+body.dark .qualify-override-card,
+body.dark .qualify-agent-recap {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+}
+body.dark .qualify-side-col .qualify-formula-box { background: var(--card2) !important; }
+
+/* Couleur texte page-title, page-subtitle dans toutes les pages */
+.page-title     { color: var(--text) !important; }
+.page-subtitle  { color: var(--muted) !important; }
+.page-eyebrow   { color: var(--amber) !important; }
+
+/* ── PARTIE D : Icônes sidebar — couleur neutre au repos ───────────────── */
+/* Les icônes de navigation héritent de la couleur de leur lien parent.     */
+/* Seuls les badges (badge-amber, badge-red, badge-blue) gardent leurs       */
+/* couleurs sémantiques. Pas de text-* additionnel sur .sidebar-link-icon.  */
+
+.sidebar-link-icon { color: inherit; }
+.sidebar-link      { color: #c5d8d2; } /* gris-vert neutre au repos */
+.sidebar-link:hover { color: #fff; }
+.sidebar-link.active { color: #55e8c0; }
+
+/* KPI dashboard : icônes dans les kpi-icon-wrap héritent du fond coloré,   */
+/* pas besoin de couleur supplémentaire sur la balise <i>.                   */
+.kpi-icon-wrap i { color: inherit; }
+
+/* ── PARTIE E : Hover distinct de Active — barre verticale sur élément actif */
+.sidebar-link {
+  position: relative;
+}
+/* Barre verte d'accent sur le bord gauche = page courante */
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: -8px; /* déborde légèrement du padding */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 65%;
+  background: #45e3b8;
+  border-radius: 0 3px 3px 0;
+}
+/* Hover : fond légèrement teinté, pas de barre */
+.sidebar-link:hover:not(.active) {
+  background: rgba(255,255,255,.06);
+  color: #e2ede8;
+}
+/* Sidebar nav a le overflow:hidden — la barre doit être visible */
+.sidebar-nav {
+  overflow-y: auto;
+  overflow-x: visible; /* autoriser la barre à déborder */
+  padding-left: 10px;  /* espace pour la barre active */
+}
+
+/* ── PARTIE F : Graphiques — réglages globaux Chart.js via CSS vars ───── */
+/* Les valeurs Chart.defaults sont gérées dans le JS (déjà Inter + grid      */
+/* discrète). Ici on assure que les conteneurs graphiques s'adaptent bien.   */
+.db-chart-area canvas { display: block; max-width: 100%; }
+.gauge-wrap canvas     { max-width: 100%; }
+
+/* ── PARTIE H : Responsive — corrections manquantes ───────────────────── */
+
+/* Mobile hamburger toujours visible sur ≤ 1024px */
+@media(max-width:1024px) {
+  .topbar-hamburger { display: grid !important; }
+}
+
+/* Notifications topbar → panneau plein écran sur mobile */
+@media(max-width:640px) {
+  .notif-panel {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: calc(100vh - var(--topbar-h));
+    border-radius: 0;
+    overflow-y: auto;
+  }
+  .notif-list { max-height: calc(100vh - 160px); }
+}
+
+/* Tableaux — scroll horizontal contrôlé avec colonnes essentielles en premier */
+.db-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.db-table { min-width: 780px; } /* empêche compression sous 780px */
+
+/* Boutons d'action dans les tableaux — taille minimale tactile 44×44px */
+.tbl-btn {
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+}
+@media(max-width:640px) {
+  .tbl-btn { width: 44px; height: 44px; border-radius: 8px; }
+  .table-actions { gap: 6px; }
+}
+
+/* Formulaires sur mobile — 1 champ par ligne, boutons sticky en bas */
+@media(max-width:640px) {
+  .qualify-row-3,
+  .qualify-row-2,
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    padding: 12px 16px;
+    margin: 0 -16px;
+    width: calc(100% + 32px);
+  }
+  .form-actions .db-btn,
+  .form-actions button {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+  }
+}
+
+/* Graphiques — hauteur adaptée mobile */
+@media(max-width:640px) {
+  .db-chart-area { max-height: 220px; }
+  .gauge-wrap    { max-height: 160px; }
+  .stats-gauge-row { grid-template-columns: 1fr !important; }
+  .stats-row-2col  { grid-template-columns: 1fr !important; }
+}
+
+/* KPI row responsive */
+@media(max-width:1200px) { .db-kpi-row { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:600px)  { .db-kpi-row { grid-template-columns: 1fr; } }
+
+/* Import grid responsive */
+@media(max-width:640px) {
+  .import-kpi-row { grid-template-columns: repeat(2,1fr); }
+  .import-layout  { grid-template-columns: 1fr; }
+  .import-info-grid { grid-template-columns: 1fr; }
+}
+
+/* Topbar — réduire les boutons sur mobile */
+@media(max-width:480px) {
+  .topbar-right { gap: 4px; }
+  .topbar-cta-btn span { display: none; }
+  .topbar-user-info    { display: none; }
+}
+
+/* Auth — boutons connexion taille tactile */
+.auth-submit-btn { min-height: 48px; }
+.auth-checkbox-custom { min-width: 20px; min-height: 20px; }
+
+/* ── Corrections dark mode manquantes sur pages restantes ─────────────── */
+
+/* Page stats */
+body.dark .stats-filter-bar  { background: var(--card) !important; }
+body.dark .stats-card         { background: var(--card) !important; }
+body.dark .stats-input        { background: var(--card2) !important; color: var(--text) !important; }
+body.dark .stats-check-label  { background: var(--card2) !important; color: var(--muted) !important; }
+
+/* Page registre */
+body.dark .registry-card       { background: var(--card) !important; }
+body.dark .registry-table th   { background: var(--card2) !important; color: var(--muted) !important; }
+body.dark .registry-table td   { color: var(--dim) !important; }
+body.dark .registry-table tr:hover td { background: var(--card2) !important; }
+body.dark .registry-detail td  { background: var(--card2) !important; }
+body.dark .registry-detail-block { background: var(--card) !important; }
+body.dark .registry-expand     { background: var(--card2) !important; }
+body.dark .registry-icon-btn   { background: var(--card2) !important; color: var(--muted) !important; }
+body.dark .registry-icon-btn:hover { border-color: var(--amber) !important; color: var(--amber) !important; }
+body.dark .registry-action     { background: var(--card2) !important; color: var(--dim) !important; }
+
+/* Ensure modal closes on dark mode */
+body.dark #confirmModal.hidden { display: none !important; }
+
+/* ── Correction topbar-user-name visible en mode clair ─────────────────── */
+/* En mode clair, le nom doit être text sombre (pas blanc sur fond blanc)    */
+.topbar-user-name { color: var(--text) !important; }
+.topbar-user-role { color: var(--amber) !important; }
+body.dark .topbar-user-name { color: #e2ede8 !important; }
+
+/* ── Export button icône cohérente ─────────────────────────────────────── */
+.db-btn .fa-file-excel { color: inherit; } /* pas de text-emerald-400 inline */

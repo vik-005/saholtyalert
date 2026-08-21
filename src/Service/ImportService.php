@@ -393,13 +393,30 @@ class ImportService
 
         // Seul le résumé est vraiment obligatoire — les autres seront null si absents
         $errors = [];
+
+        // Validation structurelle minimale : au moins ID GEI ou Résumé doit être trouvé
         if (!isset($colMap['resume']) && !isset($colMap['id_gei'])) {
             $errors[] = 'Structure non reconnue : impossible de trouver les colonnes "ID GEI" ou "Résumé" dans l\'en-tête. '
-                . 'Vérifiez que la ligne d\'en-tête est présente dans le fichier (colonnes : ID GEI, Date, Zone, Résumé court…).';
+                . 'Vérifiez que la ligne d\'en-tête est présente dans le fichier (colonnes attendues : ID GEI, Date, Zone, Résumé court…).';
+            return [$colMap, $errors];
         }
 
-        return [$colMap, $errors];
-    }
+        // Avertissements sur colonnes attendues mais non trouvées (non bloquants)
+        $colonnesAttendues = ['zone', 'categorie', 'urgence', 'impact', 'exploitabilite', 'statut', 'fiabilite', 'credibilite'];
+        $colonnesManquantes = [];
+        foreach ($colonnesAttendues as $champ) {
+            if (!isset($colMap[$champ])) {
+                $colonnesManquantes[] = $champ;
+            }
+        }
+        if (!empty($colonnesManquantes)) {
+            // Non bloquant — les champs seront null et signalés en lignes incomplètes
+            $errors[] = 'Avertissement : colonnes non trouvées dans l\'en-tête (seront nulles à l\'import) : '
+                . implode(', ', $colonnesManquantes)
+                . '. L\'import continuera mais les lignes concernées seront marquées comme incomplètes.';
+        }
+
+        return [$colMap, $errors];    }
 
     /**
      * Remplit une alerte depuis une ligne Excel avec le colMap dynamique.
