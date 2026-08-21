@@ -1,61 +1,285 @@
 {% extends 'base.html.twig' %}
-
-{% block title %}Dashboard Urgence 72h — GEI{% endblock %}
-{% block header_title %}Suivi Temps Réel Urgence 72h (Annexe E){% endblock %}
+{% block title %}Urgence 72h — GEI{% endblock %}
+{% block header_title %}Urgence 72h{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl">
-        <h3 class="text-lg font-bold text-white mb-2">Dossiers d'Urgence 72h Actifs</h3>
-        <p class="text-xs text-slate-400 mb-6">Workflow SLA en 5 phases : Détection (T0) → Qualification (T+6h) → Validation (T+24h) → Coordination (T+48h) → Suivi (T+72h)</p>
+<div class="db-wrapper">
 
-        <div class="space-y-6">
-            {% for case in active_cases %}
-                <div class="p-5 bg-slate-950 border border-slate-800 rounded-xl space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <span class="font-mono font-bold text-amber-400 text-lg">{{ case.alert.codeGei }}</span>
-                            <span class="ml-3 font-semibold text-white">{{ case.alert.market.nom }}</span>
-                            <span class="ml-2 text-xs text-slate-400">Activé le {{ case.dateActivation|date('d/m/Y H:i') }}</span>
-                        </div>
-                        {% include 'components/_sla_timer.html.twig' with {case: case} %}
-                    </div>
-
-                    <!-- Phase progress bar -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2">
-                        {% for phase in case.phases %}
-                            <div class="p-3 rounded-lg border text-xs relative flex flex-col justify-between
-                                {% if phase.isTerminee %}
-                                    bg-emerald-500/10 border-emerald-500/30 text-emerald-300
-                                {% elseif phase.isEnRetard %}
-                                    bg-red-500/10 border-red-500/30 text-red-300 animate-pulse
-                                {% else %}
-                                    bg-slate-900 border-slate-800 text-slate-400
-                                {% endif %}">
-                                <div>
-                                    <div class="font-bold mb-1">{{ phase.phase.label }}</div>
-                                    <div class="text-2xs opacity-80">SLA: T+{{ phase.phase.slaHeures }}h</div>
-                                </div>
-                                <div class="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between">
-                                    {% if phase.isTerminee %}
-                                        <span class="font-bold text-emerald-400">✓ Terminé</span>
-                                    {% else %}
-                                        <span class="font-bold text-amber-400">En cours</span>
-                                        <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}">
-                                            <button type="submit" class="px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-2xs rounded">Valider</button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% else %}
-                <div class="p-8 text-center text-slate-500 italic bg-slate-950 border border-slate-800 rounded-xl">
-                    Aucun cas d'urgence 72h actif actuellement.
-                </div>
-            {% endfor %}
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="fa-solid fa-stopwatch me-1.5"></i>Suivi SLA temps réel · Annexe E
+            </p>
+            <h2 class="page-title">Dossiers d'urgence 72h</h2>
+            <p class="page-subtitle">
+                Workflow en 5 phases : Détection (T0) → Qualification (T+6h) → Validation (T+24h)
+                → Coordination (T+48h) → Suivi (T+72h)
+            </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+            {% if active_cases|length > 0 %}
+            <span class="priority-badge priority-critique">
+                <i class="fa-solid fa-circle-radiation fa-xs me-1"></i>
+                {{ active_cases|length }} cas actif{{ active_cases|length > 1 ? 's' : '' }}
+            </span>
+            {% endif %}
+            <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">
+                <i class="fa-solid fa-gauge-high me-1.5"></i>Dashboard
+            </a>
         </div>
     </div>
+
+    {# ── Liste des cas ── #}
+    {% for case in active_cases %}
+
+    <div class="urgence-case-card">
+
+        {# En-tête du cas #}
+        <div class="urgence-case-header">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                <a href="{{ path('app_alert_show', {id: case.alert.id}) }}"
+                   class="code-gei-link" style="font-size:15px">
+                    {{ case.alert.codeGei }}
+                </a>
+                <span style="font-weight:700;color:var(--text);font-size:13px">
+                    <i class="fa-solid fa-earth-africa fa-xs me-1" style="color:var(--muted)"></i>
+                    {{ case.alert.market.nom }}
+                </span>
+                <span style="font-size:11px;color:var(--muted)">
+                    <i class="fa-regular fa-calendar fa-xs me-1"></i>
+                    Activé le {{ case.dateActivation|date('d/m/Y à H:i') }}
+                </span>
+            </div>
+            {# Timer SLA #}
+            {% include 'components/_sla_timer.html.twig' with {case: case} %}
+        </div>
+
+        {# Phases SLA — grille 5 colonnes #}
+        <div class="urgence-phases-grid">
+            {% set phaseLabels = ['Détection', 'Qualification', 'Validation', 'Coordination', 'Suivi'] %}
+            {% set phaseSla    = ['T0', 'T+6h', 'T+24h', 'T+48h', 'T+72h'] %}
+
+            {% for phase in case.phases %}
+            <div class="urgence-phase {% if phase.isTerminee %}urgence-phase-done
+                                      {% elseif phase.isEnRetard %}urgence-phase-late
+                                      {% else %}urgence-phase-pending{% endif %}">
+
+                {# Numéro + label #}
+                <div class="urgence-phase-top">
+                    <span class="urgence-phase-num">{{ loop.index }}</span>
+                    <span class="urgence-phase-sla">{{ phaseSla[loop.index0] ?? 'T?' }}</span>
+                </div>
+                <p class="urgence-phase-label">{{ phase.phase.label }}</p>
+
+                {# Séparateur #}
+                <div class="urgence-phase-divider"></div>
+
+                {# Statut + action #}
+                <div class="urgence-phase-footer">
+                    {% if phase.isTerminee %}
+                        <span class="urgence-phase-status done">
+                            <i class="fa-solid fa-circle-check fa-xs me-1"></i>Terminé
+                        </span>
+                    {% elseif phase.isEnRetard %}
+                        <span class="urgence-phase-status late">
+                            <i class="fa-solid fa-triangle-exclamation fa-xs me-1"></i>En retard
+                        </span>
+                        <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}">
+                            <button type="submit" class="urgence-phase-btn urgence-phase-btn-urgent">
+                                <i class="fa-solid fa-forward-step fa-xs me-1"></i>Valider
+                            </button>
+                        </form>
+                    {% else %}
+                        <span class="urgence-phase-status pending">
+                            <i class="fa-solid fa-clock fa-xs me-1"></i>En cours
+                        </span>
+                        <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}">
+                            <button type="submit" class="urgence-phase-btn">
+                                <i class="fa-solid fa-check fa-xs me-1"></i>Valider
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        {# Barre de progression globale #}
+        {% set done = case.phases|filter(p => p.isTerminee)|length %}
+        {% set total = case.phases|length %}
+        {% if total > 0 %}
+        <div style="padding:0 16px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+                <span style="font-size:10.5px;color:var(--muted)">
+                    Progression globale — {{ done }}/{{ total }} phases
+                </span>
+                <span style="font-size:11px;font-weight:700;color:{% if done == total %}var(--green){% elseif (done / total) >= 0.5 %}var(--amber){% else %}var(--red){% endif %}">
+                    {{ ((done / total) * 100)|round }}%
+                </span>
+            </div>
+            <div style="height:5px;background:var(--card2);border-radius:99px;overflow:hidden">
+                <div style="height:100%;border-radius:99px;width:{{ ((done / total) * 100)|round }}%;
+                            background:{% if done == total %}var(--green){% elseif (done / total) >= 0.5 %}var(--amber){% else %}var(--red){% endif %};
+                            transition:width .5s ease"></div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% else %}
+
+    {# État vide #}
+    <div class="db-chart-card" style="text-align:center;padding:60px 20px">
+        <i class="fa-regular fa-circle-check" style="font-size:48px;color:var(--green);margin-bottom:16px;display:block"></i>
+        <p style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">
+            Aucun cas d'urgence 72h actif
+        </p>
+        <p style="font-size:12px;color:var(--muted);max-width:400px;margin:0 auto 20px">
+            La procédure SLA 72h est déclenchée automatiquement lorsqu'une alerte
+            critique ou élevée est qualifiée et nécessite un suivi temps réel.
+        </p>
+        <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-ghost">
+            <i class="fa-solid fa-file-shield me-1.5"></i>Voir le registre
+        </a>
+    </div>
+
+    {% endfor %}
+
 </div>
+
+<style>
+/* ── Carte de cas urgence ─────────────────────────────────────────────── */
+.urgence-case-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--red);
+    border-radius: var(--r);
+    overflow: hidden;
+}
+.urgence-case-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card2);
+    flex-wrap: wrap;
+}
+
+/* ── Grille phases ────────────────────────────────────────────────────── */
+.urgence-phases-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+}
+@media(max-width:900px)  { .urgence-phases-grid { grid-template-columns: repeat(3, 1fr); } }
+@media(max-width:600px)  { .urgence-phases-grid { grid-template-columns: 1fr 1fr; } }
+@media(max-width:400px)  { .urgence-phases-grid { grid-template-columns: 1fr; } }
+
+.urgence-phase {
+    padding: 14px 12px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.urgence-phase:last-child { border-right: none; }
+
+.urgence-phase-done    { background: rgba(52,211,153,.05); }
+.urgence-phase-late    { background: rgba(239,68,68,.05); animation: pulse-anim 2s infinite; }
+.urgence-phase-pending { background: var(--card); }
+
+.urgence-phase-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.urgence-phase-num {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    display: grid; place-items: center;
+    font-size: 10px; font-weight: 800;
+    color: var(--dim);
+    flex-shrink: 0;
+}
+.urgence-phase-done .urgence-phase-num {
+    background: rgba(52,211,153,.15);
+    border-color: rgba(52,211,153,.3);
+    color: var(--green);
+}
+.urgence-phase-late .urgence-phase-num {
+    background: rgba(239,68,68,.15);
+    border-color: rgba(239,68,68,.3);
+    color: var(--red);
+}
+.urgence-phase-sla {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--muted);
+    font-family: monospace;
+}
+.urgence-phase-label {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+}
+.urgence-phase-done .urgence-phase-label { color: var(--green); }
+.urgence-phase-late .urgence-phase-label { color: var(--red); }
+
+.urgence-phase-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 2px 0;
+}
+.urgence-phase-footer {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+.urgence-phase-status {
+    font-size: 10.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+}
+.urgence-phase-status.done    { color: var(--green); }
+.urgence-phase-status.late    { color: var(--red); }
+.urgence-phase-status.pending { color: var(--amber); }
+
+.urgence-phase-btn {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber-bd);
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+}
+.urgence-phase-btn:hover { background: rgba(22,133,107,.18); }
+.urgence-phase-btn-urgent {
+    background: rgba(239,68,68,.1);
+    color: var(--red);
+    border-color: rgba(239,68,68,.2);
+}
+.urgence-phase-btn-urgent:hover { background: rgba(239,68,68,.2); }
+
+/* Dark mode */
+body.dark .urgence-case-card { background: var(--card); border-color: var(--border); }
+body.dark .urgence-case-header { background: var(--card2); }
+body.dark .urgence-phase-pending { background: var(--card); }
+</style>
 {% endblock %}

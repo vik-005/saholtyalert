@@ -1,0 +1,273 @@
+{% extends 'base.html.twig' %}
+{% block title %}Carte Corridors — GEI{% endblock %}
+{% block header_title %}Corridors{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="fa-solid fa-map-location-dot me-1.5"></i>Analyse géographique
+            </p>
+            <h2 class="page-title">Carte des corridors de transit</h2>
+            <p class="page-subtitle">
+                Analyse des corridors les plus actifs sur la période
+                <strong style="color:var(--amber)">{{ debut|date('d/m/Y') }}</strong>
+                →
+                <strong style="color:var(--amber)">{{ fin|date('d/m/Y') }}</strong>
+            </p>
+        </div>
+        <a href="{{ path('app_dashboard_statistiques') }}" class="db-btn db-btn-ghost">
+            <i class="fa-solid fa-chart-bar me-1.5"></i>Statistiques complètes
+        </a>
+    </div>
+
+    {# ── Filtres ── #}
+    <div class="stats-filter-bar">
+        <form method="get" class="stats-filter-form" id="corridorFilterForm">
+            <div class="stats-filter-group">
+                <label class="stats-filter-label">
+                    <i class="fa-regular fa-calendar me-1"></i>Période
+                </label>
+                <input type="date" name="debut" value="{{ debut }}" class="stats-input">
+                <span style="color:var(--muted);font-size:11px">→</span>
+                <input type="date" name="fin"   value="{{ fin }}"   class="stats-input">
+            </div>
+            <div class="stats-filter-group">
+                <label class="stats-filter-label">
+                    <i class="fa-solid fa-earth-africa me-1"></i>Marchés
+                </label>
+                <div class="stats-market-checks">
+                    {% for m in all_markets %}
+                    <label class="stats-check-label">
+                        <input type="checkbox" name="markets[]" value="{{ m.id }}"
+                               {% if m.id in selected_markets or selected_markets is empty %}checked{% endif %}
+                               class="stats-checkbox">
+                        <span>{{ m.codeIso3 }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="stats-filter-actions">
+                <button type="submit" class="stats-apply-btn">
+                    <i class="fa-solid fa-rotate me-1.5"></i>Appliquer
+                </button>
+                <a href="{{ path('app_dashboard_corridors') }}" class="stats-reset-btn">
+                    <i class="fa-solid fa-xmark me-1"></i>Reset
+                </a>
+            </div>
+        </form>
+        <div class="stats-period-shortcuts">
+            <button class="stats-shortcut" onclick="setCorridorPeriod(30)">30j</button>
+            <button class="stats-shortcut" onclick="setCorridorPeriod(90)">3 mois</button>
+            <button class="stats-shortcut" onclick="setCorridorPeriod(365)">1 an</button>
+        </div>
+    </div>
+
+    {# ── Grille principale : graphique + carte SVG ── #}
+    <div class="db-mid-row" style="grid-template-columns:1fr 360px">
+
+        {# ── Graphique barres horizontales ── #}
+        <div class="db-chart-card">
+            <div class="db-card-header db-card-header-border">
+                <div>
+                    <p class="db-card-eyebrow">
+                        <i class="fa-solid fa-route me-1.5"></i>Top corridors de transit
+                    </p>
+                    <p class="db-card-title">Fréquence des alertes par corridor</p>
+                </div>
+                <span class="db-card-eyebrow" style="font-size:10px;background:var(--card2);padding:3px 8px;border-radius:6px;border:1px solid var(--border)">
+                    {{ top_corridors|length }} corridors identifiés
+                </span>
+            </div>
+            <div style="position:relative;margin-top:8px">
+                <canvas id="corridorsChart" height="{{ [top_corridors|length * 28, 200]|max }}"></canvas>
+            </div>
+        </div>
+
+        {# ── Volume par pays ── #}
+        <div class="db-chart-card">
+            <div class="db-card-header db-card-header-border">
+                <div>
+                    <p class="db-card-eyebrow"><i class="fa-solid fa-earth-africa me-1.5"></i>Volume par pays</p>
+                    <p class="db-card-title">Alertes par marché</p>
+                </div>
+            </div>
+            <div class="countries-list" style="margin-top:8px">
+                {% set maxVol = volume_par_pays|map(r => r.nb)|max ?? 1 %}
+                {% for row in volume_par_pays %}
+                <div class="country-item">
+                    <span class="country-label">
+                        <i class="fa-solid fa-location-dot fa-xs me-1" style="color:var(--muted)"></i>
+                        {{ row.pays }}
+                    </span>
+                    <div class="country-bar-wrap">
+                        <div class="country-bar-track">
+                            <div class="country-bar-fill" style="width:{{ (row.nb / maxVol * 100)|round }}%"></div>
+                        </div>
+                    </div>
+                    <span class="country-pct">{{ row.nb }}</span>
+                </div>
+                {% else %}
+                <div class="db-empty-state" style="padding:20px">
+                    <p>Aucune donnée sur cette période.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    {# ── Tableau détaillé des corridors ── #}
+    <div class="db-table-card">
+        <div class="db-card-header db-card-header-border" style="padding:14px 16px">
+            <div>
+                <p class="db-card-eyebrow"><i class="fa-solid fa-table-list me-1.5"></i>Détail</p>
+                <p class="db-card-title">Corridors — classement complet</p>
+            </div>
+        </div>
+        <div class="db-table-wrap">
+            <table class="db-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px">#</th>
+                        <th><i class="fa-solid fa-route me-1 opacity-50"></i>Corridor</th>
+                        <th class="text-center"><i class="fa-solid fa-file-shield me-1 opacity-50"></i>Alertes</th>
+                        <th><i class="fa-solid fa-chart-bar me-1 opacity-50"></i>Part relative</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set totalAlertes = top_corridors|map(r => r.nb)|sum %}
+                    {% for row in top_corridors %}
+                    <tr class="db-tr">
+                        <td style="color:var(--muted);font-weight:700;font-size:11px">{{ loop.index }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <i class="fa-solid fa-route fa-xs" style="color:var(--amber)"></i>
+                                <span style="font-weight:600;color:var(--text)">{{ row.corridor }}</span>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="score-badge {% if row.nb >= 10 %}score-critique{% elseif row.nb >= 5 %}score-eleve{% elseif row.nb >= 3 %}score-modere{% else %}score-faible{% endif %}">
+                                {{ row.nb }}
+                            </span>
+                        </td>
+                        <td style="min-width:140px">
+                            {% set pct = totalAlertes > 0 ? (row.nb / totalAlertes * 100)|round(1) : 0 %}
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <div style="flex:1;height:5px;background:var(--card2);border-radius:99px;overflow:hidden">
+                                    <div style="height:100%;width:{{ pct }}%;background:var(--amber);border-radius:99px"></div>
+                                </div>
+                                <span style="font-size:10.5px;font-weight:600;color:var(--muted);min-width:36px;text-align:right">{{ pct }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="db-empty-state">
+                                <i class="fa-solid fa-map-location-dot fa-2x" style="color:var(--muted);margin-bottom:8px;display:block"></i>
+                                <p>Aucun corridor identifié sur cette période.</p>
+                                <p style="font-size:10.5px;color:var(--muted);margin-top:4px">
+                                    Les corridors sont extraits du champ "Port / Corridor" des alertes.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ── Graphique barres horizontales corridors ── */
+const corridorsData = {
+    labels: {{ top_corridors|map(r => r.corridor)|json_encode|raw }},
+    values: {{ top_corridors|map(r => r.nb)|json_encode|raw }},
+};
+
+if (corridorsData.labels.length > 0) {
+    const ctx = document.getElementById('corridorsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: corridorsData.labels,
+            datasets: [{
+                label: 'Alertes',
+                data: corridorsData.values,
+                backgroundColor: corridorsData.values.map((v, i) => {
+                    const max = Math.max(...corridorsData.values);
+                    const alpha = 0.4 + (v / max) * 0.55;
+                    return `rgba(22,133,107,${alpha})`;
+                }),
+                borderColor: '#16856b',
+                borderWidth: 1,
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(18,63,53,0.97)',
+                    borderColor:     'rgba(69,227,184,0.25)',
+                    borderWidth:     1,
+                    padding:         10,
+                    cornerRadius:    8,
+                    titleColor:      '#e2ede8',
+                    bodyColor:       '#a8c4b8',
+                    titleFont:       { family: 'Inter, sans-serif', size: 11 },
+                    bodyFont:        { family: 'Inter, sans-serif', size: 11 },
+                    callbacks: {
+                        label: ctx => ` ${ctx.parsed.x} alerte${ctx.parsed.x > 1 ? 's' : ''}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid:   { color: 'rgba(148,163,184,0.06)', drawBorder: false },
+                    ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
+                    border: { display: false },
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
+                y: {
+                    grid:   { display: false },
+                    ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
+                    border: { display: false },
+                }
+            }
+        }
+    });
+} else {
+    document.getElementById('corridorsChart').closest('.db-chart-card').innerHTML += `
+        <div class="db-empty-state" style="padding:40px">
+            <i class="fa-solid fa-map-location-dot" style="font-size:36px;color:var(--muted);display:block;margin-bottom:12px"></i>
+            <p>Aucune donnée corridor sur cette période.</p>
+        </div>`;
+}
+
+/* ── Raccourcis période ── */
+function setCorridorPeriod(days) {
+    const today = new Date();
+    const from  = new Date(today);
+    from.setDate(from.getDate() - days);
+    const fmt = d => d.toISOString().split('T')[0];
+    document.querySelector('[name="debut"]').value = fmt(from);
+    document.querySelector('[name="fin"]').value   = fmt(today);
+    document.getElementById('corridorFilterForm').submit();
+}
+</script>
+{% endblock %}

@@ -1303,3 +1303,84 @@ body.dark .tbl-btn-ghost:hover { color: var(--text); }
   .db-table th:nth-child(4),
   .db-table td:nth-child(4) { display: none; } /* masque marché */
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX CRITIQUE — Conflit Tailwind CDN × FontAwesome
+   Tailwind preflight remet display:block sur tous les éléments, ce qui
+   transforme les <i class="fa-..."> en rectangles plein-écran.
+   On restaure les propriétés essentielles de FA sur tous les préfixes.
+═══════════════════════════════════════════════════════════════════════════ */
+
+.fa, .fas, .far, .fal, .fab, .fad,
+.fa-solid, .fa-regular, .fa-light, .fa-brands, .fa-thin, .fa-duotone,
+[class^="fa-"], [class*=" fa-"] {
+  display: inline-block !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-rendering: auto !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  /* Ne pas toucher à font-family ni font-weight — FA les gère via @font-face */
+}
+
+/* Restaurer le comportement inline dans les boutons et liens */
+button .fa-solid, button .fa-regular, button .fa-brands,
+a .fa-solid, a .fa-regular, a .fa-brands,
+span .fa-solid, span .fa-regular, span .fa-brands {
+  display: inline-block !important;
+  vertical-align: -0.125em;
+}
+
+/* Tailles FA helpers */
+.fa-xs  { font-size: .75em !important; }
+.fa-sm  { font-size: .875em !important; }
+.fa-lg  { font-size: 1.25em !important; }
+.fa-xl  { font-size: 1.5em !important; }
+.fa-2x  { font-size: 2em !important; }
+.fa-2xs { font-size: .625em !important; }
+
+/* Bootstrap Icons — même protection */
+.bi {
+  display: inline-block !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  vertical-align: -0.125em;
+}
+
+/* ── Double active sidebar (Statistiques + autre) ───────────────────── */
+/* La cause: "Nouvelle Fiche" = sidebar-link-cta qui n'a PAS de condition
+   active mais a un style propre qui ressemble visuellement à active.
+   On s'assure que sidebar-link-cta n'a JAMAIS l'apparence active. */
+.sidebar-link-cta:not(.active) {
+  background: rgba(69,227,184,.08) !important;
+  border-color: rgba(69,227,184,.15) !important;
+  color: #55e8c0 !important;
+}
+.sidebar-link-cta:not(.active)::before {
+  display: none !important; /* pas de barre active */
+}
+/* Enlever aussi le background si active est ajouté par erreur sur cta */
+.sidebar-link.active {
+  color: #55e8c0;
+  background: rgba(69,227,184,.13);
+  border-color: rgba(69,227,184,.18);
+}
+
+/* ── Carte Corridors — placeholder propre ───────────────────────────── */
+/* En attendant l'implémentation de la carte interactive */
+.corridors-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  background: var(--card2);
+  border: 2px dashed var(--border2);
+  border-radius: var(--r);
+  color: var(--muted);
+  text-align: center;
+  gap: 12px;
+}
+.corridors-placeholder i { font-size: 40px; color: var(--border2); }

@@ -87,15 +87,17 @@
             <span class="sidebar-link-text">Statistiques</span>
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="{{ path('app_alert_index') }}?advanced=1" class="sidebar-link
+            {% if app.request.attributes.get('_route') == 'app_alert_index' and app.request.query.get('advanced') %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
             <span class="sidebar-link-text">Filtres avancés</span>
         </a>
 
-        <a href="#" class="sidebar-link">
+        <a href="{{ path('app_dashboard_corridors') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_dashboard_corridors' %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-map-location-dot"></i></span>
             <span class="sidebar-link-text">Carte corridors</span>
-            <span class="sidebar-badge badge-blue">Bêta</span>
+            <span class="sidebar-badge badge-blue">Nouveau</span>
         </a>
 
         {# Administration #}
