@@ -1435,3 +1435,62 @@ span[class*="fa-"] {
   width: auto !important;
   height: auto !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESET MINIMAL — remplace Tailwind preflight (desactive dans tailwind.config)
+   Ne touche pas aux proprietes que FA et app.css gèrent eux-memes.
+═══════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; }
+h1,h2,h3,h4,h5,h6 { font-size: inherit; font-weight: inherit; }
+ol, ul { list-style: none; }
+img, svg, video, canvas, audio, iframe, embed, object { display: block; }
+img, video { max-width: 100%; height: auto; }
+/* NE PAS toucher aux <i> ni aux pseudo-éléments ::before/::after de FA */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FONT AWESOME — REGLES DEFINITIVES HAUTE SPECIFICITE
+   Appliquées après tout le reste, surchargent n'importe quel reset.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Règle 1 : display inline-block garanti sur tout élément portant une classe FA */
+i.fa,
+i.fas, i.far, i.fal, i.fab, i.fad,
+i.fa-solid, i.fa-regular, i.fa-light, i.fa-brands, i.fa-thin, i.fa-duotone,
+i[class~="fa-solid"], i[class~="fa-regular"], i[class~="fa-brands"],
+span[class~="fa-solid"], span[class~="fa-regular"], span[class~="fa-brands"] {
+  display: inline-block !important;
+  font-style: normal !important;
+  font-variant: normal !important;
+  text-rendering: auto !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif !important;
+  width: auto !important;
+  height: auto !important;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  /* Ne PAS forcer font-weight ici — FA le gère via .fa-solid (900) / .fa-regular (400) */
+}
+
+/* Règle 2 : les pseudo-éléments ::before contiennent le glyphe — ne pas les écraser */
+i.fa-solid::before,
+i.fa-regular::before,
+i.fa-brands::before,
+span.fa-solid::before,
+span.fa-regular::before,
+span.fa-brands::before {
+  content: var(--fa) !important;
+}
+
+/* Règle 3 : fa-solid doit avoir font-weight:900 explicitement */
+i.fa-solid, span.fa-solid, .fas { font-weight: 900 !important; }
+/* fa-regular doit avoir font-weight:400 */
+i.fa-regular, span.fa-regular, .far { font-weight: 400 !important; }
+/* fa-brands doit avoir font-weight:400 */
+i.fa-brands, span.fa-brands, .fab {
+  font-family: "Font Awesome 6 Brands" !important;
+  font-weight: 400 !important;
+}
