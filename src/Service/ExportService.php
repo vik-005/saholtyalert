@@ -3,7 +3,6 @@
 namespace App\Service;
 
 use App\Entity\Alert;
-use App\Repository\AlertRepository;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -16,6 +15,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * Service d'export du registre GEI au format .xlsx.
  * Le fichier généré est structurellement identique au registre source
  * (mêmes colonnes, même ordre — spec §5 "Export registre").
+ * IMPORTANT : Les alertes doivent déjà être filtrées et sécurisées
+ * (via AlertRepository::findForUser) AVANT d'appeler ce service.
  */
 class ExportService
 {
@@ -50,18 +51,13 @@ class ExportService
         'Niveau de priorité',                 // Y — ajout plateforme (recommandé client)
     ];
 
-    public function __construct(
-        private readonly AlertRepository $alertRepository,
-    ) {}
-
-    public function exportRegistre(
-        ?string $pays = null,
-        ?string $statut = null,
-        ?\DateTimeInterface $from = null,
-        ?\DateTimeInterface $to = null,
-    ): StreamedResponse {
-        $alerts = $this->alertRepository->findForExport($pays, $statut, $from, $to);
-
+    /**
+     * Génère et retourne un fichier .xlsx en streaming.
+     *
+     * @param Alert[] $alerts Alertes pré-filtrées par le contrôleur (sécurité + filtres UI).
+     */
+    public function exportRegistre(array $alerts): StreamedResponse
+    {
         return new StreamedResponse(function () use ($alerts) {
             // Vider tout buffer PHP en cours — évite page blanche avec PhpSpreadsheet
             if (ob_get_level()) {

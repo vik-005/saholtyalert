@@ -219,8 +219,23 @@
                             <i class="fa-solid fa-file-arrow-up"></i>
                             <span>Import</span>
                         </a>
-                        <a href="{{ path('app_export_registre') }}" class="db-btn db-btn-ghost" title="Export Excel">
+                        <a href="{{ path('app_export_registre', {
+                                search:   filters.search          ?? '',
+                                market:   filters.market          ?? '',
+                                priorite: filters.niveauPriorite  ?? '',
+                                statut:   filters.statut          ?? ''
+                            }) }}"
+                           class="db-btn db-btn-ghost" title="Export Excel (données filtrées)">
                             <i class="fa-solid fa-file-excel"></i>
+                        </a>
+                        <a href="{{ path('app_export_registre_pdf', {
+                                search:   filters.search          ?? '',
+                                market:   filters.market          ?? '',
+                                priorite: filters.niveauPriorite  ?? '',
+                                statut:   filters.statut          ?? ''
+                            }) }}"
+                           class="db-btn db-btn-ghost" title="Rapport PDF (données filtrées)">
+                            <i class="fa-solid fa-file-pdf"></i>
                         </a>
                         <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
                             <i class="fa-solid fa-plus"></i>

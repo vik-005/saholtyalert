@@ -83,7 +83,7 @@
                 </span>
             </div>
             <div style="position:relative;margin-top:8px">
-                <canvas id="corridorsChart" height="{{ [top_corridors|length * 28, 200]|max }}"></canvas>
+                <canvas id="corridorsChart" height="{{ top_corridors|length * 28 > 200 ? top_corridors|length * 28 : 200 }}"></canvas>
             </div>
         </div>
 
@@ -96,7 +96,8 @@
                 </div>
             </div>
             <div class="countries-list" style="margin-top:8px">
-                {% set maxVol = volume_par_pays|map(r => r.nb)|max ?? 1 %}
+                {% set nbList = volume_par_pays|map(r => r.nb)|sort %}
+                {% set maxVol = nbList is not empty ? nbList|last : 1 %}
                 {% for row in volume_par_pays %}
                 <div class="country-item">
                     <span class="country-label">
@@ -139,7 +140,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set totalAlertes = top_corridors|map(r => r.nb)|sum %}
+                    {% set totalAlertes = 0 %}
+                    {% for r in top_corridors %}{% set totalAlertes = totalAlertes + r.nb %}{% endfor %}
                     {% for row in top_corridors %}
                     <tr class="db-tr">
                         <td style="color:var(--muted);font-weight:700;font-size:11px">{{ loop.index }}</td>

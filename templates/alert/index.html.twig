@@ -13,8 +13,22 @@
         </div>
         <div class="registry-actions">
             <a href="{{ path('app_alert_import') }}" class="registry-action"><i class="fa-solid fa-file-arrow-up"></i><span>Importer Excel</span></a>
-            <a href="{{ path('app_export_registre') }}" class="registry-action"><i class="fa-solid fa-file-excel"></i><span>Exporter</span></a>
-            <a href="{{ path('app_export_registre_pdf') }}" class="registry-action"><i class="fa-solid fa-file-pdf"></i><span>Rapport PDF</span></a>
+            <a href="{{ path('app_export_registre', {
+                    statut:   filters.statut          ?? '',
+                    priorite: filters.niveauPriorite  ?? '',
+                    market:   filters.market          ?? '',
+                    search:   filters.search          ?? '',
+                    categorie: filters.categorie      ?? '',
+                    urgence:  filters.urgence         ?? ''
+                }) }}" class="registry-action"><i class="fa-solid fa-file-excel"></i><span>Export Excel</span></a>
+            <a href="{{ path('app_export_registre_pdf', {
+                    statut:   filters.statut          ?? '',
+                    priorite: filters.niveauPriorite  ?? '',
+                    market:   filters.market          ?? '',
+                    search:   filters.search          ?? '',
+                    categorie: filters.categorie      ?? '',
+                    urgence:  filters.urgence         ?? ''
+                }) }}" class="registry-action"><i class="fa-solid fa-file-pdf"></i><span>Rapport PDF</span></a>
             <a href="{{ path('app_alert_new') }}" class="registry-action registry-action-primary"><i class="fa-solid fa-plus"></i><span>Nouvelle alerte</span></a>
         </div>
     </header>
