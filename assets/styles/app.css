@@ -1494,3 +1494,20 @@ i.fa-brands, span.fa-brands, .fab {
   font-family: "Font Awesome 6 Brands" !important;
   font-weight: 400 !important;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX DEFINITIF ICONES FA — Tailwind CDN injecte ::before{content:var(--tw-content)}
+   Ce qui écrase content:var(--fa) de FontAwesome → carrés vides.
+   On restaure content:var(--fa) en !important sur tous les sélecteurs FA.
+   app.css est chargé APRÈS Tailwind → nos règles gagnent la cascade.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* Toutes les classes FA 6 qui utilisent ::before pour afficher le glyphe */
+.fa::before,
+.fas::before, .far::before, .fal::before, .fab::before, .fad::before,
+.fa-solid::before, .fa-regular::before, .fa-light::before,
+.fa-brands::before, .fa-thin::before, .fa-duotone::before,
+[class^="fa-"]::before, [class*=" fa-"]::before {
+    content: var(--fa) !important;
+}
