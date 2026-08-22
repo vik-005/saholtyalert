@@ -57,12 +57,12 @@
         <p class="sidebar-section-label">Gestion Alertes</p>
 
         <a href="{{ path('app_alert_index') }}"
-           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_alert_index' %}active{% endif %}">
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_alert_index' and not app.request.query.get('advanced') %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-file-shield"></i></span>
             <span class="sidebar-link-text">Registre GEI</span>
         </a>
 
-        <a href="{{ path('app_alert_new') }}" class="sidebar-link sidebar-link-cta">
+        <a href="{{ path('app_alert_new') }}" class="sidebar-link-new">
             <span class="sidebar-link-icon"><i class="fa-solid fa-circle-plus"></i></span>
             <span class="sidebar-link-text">Nouvelle Fiche</span>
         </a>

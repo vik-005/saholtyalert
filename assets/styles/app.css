@@ -1384,3 +1384,54 @@ span .fa-solid, span .fa-regular, span .fa-brands {
   gap: 12px;
 }
 .corridors-placeholder i { font-size: 40px; color: var(--border2); }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIX DEFINITIF — Double active sidebar + icônes FA
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* "Nouvelle Fiche" — bouton d'action distinct, jamais confondu avec active  */
+.sidebar-link-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #07352b;
+  background: #45e3b8;
+  border: 1px solid #2ecda3;
+  margin-bottom: 1px;
+  text-decoration: none;
+  transition: all .15s;
+  position: relative;
+}
+.sidebar-link-new:hover {
+  background: #34d9ac;
+  color: #04291f;
+}
+/* Jamais de barre active sur ce bouton */
+.sidebar-link-new::before { display: none !important; }
+
+/* Suppression de l'ancienne classe cta pour éviter tout conflit résiduel */
+.sidebar-link-cta {
+  color: #55e8c0 !important;
+  border-color: rgba(69,227,184,.2) !important;
+  background: rgba(69,227,184,.1) !important;
+}
+.sidebar-link-cta::before { display: none !important; }
+.sidebar-link-cta.active  { background: rgba(69,227,184,.1) !important; }
+
+/* Icônes FA — protection anti-Tailwind-reset (règle finale définitive)      */
+/* On cible exactement les éléments <i> et <span> portant une classe FA      */
+i[class*="fa-"],
+span[class*="fa-"] {
+  display: inline-block !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  width: auto !important;
+  height: auto !important;
+}
