@@ -62,7 +62,8 @@
             <span class="sidebar-link-text">Registre GEI</span>
         </a>
 
-        <a href="{{ path('app_alert_new') }}" class="sidebar-link-new">
+        <a href="{{ path('app_alert_new') }}"
+           class="sidebar-link {% if app.request.attributes.get('_route') == 'app_alert_new' %}active{% endif %}">
             <span class="sidebar-link-icon"><i class="fa-solid fa-circle-plus"></i></span>
             <span class="sidebar-link-text">Nouvelle Fiche</span>
         </a>

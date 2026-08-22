@@ -12,43 +12,33 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    {# ══ FONT AWESOME 6.7.2 ══ CDN jsDelivr — une seule ligne, garanti sans conflit ══ #}
+    {# ══ FONT AWESOME 6.7.2 ══ CDN jsDelivr ══ #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.7.2/css/all.min.css">
 
     {# ══ Bootstrap Icons 1.11 ══ #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    {# ── Tailwind CDN ── #}
-    <script src="https://cdn.tailwindcss.com"></script>
+    {# ── Tailwind CDN — config AVANT le script pour que preflight:false soit pris en compte ── #}
     <script>
+        window.tailwind = window.tailwind || {};
         tailwind.config = {
-            corePlugins: {
-                preflight: false,
-            },
+            corePlugins: { preflight: false },
             theme: {
                 extend: {
                     colors: {
                         navy: {
-                            '50':  '#f0f4f9',
-                            '100': '#dfe7f1',
-                            '200': '#bfd3e3',
-                            '300': '#9fbace',
-                            '400': '#6e8fb3',
-                            '500': '#4a6fa5',
-                            '600': '#38568e',
-                            '700': '#2d4575',
-                            '800': '#1f3a61',
-                            '900': '#0f1729',
-                            '950': '#090e1a',
+                            '50': '#f0f4f9', '100': '#dfe7f1', '200': '#bfd3e3',
+                            '300': '#9fbace', '400': '#6e8fb3', '500': '#4a6fa5',
+                            '600': '#38568e', '700': '#2d4575', '800': '#1f3a61',
+                            '900': '#0f1729', '950': '#090e1a',
                         },
                     },
-                    fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
                 }
             }
-        }
+        };
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
     {# ── Chart.js ── #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>

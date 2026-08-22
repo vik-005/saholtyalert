@@ -9,7 +9,7 @@
     <div class="page-header-row">
         <div>
             <p class="page-eyebrow">
-                <i class="fa-solid fa-screwdriver-wrench me-1.5 text-amber-400"></i>Administration
+                <i class="fa-solid fa-screwdriver-wrench me-1.5"></i>Administration
             </p>
             <h2 class="page-title">Règles de scoring & seuils</h2>
             <p class="page-subtitle">
@@ -145,50 +145,66 @@
 
 <style>
 .page-header-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-.page-eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--amber); margin-bottom:6px; }
-.page-title { font-size:22px; font-weight:800; color:#fff; margin-bottom:6px; }
-.page-subtitle { font-size:12.5px; color:var(--text-muted); max-width:600px; line-height:1.6; }
 
-.rule-formula-card { display:flex; gap:16px; align-items:flex-start; background:var(--navy-900); border:1px solid var(--border); border-left:3px solid var(--amber); border-radius:var(--radius); padding:18px; }
-.rule-formula-icon { width:40px; height:40px; background:var(--amber-dim); border-radius:10px; display:grid; place-items:center; color:var(--amber); font-size:18px; flex-shrink:0; }
-.rule-formula-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin-bottom:6px; }
-.rule-formula-text { font-size:14px; font-weight:600; color:#fff; margin-bottom:8px; }
-.rule-formula-legend { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--text-muted); }
-.rule-sep { color:var(--border-strong); }
+.rule-formula-card {
+    display:flex; gap:16px; align-items:flex-start;
+    background:var(--card); border:1px solid var(--border);
+    border-left:3px solid var(--amber); border-radius:var(--r); padding:18px;
+}
+.rule-formula-icon {
+    width:40px; height:40px; background:var(--amber-bg); border-radius:10px;
+    display:grid; place-items:center; color:var(--amber); font-size:18px; flex-shrink:0;
+}
+.rule-formula-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:6px; }
+.rule-formula-text  { font-size:14px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.rule-formula-legend { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--muted); }
+.rule-sep { color:var(--border2); }
 
 .rule-section { display:flex; flex-direction:column; gap:14px; }
 .rule-section-header { display:flex; align-items:center; gap:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-.rule-section-icon { font-size:16px; }
-.rule-section-title { font-size:13px; font-weight:700; color:#fff; }
+.rule-section-icon  { font-size:16px; }
+.rule-section-title { font-size:13px; font-weight:700; color:var(--text); }
 
 .rule-cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-.rule-card { background:var(--navy-900); border:1px solid var(--border); border-radius:var(--radius); padding:18px; transition:border-color .2s; }
-.rule-card:hover { border-color:var(--border-strong); }
+.rule-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r); padding:18px; transition:border-color .2s;
+}
+.rule-card:hover { border-color:var(--border2); }
 .rule-card-inactive { opacity:.5; }
 
 .rule-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.rule-card-key { display:flex; align-items:center; font-size:11px; color:var(--text-muted); }
+.rule-card-key { display:flex; align-items:center; font-size:11px; color:var(--muted); }
 .rule-card-key code { font-family:'JetBrains Mono','Fira Code',monospace; font-size:11px; color:var(--amber); }
 .rule-card-badges { display:flex; gap:6px; }
 .rule-badge { font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:99px; }
-.rule-badge-green   { background:rgba(251,191,36,.1); color:var(--amber); border:1px solid var(--amber-border); }
-.rule-badge-slate   { background:var(--navy-800); color:var(--text-muted); border:1px solid var(--border); }
-.rule-badge-emerald { background:rgba(52,211,153,.1); color:#34d399; border:1px solid rgba(52,211,153,.2); }
+.rule-badge-green   { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-bd); }
+.rule-badge-slate   { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+.rule-badge-emerald { background:rgba(52,211,153,.1); color:var(--green); border:1px solid rgba(52,211,153,.2); }
 .rule-badge-red     { background:rgba(239,68,68,.1); color:#f87171; border:1px solid rgba(239,68,68,.2); }
 
 .rule-card-value-row { display:flex; align-items:baseline; gap:6px; margin-bottom:8px; }
-.rule-card-value { font-size:42px; font-weight:900; color:#fff; line-height:1; }
-.rule-card-unit  { font-size:13px; color:var(--text-muted); font-weight:500; }
-.rule-card-desc  { font-size:11.5px; color:var(--text-muted); line-height:1.6; margin-bottom:12px; }
+.rule-card-value { font-size:42px; font-weight:900; color:var(--text); line-height:1; }
+.rule-card-unit  { font-size:13px; color:var(--muted); font-weight:500; }
+.rule-card-desc  { font-size:11.5px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
 
-.rule-card-bar-wrap { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-.rule-card-bar-track { flex:1; height:5px; background:var(--navy-800); border-radius:99px; overflow:hidden; }
-.rule-card-bar-fill  { height:100%; background:linear-gradient(90deg,var(--amber),#f97316); border-radius:99px; }
-.rule-card-bar-max   { font-size:10.5px; color:var(--text-muted); white-space:nowrap; }
+.rule-card-bar-wrap  { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.rule-card-bar-track { flex:1; height:5px; background:var(--card2); border-radius:99px; overflow:hidden; }
+.rule-card-bar-fill  { height:100%; background:var(--amber); border-radius:99px; }
+.rule-card-bar-max   { font-size:10.5px; color:var(--muted); white-space:nowrap; }
 
 .rule-card-footer { border-top:1px solid var(--border); padding-top:12px; }
 .rule-edit-btn { display:inline-flex; align-items:center; font-size:12px; font-weight:600; color:var(--amber); transition:opacity .2s; }
 .rule-edit-btn:hover { opacity:.75; }
+
+/* Dark mode */
+body.dark .rule-card { background:var(--card); }
+body.dark .rule-formula-card { background:var(--card); }
+body.dark .rule-card-value { color:var(--text); }
+body.dark .rule-section-title { color:var(--text); }
+body.dark .rule-formula-text { color:var(--text); }
+
+@media(max-width:640px) { .rule-cards-grid { grid-template-columns:1fr; } }
 </style>
 {% endblock %}
 
