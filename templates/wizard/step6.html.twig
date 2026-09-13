@@ -1,0 +1,199 @@
+{# Étape 6 — Relecture et soumission #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 6}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="6">
+    {# Repasser toutes les données du draft dans des champs cachés #}
+    {% if draftData %}
+        {% for key, value in draftData %}
+            {% if value is not iterable %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    {# Section 1 : Identification #}
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-clipboard-check me-1.5 text-emerald-400"></i>
+                Étape 6 sur 6 — Récapitulatif avant soumission
+            </p>
+            <p class="text-xs text-slate-500">Vérifiez toutes les informations avant d'envoyer la fiche au Manager.</p>
+        </div>
+        <div class="db-card-body">
+
+            {# Section 1 : Identification #}
+            <div class="recap-section">
+                <div class="recap-section-header">
+                    <span class="form-section-num">1</span>
+                    Identification
+                    <a href="{{ path('app_wizard_new', {step: 1}) }}" class="recap-edit-link">
+                        <i class="bi bi-pen me-1"></i>Modifier
+                    </a>
+                </div>
+                <dl class="recap-grid">
+                    <dt>Date de réception</dt>
+                    <dd>{{ alert.dateCreation|date('d/m/Y') }}</dd>
+                    <dt>Marché émetteur</dt>
+                    <dd>{{ alert.market ? alert.market.nom : '—' }}</dd>
+                    <dt>Type de localisation</dt>
+                    <dd>
+                        {% if alert.typeLocalisation %}
+                            <span class="loc-type loc-type-{{ alert.typeLocalisation.value }}">
+                                <i class="bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
+                                {{ alert.typeLocalisation.label() }}
+                            </span>
+                        {% else %}<span class="text-red-400">Non renseigné</span>{% endif %}
+                    </dd>
+                    <dt>Nom</dt>
+                    <dd>{{ alert.portCorridor ?: '—' }}</dd>
+                </dl>
+            </div>
+
+            {# Section 2 : Contenu #}
+            <div class="recap-section">
+                <div class="recap-section-header">
+                    <span class="form-section-num">2</span>
+                    Contenu de l'alerte
+                    <a href="{{ path('app_wizard_new', {step: 2}) }}" class="recap-edit-link">
+                        <i class="bi bi-pen me-1"></i>Modifier
+                    </a>
+                </div>
+                <dl class="recap-grid">
+                    <dt>Réf. documentaire</dt>
+                    <dd>{{ alert.referenceDocumentaire ?: '—' }}</dd>
+                    <dt>Description / Quantité</dt>
+                    <dd class="text-slate-300">{{ alert.elementsFactuels ? alert.elementsFactuels|slice(0,200) ~ (alert.elementsFactuels|length > 200 ? '…' : '') : '—' }}</dd>
+                    <dt>Marque</dt>
+                    <dd>{{ alert.marque ?: '—' }}</dd>
+                    <dt>Opérateur / Acteur</dt>
+                    <dd>{{ alert.operateurActeur ?: '—' }}</dd>
+                    <dt>Résumé de l'information</dt>
+                    <dd class="text-slate-300">{{ alert.resumeExecutif ?: '—' }}</dd>
+                </dl>
+            </div>
+
+            {# Section 3 : Classification #}
+            <div class="recap-section">
+                <div class="recap-section-header">
+                    <span class="form-section-num">3</span>
+                    Classification
+                    <a href="{{ path('app_wizard_new', {step: 3}) }}" class="recap-edit-link">
+                        <i class="bi bi-pen me-1"></i>Modifier
+                    </a>
+                </div>
+                <dl class="recap-grid">
+                    <dt>Catégorie</dt>
+                    <dd>{{ alert.categorie ?: '—' }}</dd>
+                    <dt>Type d'alerte</dt>
+                    <dd>{{ alert.typeAlerte ? alert.typeAlerte.label() : '—' }}</dd>
+                </dl>
+            </div>
+
+            {# Section 4 : Source #}
+            <div class="recap-section">
+                <div class="recap-section-header">
+                    <span class="form-section-num">4</span>
+                    Source
+                    <a href="{{ path('app_wizard_new', {step: 4}) }}" class="recap-edit-link">
+                        <i class="bi bi-pen me-1"></i>Modifier
+                    </a>
+                </div>
+                <dl class="recap-grid">
+                    <dt>Type de source</dt>
+                    <dd>{{ alert.typeSource ?: '—' }}</dd>
+                    <dt>Anonymisation</dt>
+                    <dd>{{ alert.anonymisation ? alert.anonymisation : '—' }}</dd>
+                </dl>
+            </div>
+
+            {# Section 5 : Qualification + Score #}
+            <div class="recap-section">
+                <div class="recap-section-header">
+                    <span class="form-section-num">5</span>
+                    Qualification GEI
+                    <a href="{{ path('app_wizard_new', {step: 5}) }}" class="recap-edit-link">
+                        <i class="bi bi-pen me-1"></i>Modifier
+                    </a>
+                </div>
+                <dl class="recap-grid">
+                    <dt>Fiabilité source</dt>
+                    <dd>
+                        {% if alert.fiabiliteSource %}
+                            <strong class="text-amber-400">{{ alert.fiabiliteSource.value }}</strong>
+                            — {{ alert.fiabiliteSource.label() }}
+                            <span class="text-slate-500">(score {{ alert.fiabiliteSource.score() }})</span>
+                        {% else %}
+                            <span class="text-red-400">Non renseignée</span>
+                        {% endif %}
+                    </dd>
+                    <dt>Crédibilité</dt>
+                    <dd>{{ alert.credibiliteContenu ? alert.credibiliteContenu ~ '/4' : '—' }}</dd>
+                    <dt>Urgence</dt>
+                    <dd>{{ alert.urgence ? alert.urgence.label() : '—' }}</dd>
+                    <dt>Impact</dt>
+                    <dd>{{ alert.impact ? alert.impact.label() : '—' }}</dd>
+                    <dt>Exploitabilité</dt>
+                    <dd>{{ alert.exploitabilite ? alert.exploitabilite.label() : '—' }}</dd>
+                </dl>
+
+                {# Score calculé #}
+                {% if alert.scoreGei %}
+                <div class="recap-score-bar mt-3">
+                    <span class="text-xs text-slate-500 uppercase tracking-wider">Score GEI calculé</span>
+                    <span class="score-badge {% if alert.scoreGei >= 18 %}score-critique{% elseif alert.scoreGei >= 14 %}score-eleve{% elseif alert.scoreGei >= 10 %}score-modere{% else %}score-faible{% endif %} ms-2">
+                        {{ alert.scoreGei }}/25
+                    </span>
+                    {% if alert.niveauPriorite %}
+                        <span class="ms-2 text-sm font-semibold text-amber-400">{{ alert.niveauPriorite.label() }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    {# Commentaire à la soumission (champ 20 — première ligne) #}
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-chat-left-text me-1.5 text-slate-400"></i>
+                Commentaire à la soumission
+            </p>
+            <p class="text-xs text-slate-500">Champ 20 — Commentaires / Suivi. Ce commentaire sera ajouté à l'historique.</p>
+        </div>
+        <div class="db-card-body">
+            <div class="form-field">
+                <label class="form-label" for="w_commentaire">Commentaire (optionnel)</label>
+                <textarea name="alert[commentaires]" id="w_commentaire"
+                          class="form-textarea" rows="3"
+                          placeholder="Contexte particulier de collecte, précision utile au Manager…">{{ draftData and draftData['alert[commentaires]'] is defined ? draftData['alert[commentaires]'] : '' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    {# Avertissement #}
+    <div class="workflow-banner workflow-banner-amber mb-4">
+        <i class="bi bi-exclamation-triangle text-amber-400 bi-lg flex-shrink-0"></i>
+        <div>
+            <p class="workflow-banner-title">Vérifiez votre saisie avant soumission</p>
+            <p class="workflow-banner-sub">
+                Une fois soumise, la fiche sera transmise au Manager pour validation.
+                Vous ne pourrez plus la modifier sauf si elle est rejetée.
+            </p>
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <button type="submit" name="_action" value="prev" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-2"></i>Précédent
+        </button>
+        <button type="submit" name="_action" value="submit" class="auth-submit-btn" style="width:auto;padding:0 32px;">
+            <i class="bi bi-send me-2"></i>Soumettre au Manager
+        </button>
+    </div>
+
+</form>
+

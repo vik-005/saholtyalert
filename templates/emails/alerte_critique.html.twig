@@ -1,0 +1,72 @@
+{# templates/emails/alerte_critique.html.twig #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerte Critique GEI — {{ codeGei }}</title>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f6faf8; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 24px; }
+        .card { background: #ffffff; border-radius: 12px; border: 1px solid #dce8e3; overflow: hidden; }
+        .header { background: #123f35; padding: 20px 24px; }
+        .header h1 { color: #45e3b8; font-size: 18px; font-weight: 800; margin: 0; }
+        .header p { color: #8fe9d0; font-size: 12px; margin: 4px 0 0; }
+        .body { padding: 24px; }
+        .alert-box { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .alert-box h2 { color: #f87171; font-size: 14px; font-weight: 700; margin: 0 0 8px; }
+        .alert-box p { color: #4c625a; font-size: 13px; margin: 0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .info-item { background: #f6faf8; border: 1px solid #dce8e3; border-radius: 8px; padding: 12px; }
+        .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6e817a; margin-bottom: 4px; }
+        .info-value { font-size: 13px; font-weight: 700; color: #17352e; }
+        .score { font-size: 32px; font-weight: 900; color: #f87171; }
+        .btn { display: inline-block; background: #16856b; color: #000; font-weight: 700; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-size: 13px; }
+        .footer { text-align: center; padding: 16px; font-size: 11px; color: #6e817a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1><i class="bi-triangle-alert"></i> Alerte Critique — Procédure 72h</h1>
+                <p>Plateforme GEI — Renseignement Opérationnel</p>
+            </div>
+            <div class="body">
+                <div class="alert-box">
+                    <h2>Score GEI : {{ score }}/25 — Procédure urgence 72h activée</h2>
+                    <p>L'alerte <strong>{{ codeGei }}</strong> a atteint le seuil critique. Action immédiate requise conformément au protocole GEI.</p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Code GEI</div>
+                        <div class="info-value">{{ codeGei }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Score</div>
+                        <div class="info-value score">{{ score }}/25</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Marché</div>
+                        <div class="info-value">{{ market }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Priorité</div>
+                        <div class="info-value">{{ priorite }}</div>
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: #4c625a; margin: 0 0 16px;">
+                    Consultez la fiche complète dans la plateforme pour les détails opérationnels et les actions à engager.
+                </p>
+
+                <a href="{{ url }}" class="btn">Voir la fiche dans GEI</a>
+            </div>
+            <div class="footer">
+                Message automatique — Plateforme GEI · Ne pas répondre à ce courriel
+            </div>
+        </div>
+    </div>
+</body>
+</html>

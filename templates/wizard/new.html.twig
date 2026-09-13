@@ -1,0 +1,68 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle alerte — Étape {{ currentStep }}/{{ totalSteps }} — GEI{% endblock %}
+{% block header_title %}Nouvelle alerte{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête #}
+    <div class="page-header-row mb-4">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-shield-file me-1.5 text-amber-400"></i>
+                Formulaire d'alerte — Fiche Agent (20 champs)
+            </p>
+            <h2 class="page-title">Nouvelle fiche d'alerte GEI</h2>
+            <p class="page-subtitle">Remplissez les 6 étapes. Le score est calculé automatiquement à l'étape 5.</p>
+        </div>
+    </div>
+
+    {# ── Barre de progression #}
+    <div class="db-card mb-4">
+        <div class="db-card-body" style="padding: 16px 20px;">
+            <ol class="wizard-progress-steps" aria-label="Étapes du formulaire">
+                {% set stepLabels = ['Identification', 'Contenu', 'Classification', 'Source', 'Qualification', 'Récapitulatif'] %}
+                {% for i in 1..6 %}
+                    <li class="wizard-progress-step {% if currentStep > i %}done{% elseif currentStep == i %}current{% endif %}"
+                        aria-current="{{ currentStep == i ? 'step' : 'false' }}">
+                        <a href="{{ path('app_wizard_new', {step: i }) }}" class="wps-link">
+                            <span class="wps-num">
+                                {% if currentStep > i %}
+                                    <i class="bi bi-check"></i>
+                                {% else %}
+                                    {{ i }}
+                                {% endif %}
+                            </span>
+                            <span class="wps-label">{{ stepLabels[i - 1] }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ol>
+            <div class="wizard-progress-bar" role="progressbar" aria-valuenow="{{ currentStep }}" aria-valuemin="1" aria-valuemax="6">
+                <div class="wizard-progress-fill" style="width: {{ ((currentStep - 1) / 5 * 100)|round }}%"></div>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 text-right">Étape {{ currentStep }} sur {{ totalSteps }} — {{ stepLabels[currentStep - 1] }}</p>
+        </div>
+    </div>
+
+    {# ── Contenu de l'étape courante #}
+    <div id="wizardStepContent">
+        {% if currentStep == 1 %}
+            {% include 'wizard/step1.html.twig' with {alert: alert, draftData: draftData, markets: markets} %}
+        {% elseif currentStep == 2 %}
+            {% include 'wizard/step2.html.twig' with {alert: alert, draftData: draftData} %}
+        {% elseif currentStep == 3 %}
+            {% include 'wizard/step3.html.twig' with {alert: alert, draftData: draftData, categories: categories, typeAlertes: typeAlertes} %}
+        {% elseif currentStep == 4 %}
+            {% include 'wizard/step4.html.twig' with {alert: alert, draftData: draftData, typeSources: typeSources} %}
+        {% elseif currentStep == 5 %}
+            {% include 'wizard/step5.html.twig' with {alert: alert, draftData: draftData, fiabilites: fiabilites, urgences: urgences, impacts: impacts, exploitabilites: exploitabilites, recommandations: recommandations} %}
+        {% elseif currentStep == 6 %}
+            {% include 'wizard/step6.html.twig' with {alert: alert, draftData: draftData} %}
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

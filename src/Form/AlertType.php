@@ -3,14 +3,19 @@
 namespace App\Form;
 
 use App\Entity\Alert;
+use App\Entity\ListeReferenceValeur;
 use App\Entity\Market;
-use App\Enum\AlertCategorie;
-use App\Enum\AnonymisationNiveau;
+use App\Entity\User;
 use App\Enum\FiabiliteSource;
+use App\Enum\AlertUrgence;
+use App\Enum\AlertImpact;
+use App\Enum\AlertExploitabilite;
+use App\Enum\Recommandation;
 use App\Enum\TypeAlerte;
-use App\Enum\TypeSource;
+use App\Repository\ListeReferenceValeurRepository;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -19,6 +24,11 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Formulaire AGENT — Sections 1 à 5 de la Fiche Standard GEI (Annexe A).
+ * À partir du prompt expert final, l'Agent remplit désormais l'ENTIÈRE fiche,
+ * y compris les 5 critères de qualification (Section 6) → score calculé automatiquement.
+ *
+ * Champs categorie et typeSource : utilisent les valeurs pré-enregistrées dans la DB
+ * via la table liste_reference_valeur (pas de saisie libre).
  *
  * RÈGLE : Tous les champs Enum utilisent EnumType (pas ChoiceType) pour que
  * Symfony transforme automatiquement la valeur string soumise en objet Enum.
@@ -27,16 +37,53 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 class AlertType extends AbstractType
 {
+    private ListeReferenceValeurRepository $lrRepo;
+
+    public function __construct(ListeReferenceValeurRepository $lrRepo)
+    {
+        $this->lrRepo = $lrRepo;
+    }
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        /** @var User|null $currentUser */
+        $currentUser = $options['current_user'];
+        $agentMarkets = [];
+
+        if ($currentUser !== null) {
+            $agentMarkets = $currentUser->getAllAgentMarkets();
+        }
+
+        // Si l'Agent a plusieurs marchés assignés, on limite les choix aux siens.
+        // Si un seul marché, il est pré-sélectionné (mais toujours modifiable si recréation).
+        $hasMultipleMarkets = count($agentMarkets) > 1;
+
+        // Listes de valeurs pré-enregistrées (categories et types de source)
+        $categoriesListe = $this->lrRepo->findActivesByType('categorie');
+        $typeSourceListe = $this->lrRepo->findActivesByType('type_source');
+
         $builder
             // ── SECTION 1 — Identification & traçabilité ────────────────────────────
             ->add('market', EntityType::class, [
                 'class'        => Market::class,
                 'choice_label' => 'nom',
                 'label'        => 'Zone (Pays / Marché)',
-                'placeholder'  => 'Sélectionnez un pays',
+                'placeholder'  => $hasMultipleMarkets ? 'Sélectionnez le marché concerné' : 'Sélectionnez un pays',
                 'attr'         => ['class' => 'form-select'],
+                'query_builder' => function (\Doctrine\ORM\EntityRepository $er) use ($agentMarkets) {
+                    if (!empty($agentMarkets)) {
+                        $ids = array_map(fn($m) => $m->getId(), $agentMarkets);
+                        return $er->createQueryBuilder('m')
+                            ->where('m.id IN (:ids)')
+                            ->setParameter('ids', $ids)
+                            ->orderBy('m.nom', 'ASC');
+                    }
+                    // Pas de restriction (SUPERADMIN, SAHOLTY, etc.) → tous les marchés
+                    return $er->createQueryBuilder('m')->orderBy('m.nom', 'ASC');
+                },
+                'help' => $hasMultipleMarkets
+                    ? 'Vous êtes rattaché à plusieurs marchés. Sélectionnez celui qui concerne cette alerte.'
+                    : null,
             ])
             ->add('portCorridor', TextType::class, [
                 'label'    => 'Port / Corridor / Frontière',
@@ -46,13 +93,23 @@ class AlertType extends AbstractType
                     'placeholder' => 'ex. Corridor Cotonou - Niamey, Port de Lomé',
                 ],
             ])
-            ->add('categorie', EnumType::class, [
-                'class'       => AlertCategorie::class,
-                'label'       => 'Catégorie de l\'alerte',
-                'placeholder' => 'Sélectionnez une catégorie',
-                'required'    => false,
-                'choice_label' => fn(AlertCategorie $c) => $c->label(),
-                'attr'        => ['class' => 'form-select'],
+            // ── CHAMP CATEGORIE : utilise les valeurs pré-enregistrées dans la DB ──
+            ->add('categorie', EntityType::class, [
+                'class'        => ListeReferenceValeur::class,
+                'choice_label' => 'libelle',
+                'label'        => 'Catégorie de l\'alerte',
+                'required'     => true,
+                'placeholder'  => 'Sélectionnez une catégorie',
+                'query_builder' => function (\Doctrine\ORM\EntityRepository $er) {
+                    return $er->createQueryBuilder('l')
+                        ->where('l.typeListe = :type')
+                        ->andWhere('l.actif = true')
+                        ->setParameter('type', 'categorie')
+                        ->orderBy('l.ordreAffichage', 'ASC')
+                        ->addOrderBy('l.libelle', 'ASC');
+                },
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Les catégories sont pré-configurées dans l\'administration.',
             ])
 
             // ── SECTION 2 — Résumé exécutif ────────────────────────────────────────
@@ -67,13 +124,23 @@ class AlertType extends AbstractType
             ])
 
             // ── SECTION 3 — Source & fiabilité ─────────────────────────────────────
-            ->add('typeSource', EnumType::class, [
-                'class'        => TypeSource::class,
+            // ── CHAMP TYPE SOURCE : utilise les valeurs pré-enregistrées dans la DB ──
+            ->add('typeSource', EntityType::class, [
+                'class'        => ListeReferenceValeur::class,
+                'choice_label' => 'libelle',
                 'label'        => 'Type de source',
-                'required'     => false,
-                'placeholder'  => 'Sélectionnez le type de source',
-                'choice_label' => fn(TypeSource $t) => $t->label(),
-                'attr'         => ['class' => 'form-select'],
+                'required'     => true,
+                'placeholder'  => 'Sélectionnez un type de source',
+                'query_builder' => function (\Doctrine\ORM\EntityRepository $er) {
+                    return $er->createQueryBuilder('l')
+                        ->where('l.typeListe = :type')
+                        ->andWhere('l.actif = true')
+                        ->setParameter('type', 'type_source')
+                        ->orderBy('l.ordreAffichage', 'ASC')
+                        ->addOrderBy('l.libelle', 'ASC');
+                },
+                'attr' => ['class' => 'form-select'],
+                'help' => 'Les types de source sont pré-configurés dans l\'administration.',
             ])
             ->add('typeAlerte', EnumType::class, [
                 'class'        => TypeAlerte::class,
@@ -83,10 +150,13 @@ class AlertType extends AbstractType
                 'choice_label' => fn(TypeAlerte $t) => $t->label(),
                 'attr'         => ['class' => 'form-select'],
             ])
-            ->add('anonymisation', EnumType::class, [
-                'class'        => AnonymisationNiveau::class,
+            ->add('anonymisation', ChoiceType::class, [
+                'choices' => [
+                    'Oui' => 'oui',
+                    'Non' => 'non',
+                ],
                 'label'        => 'Niveau d\'anonymisation de la source',
-                'choice_label' => fn(AnonymisationNiveau $a) => $a->label(),
+                'placeholder'  => 'Sélectionnez',
                 'attr'         => ['class' => 'form-select'],
             ])
             ->add('historiqueSource', TextareaType::class, [
@@ -107,6 +177,7 @@ class AlertType extends AbstractType
                 'attr'         => [
                     'class' => 'form-select',
                     'title' => 'A = source connue et fiable, D = source non vérifiée',
+                    
                 ],
                 'help' => 'Déclaration terrain : vous seul connaissez votre source. Ce champ nourrit le score GEI (Annexe C).',
             ])
@@ -142,11 +213,91 @@ class AlertType extends AbstractType
                     'placeholder' => 'Hypothèses sur les réseaux, modus operandi, destinations probables…',
                 ],
                 'help' => 'Distinct des faits. Le Manager peut compléter lors de la qualification.',
+            ])
+
+            // ── SECTION 6 — QUALIFICATION GEI (NOUVEAU — Agent remplit maintenant) ───
+            // Crédibilité (1-4, inversée : 1=plus crédible=score 4)
+            ->add('credibiliteContenu', ChoiceType::class, [
+                'choices' => [
+                    '1 — Confirmée / Très crédible (score : 4)' => 1,
+                    '2 — Probable / Crédible       (score : 3)' => 2,
+                    '3 — Douteuse / Peu crédible   (score : 2)' => 3,
+                    '4 — Improbable / Non vérifiable (score : 1)' => 4,
+                ],
+                'label'       => 'Crédibilité du contenu',
+                'placeholder' => 'Sélectionnez la crédibilité',
+                'required'    => false,
+                'attr'        => ['class' => 'form-select js-score-trigger'],
+                'help'        => 'Inversée dans la formule GEI (1 = plus crédible = score 4).',
+            ])
+            ->add('urgence', EnumType::class, [
+                'class'        => AlertUrgence::class,
+                'label'        => 'Niveau d\'urgence',
+                'placeholder'  => 'Sélectionnez l\'urgence',
+                'required'     => false,
+                'choice_label' => fn(AlertUrgence $u) => $u->label(),
+                'attr'         => ['class' => 'form-select js-score-trigger'],
+            ])
+            ->add('impact', EnumType::class, [
+                'class'        => AlertImpact::class,
+                'label'        => 'Impact potentiel (Élevé, Moyen ou Faible)',
+                'placeholder'  => 'Sélectionnez un niveau d\'impact',
+                'required'     => false,
+                'choice_label' => fn(AlertImpact $i) => $i->label(),
+                'attr'         => ['class' => 'form-select js-score-trigger'],
+                'help'         => 'Élevé = 3 points, Moyen = 2 points, Faible = 1 point.',
+            ])
+            ->add('exploitabilite', EnumType::class, [
+                'class'        => AlertExploitabilite::class,
+                'label'        => 'Exploitabilité opérationnelle',
+                'placeholder'  => 'Sélectionnez l\'exploitabilité',
+                'required'     => false,
+                'choice_label' => fn(AlertExploitabilite $e) => $e->label(),
+                'attr'         => ['class' => 'form-select js-score-trigger'],
+            ])
+            ->add('recommandation', EnumType::class, [
+                'class'        => Recommandation::class,
+                'label'        => 'Recommandation opérationnelle',
+                'required'     => false,
+                'placeholder'  => 'Sélectionnez une recommandation',
+                'choice_label' => fn(Recommandation $r) => $r->label(),
+                'attr'         => ['class' => 'form-select'],
+            ])
+            ->add('actionsEnCours', TextareaType::class, [
+                'label'    => 'Actions en cours / à engager',
+                'required' => false,
+                'attr'     => [
+                    'class'       => 'form-textarea',
+                    'rows'        => 3,
+                    'placeholder' => 'Ce qu\'il reste à faire, tâches assignées, suivi…',
+                ],
+            ])
+            ->add('commentaires', TextareaType::class, [
+                'label'    => 'Notes & Justification de la qualification',
+                'required' => false,
+                'attr'     => [
+                    'class'       => 'form-textarea',
+                    'rows'        => 3,
+                    'placeholder' => 'Observations de l\'Agent, besoins complémentaires…',
+                ],
+            ])
+            ->add('operateurActeur', TextType::class, [
+                'label'    => 'Opérateur / Acteur',
+                'required' => false,
+                'attr'     => [
+                    'class'       => 'form-input',
+                    'placeholder' => 'ex. Point focal Douanes Bénin, Agent terrain…',
+                ],
+                'help' => 'Nom de l\'opérateur ou acteur terrain associé à cette alerte.',
             ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
     {
-        $resolver->setDefaults(['data_class' => Alert::class]);
+        $resolver->setDefaults([
+            'data_class'   => Alert::class,
+            'current_user' => null,
+        ]);
+        $resolver->setAllowedTypes('current_user', ['null', User::class]);
     }
 }

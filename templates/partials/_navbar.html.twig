@@ -6,7 +6,7 @@
     {# ── Gauche : hamburger + titre + marché ── #}
     <div class="topbar-left">
         <button class="topbar-hamburger" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Menu">
-            <i class="fa-solid fa-bars"></i>
+            <i class="bi bi-list"></i>
         </button>
 
         <div class="topbar-breadcrumb">
@@ -26,36 +26,33 @@
         </div>
     </div>
 
-    {# ── Centre : barre de recherche ── #}
-    <div class="topbar-search-wrap">
-        <i class="fa-solid fa-magnifying-glass topbar-search-icon"></i>
-        <input type="text" placeholder="Rechercher un code GEI, corridor, pays…" class="topbar-search-input">
-        <kbd class="topbar-search-kbd">⌘K</kbd>
-    </div>
-
     {# ── Droite : actions + notifications + profil ── #}
     <div class="topbar-right">
 
         {# Bouton "Nouvelle fiche" ── visible desktop #}
         <a href="{{ path('app_alert_new') }}" class="topbar-cta-btn">
-            <i class="fa-solid fa-plus"></i>
+            <i class="bi bi-plus"></i>
             <span>Nouvelle alerte</span>
         </a>
 
         {# Notifications ── #}
         <div class="topbar-notif-wrap" id="notifDropdownWrap">
-            <button class="topbar-icon-btn" id="notifBtn" onclick="toggleNotifPanel()" aria-label="Notifications">
-                <i class="fa-solid fa-bell"></i>
-                <span class="topbar-badge" id="topbarNotifBadge" style="display:none">0</span>
-            </button>
+            {% include 'components/_icon_button.html.twig' with {
+                id: 'notifBtn',
+                icon: 'bi-bell',
+                label: 'Notifications',
+                onclick: 'toggleNotifPanel()',
+                badge_id: 'topbarNotifBadge',
+                badge_count: 0
+            } %}
 
             <div class="notif-panel hidden" id="notifPanel">
                 <div class="notif-panel-header">
-                    <span><i class="fa-solid fa-bell me-1.5"></i>Notifications</span>
+                    <span><i class="bi bi-bell me-1.5"></i>Notifications</span>
                     <form method="post" action="{{ path('app_notification_read_all') }}">
                         <input type="hidden" name="_token" value="{{ csrf_token('read_all') }}">
                         <button type="submit" class="notif-mark-all">
-                        <i class="fa-solid fa-check-double me-1"></i>Tout lire
+                        <i class="bi bi-check2-all me-1"></i>Tout lire
                         </button>
                     </form>
                 </div>
@@ -63,20 +60,27 @@
                     <div class="notif-item"><span class="notif-body"><span class="notif-meta">Chargement des notifications…</span></span></div>
                 </div>
                 <a href="{{ path('app_notifications_list') }}" class="notif-panel-footer">
-                    Voir toutes les notifications <i class="fa-solid fa-arrow-right ms-1"></i>
+                    Voir toutes les notifications <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
         </div>
 
         {# Messages ── #}
-        <button class="topbar-icon-btn" aria-label="Messages">
-            <i class="fa-regular fa-message"></i>
-        </button>
+        {% include 'components/_icon_button.html.twig' with {
+            icon: 'bi-chat',
+            label: 'Messages',
+            title: 'Messagerie interne'
+        } %}
 
         {# Dark / Night mode ── #}
-        <button class="dark-mode-btn" id="darkModeBtn" aria-label="Basculer mode nuit" title="Mode nuit">
-            <i class="fa-solid fa-moon" id="darkModeIcon"></i>
-        </button>
+        {% include 'components/_icon_button.html.twig' with {
+            id: 'darkModeBtn',
+            icon_id: 'darkModeIcon',
+            icon: 'bi-moon',
+            label: 'Basculer mode nuit',
+            title: 'Mode nuit',
+            class: 'dark-mode-btn'
+        } %}
 
         {# Profil ── #}
         <a href="{{ path('app_account_settings') }}" class="topbar-user" title="Mon compte">
@@ -85,7 +89,7 @@
             </div>
             <div class="topbar-user-info">
                 <span class="topbar-user-name">{{ app.user.prenom }} {{ app.user.nom|slice(0,1) }}.</span>
-                <span class="topbar-user-role">{{ app.user.role.label }}</span>
+                <span class="topbar-user-role">{{ app.user.role.label() }}</span>
             </div>
         </a>
 

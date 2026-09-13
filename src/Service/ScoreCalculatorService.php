@@ -4,6 +4,10 @@ namespace App\Service;
 
 use App\Entity\Alert;
 use App\Entity\AlertQualificationHistory;
+use App\Enum\AlertExploitabilite;
+use App\Enum\AlertImpact;
+use App\Enum\AlertUrgence;
+use App\Enum\FiabiliteSource;
 use App\Enum\NiveauPriorite;
 use App\Repository\RuleConfigRepository;
 
@@ -99,11 +103,14 @@ class ScoreCalculatorService
      * Crée l'entrée d'historique de qualification (immutable, jamais écrasée).
      * Snapshot complet de tous les critères au moment du calcul.
      */
-    public function createHistoryEntry(Alert $alert, string $calculePar = 'system'): AlertQualificationHistory
+    public function createHistoryEntry(Alert $alert, string $calculePar = 'system', ?int $oldScore = null, ?int $newScore = null): AlertQualificationHistory
     {
+        $recordedScore = $newScore ?? $alert->getScoreGei() ?? 0;
         $entry = new AlertQualificationHistory();
         $entry->setAlert($alert);
-        $entry->setScoreGei($alert->getScoreGei() ?? 0);
+        $entry->setScoreGei($recordedScore);
+        $entry->setOldScore($oldScore);
+        $entry->setNewScore($recordedScore);
         $entry->setNiveauPriorite($alert->getNiveauPriorite() ?? NiveauPriorite::FAIBLE);
         $entry->setCalculePar($calculePar);
         $entry->setCriteresSnapshot([
@@ -117,7 +124,7 @@ class ScoreCalculatorService
             'impact_score'        => $alert->getImpact()?->score(),
             'exploitabilite'      => $alert->getExploitabilite()?->value,
             'exploitabilite_score' => $alert->getExploitabilite()?->score(),
-            'score_final'         => $alert->getScoreGei(),
+            'score_final'         => $recordedScore,
             'niveau'              => $alert->getNiveauPriorite()?->value,
             'seuils_appliques'    => $this->getSeuils(),
         ]);
@@ -136,10 +143,10 @@ class ScoreCalculatorService
         string $impact,
         string $exploitabilite,
     ): array {
-        $fiabiliteEnum    = \App\Enum\FiabiliteSource::from($fiabilite);
-        $urgenceEnum      = \App\Enum\AlertUrgence::from($urgence);
-        $impactEnum       = \App\Enum\AlertImpact::from($impact);
-        $exploitabileEnum = \App\Enum\AlertExploitabilite::from($exploitabilite);
+        $fiabiliteEnum    = FiabiliteSource::tryFrom($fiabilite) ?? FiabiliteSource::C;
+        $urgenceEnum      = AlertUrgence::tryFrom($urgence) ?? AlertUrgence::ROUTINE;
+        $impactEnum       = AlertImpact::tryFrom($impact) ?? AlertImpact::MOYEN;
+        $exploitabileEnum = AlertExploitabilite::tryFrom($exploitabilite) ?? AlertExploitabilite::A_COMPLETER;
 
         $fScore = $fiabiliteEnum->score();
         $cScore = $this->convertCredibilite($credibilite);
@@ -157,6 +164,7 @@ class ScoreCalculatorService
             'niveau_icon'  => $niveau->icon(),
             'seuils'       => $this->getSeuils(),
             'detail'       => [
+                'score '=>
                 'fiabilite'              => $fScore,
                 'credibilite'            => $cScore,
                 'fiabilite_x_credibilite' => $fScore * $cScore,

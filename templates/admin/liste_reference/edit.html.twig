@@ -1,0 +1,51 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier — {{ item.libelle }}{% endblock %}
+{% block header_title %}Administration{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-list-check me-1.5 text-amber-400"></i>
+                Administration · Listes de référence
+            </p>
+            <h2 class="page-title">Modifier « {{ item.libelle }} »</h2>
+            <p class="page-subtitle">Type : {{ item.typeListe }} · Créé le {{ item.createdAt|date('d/m/Y') }}</p>
+        </div>
+    </div>
+
+    <div class="db-card" style="max-width: 600px;">
+        <div class="db-card-body">
+            <form method="post" action="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}">
+                <div class="form-field mb-4">
+                    <label class="form-label">Type de liste</label>
+                    <input type="text" class="form-input" value="{{ item.typeListe == 'categorie' ? 'Catégorie' : 'Type de source' }}" disabled>
+                    <p class="form-help">Le type ne peut pas être modifié après création.</p>
+                </div>
+
+                <div class="form-field mb-4">
+                    <label class="form-label" for="lr_libelle">Libellé <span class="text-red-400">*</span></label>
+                    <input type="text" name="libelle" id="lr_libelle" class="form-input" required
+                           value="{{ item.libelle }}" maxlength="150">
+                </div>
+
+                <div class="form-field mb-4">
+                    <label class="form-label" for="lr_ordre">Ordre d'affichage</label>
+                    <input type="number" name="ordre_affichage" id="lr_ordre" class="form-input"
+                           value="{{ item.ordreAffichage }}" min="0" max="999">
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <a href="{{ path('app_admin_liste_reference_index') }}" class="db-btn db-btn-ghost">Annuler</a>
+                    <button type="submit" class="db-btn db-btn-amber">
+                        <i class="bi bi-check me-1.5"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

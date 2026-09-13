@@ -10,7 +10,7 @@
     <div class="show-header-card">
         <div class="show-header-left">
             <h2 class="show-code">
-                <i class="fa-solid fa-file-shield me-2 text-amber-400"></i>
+                <i class="bi-file-shield me-2 text-amber-400"></i>
                 {{ alert.codeGei ?? 'BROUILLON' }}
             </h2>
             <div class="show-badges">
@@ -18,61 +18,73 @@
                 {% set prio = alert.effectiveNiveauPriorite %}
                 {% if prio %}
                     <span class="priority-badge priority-{{ prio.value }}">
-                        {% if prio.value == 'critique' %}<i class="fa-solid fa-circle-radiation fa-xs me-1"></i>
-                        {% elseif prio.value == 'eleve' %}<i class="fa-solid fa-fire fa-xs me-1"></i>
-                        {% elseif prio.value == 'modere' %}<i class="fa-solid fa-circle-exclamation fa-xs me-1"></i>
-                        {% else %}<i class="fa-solid fa-circle-check fa-xs me-1"></i>{% endif %}
-                        {{ prio.label }}
+                        {% if prio.value == 'critique' %}<i class="bi-radioactive fa-xs me-1"></i>
+                        {% elseif prio.value == 'eleve' %}<i class="bi-fire fa-xs me-1"></i>
+                        {% elseif prio.value == 'modere' %}<i class="bi-exclamation-circle fa-xs me-1"></i>
+                        {% else %}<i class="bi-check-circle fa-xs me-1"></i>{% endif %}
+                        {{ prio.label() }}
                     </span>
                 {% endif %}
                 {# Badge statut #}
                 <span class="status-pill status-{{ alert.statut.value }}">
-                    <span class="status-dot"></span>{{ alert.statut.label }}
+                    <span class="status-dot"></span>{{ alert.statut.label() }}
                 </span>
                 {# Flags #}
                 {% if alert.surveillanceRenforcee %}
                     <span class="show-flag show-flag-amber">
-                        <i class="fa-solid fa-eye fa-xs me-1"></i>Surveillance renforcée
+                        <i class="bi-eye fa-xs me-1"></i>Surveillance renforcée
                     </span>
                 {% endif %}
                 {% if alert.transmissionPrioritaire %}
                     <span class="show-flag show-flag-red">
-                        <i class="fa-solid fa-bolt fa-xs me-1"></i>Transmission prioritaire
+                        <i class="bi-bolt fa-xs me-1"></i>Transmission prioritaire
                     </span>
                 {% endif %}
             </div>
             <p class="show-meta">
-                <i class="fa-solid fa-earth-africa fa-xs me-1.5 text-amber-400"></i>
+                <i class="bi-globe fa-xs me-1.5 text-amber-400"></i>
                 {{ alert.market.nom }}
+                {% if alert.typeLocalisation %}
+                    <span class="mx-2 text-slate-600">·</span>
+                    <span class="loc-type loc-type-{{ alert.typeLocalisation.value }}">
+                        <i class="bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
+                        {{ alert.typeLocalisation.label() }}
+                    </span>
+                {% endif %}
                 {% if alert.portCorridor %}
                     <span class="mx-2 text-slate-600">·</span>
-                    <i class="fa-solid fa-route fa-xs me-1 opacity-50"></i>{{ alert.portCorridor }}
+                    <i class="bi-signpost-figure fa-xs me-1 opacity-50"></i>{{ alert.portCorridor }}
                 {% endif %}
                 <span class="mx-2 text-slate-600">·</span>
-                <i class="fa-regular fa-calendar fa-xs me-1 opacity-50"></i>{{ alert.dateCreation|date('d/m/Y') }}
+                <i class="bi-calendar fa-xs me-1 opacity-50"></i>{{ alert.dateCreation|date('d/m/Y') }}
                 <span class="mx-2 text-slate-600">·</span>
-                <i class="fa-solid fa-user fa-xs me-1 opacity-50"></i>{{ alert.emetteur.nomComplet }}
+                <i class="bi-person fa-xs me-1 opacity-50"></i>{{ alert.emetteur.nomComplet }}
             </p>
         </div>
 
         {# Boutons d'action #}
         <div class="show-actions">
             <a href="{{ path('app_alert_edit', {id: alert.id}) }}" class="db-btn db-btn-ghost">
-                <i class="fa-solid fa-pen-to-square me-1.5"></i>Modifier
+                <i class="bi-pencil-square me-1.5"></i>Modifier
             </a>
             {% if is_granted('ALERT_QUALIFY', alert) %}
                 <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber">
-                    <i class="fa-solid fa-star-half-stroke me-1.5"></i>
+                    <i class="bi-star-half me-1.5"></i>
                     {% if alert.scoreGei %}Requalifier{% else %}Qualifier{% endif %}
                 </a>
             {% endif %}
-            {% if is_granted('ALERT_TRANSMIT', alert) and alert.scoreGei %}
-                <a href="{{ path('app_alert_transmit', {id: alert.id}) }}" class="db-btn" style="background:rgba(96,165,250,.1);color:#60a5fa;border-color:rgba(96,165,250,.2)">
-                    <i class="fa-solid fa-paper-plane me-1.5"></i>Transmettre
+            {% if is_granted('ROLE_PFT') and is_granted('ALERT_TRANSMIT', alert) and alert.scoreGei %}
+                <a href="{{ path('app_alert_transmit', {id: alert.id}) }}" class="db-btn" style="background:rgba(96,165,250,.1);color:#60a5ba;border-color:rgba(96,165,250,.2)">
+                    <i class="bi-send me-1.5"></i>Transmettre
                 </a>
             {% endif %}
+            {% if is_granted('ALERT_DECIDE', alert) %}
+                <button type="button" class="db-btn db-btn-danger delete-trigger" data-delete-url="{{ path('app_alert_delete', {id: alert.id}) }}" data-delete-token="{{ csrf_token('delete')|e('html_attr') }}">
+                    <i class="bi-trash me-1.5"></i>Supprimer
+                </button>
+            {% endif %}
             <a href="{{ path('app_alert_pdf', {id: alert.id}) }}" class="db-btn db-btn-ghost">
-                <i class="fa-solid fa-file-pdf me-1.5 text-red-400"></i>PDF
+                <i class="bi-file-pdf me-1.5 text-red-400"></i>PDF
             </a>
         </div>
     </div>
@@ -80,7 +92,7 @@
     {# ── BANNIÈRE D'ÉTAT WORKFLOW — guide utilisateur ── #}
     {% if not alert.scoreGei %}
     <div class="workflow-banner workflow-banner-amber">
-        <i class="fa-solid fa-circle-exclamation text-amber-400 fa-lg flex-shrink-0"></i>
+        <i class="bi-exclamation-triangle text-amber-400 fa-lg flex-shrink-0"></i>
         <div>
             <p class="workflow-banner-title">Score non calculé — Qualification Manager requise</p>
             <p class="workflow-banner-sub">
@@ -91,7 +103,7 @@
         </div>
         {% if is_granted('ALERT_QUALIFY', alert) %}
         <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber flex-shrink-0">
-            <i class="fa-solid fa-star-half-stroke me-1.5"></i>Qualifier maintenant
+            <i class="bi-star-half me-1.5"></i>Qualifier maintenant
         </a>
         {% endif %}
     </div>
@@ -100,13 +112,13 @@
     {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
     <div class="workflow-banner workflow-banner-red">
         <span class="urgence-pulse"></span>
-        <i class="fa-solid fa-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
+        <i class="bi-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
         <div>
             <p class="workflow-banner-title">⚠️ URGENCE 72h ACTIVE — {{ alert.urgence72hCase.heuresRestantes }} h restantes</p>
             <p class="workflow-banner-sub">Procédure d'urgence déclenchée automatiquement (score ≥ 18). Suivi requis.</p>
         </div>
         <a href="{{ path('app_dashboard_urgence') }}" class="db-btn flex-shrink-0" style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.2)">
-            <i class="fa-solid fa-stopwatch me-1.5"></i>Suivi SLA
+            <i class="bi-stopwatch me-1.5"></i>Suivi SLA
         </a>
     </div>
     {% endif %}
@@ -123,7 +135,7 @@
             <span class="show-score-max">/25</span>
             {% if alert.scoreSurcharge %}
                 <span class="show-score-surcharge">
-                    <i class="fa-solid fa-pen-to-square fa-xs me-1"></i>Surchargé par Manager
+                    <i class="bi-pencil-square fa-xs me-1"></i>Surchargé par Manager
                 </span>
             {% endif %}
         </div>
@@ -140,18 +152,42 @@
             <span class="show-score-op">+</span>
             <div class="show-score-item">
                 <span class="show-score-item-label">Urgence</span>
-                <span class="show-score-item-val">{{ alert.urgence ? alert.urgence.label : '—' }}</span>
+                <span class="show-score-item-val">{{ alert.urgence ? alert.urgence.label() : '—' }}</span>
             </div>
             <span class="show-score-op">+</span>
             <div class="show-score-item">
                 <span class="show-score-item-label">Impact</span>
-                <span class="show-score-item-val">{{ alert.impact ? alert.impact.label : '—' }}</span>
+                <span class="show-score-item-val">{{ alert.impact ? alert.impact.label() : '—' }}</span>
             </div>
             <span class="show-score-op">+</span>
             <div class="show-score-item">
                 <span class="show-score-item-label">Exploitabilité</span>
-                <span class="show-score-item-val">{{ alert.exploitabilite ? alert.exploitabilite.label : '—' }}</span>
+                <span class="show-score-item-val">{{ alert.exploitabilite ? alert.exploitabilite.label() : '—' }}</span>
             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if alert.qualificationHistories|length > 0 %}
+    <div class="show-section mt-3">
+        <h3 class="show-section-title">
+            <i class="bi bi-clock-history me-1.5 text-amber-400"></i>
+            Historique des scores
+        </h3>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 text-slate-300">
+                <thead><tr><th>Date</th><th>Ancien</th><th>Nouveau</th><th>Par</th></tr></thead>
+                <tbody>
+                {% for history in alert.qualificationHistories %}
+                    <tr>
+                        <td>{{ history.calculeLe|date('d/m/Y H:i') }}</td>
+                        <td>{{ history.oldScore is not null ? history.oldScore : '—' }}</td>
+                        <td class="font-700">{{ history.newScore is not null ? history.newScore : history.scoreGei }}</td>
+                        <td>{{ history.calculePar }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     {% endif %}
@@ -195,7 +231,7 @@
                 {% if alert.recommandation %}
                     <p class="show-field-row">
                         <span class="show-field-label">Recommandation</span>
-                        <span class="text-amber-400 font-600">{{ alert.recommandation.label }}</span>
+                        <span class="text-amber-400 font-600">{{ alert.recommandation.label() }}</span>
                     </p>
                 {% endif %}
                 {% if alert.actionsEnCours %}
@@ -218,11 +254,13 @@
                     <span class="show-field-label">Code GEI</span>
                     <span class="font-mono font-700 text-amber-400">{{ alert.codeGei ?? 'Non attribué' }}</span>
                     <span class="show-field-label">Catégorie</span>
-                    <span>{{ alert.categorie ? alert.categorie.label : '—' }}</span>
+                    <span>{{ alert.categorie ?: '—' }}</span>
                     <span class="show-field-label">Zone / Marché</span>
                     <span>{{ alert.market.nom }}</span>
                     <span class="show-field-label">Corridor</span>
                     <span>{{ alert.portCorridor ?: '—' }}</span>
+                    <span class="show-field-label">Opérateur / Acteur</span>
+                    <span>{{ alert.operateurActeur ?: '—' }}</span>
                     <span class="show-field-label">Créé le</span>
                     <span>{{ alert.dateCreation|date('d/m/Y') }}</span>
                     <span class="show-field-label">Réf. doc.</span>
@@ -237,9 +275,9 @@
                 </h3>
                 <div class="show-meta-grid">
                     <span class="show-field-label">Type source</span>
-                    <span>{{ alert.typeSource ? alert.typeSource.label : '—' }}</span>
+                    <span>{{ alert.typeSource ?: '—' }}</span>
                     <span class="show-field-label">Anonymisation</span>
-                    <span>{{ alert.anonymisation ? alert.anonymisation.label : '—' }}</span>
+                    <span>{{ alert.anonymisation ?: '—' }}</span>
                     <span class="show-field-label">Fiabilité (A–D)</span>
                     <span class="font-700 text-white">{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : '—' }}</span>
                     {% if alert.historiqueSource %}
@@ -256,9 +294,9 @@
                 </h3>
                 <div class="show-meta-grid">
                     <span class="show-field-label">Sensibilité</span>
-                    <span>{{ alert.sensibilite ? alert.sensibilite.label : '—' }}</span>
+                    <span>{{ alert.sensibilite ? alert.sensibilite.label() : '—' }}</span>
                     <span class="show-field-label">Transmission</span>
-                    <span>{{ alert.transmission ? alert.transmission.label : '—' }}</span>
+                    <span>{{ alert.transmission ? alert.transmission.label() : '—' }}</span>
                     <span class="show-field-label">Pièces dispo.</span>
                     <span>{{ alert.piecesDisponibles ? ('Oui' ~ (alert.piecesType ? ' — ' ~ alert.piecesType : '')) : 'Non' }}</span>
                     {% if alert.responsableSuivi %}
@@ -271,10 +309,61 @@
             {% if alert.commentaires %}
             <div class="show-section">
                 <h3 class="show-section-title">
-                    <i class="fa-solid fa-comment-dots me-1.5 text-amber-400"></i>
+                    <i class="bi-chat-left-dots me-1.5 text-amber-400"></i>
                     Commentaires Manager
                 </h3>
                 <p class="show-text">{{ alert.commentaires }}</p>
+            </div>
+            {% endif %}
+
+            {# ── Traçabilité nominative (Partie B) ─────────────────────────── #}
+            <div class="show-section">
+                <h3 class="show-section-title">
+                    <i class="bi-person-badge me-1.5 text-amber-400"></i>
+                    Traçabilité
+                </h3>
+                <div class="show-meta-grid">
+                    <span class="show-field-label">Agent soumetteur</span>
+                    <span class="font-700">
+                        <i class="bi-person-fill me-1 text-amber-400 opacity-70"></i>
+                        {{ alert.emetteur ? alert.emetteur.nomComplet : '—' }}
+                    </span>
+                    <span class="show-field-label">Soumis le</span>
+                    <span>{{ alert.createdAt|date('d/m/Y à H:i') }}</span>
+                    {% if alert.validatedBy %}
+                    <span class="show-field-label">Manager validateur</span>
+                    <span class="font-700">
+                        <i class="bi-shield-check me-1 text-emerald-400 opacity-80"></i>
+                        {{ alert.validatedBy.nomComplet }}
+                    </span>
+                    <span class="show-field-label">Validé le</span>
+                    <span>{{ alert.dateValidation ? alert.dateValidation|date('d/m/Y à H:i') : '—' }}</span>
+                    {% if alert.delaiTraitementHeures is not null %}
+                    <span class="show-field-label">Délai traitement</span>
+                    <span class="font-mono text-xs">{{ alert.delaiTraitementHeures }} h</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="show-field-label">Manager validateur</span>
+                    <span class="text-slate-500">En attente de validation</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Commentaire de rejet — affiché en priorité si fiche rejetée #}
+            {% if alert.commentaireRejet %}
+            <div class="show-section" style="border-left: 3px solid rgba(239,68,68,.5);">
+                <h3 class="show-section-title" style="color: #f87171;">
+                    <i class="bi-triangle-alert me-1.5"></i>
+                    Motif de rejet Manager
+                </h3>
+                <p class="show-text" style="color: #fca5a5;">{{ alert.commentaireRejet }}</p>
+                {% if alert.statut.value == 'a_completer' %}
+                <div class="mt-3">
+                    <a href="{{ path('app_alert_edit', {id: alert.id}) }}" class="db-btn db-btn-amber">
+                        <i class="bi-pencil-square me-1.5"></i>Corriger et resoumettre
+                    </a>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
 

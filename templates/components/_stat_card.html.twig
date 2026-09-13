@@ -1,0 +1,43 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Composant réutilisable : Stat / KPI Card (GEI Platform)
+   Paramètres attendus :
+   - title       : Libellé de l'indicateur (string)
+   - value       : Valeur ou métrique (string|number)
+   - icon        : Classe Bootstrap Icons sans ou avec 'bi ' (ex: 'bi-clipboard-data')
+   - color       : 'teal'|'red'|'amber'|'blue'|'slate'
+   - trend_val   : Texte de tendance / indicateur secondaire (optionnel)
+   - trend_label : Sous-titre de la tendance (optionnel)
+   - trend_dir   : 'up'|'down'|'neutral' (optionnel, défaut: 'up')
+───────────────────────────────────────────────────────────────────────── #}
+
+{% set iconClass = icon starts with 'bi-' ? ('bi ' ~ icon) : (icon starts with 'bi ' ? icon : ('bi bi-' ~ icon)) %}
+{% set colorClass = 'kpi-icon-' ~ (color|default('teal')) %}
+
+<div class="kpi-card">
+    <div class="kpi-card-top">
+        <div>
+            <p class="kpi-label">{{ title }}</p>
+            <p class="kpi-value">{{ value }}</p>
+        </div>
+        <div class="kpi-icon-wrap {{ colorClass }}">
+            <i class="{{ iconClass }}"></i>
+        </div>
+    </div>
+    {% if trend_val is defined and trend_val is not null and trend_val != '' %}
+    <div class="kpi-card-bottom">
+        <span class="kpi-trend kpi-trend-{{ trend_dir|default('up') }}">
+            {% if trend_dir|default('up') == 'up' %}
+                <i class="bi bi-arrow-up"></i>
+            {% elseif trend_dir|default('up') == 'down' %}
+                <i class="bi bi-arrow-down"></i>
+            {% else %}
+                <i class="bi bi-clock"></i>
+            {% endif %}
+            {{ trend_val }}
+        </span>
+        {% if trend_label is defined and trend_label %}
+            <span class="kpi-trend-label">{{ trend_label }}</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>

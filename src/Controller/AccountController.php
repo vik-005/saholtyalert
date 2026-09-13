@@ -54,12 +54,23 @@ final class AccountController extends AbstractController
                 $this->addFlash('error', 'Le mot de passe actuel est incorrect.');
             } elseif (strlen($new) < 12 || !preg_match('/[A-Z]/', $new) || !preg_match('/[a-z]/', $new) || !preg_match('/\d/', $new)) {
                 $this->addFlash('error', 'Le nouveau mot de passe doit contenir 12 caractères, une majuscule, une minuscule et un chiffre.');
+            } elseif (strtolower($new) === strtolower($user->getUserIdentifier())) {
+                $this->addFlash('error', 'Le mot de passe ne peut pas être identique à votre adresse email.');
+            } elseif (strtolower($new) === strtolower($user->getNomComplet())) {
+                $this->addFlash('error', 'Le mot de passe ne peut pas être identique à votre nom.');
             } elseif ($new !== $confirmation) {
                 $this->addFlash('error', 'La confirmation du nouveau mot de passe ne correspond pas.');
             } else {
                 $user->setPassword($hasher->hashPassword($user, $new));
                 $em->flush();
-                $this->addFlash('success', 'Votre mot de passe a été modifié.');
+
+                // Invalider toutes les sessions actives après changement de mot de passe
+                $session = $request->getSession();
+                if ($session !== null) {
+                    $session->invalidate();
+                }
+
+                $this->addFlash('success', 'Votre mot de passe a été modifié. Toutes les sessions ont été invalidées.');
             }
             return $this->redirectToRoute('app_account_settings');
         }

@@ -1,0 +1,270 @@
+{# Étape 5 — Qualification GEI (champs 13 à 17) + score en direct #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 5}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="5">
+
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-star-half me-1.5 text-amber-400"></i>
+                Étape 5 sur 6 — Qualification GEI (Annexe C)
+            </p>
+            <p class="text-xs text-slate-500">Champs 13 à 17 — Le score se calcule automatiquement</p>
+        </div>
+        <div class="db-card-body space-y-4">
+
+            {# Score live #}
+            <div id="scoreLiveBox" class="qualify-score-card mb-2">
+                <p class="db-card-eyebrow mb-2 text-center">
+                    <i class="bi bi-lightning me-1"></i>Score GEI — Calcul en temps réel
+                </p>
+                <div class="qualify-score-display">
+                    <span id="liveScore" class="qualify-score-val text-slate-500">—</span>
+                    <span class="qualify-score-max">/25</span>
+                </div>
+                <div id="livePriorite" class="qualify-prio-badge mt-2">
+                    En attente des critères
+                </div>
+                <div id="liveFormula" class="qualify-formula mt-2 hidden">
+                    <code id="liveFormulaText" class="text-amber-400 text-xs"></code>
+                </div>
+                <p class="text-xs text-center text-slate-500 mt-2">
+                    Formule : <code class="text-amber-400">(Fiabilité × Crédibilité) + Urgence + Impact + Exploitabilité</code>
+                </p>
+            </div>
+
+            {# Champ 13 — Fiabilité de la source #}
+            <div class="form-field">
+                <label class="form-label" for="w_fiab">
+                    Fiabilité de la source (A – D) <span class="text-red-400">*</span> <span class="text-amber-400">⚡ nourrit le score GEI</span>
+                </label>
+                <select name="alert[fiabiliteSource]" id="w_fiab" class="form-select js-score-trigger" required>
+                    <option value="">Sélectionnez la fiabilité</option>
+                    {% for f in fiabilites %}
+                        <option value="{{ f.value }}"
+                            {% if draftData and (draftData['alert[fiabiliteSource]'] ?? null) == f.value %}selected{% endif %}>
+                            {{ f.value }} — {{ f.label() }} (score : {{ f.score() }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">A = source connue et fiable (score 4) … D = source non vérifiée (score 1).</p>
+            </div>
+
+            {# Champ 14 — Crédibilité #}
+            <div class="form-field">
+                <div class="flex items-center justify-between">
+                    <label class="form-label" for="w_credibilite">Crédibilité du contenu</label>
+                    <span class="text-xs text-slate-500 italic">1 = plus crédible = score 4</span>
+                </div>
+                <select name="alert[credibiliteContenu]" id="w_credibilite" class="form-select js-score-trigger">
+                    <option value="">Sélectionnez la crédibilité</option>
+                    <option value="1" {% if draftData and draftData['alert[credibiliteContenu]'] ?? null == '1' %}selected{% endif %}>1 — Confirmée / Très crédible (score : 4)</option>
+                    <option value="2" {% if draftData and draftData['alert[credibiliteContenu]'] ?? null == '2' %}selected{% endif %}>2 — Probable / Crédible (score : 3)</option>
+                    <option value="3" {% if draftData and draftData['alert[credibiliteContenu]'] ?? null == '3' %}selected{% endif %}>3 — Douteuse / Peu crédible (score : 2)</option>
+                    <option value="4" {% if draftData and draftData['alert[credibiliteContenu]'] ?? null == '4' %}selected{% endif %}>4 — Improbable / Non vérifiable (score : 1)</option>
+                </select>
+            </div>
+
+            {# Champs 15-17 — Urgence + Impact + Exploitabilité en grille #}
+            <div class="qualify-row-3">
+                <div class="form-field">
+                    <label class="form-label" for="w_urgence">Urgence</label>
+                    <select name="alert[urgence]" id="w_urgence" class="form-select js-score-trigger">
+                        <option value="">Urgence</option>
+                        <option value="immediat"  {% if draftData and draftData['alert[urgence]'] ?? null == 'immediat' %}selected{% endif %}>Immédiat (3 pts)</option>
+                        <option value="72h"       {% if draftData and draftData['alert[urgence]'] ?? null == '72h'     %}selected{% endif %}>72h (2 pts)</option>
+                        <option value="routine"   {% if draftData and draftData['alert[urgence]'] ?? null == 'routine' %}selected{% endif %}>Routine (1 pt)</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="w_impact">Impact potentiel</label>
+                    <select name="alert[impact]" id="w_impact" class="form-select js-score-trigger">
+                        <option value="">Impact</option>
+                        <option value="eleve"  {% if draftData and draftData['alert[impact]'] ?? null == 'eleve'  %}selected{% endif %}>Élevé (3 pts)</option>
+                        <option value="moyen"  {% if draftData and draftData['alert[impact]'] ?? null == 'moyen'  %}selected{% endif %}>Moyen (2 pts)</option>
+                        <option value="faible" {% if draftData and draftData['alert[impact]'] ?? null == 'faible' %}selected{% endif %}>Faible (1 pt)</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="form-label" for="w_exploit">Exploitabilité</label>
+                    <select name="alert[exploitabilite]" id="w_exploit" class="form-select js-score-trigger">
+                        <option value="">Exploitabilité</option>
+                        <option value="actionnable"  {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'actionnable'  %}selected{% endif %}>Actionnable (3 pts)</option>
+                        <option value="exploitable"  {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'exploitable'  %}selected{% endif %}>Exploitable (3 pts)</option>
+                        <option value="a_analyser"   {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'a_analyser'   %}selected{% endif %}>À analyser (2 pts)</option>
+                        <option value="a_surveiller" {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'a_surveiller' %}selected{% endif %}>À surveiller (2 pts)</option>
+                        <option value="a_completer"  {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'a_completer'  %}selected{% endif %}>À compléter (2 pts)</option>
+                        <option value="archivage"    {% if draftData and draftData['alert[exploitabilite]'] ?? null == 'archivage'    %}selected{% endif %}>Archivage (1 pt)</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <button type="submit" name="_action" value="prev" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-2"></i>Précédent
+        </button>
+        <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
+            Suivant — Récapitulatif<i class="bi bi-arrow-right ms-2"></i>
+        </button>
+    </div>
+
+</form>
+
+<script>
+(function() {
+    const scoreEl    = document.getElementById('liveScore');
+    const prioEl     = document.getElementById('livePriorite');
+    const formulaEl  = document.getElementById('liveFormula');
+    const formulaTxt = document.getElementById('liveFormulaText');
+
+    const prioColors = {
+        critique: { bg: 'rgba(239,68,68,.15)', color: '#f87171', border: 'rgba(239,68,68,.3)' },
+        eleve:    { bg: 'rgba(249,115,22,.15)', color: '#fb923c', border: 'rgba(249,115,22,.3)' },
+        modere:   { bg: 'rgba(245,158,11,.15)', color: '#fbbd24', border: 'rgba(245,158,11,.3)' },
+        faible:   { bg: 'rgba(34,197,94,.15)',  color: '#4ade80', border: 'rgba(34,197,94,.3)'  },
+    };
+
+    const FIAB_SCORES = { 'A': 4, 'B': 3, 'C': 2, 'D': 1 };
+    const CRED_SCORES = { '1': 4, '2': 3, '3': 2, '4': 1 };
+    const URG_SCORES  = { 'immediat': 3, '72h': 2, 'routine': 1 };
+    const IMP_SCORES  = { 'eleve': 3, 'moyen': 2, 'faible': 1 };
+    const EXP_SCORES  = { 'actionnable': 3, 'exploitable': 3, 'a_analyser': 2, 'a_surveiller': 2, 'a_completer': 2, 'archivage': 1 };
+
+    function renderScore(score, niveau, niveauLabel, formulaStr) {
+        if (!scoreEl || !prioEl) return;
+        scoreEl.textContent = score;
+        const sc = ['score-critique','score-eleve','score-modere','score-faible','text-slate-500'];
+        sc.forEach(c => scoreEl.classList.remove(c));
+        scoreEl.classList.add(
+            score >= 18 ? 'score-critique' :
+            score >= 14 ? 'score-eleve'    :
+            score >= 10 ? 'score-modere'   : 'score-faible'
+        );
+
+        prioEl.textContent = niveauLabel;
+        const pc = prioColors[niveau] || prioColors.faible;
+        Object.assign(prioEl.style, { background: pc.bg, color: pc.color, borderColor: pc.border });
+
+        if (formulaEl && formulaTxt && formulaStr) {
+            formulaTxt.textContent = formulaStr;
+            formulaEl.classList.remove('hidden');
+        }
+    }
+
+    function updateScore() {
+        const fiabilite      = document.getElementById('w_fiab')?.value || '';
+        const credibilite    = document.getElementById('w_credibilite')?.value || '';
+        const urgence        = document.getElementById('w_urgence')?.value || '';
+        const impact         = document.getElementById('w_impact')?.value || '';
+        const exploitabilite = document.getElementById('w_exploit')?.value || '';
+
+        const missing = [
+            !fiabilite      && 'Fiabilité',
+            !credibilite    && 'Crédibilité',
+            !urgence        && 'Urgence',
+            !impact         && 'Impact',
+            !exploitabilite && 'Exploitabilité',
+        ].filter(Boolean);
+
+        // Si au moins un critère manque
+        if (missing.length > 0) {
+            const filledCount = 5 - missing.length;
+            let partialScore = 0;
+            let partialParts = [];
+
+            if (fiabilite && FIAB_SCORES[fiabilite]) {
+                const f = FIAB_SCORES[fiabilite];
+                if (credibilite && CRED_SCORES[credibilite]) {
+                    const c = CRED_SCORES[credibilite];
+                    partialScore += f * c;
+                    partialParts.push(`(Fiab. ${fiabilite}=${f} × Créd.=${c})`);
+                } else {
+                    partialParts.push(`Fiab. ${fiabilite}=${f}`);
+                }
+            } else if (credibilite && CRED_SCORES[credibilite]) {
+                partialParts.push(`Créd.=${CRED_SCORES[credibilite]}`);
+            }
+
+            if (urgence && URG_SCORES[urgence]) {
+                partialScore += URG_SCORES[urgence];
+                partialParts.push(`Urg.=${URG_SCORES[urgence]}`);
+            }
+            if (impact && IMP_SCORES[impact]) {
+                partialScore += IMP_SCORES[impact];
+                partialParts.push(`Imp.=${IMP_SCORES[impact]}`);
+            }
+            if (exploitabilite && EXP_SCORES[exploitabilite]) {
+                partialScore += EXP_SCORES[exploitabilite];
+                partialParts.push(`Exp.=${EXP_SCORES[exploitabilite]}`);
+            }
+
+            if (filledCount > 0 && partialScore > 0) {
+                scoreEl.textContent = partialScore;
+                scoreEl.className = 'qualify-score-val text-amber-400 opacity-75';
+                prioEl.textContent = `Partiel (${filledCount}/5) — En attente : ${missing.join(', ')}`;
+                Object.assign(prioEl.style, { background: 'rgba(245,158,11,.1)', color: '#fbbd24', borderColor: 'rgba(245,158,11,.25)' });
+                if (formulaEl && formulaTxt) {
+                    formulaTxt.textContent = partialParts.join(' + ') + ` = ${partialScore} (incomplet)`;
+                    formulaEl.classList.remove('hidden');
+                }
+            } else {
+                scoreEl.textContent = '—';
+                scoreEl.className = 'qualify-score-val text-slate-500';
+                prioEl.textContent = 'Sélectionnez les critères pour calculer le score';
+                Object.assign(prioEl.style, { background: 'var(--navy-800)', color: 'var(--text-muted)', borderColor: 'var(--border)' });
+                if (formulaEl) formulaEl.classList.add('hidden');
+            }
+            return;
+        }
+
+        // --- CALCUL INSTANTANÉ CLIENT (0ms, infaillible) ---
+        const fScore = FIAB_SCORES[fiabilite] || 2;
+        const cScore = CRED_SCORES[credibilite] || 3;
+        const uScore = URG_SCORES[urgence] || 1;
+        const iScore = IMP_SCORES[impact] || 2;
+        const eScore = EXP_SCORES[exploitabilite] || 2;
+
+        const clientScore = (fScore * cScore) + uScore + iScore + eScore;
+        const clientNiveau = clientScore >= 18 ? 'critique' : (clientScore >= 14 ? 'eleve' : (clientScore >= 10 ? 'modere' : 'faible'));
+        const clientLabels = { critique: 'Critique', eleve: 'Élevé', modere: 'Modéré', faible: 'Faible' };
+        const formulaStr = `(Fiab. ${fiabilite}=${fScore} × Créd.=${cScore}) + Urg.=${uScore} + Imp.=${iScore} + Exp.=${eScore} = ${clientScore}`;
+
+        renderScore(clientScore, clientNiveau, clientLabels[clientNiveau], formulaStr);
+
+        // --- SYNCHRONISATION SERVEUR (vérifie les seuils rule_config en arrière-plan) ---
+        fetch('{{ path('app_wizard_score_preview') }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ fiabiliteSource: fiabilite, credibiliteContenu: credibilite, urgence, impact, exploitabilite }),
+        })
+        .then(r => r.headers.get('Content-Type')?.includes('application/json') ? r.json() : null)
+        .then(data => {
+            if (data && data.score !== undefined) {
+                renderScore(data.score, data.niveau, data.niveau_label, formulaStr);
+            }
+        })
+        .catch(() => {
+            // Le calcul client a déjà été appliqué avec succès
+        });
+    }
+
+    // Écouter les changements sur tous les champs de score (change et input)
+    const triggers = document.querySelectorAll('.js-score-trigger, #w_fiab, #w_credibilite, #w_urgence, #w_impact, #w_exploit');
+    triggers.forEach(el => {
+        el.addEventListener('change', updateScore);
+        el.addEventListener('input', updateScore);
+    });
+
+    // Calcul initial au chargement
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateScore);
+    } else {
+        updateScore();
+    }
+})();
+</script>

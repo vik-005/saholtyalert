@@ -1,0 +1,226 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Suivi des transmissions · Plateforme GEI{% endblock %}
+{% block header_title %}Suivi des transmissions{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête de page ── #}
+    <div class="page-header-row mb-4">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-send me-1.5 text-blue-400"></i>
+                Coordination externe & partenaires · Espace Manager
+            </p>
+            <h2 class="page-title">Suivi des transmissions</h2>
+            <p class="page-subtitle">
+                Suivi post-transmission des alertes orientées vers les autorités et partenaires externes.
+            </p>
+        </div>
+        <div class="header-actions-group">
+            <span class="status-pill status-en_cours">
+                <span class="status-dot"></span>
+                {{ nb_en_cours }} en cours de résolution
+            </span>
+            {% if nb_clotures > 0 %}
+            <span class="status-pill status-clos">
+                <span class="status-dot"></span>
+                {{ nb_clotures }} clôturée{{ nb_clotures > 1 ? 's' : '' }}
+            </span>
+            {% endif %}
+            <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-ghost">
+                <i class="bi bi-journal-text me-1.5"></i>Registre des alertes
+            </a>
+        </div>
+    </div>
+
+    {# ── Filtres de statut + barre de recherche dynamique ── #}
+    <div data-controller="table-filter" data-table-filter-table-id-value="trTransmissions">
+    <div class="stats-filter-bar mb-4" style="justify-content:space-between">
+        <div class="stats-filter-group" style="gap:8px">
+            <span class="stats-filter-label" style="font-size:12px;font-weight:600;color:var(--muted)">
+                <i class="bi bi-funnel me-1"></i>Filtrer :
+            </span>
+            <a href="{{ path('app_transmission_index') }}"
+               class="stats-shortcut {% if not current_filter %}active{% endif %}">
+                Toutes ({{ total }})
+            </a>
+            <a href="{{ path('app_transmission_index', {statut: 'en_cours'}) }}"
+               class="stats-shortcut {% if current_filter == 'en_cours' %}active{% endif %}">
+                En cours de résolution ({{ nb_en_cours }})
+            </a>
+            <a href="{{ path('app_transmission_index', {statut: 'cloture'}) }}"
+               class="stats-shortcut {% if current_filter == 'cloture' %}active{% endif %}">
+                Clôturées ({{ nb_clotures }})
+            </a>
+        </div>
+        {# Recherche rapide côté client #}
+        <div style="display:flex;align-items:center;gap:8px">
+            <div class="search-input-wrapper" style="position:relative">
+                <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px"></i>
+                <input type="text"
+                       id="transmissionSearch"
+                       data-table-filter-target="input"
+                       class="form-input form-input-sm"
+                       style="padding-left:32px;min-width:240px;font-size:13px"
+                       placeholder="Rechercher alerte, destinataire…"
+                       aria-label="Recherche dans les transmissions">
+            </div>
+            <span data-table-filter-target="count" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+    </div>
+
+    {# ── Liste / Tableau des transmissions ── #}
+    <div class="db-card">
+        {% if transmissions|length > 0 %}
+        <div class="table-responsive">
+            <table id="trTransmissions" class="db-table" style="width:100%;border-collapse:collapse">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.04em">
+                        <th style="padding:12px 16px;text-align:left">Alerte</th>
+                        <th style="padding:12px 16px;text-align:left">Destinataire</th>
+                        <th style="padding:12px 16px;text-align:left">Note de transmission</th>
+                        <th style="padding:12px 16px;text-align:left">Statut transmission</th>
+                        <th style="padding:12px 16px;text-align:left">Date transmission</th>
+                        <th style="padding:12px 16px;text-align:left">Transmis par</th>
+                        <th style="padding:12px 16px;text-align:right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transmissions %}
+                    <tr style="border-bottom:1px solid var(--border);transition:background 0.15s ease" class="hover:bg-slate-800/20">
+                        {# Alerte #}
+                        <td style="padding:14px 16px">
+                            <div style="font-weight:700">
+                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="code-gei-link" style="font-size:13px">
+                                    {{ t.alert.codeGei ?? ('#GEI-' ~ t.alert.id) }}
+                                </a>
+                            </div>
+                            <div style="font-size:11px;color:var(--muted);margin-top:2px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                {{ t.alert.resumeExecutif }}
+                            </div>
+                        </td>
+
+                        {# Destinataire #}
+                        <td style="padding:14px 16px">
+                            <span style="font-weight:600;color:var(--text);font-size:12.5px">
+                                <i class="bi bi-building me-1.5" style="color:var(--muted)"></i>
+                                {{ t.destinataire }}
+                            </span>
+                        </td>
+
+                        {# Note de transmission (tronquée si > 120 chars) #}
+                        <td style="padding:14px 16px;max-width:280px">
+                            {% if t.noteTransmission %}
+                                {% set note = t.noteTransmission %}
+                                {% if note|length > 120 %}
+                                <span class="note-truncated" id="note-short-{{ t.id }}"
+                                      style="font-size:12px;color:var(--text);display:block;line-height:1.4">
+                                    {{ note|slice(0, 120) }}&hellip;
+                                    <button type="button" onclick="document.getElementById('note-short-{{ t.id }}').style.display='none';document.getElementById('note-full-{{ t.id }}').style.display='block'" style="background:none;border:none;color:var(--accent,#60a5fa);font-size:11px;cursor:pointer;padding:0 0 0 4px;text-decoration:underline">Voir plus</button>
+                                </span>
+                                <span id="note-full-{{ t.id }}" style="display:none;font-size:12px;color:var(--text);line-height:1.4">
+                                    {{ note }}
+                                    <button type="button" onclick="document.getElementById('note-full-{{ t.id }}').style.display='none';document.getElementById('note-short-{{ t.id }}').style.display='block'" style="background:none;border:none;color:var(--accent,#60a5fa);font-size:11px;cursor:pointer;padding:0 0 0 4px;text-decoration:underline">Voir moins</button>
+                                </span>
+                                {% else %}
+                                <span style="font-size:12px;color:var(--text);display:block;line-height:1.4">{{ note }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span style="font-size:11px;color:var(--muted);font-style:italic">—</span>
+                            {% endif %}
+                        </td>
+
+                        {# Statut de la transmission #}
+                        <td style="padding:14px 16px">
+                            {% if t.isCloture %}
+                                <span class="status-pill status-clos" title="Dossier traité et clôturé par le destinataire">
+                                    <span class="status-dot"></span>Clôturé
+                                </span>
+                                {% if t.dateCloture %}
+                                <div style="font-size:10px;color:var(--muted);margin-top:4px">
+                                    le {{ t.dateCloture|date('d/m/Y à H:i') }}
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <span class="status-pill status-en_cours" title="En cours de résolution par le destinataire">
+                                    <span class="status-dot"></span>En cours de résolution
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        {# Date transmission #}
+                        <td style="padding:14px 16px;font-size:11.5px;color:var(--muted);white-space:nowrap">
+                            <i class="bi bi-calendar3 me-1 opacity-60"></i>
+                            {{ t.transmisLe|date('d/m/Y') }}
+                            <span style="font-size:10px;display:block;opacity:0.75">à {{ t.transmisLe|date('H:i') }}</span>
+                        </td>
+
+                        {# Transmis par (Manager) #}
+                        <td style="padding:14px 16px;font-size:12px;color:var(--text);white-space:nowrap">
+                            <i class="bi bi-person me-1" style="color:var(--muted)"></i>
+                            {{ t.manager ? t.manager.nomComplet : 'Manager' }}
+                        </td>
+
+                        {# Actions #}
+                        <td style="padding:14px 16px;text-align:right;white-space:nowrap">
+                            <div style="display:inline-flex;gap:6px;align-items:center">
+                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="db-btn db-btn-sm db-btn-ghost" title="Consulter la fiche alerte">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if not t.isCloture %}
+                                <form method="post" action="{{ path('app_transmission_cloturer', {id: t.id}) }}" style="display:inline"
+                                      onsubmit="return confirm('Confirmez-vous la clôture du suivi pour cette transmission ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('cloturer-transmission-' ~ t.id) }}">
+                                    <button type="submit" class="db-btn db-btn-sm db-btn-validate-step" title="Marquer cette transmission comme clôturée" id="btn-cloturer-{{ t.id }}">
+                                        <i class="bi bi-check2-circle me-1"></i>Clôturer
+                                    </button>
+                                </form>
+                                {% else %}
+                                {# Action Rouvrir (pour les transmissions clôturées) #}
+                                <form method="post" action="{{ path('app_transmission_rouvrir', {id: t.id}) }}" style="display:inline"
+                                      onsubmit="return confirm('Réouvrir cette transmission ? Elle repassera au statut \'En cours de résolution\'.');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('rouvrir-transmission-' ~ t.id) }}">
+                                    <button type="submit" class="db-btn db-btn-sm db-btn-ghost" title="Réouvrir cette transmission" id="btn-rouvrir-{{ t.id }}">
+                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Réouvrir
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        {# État vide soigné #}
+        <div class="db-card-body text-center py-12" style="padding:48px 20px">
+            <i class="bi bi-send-check text-slate-500 fa-2x mb-3" style="font-size:40px;color:var(--muted);display:block"></i>
+            <p style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">
+                Aucune transmission enregistrée
+            </p>
+            <p style="font-size:12px;color:var(--muted);max-width:440px;margin:0 auto 20px;line-height:1.6">
+                {% if current_filter %}
+                    Aucune transmission ne correspond au filtre sélectionné.
+                {% else %}
+                    Les alertes validées peuvent être transmises aux autorités et partenaires par un Manager depuis leur fiche respective.
+                {% endif %}
+            </p>
+            {% if current_filter %}
+            <a href="{{ path('app_transmission_index') }}" class="db-btn db-btn-ghost">
+                <i class="bi bi-arrow-clockwise me-1.5"></i>Afficher toutes les transmissions
+            </a>
+            {% else %}
+            <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-top-dashboard">
+                <i class="bi bi-journal-text me-1.5"></i>Consulter le registre des alertes
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>{# fin db-card #}
+    </div>{# fin data-controller="table-filter" #}
+
+</div>
+{% endblock %}

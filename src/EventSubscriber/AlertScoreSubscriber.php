@@ -8,26 +8,32 @@ use App\Service\EscalationRuleEngine;
 use App\Service\ScoreCalculatorService;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\Events;
-use Doctrine\Persistence\Event\LifecycleEventArgs;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Event\PrePersistEventArgs;
 
 /**
- * Subscriber Doctrine pour le recalcul automatique du score GEI.
- * Déclenché sur chaque création/modification d'une alerte (onFlush).
- * Génère également le code GEI au premier persist.
+ * Subscriber Doctrine — recalcul automatique du score GEI.
+ *
+ * GARDE-FOU ANTI-BOUCLE :
+ *   onFlush peut être rappelé récursivement si EscalationRuleEngine ou
+ *   notifyAgentStatutChange persist/flush de nouvelles entités.
+ *   Le flag $inFlush bloque la ré-entrance.
  */
 #[AsDoctrineListener(event: Events::prePersist)]
 #[AsDoctrineListener(event: Events::onFlush)]
 class AlertScoreSubscriber
 {
+    /** Protège contre les appels récursifs depuis onFlush */
+    private bool $inFlush = false;
+
     public function __construct(
         private readonly ScoreCalculatorService $scoreCalculator,
         private readonly EscalationRuleEngine $escalationEngine,
         private readonly AlertCodeGeneratorService $codeGenerator,
     ) {}
 
-    /** Génère le code GEI au premier persist si pas encore défini */
+    // ── prePersist — code GEI + score initial ────────────────────────────────
+
     public function prePersist(PrePersistEventArgs $args): void
     {
         $object = $args->getObject();
@@ -35,23 +41,42 @@ class AlertScoreSubscriber
             return;
         }
 
+        // Générer le code GEI si absent
         if (null === $object->getCodeGei() && null !== $object->getMarket()) {
-            $code = $this->codeGenerator->generate($object);
-            $object->setCodeGei($code);
+            $object->setCodeGei($this->codeGenerator->generate($object));
         }
 
-        // Calcul initial du score
+        // Calcul initial du score (sans flush — prePersist est dans le flush en cours)
         if ($object->isScoreable()) {
             $this->scoreCalculator->calculate($object);
 
-            $em = $args->getObjectManager();
+            $em    = $args->getObjectManager();
             $entry = $this->scoreCalculator->createHistoryEntry($object);
             $em->persist($entry);
+            // Pas de flush ici — Doctrine le fera automatiquement à la fin du flush parent
         }
     }
 
-    /** Recalcul du score sur chaque flush contenant une alerte modifiée */
+    // ── onFlush — recalcul sur modification ─────────────────────────────────
+
     public function onFlush(OnFlushEventArgs $args): void
+    {
+        // Garde-fou : empêcher les appels récursifs
+        if ($this->inFlush) {
+            return;
+        }
+
+        $this->inFlush = true;
+
+        try {
+            $this->doOnFlush($args);
+        } finally {
+            // Toujours libérer le verrou, même en cas d'exception
+            $this->inFlush = false;
+        }
+    }
+
+    private function doOnFlush(OnFlushEventArgs $args): void
     {
         $em  = $args->getObjectManager();
         $uow = $em->getUnitOfWork();
@@ -70,34 +95,37 @@ class AlertScoreSubscriber
                 continue;
             }
 
+            $oldScore = $entity->getScoreGei();
             $changed = $this->scoreCalculator->calculate($entity);
 
             if ($changed) {
                 $classMetadata = $em->getClassMetadata(Alert::class);
                 $uow->recomputeSingleEntityChangeSet($classMetadata, $entity);
 
-                $entry = $this->scoreCalculator->createHistoryEntry($entity);
+                $entry     = $this->scoreCalculator->createHistoryEntry($entity, 'system', $oldScore);
                 $em->persist($entry);
                 $entryMeta = $em->getClassMetadata(get_class($entry));
                 $uow->computeChangeSet($entryMeta, $entry);
-
-                $this->escalationEngine->evaluate($entity);
             }
+
+            $this->escalationEngine->evaluate($entity);
 
             // Notification Agent si le statut a changé
             $changeSet = $uow->getEntityChangeSet($entity);
             if (isset($changeSet['statut']) && $changeSet['statut'][0] !== $changeSet['statut'][1]) {
-                $this->notifyAgentStatutChange($entity, $changeSet['statut'][1], $em);
+                $this->notifyAgentStatutChange($entity, $changeSet['statut'][1], $em, $uow);
             }
         }
     }
 
-    /**
-     * Crée une notification en base pour l'Agent émetteur de l'alerte
-     * quand le statut change (validation, rejet, demande de complément…).
-     */
-    private function notifyAgentStatutChange(Alert $alert, mixed $newStatut, $em): void
-    {
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    private function notifyAgentStatutChange(
+        Alert  $alert,
+        mixed  $newStatut,
+        object $em,
+        object $uow,
+    ): void {
         $agent = $alert->getEmetteur();
         if (null === $agent) {
             return;
@@ -105,7 +133,7 @@ class AlertScoreSubscriber
 
         $statutLabel = $newStatut instanceof \App\Enum\AlertStatut
             ? $newStatut->label()
-            : (string)$newStatut;
+            : (is_string($newStatut) ? $newStatut : (string) $newStatut);
 
         $notif = new \App\Entity\Notification();
         $notif->setDestinataire($agent);
@@ -114,11 +142,14 @@ class AlertScoreSubscriber
         $notif->setContenu(sprintf(
             'Votre alerte %s a changé de statut : %s.',
             $alert->getCodeGei() ?? '#' . $alert->getId(),
-            $statutLabel
+            $statutLabel,
         ));
 
         $em->persist($notif);
-        $uow = $em->getUnitOfWork();
-        $uow->computeChangeSet($em->getClassMetadata(\App\Entity\Notification::class), $notif);
+        // Enregistrer dans l'UoW courant sans déclencher un nouveau flush
+        $uow->computeChangeSet(
+            $em->getClassMetadata(\App\Entity\Notification::class),
+            $notif,
+        );
     }
 }

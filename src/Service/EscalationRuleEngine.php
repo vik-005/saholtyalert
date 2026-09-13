@@ -6,6 +6,7 @@ use App\Entity\Alert;
 use App\Entity\Urgence72hCase;
 use App\Entity\Urgence72hPhase;
 use App\Enum\AlertUrgence;
+use App\Enum\AlertStatut;
 use App\Enum\AlertImpact;
 use App\Enum\AlertExploitabilite;
 use App\Enum\FiabiliteSource;
@@ -48,23 +49,31 @@ class EscalationRuleEngine
     }
 
     /**
-     * Règle 1 : Score ≥ 18 → création automatique Urgence72hCase + notification PFT + SAHOLTY
+     * Règle 1 : une procédure 72h n'est créée qu'après validation Manager,
+     * et uniquement pour une urgence explicitement classée 72h.
      */
     private function regle1_CritiqueCree72h(Alert $alert): void
     {
-        $seuilCritique = $this->getConfig('score_critique', 18);
-
-        if (($alert->getScoreGei() ?? 0) >= $seuilCritique && null === $alert->getUrgence72hCase()) {
+        if ($alert->isEligibleForUrgence72h() && null === $alert->getUrgence72hCase()) {
             $case = new Urgence72hCase();
             $case->setAlert($alert);
             $case->setDateActivation(new \DateTimeImmutable());
 
-            // Création des 5 phases avec leurs SLA
+            // Création des 3 phases Urgence 72h (F.1 & F.2)
             foreach (PhaseUrgence::cases() as $phaseEnum) {
                 $phase = new Urgence72hPhase();
                 $phase->setPhase($phaseEnum);
                 $slaLimite = $case->getDateActivation()->modify('+' . $phaseEnum->slaHeures() . ' hours');
                 $phase->setSlaHeureLimite($slaLimite);
+
+                if ($phaseEnum === PhaseUrgence::DETECTION) {
+                    // Détection (T0) automatiquement complétée dès sa création
+                    $phase->setDateDebut($case->getDateActivation());
+                    $phase->setDateFin($case->getDateActivation());
+                } elseif ($phaseEnum === PhaseUrgence::COORDINATION) {
+                    $phase->setDateDebut($case->getDateActivation());
+                }
+
                 $case->addPhase($phase);
             }
 

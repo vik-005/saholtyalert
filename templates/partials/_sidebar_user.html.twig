@@ -1,0 +1,19 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Composant réutilisable : Bloc utilisateur bas de sidebar (GEI Platform)
+   Avatar + Nom + Rôle + Déconnexion
+───────────────────────────────────────────────────────────────────────── #}
+
+<div class="sidebar-profile">
+    <a href="{{ path('app_account_settings') }}" class="sidebar-profile-link" title="Consulter mon compte et mes préférences">
+        <div class="profile-avatar">
+            {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
+        </div>
+        <div class="profile-info">
+            <span class="profile-name">{{ app.user.nomComplet }}</span>
+            <span class="profile-role">{{ app.user.role.label() }}</span>
+        </div>
+    </a>
+    <a href="{{ path('app_logout') }}" class="profile-logout" title="Déconnexion de la session" data-turbo="false">
+        <i class="bi bi-box-arrow-right"></i>
+    </a>
+</div>

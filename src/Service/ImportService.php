@@ -5,16 +5,13 @@ namespace App\Service;
 use App\Entity\Alert;
 use App\Entity\Market;
 use App\Entity\User;
-use App\Enum\AlertCategorie;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
-use App\Enum\AnonymisationNiveau;
 use App\Enum\FiabiliteSource;
 use App\Enum\Sensibilite;
 use App\Enum\TransmissionStatut;
-use App\Enum\TypeSource;
 use App\Repository\AlertRepository;
 use App\Repository\MarketRepository;
 use App\Repository\UserRepository;
@@ -120,55 +117,9 @@ class ImportService
             'à valider'                 => 'a_valider_saholty',
             'à valider (saholty)'       => 'a_valider_saholty',
         ],
-        // Catégorie — toutes les variantes réelles du fichier
-        AlertCategorie::class => [
-            'transit tabac'                      => 'transit_tabac',
-            'transit cigarettes'                 => 'transit_cigarettes',
-            'tabac brut'                         => 'tabac_brut',
-            'importation tabac'                  => 'importation_tabac',
-            'tabac manufacturé'                  => 'tabac_manufacture',
-            'tabac manufacture'                  => 'tabac_manufacture',
-            'signal faible statistique'          => 'signal_faible',
-            'signal faible'                      => 'signal_faible',
-            'saisie de cigarettes'               => 'saisie',
-            'saisies consolidées'                => 'saisies_consolidees',
-            'saisies consolidees'                => 'saisies_consolidees',
-            'signalement opérationnel'           => 'signalement_operationnel',
-            'signalement operationnel'           => 'signalement_operationnel',
-            'contrôle de cargaison'              => 'controle_cargaison',
-            'controle de cargaison'              => 'controle_cargaison',
-            'contrôle documentaire'              => 'controle_documentaire',
-            'controle documentaire'              => 'controle_documentaire',
-            'incohérence de déclaration douanière' => 'incoherence_declaration',
-            'incoherence de declaration douaniere' => 'incoherence_declaration',
-            'suivi opérationnel'                 => 'suivi_operationnel',
-            'suivi operationnel'                 => 'suivi_operationnel',
-            'renseignement logistique'           => 'renseignement_logistique',
-            'cigarettes expédiées par fret express' => 'fret_express',
-            'cigarettes expediees par fret express' => 'fret_express',
-            'mouvement transfrontalier de tabac' => 'mouvement_transfrontalier',
-            'mouvement transfrontalier'          => 'mouvement_transfrontalier',
-            "mouvement intérieur de tabac"       => 'mouvement_transfrontalier',
-            'veille marché'                      => 'veille_marche',
-            'veille marche'                      => 'veille_marche',
-            'transit cigares'                    => 'transit_cigarettes',
-            'transit cigarettes / cigares'       => 'transit_cigarettes',
-        ],
-        // TypeSource
-        TypeSource::class => [
-            'manifeste portuaire'         => 'manifeste_portuaire',
-            'manifeste maritime'          => 'manifeste_maritime',
-            'manifeste transporteur'      => 'manifeste_maritime',
-            'déclaration douanière'       => 'declaration_douaniere',
-            'declaration douaniere'       => 'declaration_douaniere',
-            'source portuaire'            => 'source_portuaire',
-            'source frontière'            => 'source_frontiere',
-            'source frontiere'            => 'source_frontiere',
-            'source terrain'              => 'terrain',
-            'source institutionnelle'     => 'source_institutionnelle',
-            'statistiques douanières'     => 'statistiques_douanieres',
-            'statistiques douanieres'     => 'statistiques_douanieres',
-        ],
+        // Catégorie — stockée tel quelle (liste administrable)
+        // Plus de mapping vers enum : la valeur brute est conservée
+        // TypeSource — stocké tel quel (liste administrable)
     ];
 
     public function __construct(
@@ -457,8 +408,8 @@ class ImportService
         $alert->setPortCorridor($get('port') ?: null);
 
         // ── Catégorie ────────────────────────────────────────────────────────────
-        $cat = $this->matchEnumWithAliases(AlertCategorie::class, $get('categorie'));
-        $alert->setCategorie($cat);
+        $catRaw = trim($get('categorie'));
+        $alert->setCategorie($catRaw ?: null);
 
         // ── Résumé ───────────────────────────────────────────────────────────────
         $resume = $get('resume');
@@ -469,17 +420,14 @@ class ImportService
         $alert->setResumeExecutif(mb_substr($resume, 0, 500));
 
         // ── Type de source ───────────────────────────────────────────────────────
-        $alert->setTypeSource($this->matchEnumWithAliases(TypeSource::class, $get('type_source')));
+        $typeSourceRaw = trim($get('type_source'));
+        $alert->setTypeSource($typeSourceRaw ?: null);
 
-        // ── Anonymisation ────────────────────────────────────────────────────────
-        $anon = $this->matchEnumWithAliases(AnonymisationNiveau::class, $get('anonymisation'));
-        // "Oui" dans le fichier = anonymisation ÉLEVÉ (convention registre réel)
-        if (null === $anon) {
-            $anonRaw = mb_strtolower($get('anonymisation'));
-            $anon = in_array($anonRaw, ['oui', 'yes', '1', 'true'])
-                ? AnonymisationNiveau::ELEVE
-                : AnonymisationNiveau::ELEVE; // défaut sécurisé
-        }
+        // ── Anonymisation (Oui / Non) ─────────────────────────────────────────
+        $anonRaw = mb_strtolower(trim($get('anonymisation')));
+        $anon = in_array($anonRaw, ['oui', 'yes', '1', 'true', 'élevé', 'eleve', 'élevé (par défaut)'])
+            ? 'oui'
+            : 'non';
         $alert->setAnonymisation($anon);
 
         // ── Fiabilité (A–D) ──────────────────────────────────────────────────────

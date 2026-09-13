@@ -2,6 +2,7 @@
 
 namespace App\Service;
 
+use App\Dto\CorridorFilterDTO;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -37,21 +38,31 @@ class StatistiquesService
     /**
      * Volume d'alertes par pays — bâtons verticaux triés décroissant.
      * Retourne [['pays' => 'Bénin', 'iso3' => 'BEN', 'nb' => 12], ...]
+     * Si $typeLocalisation est fourni, filtre sur ce type (port, corridor, aeroport).
+     * Si null ou chaîne vide, ne filtre pas par type (tous les types).
      */
-    public function getVolumeParPays(string $debut, string $fin, array $marketIds = []): array
+    public function getVolumeParPays(string $debut, string $fin, array $marketIds = [], ?string $typeLocalisation = null): array
     {
-        $key = 'stat_volume_pays_' . md5($debut . $fin . implode(',', $marketIds));
-        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds) {
+        $key = 'stat_volume_pays_' . md5($debut . $fin . implode(',', $marketIds) . ($typeLocalisation ?? ''));
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $typeLocalisation) {
             $item->expiresAfter(self::TTL);
             $where = $this->whereClause($marketIds);
+            $typeWhere = '';
+            $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
+
+            if ($typeLocalisation) {
+                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $params['typeLoc'] = $typeLocalisation;
+            }
+
             return $this->conn()->fetchAllAssociative(
                 "SELECT m.nom AS pays, m.code_iso3 AS iso3, COUNT(a.id) AS nb
                  FROM alert a
                  JOIN market m ON m.id = a.market_id
-                 WHERE a.date_creation BETWEEN :debut AND :fin {$where}
+                 WHERE a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
                  GROUP BY m.id, m.nom, m.code_iso3
                  ORDER BY nb DESC",
-                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+                $params
             );
         });
     }
@@ -150,8 +161,12 @@ class StatistiquesService
                     SUM(CASE WHEN c.statut_case = 'cloturee' THEN 1 ELSE 0 END) AS cloturees,
                     COUNT(c.id) AS total
                  FROM urgence_72h_case c
-                 WHERE c.date_activation BETWEEN :debut AND :fin",
-                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+                 JOIN alert a ON a.id = c.alert_id
+                 WHERE c.date_activation >= :debut
+                   AND c.date_activation < DATE_ADD(:fin, INTERVAL 1 DAY)
+                   AND a.urgence = '72h'
+                   AND a.statut = 'validee'",
+                ['debut' => $debut, 'fin' => $fin]
             );
             $respectees = (int)($row['respectees'] ?? 0);
             $cloturees  = (int)($row['cloturees'] ?? 0);
@@ -202,6 +217,32 @@ class StatistiquesService
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
+     * Top opérateurs / acteurs — bâtons horizontaux top 10.
+     * Classement par nombre d'alertes associées à chaque opérateur.
+     */
+    public function getTopOperateurs(string $debut, string $fin, array $marketIds = [], int $limit = 10): array
+    {
+        $key = 'stat_operateurs_' . md5($debut . $fin . implode(',', $marketIds) . $limit);
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $limit) {
+            $item->expiresAfter(self::TTL);
+            $where = $this->whereClause($marketIds);
+            $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
+
+            return $this->conn()->fetchAllAssociative(
+                "SELECT COALESCE(a.operateur_acteur, 'Non renseigné') AS operateurs, COUNT(a.id) AS nb
+                 FROM alert a
+                 WHERE a.operateur_acteur IS NOT NULL
+                   AND a.operateur_acteur != ''
+                   AND a.date_creation BETWEEN :debut AND :fin {$where}
+                 GROUP BY a.operateur_acteur
+                 ORDER BY nb DESC
+                 LIMIT {$limit}",
+                $params
+            );
+        });
+    }
+
+    /**
      * Répartition par catégorie — donut/bâtons.
      */
     public function getRepartitionCategorie(string $debut, string $fin, array $marketIds = []): array
@@ -223,23 +264,63 @@ class StatistiquesService
 
     /**
      * Top corridors — bâtons horizontaux top 10.
+     * Optionnel : filtrer par type de localisation (port / corridor).
      */
-    public function getTopCorridors(string $debut, string $fin, array $marketIds = [], int $limit = 10): array
+    public function getTopCorridors(string $debut, string $fin, array $marketIds = [], int $limit = 10, ?string $typeLocalisation = null): array
     {
-        $key = 'stat_corridors_' . md5($debut . $fin . implode(',', $marketIds) . $limit);
-        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $limit) {
+        $key = 'stat_corridors_' . md5($debut . $fin . implode(',', $marketIds) . $limit . ($typeLocalisation ?? ''));
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $limit, $typeLocalisation) {
             $item->expiresAfter(self::TTL);
             $where = $this->whereClause($marketIds);
+            $typeWhere = '';
+            $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
+
+            if ($typeLocalisation) {
+                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $params['typeLoc'] = $typeLocalisation;
+            }
+
             return $this->conn()->fetchAllAssociative(
                 "SELECT COALESCE(a.port_corridor, 'Non renseigné') AS corridor, COUNT(a.id) AS nb
                  FROM alert a
                  WHERE a.port_corridor IS NOT NULL
                    AND a.port_corridor != ''
-                   AND a.date_creation BETWEEN :debut AND :fin {$where}
+                   AND a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
                  GROUP BY a.port_corridor
                  ORDER BY nb DESC
                  LIMIT {$limit}",
-                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+                $params
+            );
+        });
+    }
+
+    /**
+     * Répartition par type de localisation (Port vs Corridor vs Aéroport).
+     * Retourne [['type' => 'port', 'nb' => 12], ['type' => 'corridor', 'nb' => 8], ['type' => 'aeroport', 'nb' => 3]]
+     * Si $typeLocalisation est fourni, filtre sur ce type (utile pour cohérence).
+     */
+    public function getStatsByLocalisationType(string $debut, string $fin, array $marketIds = [], ?string $typeLocalisation = null): array
+    {
+        $key = 'stat_loc_type_' . md5($debut . $fin . implode(',', $marketIds) . ($typeLocalisation ?? ''));
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $typeLocalisation) {
+            $item->expiresAfter(self::TTL);
+            $where = $this->whereClause($marketIds);
+            $typeWhere = '';
+            $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
+
+            if ($typeLocalisation) {
+                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $params['typeLoc'] = $typeLocalisation;
+            }
+
+            return $this->conn()->fetchAllAssociative(
+                "SELECT a.type_localisation AS type, COUNT(a.id) AS nb
+                 FROM alert a
+                 WHERE a.type_localisation IS NOT NULL
+                   AND a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
+                 GROUP BY a.type_localisation
+                 ORDER BY nb DESC",
+                $params
             );
         });
     }
@@ -321,7 +402,7 @@ class StatistiquesService
                         COUNT(a.id) AS nb
                  FROM alert a
                  JOIN market m ON m.id = a.market_id
-                 WHERE a.statut IN ('transmis', 'archive', 'clos')
+                 WHERE a.statut IN ('validee', 'archive', 'clos')
                    AND a.date_creation BETWEEN :debut AND :fin {$where}
                  GROUP BY m.id, m.nom
                  ORDER BY delai_moyen_h ASC",
@@ -372,6 +453,153 @@ class StatistiquesService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // CORRIDOR DASHBOARD — méthode centralisée page /corridors
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Retourne toutes les statistiques nécessaires à la page /corridors en
+     * un seul appel de service. Évite les requêtes redondantes.
+     *
+     * Retourne un tableau associatif avec :
+     *   - top_localisations  : top éléments avec corridor, type, pays, nb, part_relative
+     *   - volume_par_pays    : volume d'alertes par marché selon le type
+     *   - loc_type_stats     : répartition globale corridor/port/aéroport (seulement si type = Tous)
+     *   - kpis               : total, nb_corridors, nb_ports, nb_aeroports, top_element
+     *   - has_data           : bool
+     */
+    public function getCorridorDashboard(CorridorFilterDTO $dto): array
+    {
+        // Si aucun marché sélectionné -> état vide immédiat (Spec A.1 & A.3)
+        if (empty($dto->marketIds)) {
+            return [
+                'top_localisations' => [],
+                'volume_par_pays'   => [],
+                'loc_type_stats'    => [],
+                'kpis'              => ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0, 'top_element' => null],
+                'has_data'          => false,
+            ];
+        }
+
+        $key = 'corridor_dashboard_' . md5(
+            $dto->dateDebut . $dto->dateFin .
+            implode(',', $dto->marketIds) .
+            ($dto->typeLoc ?? '')
+        );
+
+        return $this->cache->get($key, function (ItemInterface $item) use ($dto) {
+            $item->expiresAfter(self::TTL);
+
+            $where     = $this->whereClause($dto->marketIds);
+            $params    = ['debut' => $dto->dateDebut . ' 00:00:00', 'fin' => $dto->dateFin . ' 23:59:59'];
+            $typeWhere = '';
+
+            if ($dto->typeLoc) {
+                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $params['typeLoc'] = $dto->typeLoc;
+            }
+
+            // ── 1. Top localisations avec part relative ───────────────────────
+            // Exclusion native des entrées vides (Spec A.2 : HAVING COUNT > 0)
+            $rawTop = $this->conn()->fetchAllAssociative(
+                "SELECT
+                    a.port_corridor                           AS corridor,
+                    COALESCE(a.type_localisation, 'corridor') AS type,
+                    m.nom                                     AS pays,
+                    m.code_iso3                               AS iso3,
+                    COUNT(a.id)                               AS nb
+                 FROM alert a
+                 JOIN market m ON m.id = a.market_id
+                 WHERE a.port_corridor IS NOT NULL
+                   AND a.port_corridor != ''
+                   AND a.date_creation BETWEEN :debut AND :fin
+                   {$where} {$typeWhere}
+                 GROUP BY a.port_corridor, a.type_localisation, m.nom, m.code_iso3
+                 HAVING COUNT(a.id) > 0
+                 ORDER BY nb DESC",
+                $params
+            );
+
+            // Calcul de la part relative côté PHP (évite sous-requête SQL)
+            $totalTop = array_sum(array_column($rawTop, 'nb'));
+            $topLocalisations = array_map(function (array $row) use ($totalTop) {
+                $row['nb'] = (int) $row['nb'];
+                $row['part_relative'] = $totalTop > 0
+                    ? round($row['nb'] / $totalTop * 100, 1)
+                    : 0.0;
+                return $row;
+            }, $rawTop);
+
+            // ── 2. Volume par pays (respecte type & cohérence croisée C.6) ───
+            // Filtré sur a.port_corridor valide pour garantir l'égalité stricte
+            // Total volume_par_pays = Somme top_localisations (Spec C.6)
+            $volumeParPays = $this->conn()->fetchAllAssociative(
+                "SELECT m.nom AS pays, m.code_iso3 AS iso3, COUNT(a.id) AS nb
+                 FROM alert a
+                 JOIN market m ON m.id = a.market_id
+                 WHERE a.port_corridor IS NOT NULL
+                   AND a.port_corridor != ''
+                   AND a.date_creation BETWEEN :debut AND :fin
+                   {$where} {$typeWhere}
+                 GROUP BY m.id, m.nom, m.code_iso3
+                 HAVING COUNT(a.id) > 0
+                 ORDER BY nb DESC",
+                $params
+            );
+
+            // ── 3. Répartition par type (toujours sur les marchés sélectionnés) ──
+            $paramsGlobal = ['debut' => $dto->dateDebut . ' 00:00:00', 'fin' => $dto->dateFin . ' 23:59:59'];
+            $locTypeStats = $this->conn()->fetchAllAssociative(
+                "SELECT COALESCE(a.type_localisation, 'corridor') AS type,
+                        COUNT(a.id) AS nb
+                 FROM alert a
+                 WHERE a.port_corridor IS NOT NULL
+                   AND a.port_corridor != ''
+                   AND a.date_creation BETWEEN :debut AND :fin
+                   {$where}
+                 GROUP BY a.type_localisation
+                 HAVING COUNT(a.id) > 0
+                 ORDER BY nb DESC",
+                $paramsGlobal
+            );
+
+            // ── 4. KPIs ──────────────────────────────────────────────────────
+            $kpiRows = $this->conn()->fetchAllAssociative(
+                "SELECT COALESCE(a.type_localisation, 'corridor') AS type,
+                        COUNT(a.id) AS nb
+                 FROM alert a
+                 WHERE a.port_corridor IS NOT NULL
+                   AND a.port_corridor != ''
+                   AND a.date_creation BETWEEN :debut AND :fin
+                   {$where} {$typeWhere}
+                 GROUP BY a.type_localisation
+                 HAVING COUNT(a.id) > 0",
+                $params
+            );
+
+            $kpis = ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0];
+            foreach ($kpiRows as $row) {
+                $count = (int) $row['nb'];
+                $kpis['total'] += $count;
+                match ($row['type']) {
+                    'corridor' => $kpis['nb_corridors'] += $count,
+                    'port'     => $kpis['nb_ports']     += $count,
+                    'aeroport' => $kpis['nb_aeroports'] += $count,
+                    default    => null,
+                };
+            }
+            $kpis['top_element'] = !empty($topLocalisations) ? $topLocalisations[0] : null;
+
+            return [
+                'top_localisations' => $topLocalisations,
+                'volume_par_pays'   => $volumeParPays,
+                'loc_type_stats'    => $locTypeStats,
+                'kpis'              => $kpis,
+                'has_data'          => !empty($topLocalisations) && !empty($volumeParPays),
+            ];
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // HELPER
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -382,3 +610,4 @@ class StatistiquesService
         return "AND a.market_id IN ({$ids})";
     }
 }
+

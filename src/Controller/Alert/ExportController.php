@@ -2,12 +2,15 @@
 
 namespace App\Controller\Alert;
 
+use App\Entity\AccessLog;
 use App\Entity\Alert;
 use App\Entity\User;
 use App\Repository\AlertRepository;
 use App\Service\ExportService;
 use App\Service\ExportStatsService;
 use App\Service\PdfExportService;
+use App\Voter\AlertVoter;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,7 +26,7 @@ class ExportController extends AbstractController
      * et appliqués via findForUser() pour respecter la portée de sécurité de chaque rôle.
      */
     #[Route('/export/registre', name: 'app_export_registre', methods: ['GET'])]
-    public function exportExcel(Request $request, AlertRepository $alertRepository, ExportService $exportService): Response
+    public function exportExcel(Request $request, AlertRepository $alertRepository, ExportService $exportService, EntityManagerInterface $em): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -31,6 +34,13 @@ class ExportController extends AbstractController
         }
 
         $alerts = $alertRepository->findForUser($user, $this->extractFilters($request));
+
+        $log = new AccessLog();
+        $log->setAction(AccessLog::ACTION_EXPORT);
+        $log->setUser($user);
+        $log->setDetails(sprintf('Export Excel registre — %d alertes', count($alerts)));
+        $em->persist($log);
+        $em->flush();
 
         return $exportService->exportRegistre($alerts);
     }
@@ -41,6 +51,8 @@ class ExportController extends AbstractController
     #[Route('/alert/{id}/pdf', name: 'app_alert_pdf', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function exportAlertPdf(Alert $alert, PdfExportService $pdfService): Response
     {
+        $this->denyAccessUnlessGranted(AlertVoter::EXPORT, $alert);
+
         $pdfContent = $pdfService->generateAlertPdf($alert);
 
         return new Response($pdfContent, 200, [
@@ -78,8 +90,15 @@ class ExportController extends AbstractController
     {
         $debut     = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
         $fin       = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
-        $marketIds = array_filter(explode(',', $request->query->get('markets', '')), 'is_numeric');
-        $marketIds = array_map('intval', $marketIds);
+        $allQE       = $request->query->all();
+        $marketsRawE = $allQE['markets'] ?? null;
+        if (is_array($marketsRawE)) {
+            $marketIds = array_values(array_filter(array_map('intval', $marketsRawE)));
+        } elseif (is_string($marketsRawE) && $marketsRawE !== '') {
+            $marketIds = array_values(array_filter(array_map('intval', explode(',', $marketsRawE))));
+        } else {
+            $marketIds = [];
+        }
 
         return $exportStatsService->exportStats($debut, $fin, $marketIds);
     }
@@ -89,10 +108,15 @@ class ExportController extends AbstractController
      */
     private function extractFilters(Request $request): array
     {
+        $market = $request->query->get('market');
+        if (is_array($market)) {
+            $market = reset($market);
+        }
+
         return array_filter([
             'statut'         => $request->query->get('statut'),
             'niveauPriorite' => $request->query->get('priorite'),
-            'market'         => $request->query->get('market'),
+            'market'         => $market,
             'search'         => $request->query->get('search') ?: $request->query->get('q'),
             'categorie'      => $request->query->get('categorie'),
             'urgence'        => $request->query->get('urgence'),
@@ -100,5 +124,6 @@ class ExportController extends AbstractController
         ], fn($v) => $v !== null && $v !== '');
     }
 }
+
 
 

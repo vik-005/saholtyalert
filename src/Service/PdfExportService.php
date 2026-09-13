@@ -22,12 +22,17 @@ class PdfExportService
         $options = new Options();
         $options->set('defaultFont', 'Helvetica');
         $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
 
         $dompdf = new Dompdf($options);
 
         $html = $this->twig->render('export/alert_pdf.html.twig', [
             'alert' => $alert,
             'date_impression' => new \DateTime(),
+            'document_ref' => 'GEI-' . ($alert->getCodeGei() ?? 'DRAFT') . '-v1',
+            'platform_name' => 'Plateforme GEI',
+            'platform_full' => 'Groupe d\'Échange d\'Informations',
+            'dispositif' => 'Dispositif Régional de Renseignement Opérationnel',
         ]);
 
         $dompdf->loadHtml($html);
@@ -42,12 +47,15 @@ class PdfExportService
         $options = new Options();
         $options->set('defaultFont', 'Helvetica');
         $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
 
         $dompdf = new Dompdf($options);
 
         $html = $this->twig->render('export/registre_pdf.html.twig', [
             'alerts' => $alerts,
             'date_impression' => new \DateTime(),
+            'platform_name' => 'Plateforme GEI',
+            'platform_full' => 'Groupe d\'Échange d\'Informations',
         ]);
 
         $dompdf->loadHtml($html);

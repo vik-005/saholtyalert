@@ -1,0 +1,1015 @@
+﻿{% extends 'base.html.twig' %}
+
+{% block title %}Audit & Recherche avancée — GEI{% endblock %}
+{% block header_title %}Audit{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div class="text-center" style="flex:1">
+            <p class="page-eyebrow">
+                <i class="bi bi-search-chart me-1.5 text-amber-400"></i>
+                Recherche multicritère — Audit
+            </p>
+            <h2 class="page-title">Audit & Recherche avancée</h2>
+            <p class="page-subtitle mx-auto" style="max-width:600px">
+                Croisez plusieurs critères simultanément. Les résultats s'affichent en
+                <strong class="text-white">tableau</strong>, <strong class="text-white">graphiques</strong>,
+                <strong class="text-white">carte</strong> ou en <strong class="text-white">texte</strong> selon votre choix.
+            </p>
+        </div>
+        <div class="db-card-btn-group flex-wrap">
+            {% if hasSearch and total > 0 %}
+                <a href="{{ path('app_audit_index', app.request.query.all|merge({_export: 'csv', vue: vue})) }}"
+                   class="db-btn db-btn-ghost">
+                    <i class="bi-filetype-csv me-1.5 text-emerald-400"></i>CSV
+                </a>
+                <form method="post" action="{{ path('app_audit_export_excel') }}" class="d-inline">
+                    {% for key, value in app.request.query.all %}
+                        {% if key != '_export' %}
+                            {% if value is iterable %}
+                                {% for v in value %}
+                                    <input type="hidden" name="{{ key }}[]" value="{{ v }}">
+                                {% endfor %}
+                            {% else %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" class="db-btn db-btn-ghost">
+                        <i class="bi-filetype-xls me-1.5 text-emerald-400"></i>Excel
+                    </button>
+                </form>
+                <form method="post" action="{{ path('app_audit_export_pdf') }}" class="d-inline">
+                    {% for key, value in app.request.query.all %}
+                        {% if key != '_export' %}
+                            {% if value is iterable %}
+                                {% for v in value %}
+                                    <input type="hidden" name="{{ key }}[]" value="{{ v }}">
+                                {% endfor %}
+                            {% else %}
+                                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    <button type="submit" class="db-btn db-btn-ghost">
+                        <i class="bi-filetype-pdf me-1.5 text-red-400"></i>PDF
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── Panneau de filtres ── #}
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-funnel me-1.5"></i>Critères de recherche
+            </p>
+            {% if hasSearch %}
+            <a href="{{ path('app_audit_index') }}" class="db-btn db-btn-ghost db-btn-sm">
+                <i class="bi bi-arrow-counterclockwise me-1.5"></i>Réinitialiser
+            </a>
+            {% endif %}
+        </div>
+        <div class="db-card-body">
+            <form method="get" action="{{ path('app_audit_index') }}" id="auditForm">
+                <input type="hidden" name="vue" value="{{ vue }}">
+
+                <div class="audit-filters-grid">
+
+                    {# Pays / marchés — multi-sélection #}
+                    <div class="audit-filter-field audit-filter-wide">
+                        <label class="form-label text-center">
+                            <i class="bi bi-earth-americas me-1 text-amber-400"></i>
+                            Pays / Marchés
+                        </label>
+                        <div class="multi-select-scroll">
+                            {% for market in markets %}
+                            <label class="multi-check-item">
+                                <input type="checkbox" name="markets[]" value="{{ market.id }}"
+                                       {% if (market.id ~ '') in (filters.markets|map(p => p ~ '')|default([])) %}checked{% endif %}>
+                                <span class="font-mono text-amber-400 text-xs">{{ market.codeIso3 }}</span>
+                                {{ market.nom }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {# Période — dates + raccourcis #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">
+                            <i class="bi bi-calendar me-1 text-amber-400"></i>
+                            Date début
+                        </label>
+                        <input type="date" name="dateFrom" class="form-input"
+                               value="{{ filters.dateFrom|default('') }}">
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Date fin</label>
+                        <input type="date" name="dateTo" class="form-input"
+                               value="{{ filters.dateTo|default('') }}">
+                    </div>
+
+                    {# Raccourcis période #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Raccourcis</label>
+                        <div class="db-card-btn-group flex-wrap justify-center">
+                            <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="today" data-to="today">Aujourd'hui</button>
+                            <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="week" data-to="week">Cette semaine</button>
+                            <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="month" data-to="month">Ce mois</button>
+                            <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="3months" data-to="3months">3 mois</button>
+                        </div>
+                    </div>
+
+                    {# Corridor #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">
+                            <i class="bi bi-signpost-figure me-1 text-amber-400"></i>
+                            Corridor
+                        </label>
+                        <input type="text" name="corridors[]" class="form-input"
+                               placeholder="Corridor ou port..."
+                               value="{{ filters.corridors[0]|default('') }}"
+                               id="corridorInput"
+                               autocomplete="off">
+                        <p class="form-help text-center">Autocomplétion selon les marchés sélectionnés.</p>
+                    </div>
+
+                    {# Catégorie #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Catégorie</label>
+                        <select name="categories[]" class="form-select" multiple size="4">
+                            {% for cat in categories %}
+                            <option value="{{ cat.libelle }}"
+                                {% if cat.libelle in (filters.categories|default([])) %}selected{% endif %}>
+                                {{ cat.libelle }}
+                            </option>
+                            {% else %}
+                            <option value="">Aucune catégorie disponible</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Type de source #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Type de source</label>
+                        <select name="typeSources[]" class="form-select" multiple size="4">
+                            {% for ts in typeSources %}
+                            <option value="{{ ts.libelle }}"
+                                {% if ts.libelle in (filters.typeSources|default([])) %}selected{% endif %}>
+                                {{ ts.libelle }}
+                            </option>
+                            {% else %}
+                            <option value="">Aucun type de source disponible</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Type d'alerte #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Type d'alerte</label>
+                        <select name="typeAlerte" class="form-select">
+                            <option value="">Tous</option>
+                            {% for t in typeAlertes %}
+                            <option value="{{ t.value }}"
+                                {% if (filters.typeAlerte|default('')) == t.value %}selected{% endif %}>
+                                {{ t.label() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Statut #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Statut</label>
+                        <select name="statuts[]" class="form-select" multiple size="4">
+                            {% for s in statuts %}
+                            <option value="{{ s.value }}"
+                                {% if s.value in (filters.statuts|default([])) %}selected{% endif %}>
+                                {{ s.label() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Urgence #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Urgence</label>
+                        <select name="urgences[]" class="form-select" multiple size="3">
+                            {% for u in urgences %}
+                            <option value="{{ u.value }}"
+                                {% if u.value in (filters.urgences|default([])) %}selected{% endif %}>
+                                {{ u.label() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Niveau de priorité #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Niveau de priorité</label>
+                        <select name="niveauxPriorite[]" class="form-select" multiple size="4">
+                            {% for n in niveaux %}
+                            <option value="{{ n.value }}"
+                                {% if n.value in (filters.niveauxPriorite|default([])) %}selected{% endif %}>
+                                {{ n.label() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Score GEI min/max #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Score min</label>
+                        <input type="number" name="scoreMin" class="form-input"
+                               min="0" max="25" placeholder="0"
+                               value="{{ filters.scoreMin|default('') }}">
+                    </div>
+
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Score max</label>
+                        <input type="number" name="scoreMax" class="form-input"
+                               min="0" max="25" placeholder="25"
+                               value="{{ filters.scoreMax|default('') }}">
+                    </div>
+
+                    {# Origine #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Origine</label>
+                        <select name="origine" class="form-select">
+                            <option value="">Toutes</option>
+                            <option value="saisie_agent" {% if filters.origine == 'saisie_agent' %}selected{% endif %}>Saisie agent</option>
+                            <option value="import_excel" {% if filters.origine == 'import_excel' %}selected{% endif %}>Import Excel</option>
+                        </select>
+                    </div>
+
+                    {# Agent #}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Agent</label>
+                        <select name="agentId" class="form-select">
+                            <option value="">Tous</option>
+                            {% for agent in agents %}
+                            <option value="{{ agent.id }}"
+                                {% if filters.agentId == agent.id %}selected{% endif %}>
+                                {{ agent.prenom }} {{ agent.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Manager (superadmin uniquement) #}
+                    {% if isSuperadmin %}
+                    <div class="audit-filter-field">
+                        <label class="form-label text-center">Manager</label>
+                        <select name="managerId" class="form-select">
+                            <option value="">Tous</option>
+                            {% for manager in managers %}
+                            <option value="{{ manager.id }}"
+                                {% if filters.managerId == manager.id %}selected{% endif %}>
+                                {{ manager.prenom }} {{ manager.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    {# Opérateur / Marque conservés pour rétro-compatibilité #}
+                    <div class="audit-filter-field audit-filter-wide">
+                        <label class="form-label text-center">
+                            <i class="bi bi-building me-1 text-amber-400"></i>
+                            Opérateur / Acteur
+                        </label>
+                        <input type="text" name="operateur" id="operateurInput" list="operateursDatalist" class="form-input"
+                               placeholder="ex. IMPERIAL LOGISTICS, X"
+                               value="{{ filters.operateur|default('') }}"
+                               autocomplete="off">
+                        <datalist id="operateursDatalist"></datalist>
+                    </div>
+
+                    <div class="audit-filter-field audit-filter-wide">
+                        <label class="form-label text-center">
+                            <i class="bi bi-tag me-1 text-amber-400"></i>
+                            Marque / Produit (recherche plein texte)
+                        </label>
+                        <input type="text" name="marque" class="form-input"
+                               placeholder="ex. ORIS, Marlboro, tabac"
+                               value="{{ filters.marque|default('') }}">
+                    </div>
+
+                    {# Texte libre cross-champs #}
+                    <div class="audit-filter-field audit-filter-wide">
+                        <label class="form-label text-center">
+                            <i class="bi bi-search me-1 text-amber-400"></i>
+                            Recherche textuelle libre
+                        </label>
+                        <input type="text" name="texteLibre" class="form-input"
+                               placeholder="Mot-clé dans tous les champs (code GEI, résumé, corridor…)"
+                               value="{{ filters.texteLibre|default('') }}">
+                    </div>
+
+                </div>
+
+                {# Boutons + bascule vue #}
+                <div class="audit-form-footer justify-center">
+                    <button type="submit" class="db-btn db-btn-amber">
+                        <i class="bi bi-search"></i>
+                        Analyser
+                    </button>
+
+                    {# Sélecteur de mode d'affichage #}
+                    <div class="vue-toggle" role="group" aria-label="Mode d'affichage des résultats">
+                        <button type="button"
+                                class="vue-btn {% if vue == 'tableau' %}vue-btn-active{% endif %}"
+                                onclick="switchVue('tableau')">
+                            <i class="bi bi-table me-1.5"></i>Tableau
+                        </button>
+                        <button type="button"
+                                class="vue-btn {% if vue == 'graphiques' %}vue-btn-active{% endif %}"
+                                onclick="switchVue('graphiques')">
+                            <i class="bi bi-bar-chart me-1.5"></i>Graphiques
+                        </button>
+                        <button type="button"
+                                class="vue-btn {% if vue == 'carte' %}vue-btn-active{% endif %}"
+                                onclick="switchVue('carte')">
+                            <i class="bi bi-map me-1.5"></i>Carte
+                        </button>
+                        <button type="button"
+                                class="vue-btn {% if vue == 'texte' %}vue-btn-active{% endif %}"
+                                onclick="switchVue('texte')">
+                            <i class="bi bi-text-paragraph me-1.5"></i>Texte
+                        </button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    {# ── Résultats ── #}
+    {% if hasSearch %}
+
+        {# Récapitulatif des filtres appliqués #}
+        <div class="audit-applied-filters mb-4">
+            <span class="text-xs text-slate-500 font-semibold uppercase tracking-wider me-2">Filtres actifs :</span>
+            {% if filters.markets is defined and filters.markets is not empty %}
+                {% for mId in filters.markets %}
+                    {% for m in markets %}{% if (m.id ~ '') == (mId ~ '') %}
+                        <span class="filter-chip">
+                            <i class="bi-earth-americas fa-xs me-1"></i>{{ m.nom }}
+                        </span>
+                    {% endif %}{% endfor %}
+                {% endfor %}
+            {% endif %}
+            {% if (filters.dateFrom is defined and filters.dateFrom) or (filters.dateTo is defined and filters.dateTo) %}
+                <span class="filter-chip">
+                    <i class="bi-calendar fa-xs me-1"></i>
+                    {{ filters.dateFrom|default('…') }} – {{ filters.dateTo|default('…') }}
+                </span>
+            {% endif %}
+            {% if filters.operateur is defined and filters.operateur %}
+                <span class="filter-chip"><i class="bi-building fa-xs me-1"></i>{{ filters.operateur }}</span>
+            {% endif %}
+            {% if filters.marque is defined and filters.marque %}
+                <span class="filter-chip"><i class="bi-tag fa-xs me-1"></i>{{ filters.marque }}</span>
+            {% endif %}
+            {% if filters.categories is defined and filters.categories is not empty %}
+                {% for catVal in filters.categories %}
+                    <span class="filter-chip">{{ catVal }}</span>
+                {% endfor %}
+            {% endif %}
+            {% if filters.typeSources is defined and filters.typeSources is not empty %}
+                {% for tsVal in filters.typeSources %}
+                    <span class="filter-chip">{{ tsVal }}</span>
+                {% endfor %}
+            {% endif %}
+            {% if filters.statuts is defined and filters.statuts is not empty %}
+                {% for stVal in filters.statuts %}
+                    <span class="filter-chip">{{ stVal|capitalize }}</span>
+                {% endfor %}
+            {% endif %}
+            {% if filters.niveauxPriorite is defined and filters.niveauxPriorite is not empty %}
+                {% for prioVal in filters.niveauxPriorite %}
+                    <span class="filter-chip">{{ prioVal|capitalize }}</span>
+                {% endfor %}
+            {% endif %}
+            {% if filters.texteLibre is defined and filters.texteLibre %}
+                <span class="filter-chip">
+                    <i class="bi-search fa-xs me-1"></i>« {{ filters.texteLibre }} »
+                </span>
+            {% endif %}
+
+            <span class="ms-3 font-semibold text-white">{{ total }} résultat{{ total != 1 ? 's' : '' }}</span>
+        </div>
+
+        {# ── VUE TEXTE ── #}
+        <div id="vuetexte" class="{{ vue == 'texte' ? '' : 'hidden' }} mb-4">
+            <div class="db-card">
+                <div class="db-card-body">
+                    <h3 class="text-white font-semibold mb-3">Résumé de l'analyse</h3>
+                    <div class="audit-text-summary">
+                        <p>L'analyse porte sur <strong class="text-amber-400">{{ total }}</strong> alerte{{ total != 1 ? 's' : '' }}
+                           correspondant aux critères sélectionnés.</p>
+                        {% if stats.scoreMoyen is not null %}
+                            <p>Score moyen : <strong class="text-amber-400">{{ stats.scoreMoyen }}/25</strong></p>
+                        {% else %}
+                            <p>Score moyen : <span class="text-slate-500">Non disponible</span></p>
+                        {% endif %}
+                        <p>Alertes critiques (score ≥ 18) : <strong class="text-red-400">{{ stats.critiques }}</strong></p>
+                        {% if stats.tauxTransmission is not null %}
+                            <p>Taux de transmission : <strong class="text-amber-400">{{ stats.tauxTransmission }}%</strong></p>
+                        {% else %}
+                            <p>Taux de transmission : <span class="text-slate-500">Non disponible</span></p>
+                        {% endif %}
+                        {% if stats.parPays is not empty %}
+                            <p class="mt-3"><strong>Répartition par marché :</strong></p>
+                            <ul class="list-disc list-inside text-slate-300">
+                                {% for nom, nb in stats.parPays %}
+                                    <li>{{ nom }} : {{ nb }} alerte{{ nb != 1 ? 's' : '' }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ── VUE TABLEAU ── #}
+        <div id="vuetableau" class="{{ vue == 'tableau' ? '' : 'hidden' }} mb-4">
+            {% if results|length > 0 %}
+            <div class="db-card">
+                <div class="db-card-header">
+                    <p class="db-card-eyebrow">
+<i class="bi-table me-1.5"></i>
+                        {{ total }} alerte{{ total != 1 ? 's' : '' }} trouvée{{ total != 1 ? 's' : '' }}
+                    </p>
+                </div>
+                <div class="db-card-body p-0">
+                    <div class="table-scroll">
+                        <table class="gei-table">
+                            <thead>
+                                <tr>
+                                    <th>Code GEI</th>
+                                    <th>Pays</th>
+                                    <th>Corridor</th>
+                                    <th>Date</th>
+                                    <th>Catégorie</th>
+                                    <th>Type</th>
+                                    <th>Priorité</th>
+                                    <th>Score</th>
+                                    <th>Statut</th>
+                                    <th>Urgence</th>
+                                    <th>Agent</th>
+                                    <th>Résumé</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for row in results %}
+                                <tr>
+                                    <td class="font-mono text-amber-400 font-bold whitespace-nowrap">
+                                        {{ row.codeGei ?? 'BROUILLON' }}
+                                    </td>
+                                    <td class="text-sm">{{ row.pays ?? '—' }}</td>
+                                    <td class="text-xs">{{ row.portCorridor ?? '—' }}</td>
+                                    <td class="text-xs text-slate-400 whitespace-nowrap">
+                                        {{ row.dateCreation ?? '—' }}
+                                    </td>
+                                    <td class="text-xs">{{ row.categorie ?? '—' }}</td>
+                                    <td class="text-xs">{{ row.typeAlerte ?? '—' }}</td>
+                                    <td class="whitespace-nowrap">
+                                        {% set prio = row.niveau_priorite ?? row.priorite ?? '' %}
+                                        {% if prio %}
+                                            <span class="priority-badge priority-{{ prio }}">
+                                                {{ prio }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="whitespace-nowrap">
+                                        {% if row.score %}
+                                            <span class="score-badge {% if row.score >= 18 %}score-critique{% elseif row.score >= 14 %}score-eleve{% elseif row.score >= 10 %}score-modere{% else %}score-faible{% endif %}">
+                                                {{ row.score }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="status-pill status-{{ row.statut }}">
+                                            <span class="status-dot"></span>{{ row.statut|default('—') }}
+                                        </span>
+                                    </td>
+                                    <td class="text-xs">{{ row.urgence ?? '—' }}</td>
+                                    <td class="text-xs">{{ row.agent ?? '—' }}</td>
+                                    <td class="text-xs text-slate-400 max-w-xs truncate"
+                                        title="{{ row.resumeExecutif|default('') }}">
+                                        {{ (row.resumeExecutif ?? '—')|slice(0, 80) }}{% if (row.resumeExecutif ?? '')|length > 80 %}…{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="db-card">
+                <div class="db-card-body text-center py-12">
+                    <i class="bi-table fa-3x text-slate-700 mb-4 block"></i>
+                    <p class="text-slate-400 text-lg font-semibold">Aucune alerte ne correspond à ces critères.</p>
+                    <p class="text-slate-500 text-sm mt-2">Élargissez votre recherche en modifiant les filtres ci-dessus.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ── VUE GRAPHIQUES ── #}
+        <div id="vuegraphiques" class="{{ vue == 'graphiques' ? '' : 'hidden' }} mb-4">
+
+            {% if total > 0 %}
+
+            {# KPIs rapides #}
+            <div class="kpi-row mb-4">
+                <div class="kpi-chip">
+                    <i class="bi-file-shield kpi-chip-icon text-amber-400"></i>
+                    <div><p class="kpi-chip-val">{{ total }}</p><p class="kpi-chip-label">Alertes trouvées</p></div>
+                </div>
+                <div class="kpi-chip">
+                    <i class="bi-radio-radar kpi-chip-icon text-red-400"></i>
+                    <div><p class="kpi-chip-val">{{ stats.critiques ?? 0 }}</p><p class="kpi-chip-label">Critiques</p></div>
+                </div>
+                <div class="kpi-chip">
+                    <i class="bi-graph-up kpi-chip-icon text-blue-400"></i>
+                    <div><p class="kpi-chip-val">{{ stats.scoreMoyen ?? '—' }}</p><p class="kpi-chip-label">Score moyen</p></div>
+                </div>
+                {% if stats.tauxTransmission is not null %}
+                <div class="kpi-chip">
+                    <i class="bi-send kpi-chip-icon text-emerald-400"></i>
+                    <div><p class="kpi-chip-val">{{ stats.tauxTransmission }}%</p><p class="kpi-chip-label">Transmises</p></div>
+                </div>
+                {% endif %}
+            </div>
+
+            {# Graphiques Chart.js #}
+            <div class="audit-charts-grid">
+
+                {# Bar chart — Par pays #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-bar-chart me-1.5 text-amber-400"></i>
+                            Répartition par marché
+                        </p>
+                    </div>
+                    <div class="db-card-body">
+                        <canvas id="chartParPays" height="220"></canvas>
+                    </div>
+                </div>
+
+                {# Donut — Par priorité #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-pie-chart me-1.5 text-amber-400"></i>
+                            Niveaux de priorité
+                        </p>
+                    </div>
+                    <div class="db-card-body flex items-center justify-center">
+                        <canvas id="chartParPriorite" style="max-height:220px;max-width:280px;"></canvas>
+                    </div>
+                </div>
+
+                {# Bar chart — Par catégorie #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-tags me-1.5 text-amber-400"></i>
+                            Par catégorie
+                        </p>
+                    </div>
+                    <div class="db-card-body">
+                        <canvas id="chartParCategorie" height="220"></canvas>
+                    </div>
+                </div>
+
+                {# Line chart — Évolution par mois #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-graph-up me-1.5 text-amber-400"></i>
+                            Évolution temporelle
+                        </p>
+                    </div>
+                    <div class="db-card-body">
+                        <canvas id="chartEvolution" height="220"></canvas>
+                    </div>
+                </div>
+
+                {# Bar — Par statut #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-check-circle me-1.5 text-amber-400"></i>
+                            Par statut
+                        </p>
+                    </div>
+                    <div class="db-card-body">
+                        <canvas id="chartParStatut" height="220"></canvas>
+                    </div>
+                </div>
+
+                {# Bar — Par urgence #}
+                <div class="db-card">
+                    <div class="db-card-header">
+                        <p class="db-card-eyebrow">
+                            <i class="bi-clock me-1.5 text-amber-400"></i>
+                            Par urgence
+                        </p>
+                    </div>
+                    <div class="db-card-body">
+                        <canvas id="chartParUrgence" height="220"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            {# Données JSON passées au JS #}
+            <script id="auditData" type="application/json">
+            {
+                "parPays":      {{ (stats.parPays is defined ? stats.parPays : {})|json_encode|raw }},
+                "parCategorie": {{ (stats.parCategorie is defined ? stats.parCategorie : {})|json_encode|raw }},
+                "parPriorite":  {{ (stats.parPriorite is defined ? stats.parPriorite : {})|json_encode|raw }},
+                "parAnnee":     {{ (stats.parAnnee is defined ? stats.parAnnee : {})|json_encode|raw }},
+                "parStatut":    {{ (stats.parStatut is defined ? stats.parStatut : {})|json_encode|raw }},
+                "parUrgence":   {{ (stats.parUrgence is defined ? stats.parUrgence : {})|json_encode|raw }}
+            }
+            </script>
+
+            {% else %}
+            <div class="db-card">
+                <div class="db-card-body text-center py-12">
+                    <i class="bi-bar-chart fa-3x text-slate-700 mb-4 block"></i>
+                    <p class="text-slate-400 text-lg font-semibold">Aucun résultat à afficher.</p>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        {# ── VUE CARTE ── #}
+        <div id="vuecarte" class="{{ vue == 'carte' ? '' : 'hidden' }} mb-4">
+            {% if stats is not empty and stats.donneesCartographie is not empty %}
+            <div class="db-card">
+                <div class="db-card-body">
+                    <div id="auditMap" class="audit-map" style="height: 500px; border-radius: var(--radius);"></div>
+                </div>
+            </div>
+            {% else %}
+            <div class="db-card">
+                <div class="db-card-body text-center py-12">
+                    <i class="bi-map fa-3x text-slate-700 mb-4 block"></i>
+                    <p class="text-slate-400 text-lg font-semibold">Aucune donnée cartographique.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    {% else %}
+
+    {# État initial — pas encore de recherche #}
+    <div class="db-card">
+        <div class="db-card-body text-center py-16">
+            <i class="bi-search-chart fa-3x text-slate-700 mb-5 block"></i>
+            <h3 class="text-white font-semibold text-xl mb-2">Aucune recherche effectuée</h3>
+            <p class="text-slate-500 text-sm max-w-md mx-auto">
+                Renseignez au moins un critère de filtre ci-dessus et cliquez sur
+                <strong class="text-amber-400">Analyser</strong> pour obtenir vos résultats.
+                Vous pouvez ensuite basculer entre les 4 modes d'affichage.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3 justify-center text-xs text-slate-600">
+                <span><i class="bi-check text-amber-400 me-1"></i>Marchés, dates, corridors</span>
+                <span><i class="bi-check text-amber-400 me-1"></i>Catégorie, statut, priorité</span>
+                <span><i class="bi-check text-amber-400 me-1"></i>Score GEI, urgence, origine</span>
+                <span><i class="bi-check text-amber-400 me-1"></i>Tableau / Graphiques / Carte / Texte</span>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+
+</div>
+
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+// ── Bascule modes d'affichage ────────────────────────────────────────────────
+function switchVue(mode) {
+    const modes = ['texte', 'tableau', 'graphiques', 'carte'];
+    modes.forEach(m => {
+        const el = document.getElementById('vue' + m);
+        if (el) el.classList.toggle('hidden', m !== mode);
+    });
+    document.querySelectorAll('.vue-btn').forEach(b => b.classList.remove('vue-btn-active'));
+    const activeBtn = document.querySelector(`.vue-btn[onclick="switchVue('${mode}')"]`);
+    if (activeBtn) activeBtn.classList.add('vue-btn-active');
+    const vueInput = document.querySelector('input[name="vue"]');
+    if (vueInput) vueInput.value = mode;
+
+    if (mode === 'carte') {
+        setTimeout(() => initAuditMap({{ (stats.donneesCartographie is defined ? stats.donneesCartographie : [])|json_encode|raw }}), 50);
+    }
+}
+
+// ── Raccourcis période ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const fromInput = document.querySelector('input[name="dateFrom"]');
+    const toInput = document.querySelector('input[name="dateTo"]');
+
+    document.querySelectorAll('.shortcut-period').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const range = btn.dataset.from;
+            const today = new Date();
+            let from = new Date();
+
+            switch(range) {
+                case 'today':
+                    from = new Date(today);
+                    break;
+                case 'week':
+                    from = new Date(today);
+                    from.setDate(today.getDate() - today.getDay());
+                    break;
+                case 'month':
+                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                    break;
+                case '3months':
+                    from = new Date(today);
+                    from.setMonth(today.getMonth() - 3);
+                    break;
+            }
+
+            const to = range === 'today' ? from : new Date(today);
+            if (fromInput) fromInput.value = from.toISOString().split('T')[0];
+            if (toInput) toInput.value = to.toISOString().split('T')[0];
+        });
+    });
+
+    // ── Initialisation Chart.js (même code que l'original) ─────────────────
+    const dataEl = document.getElementById('auditData');
+    if (dataEl) {
+        let data;
+        try { data = JSON.parse(dataEl.textContent); } catch { return; }
+
+        const amber     = '#f59e0b';
+        const gridColor = 'rgba(148,163,184,.1)';
+        const textColor = '#94a3b8';
+
+        Chart.defaults.color = textColor;
+        Chart.defaults.font.family = 'Inter, sans-serif';
+        Chart.defaults.font.size   = 11;
+
+        // Par pays
+        const ctxPays = document.getElementById('chartParPays');
+        if (ctxPays && Object.keys(data.parPays).length > 0) {
+            const paysLabels = Object.keys(data.parPays);
+            const paysValues = Object.values(data.parPays);
+            new Chart(ctxPays, {
+                type: 'bar',
+                data: {
+                    labels: paysLabels,
+                    datasets: [{
+                        label: 'Alertes',
+                        data: paysValues,
+                        backgroundColor: paysValues.map((_, i) =>
+                            `hsl(${(38 + i * 22) % 360}, 85%, ${55 - i * 3}%)`
+                        ),
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Par priorité
+        const ctxPrio = document.getElementById('chartParPriorite');
+        if (ctxPrio && Object.keys(data.parPriorite).length > 0) {
+            const prioColors = {
+                'Critique': '#ef4444', 'Élevé': '#f97316',
+                'Modéré': '#f59e0b',   'Faible': '#22c55e',
+            };
+            const labels = Object.keys(data.parPriorite);
+            new Chart(ctxPrio, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: Object.values(data.parPriorite),
+                        backgroundColor: labels.map(l => prioColors[l] ?? '#64748b'),
+                        borderColor: 'transparent',
+                        hoverOffset: 6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: textColor, padding: 10, boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // Par catégorie
+        const ctxCat = document.getElementById('chartParCategorie');
+        if (ctxCat && Object.keys(data.parCategorie).length > 0) {
+            const labels = Object.keys(data.parCategorie);
+            new Chart(ctxCat, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes',
+                        data: Object.values(data.parCategorie),
+                        backgroundColor: 'rgba(245,158,11,.7)',
+                        borderColor: amber,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true },
+                        y: { grid: { display: false }, ticks: { color: textColor } }
+                    }
+                }
+            });
+        }
+
+        // Évolution
+        const ctxEvol = document.getElementById('chartEvolution');
+        if (ctxEvol && Object.keys(data.parAnnee).length > 0) {
+            const labels = Object.keys(data.parAnnee).sort();
+            new Chart(ctxEvol, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes',
+                        data: labels.map(k => data.parAnnee[k]),
+                        borderColor: amber,
+                        backgroundColor: 'rgba(245,158,11,.1)',
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: amber,
+                        pointRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Par statut
+        const ctxStatut = document.getElementById('chartParStatut');
+        if (ctxStatut && data.parStatut && Object.keys(data.parStatut).length > 0) {
+            const labels = Object.keys(data.parStatut);
+            new Chart(ctxStatut, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes',
+                        data: Object.values(data.parStatut),
+                        backgroundColor: 'rgba(96,165,250,.7)',
+                        borderColor: '#60a5fa',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Par urgence
+        const ctxUrgence = document.getElementById('chartParUrgence');
+        if (ctxUrgence && data.parUrgence && Object.keys(data.parUrgence).length > 0) {
+            const labels = Object.keys(data.parUrgence);
+            new Chart(ctxUrgence, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Alertes',
+                        data: Object.values(data.parUrgence),
+                        backgroundColor: 'rgba(52,211,153,.7)',
+                        borderColor: '#34d399',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+    }
+
+    // ── Carte Leaflet ─────────────────────────────────────────────────────────
+    initAuditMap({{ (stats.donneesCartographie is defined ? stats.donneesCartographie : [])|json_encode|raw }});
+}
+
+let auditMapInstance = null;
+function initAuditMap(zones) {
+    if (typeof L === 'undefined') return;
+    if (auditMapInstance) {
+        auditMapInstance.remove();
+        auditMapInstance = null;
+    }
+    const mapEl = document.getElementById('auditMap');
+    if (!mapEl) return;
+    const map = L.map('auditMap').setView([7.5, 2.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    zones.forEach(z => {
+        if (!z.latitude || !z.longitude) return;
+        const color = z.max_priorite === 'critique' ? '#ef4444' :
+                      z.max_priorite === 'eleve' ? '#f97316' :
+                      z.max_priorite === 'modere' ? '#f59e0b' : '#22c55e';
+        L.circleMarker([z.latitude, z.longitude], {
+            radius: 8 + Math.min(z.nb * 2, 20),
+            fillColor: color,
+            color: color,
+            weight: 1,
+            opacity: 0.8,
+            fillOpacity: 0.5,
+        }).addTo(map).bindPopup(
+            `<strong>${z.nom}</strong><br>Alertes: ${z.nb}<br>Priorité max: ${z.max_priorite || '—'}`
+        );
+    });
+    auditMapInstance = map;
+}
+    // Autocomplétion Opérateur / Acteur (Partie B)
+    const opInput = document.getElementById("operateurInput");
+    const opDatalist = document.getElementById("operateursDatalist");
+    if (opInput && opDatalist) {
+        let opTimer = null;
+        opInput.addEventListener("input", function() {
+            clearTimeout(opTimer);
+            const val = opInput.value.trim();
+            if (val.length < 2) return;
+            opTimer = setTimeout(() => {
+                fetch("/audit/operateurs/autocomplete?q=" + encodeURIComponent(val))
+                    .then(res => res.json())
+                    .then(items => {
+                        opDatalist.innerHTML = "";
+                        items.forEach(item => {
+                            const opt = document.createElement("option");
+                            opt.value = item;
+                            opDatalist.appendChild(opt);
+                        });
+                    })
+                    .catch(() => {});
+            }, 250);
+        });
+    }
+</script>
+{% endblock %}
+

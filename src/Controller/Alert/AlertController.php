@@ -2,6 +2,7 @@
 
 namespace App\Controller\Alert;
 
+use App\Entity\AccessLog;
 use App\Entity\Alert;
 use App\Form\AlertType;
 use App\Repository\AlertRepository;
@@ -10,6 +11,7 @@ use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -18,6 +20,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class AlertController extends AbstractController
 {
+    public function __construct(
+        private readonly RequestStack $requestStack,
+    ) {}
+
     #[Route('/', name: 'app_alert_index', methods: ['GET'])]
     public function index(Request $request, AlertRepository $alertRepository): Response
     {
@@ -26,66 +32,52 @@ class AlertController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        // Récupération des paramètres de filtre depuis les query parameters
         $filters = [
-            'statut' => $request->query->get('statut'),
+            'statut'         => $request->query->get('statut'),
             'niveauPriorite' => $request->query->get('priorite'),
-            'typeAlerte' => $request->query->get('typeAlerte'),
-            'market' => $request->query->get('market'),
-            'search' => $request->query->get('search'),
-            'categorie' => $request->query->get('categorie'),
-            'urgence' => $request->query->get('urgence'),
+            'typeAlerte'     => $request->query->get('typeAlerte'),
+            'market'         => is_array($request->query->get('market')) ? reset($request->query->get('market')) : $request->query->get('market'),
+            'search'         => $request->query->get('search'),
+            'categorie'      => $request->query->get('categorie'),
+            'urgence'        => $request->query->get('urgence'),
+            'scoreMin'       => $request->query->get('scoreMin'),
+            'scoreMax'       => $request->query->get('scoreMax'),
+            'origine'        => $request->query->get('origine'),
+            'dateDebut'      => $request->query->get('dateDebut'),
+            'dateFin'        => $request->query->get('dateFin'),
+            'agent'          => $request->query->get('agent'),   // Partie B
+            'manager'        => $request->query->get('manager'), // Partie B
         ];
 
         $alerts = $alertRepository->findForUser($user, $filters);
 
+        // Peuplement des selects Agent/Manager pour les filtres (Partie B)
+        $agentsForFilter   = $alertRepository->findAgentsForFilter($user);
+        $managersForFilter = $alertRepository->findManagersForFilter($user);
+
         return $this->render('alert/index.html.twig', [
-            'alerts' => $alerts,
-            'filters' => $filters,
+            'alerts'           => $alerts,
+            'filters'          => $filters,
+            'total'            => count($alerts),
+            'agentsForFilter'  => $agentsForFilter,
+            'managersForFilter' => $managersForFilter,
         ]);
     }
 
     #[Route('/new', name: 'app_alert_new', methods: ['GET', 'POST'])]
-    public function new(
-        Request $request,
-        EntityManagerInterface $em,
-        AlertCodeGeneratorService $codeGen,
-    ): Response {
-        $alert = new Alert();
-        $user = $this->getUser();
-        if ($user instanceof \App\Entity\User) {
-            $alert->setEmetteur($user);
-            if ($user->getMarket()) {
-                $alert->setMarket($user->getMarket());
-            }
-        }
-
-        $form = $this->createForm(AlertType::class, $alert);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            if (null === $alert->getCodeGei() && null !== $alert->getMarket()) {
-                $alert->setCodeGei($codeGen->generate($alert));
-            }
-
-            $em->persist($alert);
-            $em->flush();
-
-            $this->addFlash('success', sprintf('Alerte %s créée avec succès.', $alert->getCodeGei() ?? 'brouillon'));
-
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
-        }
-
-        return $this->render('alert/new.html.twig', [
-            'alert' => $alert,
-            'form' => $form,
-        ]);
+    public function new(): Response
+    {
+        return $this->redirectToRoute('app_wizard_new');
     }
 
     #[Route('/{id}', name: 'app_alert_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Alert $alert): Response
+    public function show(Alert $alert, EntityManagerInterface $em): Response
     {
         $this->denyAccessUnlessGranted(AlertVoter::VIEW, $alert);
+
+        // Log de consultation avec flush dédié
+        $this->logAction($alert, AccessLog::ACTION_LECTURE, 'Consultation fiche ' . ($alert->getCodeGei() ?? '#' . $alert->getId()), $em);
+        $em->flush();
 
         return $this->render('alert/show.html.twig', [
             'alert' => $alert,
@@ -93,25 +85,116 @@ class AlertController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_alert_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function edit(Request $request, Alert $alert, EntityManagerInterface $em): Response
+    public function edit(Request $request, Alert $alert): Response
     {
         $this->denyAccessUnlessGranted(AlertVoter::EDIT_COLLECTE, $alert);
 
-        $form = $this->createForm(AlertType::class, $alert);
-        $form->handleRequest($request);
+        $user = $this->getUser();
+        if (!$user instanceof \App\Entity\User) {
+            throw $this->createAccessDeniedException();
+        }
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $em->flush();
+        // Convert alert to draft data format and store in session
+        $draftData = $this->convertAlertToDraftData($alert);
+        $request->getSession()->set("alert_draft_{$user->getId()}", $draftData);
+        $request->getSession()->set("alert_edit_id_{$user->getId()}", $alert->getId());
 
-            $this->addFlash('success', 'Alerte mise à jour avec succès.');
+        return $this->redirectToRoute('app_wizard_new', ['step' => 1]);
+    }
 
+    private function convertAlertToDraftData(Alert $alert): array
+    {
+        $data = [
+            'market' => $alert->getMarket()?->getId(),
+            'portCorridor' => $alert->getPortCorridor(),
+            'resumeExecutif' => $alert->getResumeExecutif(),
+            'elementsFactuels' => $alert->getElementsFactuels(),
+            'hypothesesAnalytiques' => $alert->getHypothesesAnalytiques(),
+            'referenceDocumentaire' => $alert->getReferenceDocumentaire(),
+            'historiqueSource' => $alert->getHistoriqueSource(),
+            'actionsEnCours' => $alert->getActionsEnCours(),
+            'commentaires' => $alert->getCommentaires(),
+            'categorie' => $alert->getCategorie(),
+            'typeAlerte' => $alert->getTypeAlerte()?->value,
+            'typeSource' => $alert->getTypeSource(),
+            'anonymisation' => $alert->getAnonymisation(),
+            'fiabiliteSource' => $alert->getFiabiliteSource()?->value,
+            'urgence' => $alert->getUrgence()?->value,
+            'impact' => $alert->getImpact()?->value,
+            'exploitabilite' => $alert->getExploitabilite()?->value,
+            'recommandation' => $alert->getRecommandation()?->value,
+            'credibiliteContenu' => $alert->getCredibiliteContenu(),
+        ];
+
+        // Also add the template keys
+        foreach ($data as $key => $value) {
+            $data["alert[{$key}]"] = $value;
+        }
+
+        return $data;
+    }
+
+    #[Route('/{id}/delete', name: 'app_alert_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function delete(Request $request, Alert $alert, EntityManagerInterface $em): Response
+    {
+        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
+
+        if (!$this->isCsrfTokenValid('delete', $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton CSRF invalide.');
             return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
         }
 
-        return $this->render('alert/new.html.twig', [
-            'alert' => $alert,
-            'form' => $form,
-            'is_edit' => true,
-        ]);
+        $codeGei = $alert->getCodeGei() ?? '#' . $alert->getId();
+        $user    = $this->getUser();
+        $motif   = $request->request->get('motif_suppression', 'Aucun motif précisé');
+
+        // Soft-delete
+        $alert->setDeletedAt(new \DateTime());
+
+        // Persist log avant le flush global
+        $details = sprintf(
+            'Suppression (soft) de %s par %s — Motif : %s',
+            $codeGei,
+            $user instanceof \App\Entity\User ? $user->getNomComplet() : 'inconnu',
+            $motif
+        );
+        $this->logAction($alert, AccessLog::ACTION_SUPPRESSION, $details, $em);
+
+        $em->flush(); // Un seul flush pour soft-delete + log
+
+        $this->addFlash('info', sprintf('Alerte %s archivée (soft-delete).', $codeGei));
+
+        return $this->redirectToRoute('app_alert_index');
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    /**
+     * Persiste un AccessLog SANS flush immédiat.
+     * Le flush sera fait par le prochain appel applicatif.
+     * Appeler flushLog() explicitement si on a besoin d'une persistance garantie.
+     */
+    private function logAction(?Alert $alert, string $action, string $details, EntityManagerInterface $em): void
+    {
+        $user    = $this->getUser();
+        $request = $this->requestStack->getCurrentRequest();
+
+        if (!$user instanceof \App\Entity\User || !$request) {
+            return;
+        }
+
+        $log = new AccessLog();
+        $log->setUser($user);
+        $log->setAlert($alert);
+        $log->setAction($action);
+        $log->setIpAdresse($request->getClientIp());
+        $log->setUserAgent($request->headers->get('User-Agent'));
+        $log->setResultat('success');
+        $log->setDetails($details);
+
+        // persist() seulement — PAS de flush() ici.
+        // Un flush ici déclencherait onFlush sur toutes les alertes en mémoire,
+        // provoquant une boucle infinie via AlertScoreSubscriber.
+        $em->persist($log);
     }
 }

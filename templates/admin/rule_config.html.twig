@@ -4,29 +4,64 @@
 {% block header_title %}Configuration du Seuil : {{ rule.cle }}{% endblock %}
 
 {% block body %}
-<div class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-    {{ form_start(form, {'attr': {'class': 'space-y-4'}}) }}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
         <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase">Clé de configuration</label>
-            <input type="text" value="{{ rule.cle }}" disabled class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded text-slate-500 text-xs font-mono">
+            <p class="page-eyebrow">
+                <i class="bi bi-sliders me-1.5 text-amber-400"></i>
+                Administration · Règles de scoring
+            </p>
+            <h2 class="page-title">Modifier — {{ rule.cle }}</h2>
+            <p class="page-subtitle">
+                Catégorie : <span class="font-mono text-amber-400">{{ rule.categorie }}</span>
+            </p>
+        </div>
+        <a href="{{ path('app_admin_rule_index') }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-1.5"></i>Retour
+        </a>
+    </div>
+
+    {{ form_start(form, {'attr': {'class': 'db-card'}}) }}
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-pencil me-1.5"></i>
+                Paramètres de la règle
+            </p>
+        </div>
+        <div class="db-card-body">
+            <div class="form-grid-2">
+
+                <div class="form-field">
+                    <label class="form-label">Clé de configuration</label>
+                    <input type="text" value="{{ rule.cle }}" disabled class="form-input font-mono" style="opacity:.6">
+                    <p class="form-help">Identifiant technique de la règle. Non modifiable.</p>
+                </div>
+
+                <div class="form-field">
+                    {{ form_label(form.valeur, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.valeur, {'attr': {'class': 'form-input', 'placeholder': 'ex. 18, 72, 6...'}}) }}
+                    {{ form_help(form.valeur) }}
+                </div>
+
+                <div class="form-field" style="grid-column: 1 / -1;">
+                    {{ form_label(form.description, null, {'label_attr': {'class': 'form-label'}}) }}
+                    {{ form_widget(form.description, {'attr': {'class': 'form-input', 'placeholder': 'Description métier de la règle...'}}) }}
+                    {{ form_help(form.description) }}
+                </div>
+
+            </div>
         </div>
 
-        <div>
-            {{ form_label(form.valeur) }}
-            {{ form_widget(form.valeur) }}
-        </div>
-
-        <div>
-            {{ form_label(form.description) }}
-            {{ form_widget(form.description) }}
-        </div>
-
-        <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
-            <a href="{{ path('app_dashboard_superadmin') }}" class="px-4 py-2 bg-slate-800 text-slate-300 text-xs rounded-lg">Annuler</a>
-            <button type="submit" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg shadow">
-                Enregistrer la Modification
-            </button>
+        <div class="db-card-body" style="border-top: 1px solid var(--border);">
+            <div class="flex gap-3 justify-end">
+                <a href="{{ path('app_admin_rule_index') }}" class="db-btn db-btn-ghost">Annuler</a>
+                <button type="submit" class="db-btn db-btn-amber">
+                    <i class="bi bi-check-lg me-1.5"></i>Enregistrer
+                </button>
+            </div>
         </div>
     {{ form_end(form) }}
+
 </div>
 {% endblock %}

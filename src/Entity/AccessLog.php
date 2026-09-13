@@ -54,6 +54,13 @@ class AccessLog
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $details = null;
 
+    /**
+     * JSON structuré pour les modifications : {"before": {...}, "after": {...}}
+     * Permet l'affichage avant/après dans le journal d'activité.
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $diffData = null;
+
     public function __construct()
     {
         $this->dateAction = new \DateTimeImmutable();
@@ -83,4 +90,7 @@ class AccessLog
 
     public function getDetails(): ?string { return $this->details; }
     public function setDetails(?string $details): static { $this->details = $details; return $this; }
+
+    public function getDiffData(): ?array { return $this->diffData; }
+    public function setDiffData(?array $diffData): static { $this->diffData = $diffData; return $this; }
 }

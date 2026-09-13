@@ -49,17 +49,26 @@ class AlertTransmission
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTime $valideSaholtyLe = null;
 
+    public const STATUT_EN_COURS = 'en_cours';
+    public const STATUT_CLOTURE = 'cloture';
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $noteTransmission = null;
 
-    /** pending, valide, rejete */
+    /** en_cours (En cours de résolution), cloture (Clôturé), ou pending/valide */
     #[ORM\Column(type: 'string', length: 30)]
-    private string $statut = 'pending';
+    private string $statut = self::STATUT_EN_COURS;
+
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTime $dateCloture = null;
 
     #[ORM\PrePersist]
     public function onPrePersist(): void
     {
         $this->transmisLe = new \DateTimeImmutable();
+        if ($this->statut === 'pending') {
+            $this->statut = self::STATUT_EN_COURS;
+        }
     }
 
     public function getId(): ?int { return $this->id; }
@@ -92,6 +101,52 @@ class AlertTransmission
 
     public function getStatut(): string { return $this->statut; }
     public function setStatut(string $statut): static { $this->statut = $statut; return $this; }
+
+    public function getDateCloture(): ?\DateTime { return $this->dateCloture; }
+    public function setDateCloture(?\DateTime $dt): static { $this->dateCloture = $dt; return $this; }
+
+    public function cloturer(): static
+    {
+        $this->statut = self::STATUT_CLOTURE;
+        $this->dateCloture = new \DateTime();
+        return $this;
+    }
+
+    /**
+     * Réouvre une transmission clôturée (remet au statut "en cours de résolution").
+     */
+    public function rouvrir(): static
+    {
+        $this->statut = self::STATUT_EN_COURS;
+        $this->dateCloture = null;
+        return $this;
+    }
+
+    public function isCloture(): bool
+    {
+        return $this->statut === self::STATUT_CLOTURE;
+    }
+
+    public function isEnCours(): bool
+    {
+        return $this->statut === self::STATUT_EN_COURS;
+    }
+
+    public function getStatutLabel(): string
+    {
+        return match ($this->statut) {
+            self::STATUT_CLOTURE => 'Clôturé',
+            self::STATUT_EN_COURS => 'En cours de résolution',
+            'valide' => 'Validé',
+            'rejete' => 'Rejeté',
+            default => 'En cours de résolution',
+        };
+    }
+
+    public function getManager(): ?User
+    {
+        return $this->transmisBy;
+    }
 
     public function isValide(): bool
     {

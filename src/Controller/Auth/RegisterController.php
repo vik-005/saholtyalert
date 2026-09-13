@@ -65,6 +65,9 @@ class RegisterController extends AbstractController
             if (strlen($password) < 12 || !preg_match('/[A-Z]/', $password) || !preg_match('/[a-z]/', $password) || !preg_match('/\d/', $password)) {
                 $errors[] = 'Le mot de passe doit contenir 12 caractères, une majuscule, une minuscule et un chiffre.';
             }
+            if (strtolower($password) === strtolower($formData['email'])) {
+                $errors[] = 'Le mot de passe ne peut pas être identique à votre adresse email.';
+            }
             if ($password !== $passwordConfirm) {
                 $errors[] = 'Les mots de passe ne correspondent pas.';
             }

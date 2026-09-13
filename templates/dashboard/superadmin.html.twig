@@ -8,12 +8,12 @@
     {# ── En-tête ── #}
     <div class="page-header-row">
         <div>
-            <p class="page-eyebrow"><i class="fa-solid fa-screwdriver-wrench me-1.5"></i>Accès SUPERADMIN · Annexe D</p>
+            <p class="page-eyebrow"><i class="bi bi-wrench me-1.5"></i>Accès SUPERADMIN · Annexe D</p>
             <h2 class="page-title">Console d'administration</h2>
             <p class="page-subtitle">Gestion des utilisateurs, règles de scoring et journal d'audit.</p>
         </div>
         <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber">
-            <i class="fa-solid fa-user-plus me-1.5"></i>Créer un utilisateur
+            <i class="bi bi-person-plus me-1.5"></i>Créer un utilisateur
         </a>
     </div>
 
@@ -21,15 +21,15 @@
     <div class="db-table-card">
         <div class="db-card-header db-card-header-border" style="padding:14px 16px">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-users me-1.5"></i>Contrôle d'accès RBAC</p>
+                <p class="db-card-eyebrow"><i class="bi bi-persons me-1.5"></i>Contrôle d'accès RBAC</p>
                 <p class="db-card-title">Gestion des utilisateurs & rôles</p>
             </div>
             <div class="db-card-actions">
                 <a href="{{ path('app_admin_user_index') }}" class="db-btn db-btn-ghost" style="font-size:11px">
-                    <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Vue complète
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Vue complète
                 </a>
                 <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber" style="font-size:11px">
-                    <i class="fa-solid fa-plus me-1"></i>Créer
+                    <i class="bi bi-plus me-1"></i>Créer
                 </a>
             </div>
         </div>
@@ -37,12 +37,12 @@
             <table class="db-table">
                 <thead>
                     <tr>
-                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Utilisateur</th>
-                        <th><i class="fa-regular fa-envelope me-1 opacity-50"></i>Email</th>
-                        <th><i class="fa-solid fa-shield-halved me-1 opacity-50"></i>Rôle GEI</th>
-                        <th><i class="fa-solid fa-earth-africa me-1 opacity-50"></i>Marché</th>
-                        <th><i class="fa-solid fa-circle-dot me-1 opacity-50"></i>Statut</th>
-                        <th class="text-right"><i class="fa-solid fa-ellipsis me-1 opacity-50"></i>Actions</th>
+                        <th><i class="bi bi-person me-1 opacity-50"></i>Utilisateur</th>
+                        <th><i class="bi bi-envelope me-1 opacity-50"></i>Email</th>
+                        <th><i class="bi bi-shield-half me-1 opacity-50"></i>Rôle GEI</th>
+                        <th><i class="bi bi-globe-africa me-1 opacity-50"></i>Marché</th>
+                        <th><i class="bi bi-circle-dot me-1 opacity-50"></i>Statut</th>
+                        <th class="text-right"><i class="bi bi-three-dots me-1 opacity-50"></i>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -59,7 +59,7 @@
                         <td style="font-family:monospace;color:var(--muted);font-size:11px">{{ u.email }}</td>
                         <td>
                             <span class="priority-badge priority-modere" style="font-size:10px">
-                                <i class="fa-solid fa-shield-halved fa-xs me-1"></i>{{ u.role.label }}
+                                <i class="bi bi-shield-half me-1"></i>{{ u.role.label() }}
                             </span>
                         </td>
                         <td style="color:var(--dim)">{{ u.market ? u.market.nom : 'Global / Régional' }}</td>
@@ -78,13 +78,13 @@
                             <div class="table-actions">
                                 <a href="{{ path('app_admin_user_edit', {id: u.id}) }}"
                                    class="tbl-btn tbl-btn-ghost" title="Éditer">
-                                    <i class="fa-solid fa-pen-to-square"></i>
+                                    <i class="bi bi-pen-to-square"></i>
                                 </a>
                                 <button type="button"
                                         class="delete-trigger tbl-btn tbl-btn-red" title="Supprimer"
                                         data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}"
                                         data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">
-                                    <i class="fa-solid fa-trash-can"></i>
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </td>
@@ -93,10 +93,10 @@
                     <tr>
                         <td colspan="6">
                             <div class="db-empty-state">
-                                <i class="fa-regular fa-user fa-2x" style="color:var(--muted);margin-bottom:8px"></i>
+                                <i class="bi bi-person bi-2x" style="color:var(--muted);margin-bottom:8px"></i>
                                 <p>Aucun utilisateur enregistré.</p>
                                 <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber" style="margin-top:12px">
-                                    <i class="fa-solid fa-plus me-1"></i>Créer le premier utilisateur
+                                    <i class="bi bi-plus me-1"></i>Créer le premier utilisateur
                                 </a>
                             </div>
                         </td>
@@ -111,11 +111,11 @@
     <div class="db-chart-card">
         <div class="db-card-header db-card-header-border">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-sliders me-1.5"></i>Moteur de règles §3.2</p>
+                <p class="db-card-eyebrow"><i class="bi bi-sliders me-1.5"></i>Moteur de règles §3.2</p>
                 <p class="db-card-title">Seuils de scoring configurés</p>
             </div>
             <a href="{{ path('app_admin_rule_index') }}" class="db-btn db-btn-ghost" style="font-size:11px">
-                <i class="fa-solid fa-list me-1"></i>Toutes les règles
+                <i class="bi-list me-1"></i>Toutes les règles
             </a>
         </div>
         <div class="kpi-rules-grid">
@@ -128,12 +128,12 @@
                 </div>
                 <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}"
                    class="tbl-btn tbl-btn-ghost" title="Modifier" style="flex-shrink:0;margin-left:10px">
-                    <i class="fa-solid fa-pen-to-square"></i>
+                    <i class="bi bi-pen-to-square"></i>
                 </a>
             </div>
             {% else %}
             <div style="color:var(--muted);font-size:12px;grid-column:1/-1">
-                <i class="fa-solid fa-circle-info me-1.5"></i>Aucune règle configurée.
+                <i class="bi bi-info-circle me-1.5"></i>Aucune règle configurée.
             </div>
             {% endfor %}
         </div>
@@ -143,7 +143,7 @@
     <div class="db-table-card">
         <div class="db-card-header db-card-header-border" style="padding:14px 16px">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-clock-rotate-left me-1.5"></i>Traçabilité — Annexe D §6/§8</p>
+                <p class="db-card-eyebrow"><i class="bi bi-clock-rotate-left me-1.5"></i>Traçabilité — Annexe D §6/§8</p>
                 <p class="db-card-title">Journal d'audit & AccessLog</p>
             </div>
         </div>
@@ -151,11 +151,11 @@
             <table class="db-table">
                 <thead>
                     <tr>
-                        <th><i class="fa-regular fa-clock me-1 opacity-50"></i>Horodatage</th>
-                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Utilisateur</th>
-                        <th><i class="fa-solid fa-bolt me-1 opacity-50"></i>Action</th>
-                        <th><i class="fa-solid fa-file-shield me-1 opacity-50"></i>Alerte liée</th>
-                        <th><i class="fa-solid fa-network-wired me-1 opacity-50"></i>IP</th>
+                        <th><i class="bi bi-clock me-1 opacity-50"></i>Horodatage</th>
+                        <th><i class="bi bi-person me-1 opacity-50"></i>Utilisateur</th>
+                        <th><i class="bi bi-lightning me-1 opacity-50"></i>Action</th>
+                        <th><i class="bi bi-shield-file me-1 opacity-50"></i>Alerte liée</th>
+                        <th><i class="bi bi-diagram-3 me-1 opacity-50"></i>IP</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -183,7 +183,7 @@
                     <tr>
                         <td colspan="5">
                             <div class="db-empty-state">
-                                <i class="fa-regular fa-folder-open fa-2x" style="color:var(--muted);margin-bottom:8px"></i>
+                                <i class="bi bi-folder2-open bi-2x" style="color:var(--muted);margin-bottom:8px"></i>
                                 <p>Aucune entrée dans le journal.</p>
                             </div>
                         </td>

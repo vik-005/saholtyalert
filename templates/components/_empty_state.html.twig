@@ -1,0 +1,59 @@
+{#
+  Composant état vide esthétique — Partie F.2
+  Usage :
+    {% include 'components/_empty_state.html.twig' with {
+        icon: 'bi-folder2-open',       {# optionnel, défaut bi-folder2-open #}
+        title: 'Aucune alerte',        {# requis #}
+        subtitle: 'Modifiez vos...',   {# optionnel #}
+        reset_url: path('app_alert_index'), {# optionnel : URL du bouton réinitialiser #}
+        reset_label: 'Réinitialiser',  {# optionnel, défaut 'Réinitialiser les filtres' #}
+        has_active_filters: true,      {# booléen — n'affiche le bouton reset que si pertinent #}
+    } %}
+
+  Règle design : PAS de rouge — un état vide n'est pas une erreur.
+#}
+<div class="empty-state" role="status" aria-live="polite">
+    <div class="empty-state-icon">
+        <i class="bi {{ icon|default('bi-folder2-open') }}"></i>
+    </div>
+    <p class="empty-state-title">{{ title|default('Aucun résultat') }}</p>
+    {% if subtitle|default('') != '' %}
+    <p class="empty-state-subtitle">{{ subtitle }}</p>
+    {% else %}
+    <p class="empty-state-subtitle">Aucun élément ne correspond aux critères de sélection actuels.</p>
+    {% endif %}
+    {% if has_active_filters|default(false) and reset_url|default('') != '' %}
+    <a href="{{ reset_url }}" class="empty-state-btn">
+        <i class="bi bi-arrow-counterclockwise me-1.5"></i>{{ reset_label|default('Réinitialiser les filtres') }}
+    </a>
+    {% endif %}
+</div>
+
+<style>
+.empty-state {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:48px 24px; text-align:center;
+    color:var(--text-muted);
+}
+.empty-state-icon {
+    width:56px; height:56px;
+    display:grid; place-items:center;
+    background:var(--navy-800); border:1px solid var(--border);
+    border-radius:var(--radius-lg); margin-bottom:16px;
+    font-size:22px; color:var(--text-muted);
+}
+.empty-state-title {
+    font-size:14px; font-weight:700; color:var(--text); margin-bottom:6px;
+}
+.empty-state-subtitle {
+    font-size:12px; color:var(--text-muted); max-width:360px; line-height:1.6;
+}
+.empty-state-btn {
+    margin-top:18px; display:inline-flex; align-items:center; gap:6px;
+    font-size:12px; font-weight:600; color:var(--amber);
+    background:var(--amber-dim); border:1px solid var(--amber-border);
+    border-radius:var(--radius); padding:7px 16px; text-decoration:none;
+    transition:opacity .15s;
+}
+.empty-state-btn:hover { opacity:.8; }
+</style>

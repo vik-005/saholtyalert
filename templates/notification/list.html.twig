@@ -7,7 +7,7 @@
 
     <div class="page-header-row">
         <div>
-            <p class="page-eyebrow"><i class="fa-solid fa-bell me-1.5 text-amber-400"></i>Centre de notifications</p>
+            <p class="page-eyebrow"><i class="bi-bell me-1.5 text-amber-400"></i>Centre de notifications</p>
             <h2 class="page-title">Mes notifications</h2>
             <p class="page-subtitle">
                 {{ unread_count }} non lue{{ unread_count > 1 ? 's' : '' }} sur {{ notifications|length }} au total
@@ -17,7 +17,7 @@
         <form method="post" action="{{ path('app_notification_read_all') }}">
             <input type="hidden" name="_token" value="{{ csrf_token('read_all') }}">
             <button type="submit" class="db-btn db-btn-ghost">
-                <i class="fa-solid fa-check-double me-1.5"></i>Tout marquer comme lu
+                <i class="bi-check-double me-1.5"></i>Tout marquer comme lu
             </button>
         </form>
         {% endif %}
@@ -26,15 +26,15 @@
     <div class="notif-list-card">
         {% for notif in notifications %}
         {% set typeIcon = {
-            'urgence':      'fa-circle-radiation',
-            'sla_proche':   'fa-stopwatch',
-            'validation':   'fa-clipboard-check',
-            'tache':        'fa-list-check',
-            'statut_change':'fa-rotate',
-            'info':         'fa-circle-info',
-            'warning':      'fa-triangle-exclamation',
-            'escalade':     'fa-arrow-up-right-dots',
-        }[notif.type] ?? 'fa-bell' %}
+            'urgence':      'bi-radioactive',
+            'sla_proche':   'bi-stopwatch',
+            'validation':   'bi-clipboard-check',
+            'tache':        'bi-list-check',
+            'statut_change':'bi-arrow-repeat',
+            'info':         'bi-info-circle',
+            'warning':      'bi-triangle-alert',
+            'escalade':     'bi-arrow-up-right',
+        }[notif.type] ?? 'bi-bell' %}
         {% set typeColor = {
             'urgence':      'activity-icon-red',
             'sla_proche':   'activity-icon-red',
@@ -49,14 +49,14 @@
         <a href="{{ path('app_notification_read', {id: notif.id}) }}"
            class="notif-list-item {% if not notif.lu %}notif-list-item-unread{% endif %}">
             <div class="activity-icon-wrap {{ typeColor }} flex-shrink-0">
-                <i class="fa-solid {{ typeIcon }} fa-xs"></i>
+                <i class="bi-{{ typeIcon }} fa-xs"></i>
             </div>
             <div class="notif-list-body">
                 <p class="notif-list-text">{{ notif.contenu }}</p>
                 <div class="notif-list-meta">
                     {% if notif.alert %}
                         <span class="notif-list-code">
-                            <i class="fa-solid fa-hashtag fa-xs me-1 opacity-50"></i>
+                            <i class="bi-hash fa-xs me-1 opacity-50"></i>
                             {{ notif.alert.codeGei ?? 'Alerte #' ~ notif.alert.id }}
                         </span>
                         <span class="mx-1 text-slate-700">·</span>
@@ -67,11 +67,11 @@
                     {% endif %}
                 </div>
             </div>
-            <i class="fa-solid fa-chevron-right text-slate-700 fa-xs flex-shrink-0"></i>
+            <i class="bi-chevron-right text-slate-700 fa-xs flex-shrink-0"></i>
         </a>
         {% else %}
         <div class="db-empty-state">
-            <i class="fa-regular fa-bell-slash fa-2x text-slate-600 mb-3"></i>
+            <i class="bi-bell-slash fa-2x text-slate-600 mb-3"></i>
             <p>Aucune notification</p>
         </div>
         {% endfor %}

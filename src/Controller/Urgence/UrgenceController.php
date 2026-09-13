@@ -20,6 +20,15 @@ class UrgenceController extends AbstractController
     #[Route('/activate/{id}', name: 'app_urgence_activate', methods: ['POST'])]
     public function activate(Request $request, Alert $alert, EntityManagerInterface $em): Response
     {
+        if (!$this->isCsrfTokenValid('activate-urgence-' . $alert->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+        }
+
+        if (!$alert->isEligibleForUrgence72h()) {
+            throw $this->createAccessDeniedException('Seule une alerte validée par le Manager et classée Urgence 72h peut entrer dans cet espace.');
+        }
+
         if ($alert->getUrgence72hCase()) {
             $this->addFlash('warning', 'Procédure Urgence 72h déjà active pour cette alerte.');
             return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
@@ -47,6 +56,15 @@ class UrgenceController extends AbstractController
             $phase->setPhase($phaseEnum);
             $slaLimite = $case->getDateActivation()->modify('+' . $phaseEnum->slaHeures() . ' hours');
             $phase->setSlaHeureLimite($slaLimite);
+
+            if ($phaseEnum === PhaseUrgence::DETECTION) {
+                // Détection (T0) automatiquement complétée dès sa création
+                $phase->setDateDebut($case->getDateActivation());
+                $phase->setDateFin($case->getDateActivation());
+            } elseif ($phaseEnum === PhaseUrgence::COORDINATION) {
+                $phase->setDateDebut($case->getDateActivation());
+            }
+
             $case->addPhase($phase);
         }
 
@@ -60,10 +78,33 @@ class UrgenceController extends AbstractController
     }
 
     #[Route('/phase/{id}/advance', name: 'app_urgence_phase_advance', methods: ['POST'])]
-    public function advancePhase(Urgence72hPhase $phase, EntityManagerInterface $em): Response
+    public function advancePhase(Request $request, Urgence72hPhase $phase, EntityManagerInterface $em): Response
     {
-        $phase->setDateFin(new \DateTimeImmutable());
+        if (!$this->isCsrfTokenValid('advance-phase-' . $phase->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_dashboard_urgence');
+        }
+
+        $now = new \DateTimeImmutable();
+        $phase->setDateFin($now);
+        if ($now > $phase->getSlaHeureLimite()) {
+            $phase->setEnRetard(true);
+        }
+
         $case = $phase->getUrgenceCase();
+
+        if (!$case || !$case->getAlert()?->isEligibleForUrgence72h()) {
+            throw $this->createAccessDeniedException('Ce cas n’est plus éligible au processus opérationnel Urgence 72h.');
+        }
+
+        // Si phase COORDINATION terminée -> démarrer la phase SUIVI
+        if ($phase->getPhase() === PhaseUrgence::COORDINATION) {
+            foreach ($case->getPhases() as $otherPhase) {
+                if ($otherPhase->getPhase() === PhaseUrgence::SUIVI && $otherPhase->getDateDebut() === null) {
+                    $otherPhase->setDateDebut($now);
+                }
+            }
+        }
 
         // Si dernière phase (SUIVI), clôturer le cas
         if ($phase->getPhase() === PhaseUrgence::SUIVI) {
@@ -74,7 +115,7 @@ class UrgenceController extends AbstractController
 
         $em->flush();
 
-        $this->addFlash('success', sprintf('Phase "%s" validée et terminée.', $phase->getPhase()->label()));
+        $this->addFlash('success', sprintf('Phase "%s" validée et marquée comme complétée.', $phase->getPhase()->label()));
 
         return $this->redirectToRoute('app_dashboard_urgence');
     }

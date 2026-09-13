@@ -57,7 +57,7 @@ class Urgence72hCase
     private ?string $enseignements = null;
 
     #[ORM\OneToMany(mappedBy: 'urgenceCase', targetEntity: Urgence72hPhase::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    #[ORM\OrderBy(['phase' => 'ASC'])]
+    #[ORM\OrderBy(['slaHeureLimite' => 'ASC'])]
     private Collection $phases;
 
     public function __construct()
@@ -99,6 +99,17 @@ class Urgence72hCase
     public function setEnseignements(?string $e): static { $this->enseignements = $e; return $this; }
 
     public function getPhases(): Collection { return $this->phases; }
+
+    /**
+     * Retourne les phases ordonnées chronologiquement (Phase 0 à 4 / T0 à T+72h).
+     * @return Urgence72hPhase[]
+     */
+    public function getSortedPhases(): array
+    {
+        $phases = $this->phases->toArray();
+        usort($phases, fn(Urgence72hPhase $a, Urgence72hPhase $b) => $a->getPhase()->ordre() <=> $b->getPhase()->ordre());
+        return $phases;
+    }
 
     public function addPhase(Urgence72hPhase $phase): static
     {

@@ -14,7 +14,7 @@
 {# ── Erreurs de validation ── #}
 {% if errors is defined and errors|length %}
 <div class="auth-error">
-    <i class="fa-solid fa-circle-xmark auth-error-icon"></i>
+    <i class="bi-x-circle auth-error-icon"></i>
     <div>
         <p class="auth-error-title">Erreur de validation</p>
         {% for error in errors %}
@@ -31,7 +31,7 @@
     <div class="auth-row-2col">
         <div class="auth-field-wrap">
             <label class="auth-label" for="prenom">
-                <i class="fa-regular fa-user me-1.5 opacity-60"></i>Prénom
+                <i class="bi-person me-1.5 opacity-60"></i>Prénom
             </label>
             <div class="auth-input-wrap">
                 <input
@@ -49,7 +49,7 @@
 
         <div class="auth-field-wrap">
             <label class="auth-label" for="nom">
-                <i class="fa-regular fa-id-card me-1.5 opacity-60"></i>Nom
+                <i class="bi-id-card me-1.5 opacity-60"></i>Nom
             </label>
             <div class="auth-input-wrap">
                 <input
@@ -69,7 +69,7 @@
     {# Email #}
     <div class="auth-field-wrap">
         <label class="auth-label" for="email">
-            <i class="fa-regular fa-envelope me-1.5 opacity-60"></i>Adresse email professionnelle
+            <i class="bi-envelope me-1.5 opacity-60"></i>Adresse email professionnelle
         </label>
         <div class="auth-input-wrap">
             <input
@@ -89,7 +89,7 @@
     <div class="auth-row-2col">
         <div class="auth-field-wrap">
             <label class="auth-label" for="fonction">
-                <i class="fa-solid fa-briefcase me-1.5 opacity-60"></i>Fonction
+                <i class="bi-briefcase me-1.5 opacity-60"></i>Fonction
             </label>
             <div class="auth-input-wrap">
                 <input
@@ -105,7 +105,7 @@
         </div>
         <div class="auth-field-wrap">
             <label class="auth-label" for="pays">
-                <i class="fa-solid fa-earth-africa me-1.5 opacity-60"></i>Pays / Marché
+                <i class="bi-globe me-1.5 opacity-60"></i>Pays / Marché
             </label>
             <div class="auth-input-wrap">
                 <input
@@ -124,7 +124,7 @@
     {# Mot de passe #}
     <div class="auth-field-wrap">
         <label class="auth-label" for="reg_password">
-            <i class="fa-solid fa-lock me-1.5 opacity-60"></i>Mot de passe
+            <i class="bi-lock me-1.5 opacity-60"></i>Mot de passe
         </label>
         <div class="auth-input-wrap auth-input-icon-right">
             <input
@@ -139,7 +139,7 @@
             >
             <button type="button" class="auth-input-btn" id="toggleRegPwdBtn"
                     onclick="togglePassword('reg_password', 'toggleRegPwdBtn')" tabindex="-1">
-                <i class="fa-regular fa-eye"></i>
+                <i class="bi-eye"></i>
             </button>
         </div>
         {# Barre de force #}
@@ -152,7 +152,7 @@
     {# Confirmer mot de passe #}
     <div class="auth-field-wrap">
         <label class="auth-label" for="reg_password_confirm">
-            <i class="fa-solid fa-lock-open me-1.5 opacity-60"></i>Confirmer le mot de passe
+            <i class="bi-lock-open me-1.5 opacity-60"></i>Confirmer le mot de passe
         </label>
         <div class="auth-input-wrap auth-input-icon-right">
             <input
@@ -166,7 +166,7 @@
             >
             <button type="button" class="auth-input-btn" id="toggleConfirmBtn"
                     onclick="togglePassword('reg_password_confirm', 'toggleConfirmBtn')" tabindex="-1">
-                <i class="fa-regular fa-eye"></i>
+                <i class="bi-eye"></i>
             </button>
         </div>
     </div>
@@ -188,7 +188,7 @@
 
     {# Bouton principal #}
     <button type="submit" class="auth-submit-btn">
-        <i class="fa-solid fa-user-plus me-2"></i>
+        <i class="bi-person-plus me-2"></i>
         Créer le compte
     </button>
 

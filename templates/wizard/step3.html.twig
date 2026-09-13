@@ -1,0 +1,68 @@
+{# Étape 3 — Classification (champs 9 et 10) #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 3}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="3">
+
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-tags me-1.5 text-amber-400"></i>
+                Étape 3 sur 6 — Classification
+            </p>
+            <p class="text-xs text-slate-500">Champs 9 et 10 du formulaire Agent</p>
+        </div>
+        <div class="db-card-body space-y-4">
+
+            {# Champ 9 — Catégorie (liste administrable) #}
+            <div class="form-field">
+                <label class="form-label" for="w_categorie">
+                    Catégorie <span class="text-red-400">*</span>
+                </label>
+                <select name="alert[categorie]" id="w_categorie" class="form-select" required>
+                    <option value="">Sélectionnez une catégorie</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.libelle }}"
+                            {% if draftData and (draftData['alert[categorie]'] ?? null) == cat.libelle %}selected{% endif %}>
+                            {{ cat.libelle }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">Nature principale de l'alerte. Cette liste est administrable par le Manager.</p>
+            </div>
+
+            {# Champ 10 — Type d'alerte (radio) #}
+            <div class="form-field">
+                <label class="form-label">
+                    Type d'alerte <span class="text-red-400">*</span>
+                </label>
+                <div class="radio-group">
+                    <label class="radio-option {% if (draftData['alert[typeAlerte]'] ?? '') == 'operationnelle' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[typeAlerte]" value="operationnelle"
+                               {% if (draftData['alert[typeAlerte]'] ?? '') == 'operationnelle' %}checked{% endif %} required>
+                        <i class="bi-lightning-charge me-1"></i>
+                        <span class="radio-option-label">Opérationnelle</span>
+                    </label>
+                    <label class="radio-option {% if (draftData['alert[typeAlerte]'] ?? '') == 'strategique' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[typeAlerte]" value="strategique"
+                               {% if (draftData['alert[typeAlerte]'] ?? '') == 'strategique' %}checked{% endif %}>
+                        <i class="bi-diagram-3 me-1"></i>
+                        <span class="radio-option-label">Stratégique</span>
+                    </label>
+                </div>
+                <p class="form-help">Opérationnelle = action immédiate · Stratégique = tendance/analyse de fond.</p>
+            </div>
+
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <button type="submit" name="_action" value="prev" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-2"></i>Précédent
+        </button>
+        <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
+            Suivant — Source<i class="bi bi-arrow-right ms-2"></i>
+        </button>
+    </div>
+
+</form>

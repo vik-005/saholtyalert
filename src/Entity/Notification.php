@@ -18,7 +18,7 @@ class Notification
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?User $destinataire = null;
 
-    /** info, warning, danger, success */
+    /** info, warning, danger, success — et types urgence : 'urgence', 'sla_proche', 'rejet', 'validation' */
     #[ORM\Column(type: 'string', length: 50)]
     private string $type = 'info';
 
@@ -31,6 +31,13 @@ class Notification
 
     #[ORM\Column(type: 'boolean')]
     private bool $lu = false;
+
+    /**
+     * Priorité d'affichage : 0 = normale, 1 = haute (urgence critique).
+     * Les notifications haute priorité s'affichent en tête de liste (Partie H).
+     */
+    #[ORM\Column(type: 'smallint', options: ['default' => 0])]
+    private int $priorite = 0;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
@@ -56,6 +63,10 @@ class Notification
 
     public function isLu(): bool { return $this->lu; }
     public function setLu(bool $lu): static { $this->lu = $lu; return $this; }
+
+    public function getPriorite(): int { return $this->priorite; }
+    public function setPriorite(int $priorite): static { $this->priorite = $priorite; return $this; }
+    public function isUrgente(): bool { return $this->priorite >= 1; }
 
     public function getCreatedAt(): \DateTimeImmutable { return $this->createdAt; }
 }

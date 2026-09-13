@@ -11,14 +11,14 @@
 <div class="stats-filter-bar" id="globalFilters">
     <form method="get" id="filterForm" class="stats-filter-form">
         <div class="stats-filter-group">
-            <label class="stats-filter-label"><i class="fa-regular fa-calendar me-1.5"></i>Période</label>
+            <label class="stats-filter-label"><i class="bi bi-calendar me-1.5"></i>Période</label>
             <input type="date" name="debut" value="{{ debut }}" class="stats-input" id="filterDebut">
             <span class="text-slate-500 text-xs">→</span>
             <input type="date" name="fin"   value="{{ fin }}"   class="stats-input" id="filterFin">
         </div>
 
         <div class="stats-filter-group">
-            <label class="stats-filter-label"><i class="fa-solid fa-earth-africa me-1.5"></i>Marchés</label>
+            <label class="stats-filter-label"><i class="bi bi-globe-africa me-1.5"></i>Marchés</label>
             <div class="stats-market-checks">
                 {% for m in all_markets %}
                 <label class="stats-check-label">
@@ -33,15 +33,15 @@
 
         <div class="stats-filter-actions">
             <button type="submit" class="stats-apply-btn">
-                <i class="fa-solid fa-rotate me-1.5"></i>Appliquer
+                <i class="bi bi-arrow-clockwise me-1.5"></i>Appliquer
             </button>
             <a href="{{ path('app_dashboard_statistiques') }}" class="stats-reset-btn">
-                <i class="fa-solid fa-xmark me-1"></i>Reset
+                <i class="bi bi-x me-1"></i>Reset
             </a>
             <a href="{{ path('app_export_statistiques') }}?debut={{ debut }}&fin={{ fin }}&markets={{ selected_markets|join(',') }}"
                class="stats-apply-btn" style="background:#16856b;color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:5px;"
                title="Exporter les statistiques en Excel">
-                <i class="fa-solid fa-file-excel"></i> Excel
+                <i class="bi bi-file-earmark-spreadsheet"></i> Excel
             </a>
         </div>
     </form>
@@ -63,7 +63,7 @@
     <div class="stats-card stats-gauge-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-stopwatch me-1.5"></i>SLA Urgence 72h</p>
+                <p class="db-card-eyebrow"><i class="bi bi-stopwatch me-1.5"></i>SLA Urgence 72h</p>
                 <p class="db-card-title">Conformité des délais</p>
             </div>
         </div>
@@ -91,7 +91,7 @@
     <div class="stats-card stats-gauge-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-bolt me-1.5"></i>Exploitabilité</p>
+                <p class="db-card-eyebrow"><i class="bi bi-lightning me-1.5"></i>Exploitabilité</p>
                 <p class="db-card-title">Alertes actionnables</p>
             </div>
         </div>
@@ -114,7 +114,7 @@
     <div class="stats-card stats-card-wide">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-chart-line me-1.5"></i>Évolution</p>
+                <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Évolution</p>
                 <p class="db-card-title">Soumissions vs Transmises</p>
             </div>
         </div>
@@ -135,7 +135,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-bars-staggered me-1.5"></i>Volume par pays</p>
+                <p class="db-card-eyebrow"><i class="bi bi-list-staggered me-1.5"></i>Volume par pays</p>
                 <p class="db-card-title">Nb alertes — trié décroissant</p>
             </div>
         </div>
@@ -145,7 +145,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-star-half-stroke me-1.5"></i>Score moyen par pays</p>
+                <p class="db-card-eyebrow"><i class="bi bi-star-half me-1.5"></i>Score moyen par pays</p>
                 <p class="db-card-title">Zones les plus sensibles</p>
             </div>
         </div>
@@ -162,7 +162,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-layer-group me-1.5"></i>Statuts par pays</p>
+                <p class="db-card-eyebrow"><i class="bi-layers me-1.5"></i>Statuts par pays</p>
                 <p class="db-card-title">Répartition empilée</p>
             </div>
         </div>
@@ -172,7 +172,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-paper-plane me-1.5"></i>Taux transmission</p>
+                <p class="db-card-eyebrow"><i class="bi bi-send me-1.5"></i>Taux transmission</p>
                 <p class="db-card-title">Par marché (%)</p>
             </div>
         </div>
@@ -189,7 +189,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-chart-pie me-1.5"></i>Catégories</p>
+                <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1.5"></i>Catégories</p>
                 <p class="db-card-title">Répartition par type</p>
             </div>
         </div>
@@ -204,12 +204,12 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-route me-1.5"></i>Top corridors actifs</p>
-                <p class="db-card-title">Top {{ top_corridors|length }}</p>
+                <p class="db-card-eyebrow"><i class="bi bi-building me-1.5"></i>Top opérateurs</p>
+                <p class="db-card-title">Top {{ top_operateurs|length }}</p>
             </div>
         </div>
         <div style="overflow-y:auto; max-height:260px;">
-            <canvas id="chartTopCorridors" height="250"></canvas>
+            <canvas id="chartTopOperateurs" height="250"></canvas>
         </div>
     </div>
 
@@ -224,7 +224,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-grid-2 me-1.5"></i>Matrice Annexe C</p>
+                <p class="db-card-eyebrow"><i class="bi bi-grid-1x2 me-1.5"></i>Matrice Annexe C</p>
                 <p class="db-card-title">Fiabilité × Crédibilité — nb alertes réelles</p>
             </div>
         </div>
@@ -279,7 +279,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-users me-1.5"></i>Activité agents</p>
+                <p class="db-card-eyebrow"><i class="bi bi-persons me-1.5"></i>Activité agents</p>
                 <p class="db-card-title">Nb soumissions par agent</p>
             </div>
         </div>
@@ -297,7 +297,7 @@
     <div class="stats-card">
         <div class="db-card-header">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-clock me-1.5"></i>Délai de traitement</p>
+                <p class="db-card-eyebrow"><i class="bi bi-clock me-1.5"></i>Délai de traitement</p>
                 <p class="db-card-title">Heures moyennes soumission → clôture par pays</p>
             </div>
         </div>
@@ -314,6 +314,7 @@
 ════════════════════════════════════════════════════════════════════════════ #}
 {% block javascripts %}{{ parent() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
 // ─── Constantes de couleurs (charte GEI — ne pas modifier) ────────────────
 const C = {
     amber:    '#fbbf24',
@@ -373,6 +374,7 @@ const DATA = {
     txTransmission: {{ tx_transmission|json_encode|raw }},
     categories:   {{ repartition_categorie|json_encode|raw }},
     corridors:    {{ top_corridors|json_encode|raw }},
+    operateurs:   {{ top_operateurs|json_encode|raw }},
     agents:       {{ activite_agents|json_encode|raw }},
     delaiMoyen:   {{ delai_moyen|json_encode|raw }},
 };
@@ -619,6 +621,30 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
     });
 })();
 
+// ─── 8b. Top opérateurs (bâtons horizontaux) ───────────────────────────────
+(function() {
+    const ctx = document.getElementById('chartTopOperateurs')?.getContext('2d');
+    if (!ctx || !DATA.operateurs.length) return;
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: DATA.operateurs.map(d => d.operateurs.length > 30 ? d.operateurs.slice(0,30)+'…' : d.operateurs),
+            datasets: [{ label:'Alertes', data: DATA.operateurs.map(d => d.nb),
+                backgroundColor: C.amber + 'CC', borderColor: C.amber, borderWidth: 1, borderRadius: 5 }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true,
+            plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
+                callbacks: { title: ctx => DATA.operateurs[ctx[0].dataIndex]?.operateurs || ctx[0].label }
+            }},
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+                y: { grid: { display: false }, ticks: { color: C.text, font: { size: 10 } }, border: { display: false } },
+            }
+        }
+    });
+})();
+
 // ─── 9. Activité agents (bâtons horizontaux) ─────────────────────────────
 (function() {
     const ctx = document.getElementById('chartActiviteAgents')?.getContext('2d');
@@ -681,6 +707,8 @@ function setPeriod(days) {
     document.getElementById('filterFin').value   = fmt(fin);
     document.getElementById('filterForm').submit();
 }
+
+}); // END DOMContentLoaded
 </script>
 
 <style>

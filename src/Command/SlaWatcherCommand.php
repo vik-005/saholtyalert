@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Entity\Market;
 use App\Entity\Notification;
 use App\Repository\NotificationRepository;
 use App\Repository\UserRepository;
@@ -37,6 +38,8 @@ class SlaWatcherCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        set_time_limit(300);
+
         $io = new SymfonyStyle($input, $output);
         $now = new \DateTime();
 
@@ -51,6 +54,77 @@ class SlaWatcherCommand extends Command
             ->getQuery()
             ->getResult();
 
+        if (empty($cases)) {
+            $io->success('SLA Watch terminé : 0 cas actif, aucune notification.');
+            return Command::SUCCESS;
+        }
+
+        // Collecter tous les marchés uniques
+        $marketIds = [];
+        foreach ($cases as $case) {
+            $market = $case->getAlert()->getMarket();
+            if ($market && !in_array($market->getId(), $marketIds)) {
+                $marketIds[] = $market->getId();
+            }
+        }
+
+        // Récupérer tous les managers PFT pour ces marchés en une seule requête
+        $managersByMarket = [];
+        if (!empty($marketIds)) {
+            $markets = array_map(
+                fn($id) => $this->em->getReference(Market::class, $id),
+                $marketIds
+            );
+            $allManagers = $this->userRepo->findByRoleAndMarkets(
+                \App\Enum\UserRoleEnum::PFT,
+                $markets
+            );
+
+            foreach ($allManagers as $manager) {
+                foreach ($manager->getMarkets() as $managedMarket) {
+                    $mid = $managedMarket->getId();
+                    $managersByMarket[$mid][] = $manager;
+                }
+                if ($manager->getMarket()) {
+                    $mid = $manager->getMarket()->getId();
+                    if (!isset($managersByMarket[$mid])) {
+                        $managersByMarket[$mid] = [];
+                    }
+                    if (!in_array($manager, $managersByMarket[$mid], true)) {
+                        $managersByMarket[$mid][] = $manager;
+                    }
+                }
+            }
+        }
+
+        // Pré-charger toutes les notifications récentes pour éviter les requêtes N+1
+        $depuis = new \DateTimeImmutable('-10 minutes');
+        $allUserIds = [];
+        foreach ($cases as $case) {
+            $market = $case->getAlert()->getMarket();
+            if ($market && isset($managersByMarket[$market->getId()])) {
+                foreach ($managersByMarket[$market->getId()] as $manager) {
+                    $allUserIds[$manager->getId()] = true;
+                }
+            }
+        }
+        $allUserIds = array_keys($allUserIds);
+
+        $recentNotifications = [];
+        if (!empty($allUserIds)) {
+            $notifications = $this->notifRepo->findRecentByUsersAndTypes(
+                $allUserIds,
+                ['sla_proche', 'urgence'],
+                $depuis
+            );
+            foreach ($notifications as $notif) {
+                $key = $notif->getDestinataire()->getId()
+                    . '|' . $notif->getType()
+                    . '|' . ($notif->getAlert()?->getId() ?? 'null');
+                $recentNotifications[$key] = $notif;
+            }
+        }
+
         $notified1h = 0;
         $notifiedDepass = 0;
 
@@ -58,19 +132,16 @@ class SlaWatcherCommand extends Command
             $alert = $case->getAlert();
             $heuresEcoulees = $case->getHeuresEcoulees();
             $heuresRestantes = 72 - $heuresEcoulees;
-
-            // Managers du marché concerné
-            $managers = $this->userRepo->findByRoleAndMarket(
-                \App\Enum\UserRoleEnum::PFT,
-                $alert->getMarket()
-            );
+            $market = $alert->getMarket();
+            $managers = $market && isset($managersByMarket[$market->getId()])
+                ? $managersByMarket[$market->getId()]
+                : [];
 
             // ── Alerte 1h avant échéance (entre 71h et 72h) ────────────────
             if ($heuresRestantes > 0 && $heuresRestantes <= 1) {
                 foreach ($managers as $manager) {
-                    // Anti-doublon : pas de re-notification si déjà envoyée dans les 30 min
-                    $existing = $this->notifRepo->findExistingRecent($manager, 'sla_proche', $alert);
-                    if (!$existing) {
+                    $key = $manager->getId() . '|sla_proche|' . $alert->getId();
+                    if (!isset($recentNotifications[$key])) {
                         $notif = new Notification();
                         $notif->setDestinataire($manager);
                         $notif->setAlert($alert);
@@ -89,14 +160,14 @@ class SlaWatcherCommand extends Command
             // ── SLA dépassé (> 72h et toujours actif) ──────────────────────
             if ($heuresEcoulees > 72) {
                 foreach ($managers as $manager) {
-                    $existing = $this->notifRepo->findExistingRecent($manager, 'sla_depasse', $alert);
-                    if (!$existing) {
+                    $key = $manager->getId() . '|urgence|' . $alert->getId();
+                    if (!isset($recentNotifications[$key])) {
                         $notif = new Notification();
                         $notif->setDestinataire($manager);
                         $notif->setAlert($alert);
-                        $notif->setType('urgence'); // type urgence pour badge rouge
+                        $notif->setType('urgence');
                         $notif->setContenu(sprintf(
-                            '🔴 SLA DÉPASSÉ — Alerte %s : procédure urgence 72h dépassée de %.1f heure(s). Action immédiate requise.',
+                            ' SLA DÉPASSÉ — Alerte %s : procédure urgence 72h dépassée de %.1f heure(s). Action immédiate requise.',
                             $alert->getCodeGei() ?? '#' . $alert->getId(),
                             $heuresEcoulees - 72
                         ));

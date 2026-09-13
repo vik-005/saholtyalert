@@ -1,0 +1,102 @@
+{# Étape 2 — Contenu de l'alerte (champs 5 à 8) #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 2}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="2">
+
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-file-text me-1.5 text-amber-400"></i>
+                Étape 2 sur 6 — Contenu de l'alerte
+            </p>
+            <p class="text-xs text-slate-500">Champs 5 à 8 du formulaire Agent</p>
+        </div>
+        <div class="db-card-body space-y-4">
+
+            {# Champ 5 — Référence documentaire / numéro du conteneur #}
+            <div class="form-field">
+                <label class="form-label" for="w_ref">
+                    Référence documentaire / n° conteneur
+                </label>
+                <input type="text" name="alert[referenceDocumentaire]" id="w_ref"
+                       class="form-input"
+                       placeholder="ex. MSKU9283741, DECL-2026-0452"
+                       value="{{ draftData and draftData['alert[referenceDocumentaire]'] is defined ? draftData['alert[referenceDocumentaire]'] : '' }}">
+                <p class="form-help">Numéro de conteneur, référence de déclaration ou tout identifiant documentaire lié.</p>
+            </div>
+
+            {# Champ 6 — Description / Quantité #}
+            <div class="form-field">
+                <label class="form-label" for="w_facts">
+                    Description / Quantité <span class="text-red-400">*</span>
+                </label>
+                <textarea name="alert[elementsFactuels]" id="w_facts"
+                          class="form-textarea" rows="5" required
+                          placeholder="Description détaillée, quantités, marchandise, volumes constatés…">{{ draftData and draftData['alert[elementsFactuels]'] is defined ? draftData['alert[elementsFactuels]'] : '' }}</textarea>
+                <p class="form-help">Faits bruts uniquement — descriptions, quantités observées. Ne pas mélanger avec les hypothèses.</p>
+            </div>
+
+            {# Champ 7 — Marque #}
+            <div class="form-field">
+                <label class="form-label" for="w_marque">Marque</label>
+                <input type="text" name="alert[marque]" id="w_marque"
+                       class="form-input"
+                       placeholder="ex. ESSE EDGE, FINE 100s…"
+                       value="{{ draftData and draftData['alert[marque]'] is defined ? draftData['alert[marque]'] : '' }}">
+                <p class="form-help">Marque du produit saisi ou identifié (si connue).</p>
+            </div>
+
+            {# Champ 7b — Opérateur / Acteur #}
+            <div class="form-field">
+                <label class="form-label" for="w_operateur">Opérateur / Acteur</label>
+                <input type="text" name="alert[operateurActeur]" id="w_operateur"
+                       class="form-input"
+                       placeholder="ex. IMPERIAL LOGISTICS, Point focal Douanes Bénin…"
+                       value="{{ draftData and draftData['alert[operateurActeur]'] is defined ? draftData['alert[operateurActeur]'] : '' }}">
+                <p class="form-help">Nom de l'opérateur commercial, logistique ou de l'acteur terrain impliqué dans le flux constaté.</p>
+            </div>
+
+            {# Champ 8 — Résumé de l'information #}
+            <div class="form-field">
+                <label class="form-label" for="w_resume">
+                    Résumé de l'information <span class="text-red-400">*</span>
+                    <span class="text-slate-500 font-normal text-xs ms-2">(max. 500 car.)</span>
+                </label>
+                <textarea name="alert[resumeExecutif]" id="w_resume"
+                          class="form-textarea" rows="4" maxlength="500" required
+                          placeholder="Synthèse claire et concise de l'alerte — 5 lignes max.">{{ draftData and draftData['alert[resumeExecutif]'] is defined ? draftData['alert[resumeExecutif]'] : '' }}</textarea>
+                <div class="flex justify-between mt-1">
+                    <p class="form-help">Obligatoire. Faits bruts, pas d'hypothèses ici.</p>
+                    <span id="resumeCounter" class="text-xs text-slate-500">0 / 500</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <button type="submit" name="_action" value="prev" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-2"></i>Précédent
+        </button>
+        <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
+            Suivant — Classification<i class="bi bi-arrow-right ms-2"></i>
+        </button>
+    </div>
+
+</form>
+
+<script>
+const textarea = document.getElementById('w_resume');
+const counter  = document.getElementById('resumeCounter');
+if (textarea && counter) {
+    function updateCount() {
+        const len = textarea.value.length;
+        counter.textContent = len + ' / 500';
+        counter.classList.toggle('text-red-400', len > 450);
+    }
+
+    textarea.addEventListener('input', updateCount);
+    updateCount();
+}
+</script>

@@ -7,7 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * Phase individuelle du cas d'urgence 72h (Annexe E).
- * 5 phases : détection → qualification → validation → coordination → suivi
+ * 3 phases : détection (T0) → coordination (T+48h) → suivi & clôture (T+72h)
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'urgence_72h_phase')]
@@ -80,6 +80,19 @@ class Urgence72hPhase
     public function setCommentaire(?string $commentaire): static { $this->commentaire = $commentaire; return $this; }
 
     public function isTerminee(): bool { return null !== $this->dateFin; }
+
+    /**
+     * Une phase peut être terminée ET avoir été en retard (ou terminée après l'échéance SLA).
+     * Les deux informations doivent être visibles simultanément (Spec F.2).
+     */
+    public function isTermineeAvecRetard(): bool
+    {
+        if (!$this->isTerminee()) {
+            return false;
+        }
+
+        return $this->enRetard || ($this->dateFin > $this->slaHeureLimite);
+    }
 
     public function getMinutesRestantes(): int
     {

@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -203,7 +204,7 @@ class ExportStatsService
 
         // En-tête colonnes
         foreach ($headers as $colIdx => $label) {
-            $cell = $sheet->getCellByColumnAndRow($colIdx + 1, 2);
+            $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($colIdx + 1) . '2');
             $cell->setValue($label);
         }
         $sheet->getStyle('A2:' . $lastColLetter . '2')->applyFromArray([
@@ -218,7 +219,7 @@ class ExportStatsService
         $rowNum = 3;
         foreach ($rows as $row) {
             foreach ($row as $colIdx => $value) {
-                $sheet->getCellByColumnAndRow($colIdx + 1, $rowNum)->setValue($value ?? '');
+                $sheet->getCell(Coordinate::stringFromColumnIndex($colIdx + 1) . $rowNum)->setValue($value ?? '');
             }
             // Lignes alternées
             if ($rowNum % 2 === 0) {
@@ -231,7 +232,7 @@ class ExportStatsService
 
         // Auto-size
         foreach (range(1, $nbCols) as $colIdx) {
-            $sheet->getColumnDimensionByColumn($colIdx)->setAutoSize(true);
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($colIdx))->setAutoSize(true);
         }
 
         // Figer l'en-tête

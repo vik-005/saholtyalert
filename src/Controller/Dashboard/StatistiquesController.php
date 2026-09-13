@@ -2,8 +2,10 @@
 
 namespace App\Controller\Dashboard;
 
+use App\Dto\AlertFilterDTO;
 use App\Entity\User;
 use App\Repository\MarketRepository;
+use App\Service\AlertFilterService;
 use App\Service\StatistiquesService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,29 +22,43 @@ class StatistiquesController extends AbstractController
         Request              $request,
         StatistiquesService  $stats,
         MarketRepository     $marketRepo,
+        AlertFilterService   $filterService,
     ): Response {
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
         }
 
-        // ── Filtres globaux ──────────────────────────────────────────────────
-        $fin   = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
+        // --- Filtres globalisés avec AlertFilterDTO ---
         $debut = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
+        $fin   = $request->query->get('fin', (new \DateTime())->format('Y-m-d'));
 
-        $marketIds = array_filter(
-            explode(',', $request->query->get('markets', '')),
-            fn($v) => is_numeric($v)
-        );
-        $marketIds = array_map('intval', $marketIds);
+        // Fix: utiliser query->all() pour éviter "non-scalar value" avec markets[]
+        $allQ      = $request->query->all();
+        $marketsRaw = $allQ['markets'] ?? null;
+        if (is_array($marketsRaw)) {
+            $marketIds = array_values(array_filter(array_map('intval', $marketsRaw)));
+        } elseif (is_string($marketsRaw) && $marketsRaw !== '') {
+            $marketIds = array_values(array_filter(array_map('intval', explode(',', $marketsRaw))));
+        } else {
+            $marketIds = [];
+        }
 
         // Restreindre aux marchés gérés si Manager
         $allMarkets = $marketRepo->findBy(['actif' => true]);
-        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT && $marketIds === []) {
-            $marketIds = array_map(fn($m) => $m->getId(), $user->getAllManagedMarkets() ?? []);
+        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
+            $allowedMarketIds = array_map(fn($m) => $m->getId(), $user->getAllManagedMarkets() ?? []);
+            $marketIds = $marketIds === [] ? $allowedMarketIds : array_values(array_intersect($marketIds, $allowedMarketIds));
         }
 
-        // ── Données pour tous les graphiques ────────────────────────────────
+        // --- Filtre DTO pour compatibilité avec AlertFilterService ---
+        $filterDto = new AlertFilterDTO();
+        $filterDto->market = $marketIds ? (int) reset($marketIds) : null;
+        $filterDto->dateDebut = $debut;
+        $filterDto->dateFin = $fin;
+        $filterDto->page = 1;
+        $filterDto->limit = 1000; // Pas de pagination pour les stats globales
+
         return $this->render('dashboard/statistiques.html.twig', [
             // Filtres actifs
             'debut'          => $debut,
@@ -63,6 +79,7 @@ class StatistiquesController extends AbstractController
             // A.3 — Autres
             'repartition_categorie' => $stats->getRepartitionCategorie($debut, $fin, $marketIds),
             'top_corridors'         => $stats->getTopCorridors($debut, $fin, $marketIds),
+            'top_operateurs'        => $stats->getTopOperateurs($debut, $fin, $marketIds),
             'heatmap'               => $stats->getHeatmapFiabiliteCredibilite($debut, $fin, $marketIds),
             'activite_agents'       => $stats->getActiviteParAgent($debut, $fin, $marketIds),
             'delai_moyen'           => $stats->getDelaiMoyenTraitement($debut, $fin, $marketIds),
@@ -76,10 +93,25 @@ class StatistiquesController extends AbstractController
     #[Route('/statistiques/data', name: 'app_statistiques_data', methods: ['GET'])]
     public function data(Request $request, StatistiquesService $stats): JsonResponse
     {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
         $debut     = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
         $fin       = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
-        $marketIds = array_filter(explode(',', $request->query->get('markets', '')), 'is_numeric');
-        $marketIds = array_map('intval', $marketIds);
+        $allQ2       = $request->query->all();
+        $marketsRaw2 = $allQ2['markets'] ?? null;
+        if (is_array($marketsRaw2)) {
+            $marketIds = array_values(array_filter(array_map('intval', $marketsRaw2)));
+        } elseif (is_string($marketsRaw2) && $marketsRaw2 !== '') {
+            $marketIds = array_values(array_filter(array_map('intval', explode(',', $marketsRaw2))));
+        } else {
+            $marketIds = [];
+        }
+        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
+            $allowedMarketIds = array_map(fn($m) => $m->getId(), $user->getAllManagedMarkets() ?? []);
+            $marketIds = $marketIds === [] ? $allowedMarketIds : array_values(array_intersect($marketIds, $allowedMarketIds));
+        }
 
         return $this->json([
             'volume_par_pays'       => $stats->getVolumeParPays($debut, $fin, $marketIds),
@@ -90,10 +122,11 @@ class StatistiquesController extends AbstractController
             'jauge_exploitables'    => $stats->getTauxExploitables($debut, $fin, $marketIds),
             'repartition_categorie' => $stats->getRepartitionCategorie($debut, $fin, $marketIds),
             'top_corridors'         => $stats->getTopCorridors($debut, $fin, $marketIds),
+            'top_operateurs'        => $stats->getTopOperateurs($debut, $fin, $marketIds),
             'activite_agents'       => $stats->getActiviteParAgent($debut, $fin, $marketIds),
             'delai_moyen'           => $stats->getDelaiMoyenTraitement($debut, $fin, $marketIds),
             'evolution'             => $stats->getEvolutionTemporelle($debut, $fin, $marketIds),
         ]);
     }
-
 }
+

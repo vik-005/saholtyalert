@@ -1,14 +1,10 @@
-<div class="card p-5 bg-slate-900 border border-slate-800 rounded-xl shadow-lg relative overflow-hidden flex flex-col justify-between">
-    <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">{{ title }}</span>
-        <div class="w-9 h-9 rounded-lg bg-slate-800/80 flex items-center justify-center text-{{ color }}-400 border border-slate-700">
-            {{ icon|raw }}
-        </div>
-    </div>
-    <div class="mt-4">
-        <div class="text-3xl font-extrabold text-white tracking-tight">{{ value }}</div>
-        {% if subtitle is defined and subtitle %}
-            <p class="text-xs font-medium text-slate-400 mt-1">{{ subtitle }}</p>
-        {% endif %}
-    </div>
-</div>
+{# Alias de rétrocompatibilité pointant vers _stat_card.html.twig #}
+{% include 'components/_stat_card.html.twig' with {
+    title: title|default(''),
+    value: value|default(0),
+    icon: icon|default('bi-clipboard-data'),
+    color: color|default('teal'),
+    trend_val: trend_val|default(subtitle|default('')),
+    trend_label: trend_label|default(''),
+    trend_dir: trend_dir|default('up')
+} %}

@@ -1,0 +1,862 @@
+{% extends 'base.html.twig' %}
+{% block title %}Carte des alertes — Afrique{% endblock %}
+{% block header_title %}Carte des alertes{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+/* ── Layout plein-écran style Google Maps ── */
+.carte-shell {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    grid-template-rows: auto 1fr;
+    height: calc(100vh - 64px);
+    gap: 0;
+    margin: -20px;
+}
+@media(max-width: 900px) {
+    .carte-shell { grid-template-columns: 1fr; grid-template-rows: auto 300px 1fr; }
+    .carte-side  { order: 3; height: 40vh; overflow-y: auto; }
+}
+
+/* ── Panneau gauche ── */
+.carte-side {
+    background: #ffffff;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+}
+.carte-filters {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.carte-results {
+    flex: 1; overflow-y: auto;
+    padding: 8px 0;
+}
+
+/* ── Carte ── */
+#map {
+    width: 100%; height: 100%;
+    background: #f6faf8;
+}
+
+/* ── Marqueurs — double dimension visuelle (priorité = fond, volume = taille/bordure) ── */
+.z-marker {
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    font-weight: 800; color: #fff;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    line-height: 1;
+}
+.z-marker:hover { transform: scale(1.2); box-shadow: 0 6px 20px rgba(0,0,0,.35) !important; }
+
+/* Couleur de fond = Priorité dominante */
+.z-marker.critique { background: #ef4444 !important; }
+.z-marker.eleve    { background: #f97316 !important; }
+.z-marker.modere   { background: #f59e0b !important; }
+.z-marker.faible   { background: #22c55e !important; }
+.z-marker.zero     { background: #94a3b8 !important; }
+
+/* Bordure & halo = Intensité du volume (dégradé orange) */
+.z-marker.vol-faible   { border: 3px solid #F9A825; box-shadow: 0 2px 8px rgba(249,168,37,.45); }
+.z-marker.vol-modere   { border: 4px solid #F57C00; box-shadow: 0 3px 12px rgba(245,124,0,.5); }
+.z-marker.vol-eleve    { border: 5px solid #EF6C00; box-shadow: 0 4px 16px rgba(239,108,0,.55); }
+.z-marker.vol-critique { border: 6px solid #E65100; box-shadow: 0 5px 20px rgba(230,81,0,.65); }
+
+/* ── Popup Leaflet — style GEI clair ── */
+.leaflet-popup-content-wrapper {
+    background: #ffffff !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12) !important;
+    padding: 0 !important;
+    min-width: 260px;
+}
+.leaflet-popup-content  { margin: 0 !important; }
+.leaflet-popup-tip-container { display: none; }
+.popup-body  { padding: 14px 16px; }
+.popup-title { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.popup-total {
+    font-size: 28px; font-weight: 900; color: #16856b;
+    line-height: 1; display: inline-block;
+}
+.popup-total-label { font-size: 11px; color: var(--muted); margin-left: 6px; }
+.popup-cats  { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.popup-cat   {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 99px;
+    background: #f6faf8; color: var(--dim);
+    border: 1px solid var(--border);
+}
+.popup-corridors { margin-top: 8px; }
+.popup-corridor-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; }
+.popup-corridor   {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 99px;
+    background: #e6f5ef; color: #16856b;
+    border: 1px solid #b9e2d2;
+}
+.popup-btn   {
+    display: block; text-align: center;
+    padding: 8px; border-top: 1px solid var(--border);
+    font-size: 12px; font-weight: 600; color: #16856b;
+    text-decoration: none;
+    transition: background .15s;
+}
+.popup-btn:hover { background: #e6f5ef; }
+
+/* ── Panneau résultats ── */
+.pays-card {
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background .15s;
+    display: flex; align-items: center; gap: 12px;
+}
+.pays-card:hover { background: #f6faf8; }
+.pays-card.selected { background: #e6f5ef; border-left: 3px solid #16856b; }
+.pays-badge-count {
+    width: 36px; height: 36px; flex-shrink: 0;
+    border-radius: 50%; display: grid; place-items: center;
+    font-weight: 800; font-size: 13px; color: #fff;
+}
+.pays-card-info { flex: 1; min-width: 0; }
+.pays-card-nom  { font-size: 13px; font-weight: 700; color: var(--text); }
+.pays-card-iso  { font-size: 10.5px; font-mono font-bold; color: #16856b; }
+.pays-card-cats { font-size: 10.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── Barre de filtres ── */
+.carte-filter-row { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Légende ── */
+.carte-legend {
+    position: absolute; bottom: 24px; left: 12px;
+    z-index: 1000;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-width: 200px;
+    max-width: 320px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+}
+.legend-label {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--dim); font-weight: 600;
+}
+.legend-dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.legend-toggle-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 11px; padding: 4px;
+    border-radius: 4px; transition: all .2s;
+}
+.legend-toggle-btn:hover { color: #16856b; background: #f6faf8; }
+#legendToggleIcon { transition: transform .2s; }
+@media(max-width: 900px) {
+    .carte-legend {
+        left: 12px; bottom: 12px;
+        max-width: calc(100% - 24px);
+        min-width: auto;
+    }
+    .carte-legend #carteLegendBody {
+        display: none;
+    }
+    .carte-legend.legend-expanded #carteLegendBody {
+        display: block;
+    }
+}
+@media(min-width: 901px) {
+    .carte-legend #carteLegendBody {
+        display: block !important;
+    }
+}
+
+/* ── Spinner ── */
+.carte-loading {
+    position: absolute; top: 50%; left: calc(50% + 170px);
+    transform: translate(-50%, -50%);
+    z-index: 2000;
+    display: none;
+}
+.carte-loading.visible { display: block; }
+
+/* ── Dark mode support ── */
+body.dark .carte-side { background: var(--navy-900); border-right-color: var(--border); }
+body.dark .pays-card { border-bottom-color: var(--border); }
+body.dark .pays-card:hover { background: var(--navy-800); }
+body.dark .pays-card.selected { background: var(--navy-800); border-left-color: var(--amber); }
+body.dark .pays-card-nom { color: var(--text); }
+body.dark .pays-card-iso { color: var(--amber); }
+body.dark .pays-card-cats { color: var(--muted); }
+body.dark .carte-legend { background: var(--navy-900); border-color: var(--border); box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+body.dark .legend-toggle-btn:hover { color: var(--amber); background: rgba(255,255,255,.05); }
+body.dark .carte-loading > div { background: var(--navy-900); border-color: var(--border); }
+body.dark .leaflet-popup-content-wrapper { background: var(--navy-900) !important; border-color: var(--border) !important; }
+body.dark .popup-title { color: var(--text); }
+body.dark .popup-total { color: var(--amber); }
+body.dark .popup-total-label { color: var(--muted); }
+body.dark .popup-cat { background: var(--navy-800); color: var(--muted); border-color: var(--border); }
+body.dark .popup-corridor { background: rgba(22,133,107,.15); color: var(--amber); border-color: rgba(22,133,107,.25); }
+body.dark .popup-btn { color: var(--amber); border-top-color: var(--border); }
+body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="carte-shell">
+
+    {# ── PANNEAU GAUCHE ── #}
+    <aside class="carte-side">
+
+        {# En-tête #}
+        <div style="padding: 14px 16px; border-bottom: 1px solid var(--border);">
+            <p style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#16856b;">
+                <i class="bi bi-map me-1.5"></i>Carte des alertes — Afrique
+            </p>
+            <div id="carteStats" style="display:flex;gap:14px;margin-top:8px;font-size:12px;color:var(--muted);">
+                <span><span id="totalPays" class="font-700" style="color:var(--text)">{{ totalPays }}</span> pays</span>
+                <span><span id="totalAlertes" class="font-700" style="color:#16856b">{{ totalAlertes }}</span> alertes</span>
+            </div>
+        </div>
+
+        {# Filtres #}
+        <div class="carte-filters">
+            <form id="carteFiltersForm" class="carte-filter-row">
+
+                <div>
+                    <label class="form-label" style="font-size:11px;display:flex;justify-content:space-between;align-items:center;">
+                        <span><i class="bi bi-earth-americas me-1 text-amber-400"></i>Marché(s)</span>
+                        <span style="font-size:9.5px;color:var(--muted);font-weight:normal;">Ctrl+clic multi</span>
+                    </label>
+                    <select name="marche[]" id="fMarche" class="form-select" multiple size="4" style="font-size:12px;">
+                        {% for market in markets %}
+                            <option value="{{ market.id }}"
+                                {% if filters.marche and (market.id in filters.marche) %}selected{% endif %}>
+                                {{ market.nom }} ({{ market.codeIso3 }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Catégorie de produit</label>
+                    <select name="categorie" id="fCategorie" class="form-select" style="font-size:12px;">
+                        <option value="">Toutes les catégories</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.libelle }}"
+                                {% if filters.categorie == cat.libelle %}selected{% endif %}>
+                                {{ cat.libelle }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Priorité</label>
+                    <select name="priorite" id="fPriorite" class="form-select" style="font-size:12px;">
+                        <option value="">Toutes les priorités</option>
+                        {% for n in niveaux %}
+                            <option value="{{ n.value }}"
+                                {% if filters.priorite == n.value %}selected{% endif %}>
+                                {{ n.label() }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Statut</label>
+                    <select name="statut" id="fStatut" class="form-select" style="font-size:12px;">
+                        <option value="">Tous les statuts</option>
+                        {% for s in statuts %}
+                            <option value="{{ s.value }}"
+                                {% if filters.statut == s.value %}selected{% endif %}>
+                                {{ s.label() }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Urgence</label>
+                    <select name="urgence" id="fUrgence" class="form-select" style="font-size:12px;">
+                        <option value="">Toutes</option>
+                        {% for u in urgences %}
+                            <option value="{{ u.value }}"
+                                {% if filters.urgence == u.value %}selected{% endif %}>
+                                {{ u.label() }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Type d'alerte</label>
+                    <select name="typeAlerte" id="fTypeAlerte" class="form-select" style="font-size:12px;">
+                        <option value="">Tous</option>
+                        {% for t in typeAlertes %}
+                            <option value="{{ t.value }}"
+                                {% if filters.typeAlerte == t.value %}selected{% endif %}>
+                                {{ t.label() }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div>
+                        <label class="form-label" style="font-size:11px;">Score min</label>
+                        <input type="number" name="scoreMin" id="fScoreMin" class="form-input" style="font-size:12px;"
+                               min="0" max="25" placeholder="0" value="{{ filters.scoreMin|default('') }}">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11px;">Score max</label>
+                        <input type="number" name="scoreMax" id="fScoreMax" class="form-input" style="font-size:12px;"
+                               min="0" max="25" placeholder="25" value="{{ filters.scoreMax|default('') }}">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11px;">Origine</label>
+                    <select name="origine" id="fOrigine" class="form-select" style="font-size:12px;">
+                        <option value="">Toutes</option>
+                        <option value="saisie_agent" {% if filters.origine == 'saisie_agent' %}selected{% endif %}>Saisie agent</option>
+                        <option value="import_excel" {% if filters.origine == 'import_excel' %}selected{% endif %}>Import Excel</option>
+                    </select>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                    <div>
+                        <label class="form-label" style="font-size:11px;">Du</label>
+                        <input type="date" name="dateDebut" id="fDateDebut" class="form-input" style="font-size:12px;"
+                               value="{{ filters.dateDebut|default('') }}">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11px;">Au</label>
+                        <input type="date" name="dateFin" id="fDateFin" class="form-input" style="font-size:12px;"
+                               value="{{ filters.dateFin|default('') }}">
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:6px;">
+                    <button type="submit" class="db-btn db-btn-amber" style="flex:1;justify-content:center;font-size:12px;">
+                        <i class="bi bi-search me-1"></i>Appliquer
+                    </button>
+                    <a href="{{ path('app_carte_index') }}" class="db-btn db-btn-ghost" style="font-size:12px;">
+                        <i class="bi bi-arrow-clockwise-left"></i>
+                    </a>
+                </div>
+
+            </form>
+        </div>
+
+        {# Liste des pays avec compteurs — triés par nombre d'alertes #}
+        <div class="carte-results" id="paysListContainer">
+            <div class="text-center py-8 text-slate-500 text-sm" id="paysListPlaceholder">
+                <i class="bi-arrow-repeat bi-spin text-amber-400 bi-lg block mb-2"></i>
+                Chargement des données…
+            </div>
+        </div>
+
+    </aside>
+
+    {# ── CARTE LEAFLET ── #}
+    <div style="position:relative;display:flex;flex-direction:column;height:100%;">
+        <div id="map" style="flex:1;width:100%;min-height:400px;"></div>
+
+        {# Légende enrichie ── #}
+        <div class="carte-legend" id="carteLegend">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <button onclick="toggleLegend()" style="display:flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;color:var(--text);font-size:11px;font-weight:700;padding:0">
+                    <i class="bi bi-map me-1"></i>Légende
+                </button>
+                <button onclick="toggleLegend()" class="legend-toggle-btn" title="Réduire">
+                    <i class="bi bi-chevron-down" id="legendToggleIcon"></i>
+                </button>
+            </div>
+            <div id="carteLegendBody">
+                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Intensité du volume (taille, bordure & surfaces)</p>
+                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F9A825;font-size:9px"></i>Faible (1–5 alertes) — 32px</span><br>
+                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F57C00;font-size:11px"></i>Modéré (6–20 alertes) — 38px</span><br>
+                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#EF6C00;font-size:13px"></i>Élevé (21–50 alertes) — 46px</span><br>
+                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#E65100;font-size:15px"></i>Critique (> 50 alertes) — 54px</span>
+                </div>
+                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Priorité dominante (couleur du marqueur)</p>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <span class="legend-label"><span class="legend-dot" style="background:#ef4444"></span>Critique</span>
+                        <span class="legend-label"><span class="legend-dot" style="background:#f97316"></span>Élevé</span>
+                        <span class="legend-label"><span class="legend-dot" style="background:#f59e0b"></span>Modéré</span>
+                        <span class="legend-label"><span class="legend-dot" style="background:#22c55e"></span>Faible</span>
+                    </div>
+                </div>
+                <div id="legendActiveFilters" style="font-size:10px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;margin-top:2px">
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;">Filtres actifs</p>
+                    <div id="legendFiltersList" style="display:flex;flex-wrap:wrap;gap:4px;">
+                        {% if filters.marche is iterable and filters.marche %}
+                            {% for mId in filters.marche %}
+                                {% for m in markets %}
+                                    {% if (m.id ~ '') == (mId ~ '') %}
+                                        <span class="status-pill" style="font-size:9px">Marche : {{ m.nom }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% endif %}
+                        {% if filters.categorie %}  <span class="status-pill" style="font-size:9px">Cat : {{ filters.categorie }}</span>{% endif %}
+                        {% if filters.priorite %}   <span class="status-pill" style="font-size:9px">Prio : {{ filters.priorite }}</span>{% endif %}
+                        {% if filters.statut %}     <span class="status-pill" style="font-size:9px">Statut : {{ filters.statut }}</span>{% endif %}
+                        {% if filters.urgence %}    <span class="status-pill" style="font-size:9px">Urgence : {{ filters.urgence }}</span>{% endif %}
+                        {% if filters.typeAlerte %}<span class="status-pill" style="font-size:9px">Type : {{ filters.typeAlerte }}</span>{% endif %}
+                        {% if filters.scoreMin or filters.scoreMax %}<span class="status-pill" style="font-size:9px">Score : {{ filters.scoreMin|default('0') }}-{{ filters.scoreMax|default('25') }}</span>{% endif %}
+                        {% if filters.origine %}    <span class="status-pill" style="font-size:9px">Origine : {{ filters.origine }}</span>{% endif %}
+                        {% if filters.dateDebut %}  <span class="status-pill" style="font-size:9px">Du {{ filters.dateDebut }}</span>{% endif %}
+                        {% if filters.dateFin %}    <span class="status-pill" style="font-size:9px">Au {{ filters.dateFin }}</span>{% endif %}
+                        {% if not filters.marche and not filters.categorie and not filters.priorite and not filters.statut and not filters.urgence and not filters.typeAlerte and not filters.scoreMin and not filters.scoreMax and not filters.origine and not filters.dateDebut and not filters.dateFin %}
+                        <span style="color:var(--muted)">aucun filtre actif</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Spinner #}
+        <div class="carte-loading" id="carteLoading">
+            <div style="background:#ffffff;border:1px solid var(--border);border-radius:10px;padding:12px 20px;display:flex;align-items:center;gap:10px;">
+                <i class="bi bi-arrow-repeat bi-spin" style="color:#16856b"></i>
+                <span style="font-size:13px;color:var(--muted);">Chargement…</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function() {
+    'use strict';
+
+    let map, markersLayer, currentTileLayer;
+    let allZones = [];
+    const AFRICA_BOUNDS = [[-37, -25], [38, 55]];
+
+    function setTileLayer(isDark) {
+        if (!map) return;
+        const tileUrl = isDark
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const attr = isDark
+            ? '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>'
+            : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors';
+
+        if (currentTileLayer && map.hasLayer(currentTileLayer)) {
+            map.removeLayer(currentTileLayer);
+        }
+        currentTileLayer = L.tileLayer(tileUrl, {
+            attribution: attr,
+            subdomains: 'abcd',
+            maxZoom: 18,
+        }).addTo(map);
+
+        if (markersLayer) {
+            markersLayer.bringToFront();
+        }
+    }
+
+    function destroyMap() {
+        if (map) {
+            try { map.remove(); } catch(e) {}
+            map = null;
+            markersLayer = null;
+            currentTileLayer = null;
+        }
+    }
+
+    function initMap() {
+        if (map) return;
+
+        const isDark = document.body.classList.contains('dark') || localStorage.getItem('gei-dark') === '1';
+
+        if (typeof L === 'undefined') {
+            document.getElementById('map').innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:13px;text-align:center;padding:20px"><div><i class="bi bi-exclamation-triangle" style="font-size:32px;display:block;margin-bottom:10px"></i>Impossible de charger la carte.<br>Veuillez recharger la page.</div></div>';
+            return;
+        }
+
+        map = L.map('map', {
+            center: [5, 20],
+            zoom: 4,
+            minZoom: 2,
+            maxZoom: 14,
+            zoomControl: false,
+        });
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        markersLayer = L.layerGroup().addTo(map);
+        setTileLayer(isDark);
+
+        map.fitBounds(AFRICA_BOUNDS, { padding: [10, 10] });
+
+        setTimeout(() => { map.invalidateSize(); }, 100);
+        setTimeout(() => { map.invalidateSize(); }, 500);
+
+        loadZones();
+
+        document.getElementById('carteFiltersForm').addEventListener('submit', e => {
+            e.preventDefault();
+            loadZones();
+        });
+    }
+
+    // Mettre à jour les tiles lors du basculement mode nuit
+    document.addEventListener('dark-mode-changed', (e) => {
+        if (!map) return;
+        const isDark = e.detail?.dark ?? (document.body.classList.contains('dark') || localStorage.getItem('gei-dark') === '1');
+        setTileLayer(isDark);
+    });
+
+    window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+
+    document.addEventListener('turbo:load', initMap);
+    document.addEventListener('turbo:before-cache', destroyMap);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMap);
+    } else {
+        initMap();
+    }
+
+    function loadZones() {
+        const loading = document.getElementById('carteLoading');
+        loading.classList.add('visible');
+
+        const params = new URLSearchParams();
+        const form = document.getElementById('carteFiltersForm');
+        new FormData(form).forEach((v, k) => { if (v) params.append(k, v); });
+
+        // Mise à jour dynamique des badges de filtres dans la légende
+        updateLegendFilters(params);
+
+        fetch('/carte/api/zones?' + params.toString())
+            .then(r => r.json())
+            .then(zones => {
+                allZones = zones;
+                loading.classList.remove('visible');
+                renderMarkers(zones);
+                renderSidePanel(zones);
+                updateStats(zones);
+                history.replaceState(null, '', '/carte?' + params.toString());
+            })
+            .catch(() => { loading.classList.remove('visible'); });
+    }
+
+    function updateLegendFilters(params) {
+        const list = document.getElementById('legendFiltersList');
+        if (!list) return;
+        const chips = [];
+        const marcheValues = params.getAll('marche[]');
+        if (marcheValues.length > 0) {
+            const chipMap = {
+                '1': 'Bénin', '2': 'Togo', '3': 'Niger', '4': 'Mali',
+                '5': 'Sénégal', '6': "Côte d'Ivoire", '7': 'Ghana',
+                '8': 'Guinée', '9': 'Burkina Faso',
+            };
+            marcheValues.forEach(v => {
+                chips.push(`Marche : ${escHtml(chipMap[v] || 'Marche ' + v)}`);
+            });
+        }
+        if (params.get('categorie')) chips.push(`Cat : ${params.get('categorie')}`);
+        if (params.get('priorite')) chips.push(`Prio : ${params.get('priorite')}`);
+        if (params.get('statut')) chips.push(`Statut : ${params.get('statut')}`);
+        if (params.get('urgence')) chips.push(`Urgence : ${params.get('urgence')}`);
+        if (params.get('typeAlerte')) chips.push(`Type : ${params.get('typeAlerte')}`);
+        if (params.get('scoreMin') || params.get('scoreMax')) chips.push(`Score : ${params.get('scoreMin') || '0'}-${params.get('scoreMax') || '25'}`);
+        if (params.get('origine')) chips.push(`Origine : ${params.get('origine')}`);
+        if (params.get('dateDebut')) chips.push(`Du ${params.get('dateDebut')}`);
+        if (params.get('dateFin')) chips.push(`Au ${params.get('dateFin')}`);
+
+        if (chips.length > 0) {
+            list.innerHTML = chips.map(c => `<span class="status-pill" style="font-size:9px">${escHtml(c)}</span>`).join('');
+        } else {
+            list.innerHTML = '<span style="color:var(--muted)">aucun filtre actif</span>';
+        }
+    }
+
+    function renderMarkers(zones) {
+        markersLayer.clearLayers();
+        const bounds = [];
+
+        zones.forEach(zone => {
+            const count = parseInt(zone.alertCount) || 0;
+            // RÈGLE STRICTE : les marchés avec 0 alerte disparaissent de la carte
+            if (count <= 0) return;
+            if (!zone.latitude || !zone.longitude) return;
+
+            const lat = parseFloat(zone.latitude);
+            const lng = parseFloat(zone.longitude);
+            bounds.push([lat, lng]);
+
+            const prio = zone.maxPriority || 'faible';
+
+            // Double dimension visuelle :
+            // 1) Taille et dégradé orange de bordure selon le volume
+            let size = 32;
+            let fontSize = 11;
+            let volClass = 'vol-faible';
+            if (count > 50) {
+                size = 54;
+                fontSize = 14;
+                volClass = 'vol-critique';
+            } else if (count > 20) {
+                size = 46;
+                fontSize = 13;
+                volClass = 'vol-eleve';
+            } else if (count > 5) {
+                size = 38;
+                fontSize = 12;
+                volClass = 'vol-modere';
+            }
+
+            const label = count > 99 ? '99+' : String(count);
+
+            const icon = L.divIcon({
+                html: `<div class="z-marker ${prio} ${volClass}" style="width:${size}px;height:${size}px;font-size:${fontSize}px;" title="${escHtml(zone.nom)} : ${count} alerte(s) (Priorité : ${prio})">
+                           ${label}
+                       </div>`,
+                className: '',
+                iconSize:   [size, size],
+                iconAnchor: [size / 2, size / 2],
+                popupAnchor:[0, -(size / 2) - 4],
+            });
+
+            const marker = L.marker([lat, lng], { icon })
+                .addTo(markersLayer);
+
+            const cats = zone.categories || {};
+            const catHtml = Object.entries(cats).slice(0, 5).map(([k, v]) => {
+                const label = categorieLabel(k);
+                return `<span class="popup-cat">${escHtml(label)} <strong>${v}</strong></span>`;
+            }).join('');
+
+            const corridors = zone.corridors || {};
+            const corridorHtml = Object.entries(corridors).slice(0, 5).map(([k, v]) => {
+                return `<span class="popup-corridor">${escHtml(k)} <strong>${v}</strong></span>`;
+            }).join('');
+            const corridorTitleHtml = Object.keys(corridors).length > 0
+                ? `<div class="popup-corridors"><div class="popup-corridor-title">Corridors / Ports</div>${corridorHtml}</div>`
+                : '';
+
+            const popupHtml = `
+                <div class="popup-body">
+                    <div class="popup-title">
+                        <span style="font-size:11px;font-family:monospace;color:#16856b;">${escHtml(zone.codeIso3)}</span>
+                        ${escHtml(zone.nom)}
+                    </div>
+                    <div>
+                        <span class="popup-total">${count}</span>
+                        <span class="popup-total-label">alerte${count > 1 ? 's' : ''} filtrée${count > 1 ? 's' : ''}</span>
+                    </div>
+                    ${catHtml ? `<div class="popup-cats">${catHtml}</div>` : ''}
+                    ${corridorTitleHtml}
+                </div>
+                <a class="popup-btn" href="#" onclick="loadAlertesList(${zone.id}, '${escHtml(zone.nom)}'); return false;">
+                    <i class="bi-list me-1"></i>Voir les alertes
+                </a>`;
+
+            marker.bindPopup(popupHtml, { maxWidth: 300, className: '' });
+            marker.on('click', () => highlightPaysCard(zone.id));
+        });
+
+        // ── Choroplèthe : polygones de zone par intensité d'alertes ──
+        zones.forEach(zone => {
+            const count = parseInt(zone.alertCount) || 0;
+            if (!zone.polygonWkt || count <= 0) return;
+            if (!zone.latitude || !zone.longitude) return;
+
+            const coords = parseWKTPolygon(zone.polygonWkt);
+            if (!coords || coords.length === 0) return;
+
+            const intensity = count > 50 ? 0.7 : count > 20 ? 0.55 : count > 5 ? 0.4 : 0.25;
+            const fillColor = count > 50 ? '#E65100' : count > 20 ? '#EF6C00' : count > 5 ? '#F57C00' : '#F9A825';
+
+            const polygon = L.polygon(coords, {
+                fillColor: fillColor,
+                color: fillColor,
+                weight: 1.5,
+                opacity: 0.5,
+                fillOpacity: intensity,
+            }).addTo(markersLayer);
+
+            polygon.bindPopup(
+                `<strong>${escHtml(zone.nom)}</strong><br>Alertes filtrées: ${count}`
+            );
+        });
+
+        if (bounds.length > 0) {
+            const africanBounds = bounds.filter(b => b[0] >= -37 && b[0] <= 38 && b[1] >= -25 && b[1] <= 55);
+            if (africanBounds.length > 0) {
+                map.fitBounds(africanBounds, { padding: [60, 60], maxZoom: 8 });
+            }
+        }
+    }
+
+    function renderSidePanel(zones) {
+        const container = document.getElementById('paysListContainer');
+        const sorted    = [...zones].sort((a, b) => b.alertCount - a.alertCount);
+        const activeZones = sorted.filter(z => (parseInt(z.alertCount) || 0) > 0);
+
+        if (activeZones.length === 0) {
+            container.innerHTML = `<div style="padding:28px 16px;text-align:center;color:var(--muted);font-size:12.5px;">
+                <i class="bi bi-funnel text-amber-400" style="font-size:24px;display:block;margin-bottom:8px;"></i>
+                <strong>Aucune alerte trouvée</strong><br>
+                Aucun résultat pour les critères sélectionnés.<br>
+                <a href="/carte" class="db-btn db-btn-ghost db-btn-sm" style="margin-top:10px;display:inline-flex;">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Réinitialiser les filtres
+                </a>
+            </div>`;
+            return;
+        }
+
+        container.innerHTML = activeZones.map(zone => {
+            const count = parseInt(zone.alertCount) || 0;
+            const prio  = zone.maxPriority || 'faible';
+            const cats  = zone.categories || {};
+            const catList = Object.entries(cats).slice(0, 3)
+                .map(([k, v]) => `${categorieLabel(k)} (${v})`).join(', ');
+            const colors = { critique: '#ef4444', eleve: '#f97316', modere: '#f59e0b', faible: '#22c55e' };
+
+            return `<div class="pays-card" id="pays-card-${zone.id}" onclick="focusZone(${zone.id}, ${zone.latitude}, ${zone.longitude})">
+                <div class="pays-badge-count" style="background:${colors[prio] ?? '#64748b'}">${count > 99 ? '99+' : count}</div>
+                <div class="pays-card-info">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="pays-card-iso">${escHtml(zone.codeIso3 ?? '')}</span>
+                        <span class="pays-card-nom">${escHtml(zone.nom)}</span>
+                    </div>
+                    ${catList ? `<div class="pays-card-cats">${escHtml(catList)}</div>` : '<div class="pays-card-cats">Alertes actives</div>'}
+                </div>
+                <i class="bi-chevron-right" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
+            </div>`;
+        }).join('');
+    }
+
+    function updateStats(zones) {
+        const activeZones = zones.filter(z => (parseInt(z.alertCount) || 0) > 0);
+        const total = activeZones.reduce((s, z) => s + (parseInt(z.alertCount) || 0), 0);
+        document.getElementById('totalPays').textContent    = activeZones.length;
+        document.getElementById('totalAlertes').textContent = total;
+    }
+
+    function focusZone(zoneId, lat, lng) {
+        const fLat = parseFloat(lat);
+        const fLng = parseFloat(lng);
+        if (!isNaN(fLat) && !isNaN(fLng)) {
+            map.setView([fLat, fLng], 7, { animate: true });
+        }
+        highlightPaysCard(zoneId);
+
+        markersLayer.eachLayer(layer => {
+            const pos = layer.getLatLng();
+            if (Math.abs(pos.lat - fLat) < 0.01 && Math.abs(pos.lng - fLng) < 0.01) {
+                layer.openPopup();
+            }
+        });
+    }
+
+    function highlightPaysCard(zoneId) {
+        document.querySelectorAll('.pays-card').forEach(el => el.classList.remove('selected'));
+        const card = document.getElementById(`pays-card-${zoneId}`);
+        if (card) {
+            card.classList.add('selected');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function loadAlertesList(zoneId, zoneName) {
+        const params = new URLSearchParams();
+        params.set('market', zoneId);
+        const fForm = document.getElementById('carteFiltersForm');
+        new FormData(fForm).forEach((v, k) => { if (v) params.append(k, v); });
+        window.open('/alert/?' + params.toString(), '_blank');
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function parseWKTPolygon(wkt) {
+        if (!wkt || typeof wkt !== 'string') return [];
+        const match = wkt.match(/POLYGON\s*\(\s*\(?\s*(\(.*\))\s*\)?\s*\)/i);
+        if (!match) return [];
+        const ringStr = match[1].trim();
+        const coordPairs = ringStr.split(',').map(p => p.trim());
+        const coords = [];
+        coordPairs.forEach(pair => {
+            const parts = pair.replace(/[()]/g, '').trim().split(/\s+/);
+            if (parts.length >= 2) {
+                const lon = parseFloat(parts[0]);
+                const lat = parseFloat(parts[1]);
+                if (!isNaN(lon) && !isNaN(lat)) coords.push([lat, lon]);
+            }
+        });
+        return coords;
+    }
+
+    const catLabels = {
+        // Legacy enum values (for backward compatibility with old data)
+        container_suspect: 'Conteneur suspect',
+        flux_terrestre: 'Flux terrestre',
+        acteur: 'Acteur',
+        modus_operandi: 'Modus operandi',
+        transit_tabac: 'Transit tabac',
+        saisie: 'Saisie',
+        veille_marche: 'Veille marché',
+        tabac_brut: 'Tabac brut',
+        importation_tabac: 'Import tabac',
+        transit_cigarettes: 'Transit cigarettes',
+        tabac_manufacture: 'Tabac manufacturé',
+        signal_faible: 'Signal faible',
+        signalement_operationnel: 'Signalement opérationnel',
+        controle_cargaison: 'Contrôle cargaison',
+        controle_documentaire: 'Contrôle documentaire',
+        saisies_consolidees: 'Saisies consolidées',
+        incoherence_declaration: 'Incohérence déclaration',
+        suivi_operationnel: 'Suivi opérationnel',
+        renseignement_logistique: 'Renseignement logistique',
+        fret_express: 'Fret express',
+        mouvement_transfrontalier: 'Mouvement transfrontalier',
+        autre: 'Autre',
+    };
+    function categorieLabel(val) {
+        if (!val) return '—';
+        // If the value is already a French libellé (contains spaces or accented chars), return as-is
+        if (val.includes(' ') || /[àâäéèêëïîôùûüÿçÀÂÄÉÈÊËÏÎÔÙÛÜŸÇ]/.test(val)) {
+            return val;
+        }
+        // Otherwise, try to map from legacy enum value
+        return catLabels[val] || val;
+    }
+
+    window.loadAlertesList = loadAlertesList;
+    window.focusZone       = focusZone;
+    window.toggleLegend    = function() {
+        const legend = document.getElementById('carteLegend');
+        const icon = document.getElementById('legendToggleIcon');
+        if (legend.classList.contains('legend-expanded')) {
+            legend.classList.remove('legend-expanded');
+            if (icon) icon.style.transform = 'rotate(-90deg)';
+        } else {
+            legend.classList.add('legend-expanded');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+        }
+    };
+})();
+</script>
+{% endblock %}

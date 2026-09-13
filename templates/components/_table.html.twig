@@ -1,0 +1,98 @@
+{# Composant générique tableau pour les dashboards GEI #}
+{# Usage : {% include 'components/_table.html.twig' with { columns: columns, rows: rows, pagination: true, emptyMessage: 'Aucune donnée' } %} #}
+
+{% set tableId = tableId ?? 'table-' ~ random() %}
+{% set containerId = containerId ?? 'table-container-' ~ random() %}
+
+<div id="{{ containerId }}" class="table-container {% if className is defined %}{{ className }}{% endif %}">
+    <div class="overflow-x-auto">
+        <table id="{{ tableId }}" class="db-table {{ tableClass ?? '' }}">
+            {% if columns is defined and columns is not empty %}
+            <thead>
+                <tr>
+                    {% for col in columns %}
+                    <th {% if col.class is defined %}class="{{ col.class }}"{% endif %} {% if col.style is defined %}style="{{ col.style }}"{% endif %}>
+                        {% if col.icon is defined %}<i class="{{ col.icon }} me-1 opacity-50"></i>{% endif %}
+                        {{ col.label }}
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            {% endif %}
+
+            {% if rows is defined and rows is not empty %}
+            <tbody>
+                {% for row in rows %}
+                <tr class="db-tr {{ row.class ?? '' }}">
+                    {% for cell in row.cells %}
+                    <td {% if cell.class is defined %}class="{{ cell.class }}"{% endif %} {% if cell.style is defined %}style="{{ cell.style }}"{% endif %}>
+                        {{ cell.content|raw }}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% else %}
+            <tbody>
+                <tr>
+                        <td colspan="{{ columns is defined and columns is not empty ? columns|length : 1 }}">
+                        <div class="db-empty-state" style="padding: 20px;">
+                            <p>{{ emptyMessage ?? 'Aucune donnée à afficher' }}</p>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+            {% endif %}
+        </table>
+    </div>
+
+    {% if pagination is defined and pagination and totalPages is defined and totalPages > 1 %}
+    <div class="db-table-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid rgba(148,163,184,0.1); background: #0f172a;">
+        <div class="text-xs text-slate-500">
+            Page {{ currentPage }} sur {{ totalPages }} - {{ totalItems ?? rows|length }} éléments
+        </div>
+        <div class="flex gap-2">
+            <button class="db-btn db-btn-ghost" style="font-size: 11px;" {% if currentPage <= 1 %}disabled{% endif %}>
+                <i class="bi bi-chevron-left me-1"></i>Précédent
+            </button>
+            <button class="db-btn db-btn-ghost" style="font-size: 11px;" {% if currentPage >= totalPages %}disabled{% endif %}>
+                Suivant<i class="bi bi-chevron-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table-container {
+    width: 100%;
+}
+.db-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.db-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #94a3b8;
+    background: #0f172a;
+    border-bottom: 1px solid rgba(148,163,184,0.1);
+}
+.db-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(148,163,184,0.05);
+    color: #cbd5e1;
+}
+.db-table tr:hover td {
+    background: rgba(251,191,36,0.05);
+}
+.db-table .db-empty-state p {
+    color: #64748b;
+    font-size: 13px;
+}
+.db-table-pagination {
+    font-size: 12px;
+}
+</style>

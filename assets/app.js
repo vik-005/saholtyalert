@@ -1,4 +1,10 @@
 import './styles/app.css';
+import * as Turbo from '@hotwired/turbo';
+
+// Désactiver Turbo Drive — il interceptait les redirects 302 (accès refusé → login)
+// et les affichait inline, donnant l'impression d'une déconnexion.
+// On garde Turbo pour les Streams (notifications Mercure) mais pas Drive.
+Turbo.session.drive = false;
 
 console.log('Plateforme GEI - Renseignement Opérationnel initialisé.');
 

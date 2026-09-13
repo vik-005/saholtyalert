@@ -23,10 +23,16 @@ security:
             logout:
                 path: app_logout
                 target: app_login
+                invalidate_session: true
             remember_me:
                 secret: '%kernel.secret%'
                 lifetime: 604800
                 path: /
+                httponly: true
+                samesite: lax
+            login_throttling:
+                max_attempts: 5
+                interval: '15 minutes'
 
     role_hierarchy:
         ROLE_EMETTEUR_TERRAIN: [ROLE_USER]
@@ -38,7 +44,18 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/2fa, roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/activites, roles: ROLE_PFT }
+        - { path: ^/admin/marches, roles: ROLE_PFT }
+        - { path: ^/admin/automations, roles: ROLE_PFT }
+        - { path: ^/admin/rules, roles: ROLE_PFT }
+        - { path: ^/admin/user, roles: ROLE_PFT }
+        - { path: ^/admin/listes-reference, roles: ROLE_PFT }
         - { path: ^/admin, roles: ROLE_SUPERADMIN }
+        - { path: ^/audit, roles: ROLE_PFT }
+        - { path: ^/carte, roles: ROLE_PFT }
+        - { path: ^/wizard, roles: ROLE_USER }
         - { path: ^/kpi, roles: ROLE_COMITE_AIT }
         - { path: ^/urgence, roles: ROLE_PFT }
         - { path: ^/, roles: ROLE_USER }

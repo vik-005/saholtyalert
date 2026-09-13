@@ -5,19 +5,33 @@ namespace App\Enum;
 enum PhaseUrgence: string
 {
     case DETECTION = 'detection';
-    case QUALIFICATION = 'qualification';
-    case VALIDATION = 'validation';
     case COORDINATION = 'coordination';
     case SUIVI = 'suivi';
 
     public function label(): string
     {
         return match($this) {
-            self::DETECTION => 'Phase 0 — Détection',
-            self::QUALIFICATION => 'Phase 1 — Qualification rapide',
-            self::VALIDATION => 'Phase 2 — Validation & orientation',
-            self::COORDINATION => 'Phase 3 — Coordination opérationnelle',
-            self::SUIVI => 'Phase 4 — Suivi & clôture',
+            self::DETECTION => 'Détection',
+            self::COORDINATION => 'Coordination opérationnelle',
+            self::SUIVI => 'Suivi & clôture',
+        };
+    }
+
+    public function phaseNumero(): string
+    {
+        return match($this) {
+            self::DETECTION => 'Phase 0',
+            self::COORDINATION => 'Phase 1',
+            self::SUIVI => 'Phase 2',
+        };
+    }
+
+    public function slaLabel(): string
+    {
+        return match($this) {
+            self::DETECTION => 'T0',
+            self::COORDINATION => 'T+48h',
+            self::SUIVI => 'T+72h',
         };
     }
 
@@ -26,8 +40,6 @@ enum PhaseUrgence: string
     {
         return match($this) {
             self::DETECTION => 0,
-            self::QUALIFICATION => 6,
-            self::VALIDATION => 24,
             self::COORDINATION => 48,
             self::SUIVI => 72,
         };
@@ -38,10 +50,8 @@ enum PhaseUrgence: string
     {
         return match($this) {
             self::DETECTION => 0,
-            self::QUALIFICATION => 5,    // rappel à T+5h (limite T+6h)
-            self::VALIDATION => 22,      // rappel à T+22h (limite T+24h)
-            self::COORDINATION => 46,    // rappel à T+46h
-            self::SUIVI => 70,           // rappel à T+70h
+            self::COORDINATION => 44,    // rappel à T+44h (limite T+48h)
+            self::SUIVI => 68,           // rappel à T+68h (limite T+72h)
         };
     }
 
@@ -49,10 +59,8 @@ enum PhaseUrgence: string
     {
         return match($this) {
             self::DETECTION => 0,
-            self::QUALIFICATION => 1,
-            self::VALIDATION => 2,
-            self::COORDINATION => 3,
-            self::SUIVI => 4,
+            self::COORDINATION => 1,
+            self::SUIVI => 2,
         };
     }
 

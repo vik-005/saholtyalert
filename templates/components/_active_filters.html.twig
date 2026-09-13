@@ -1,0 +1,106 @@
+{#
+  Composant récapitulatif de filtres actifs — Partie F.3
+  Affiche des badges cliquables (×) au-dessus des résultats.
+  Synchronisé avec l'URL : chaque clic retire le paramètre via JS côté client.
+
+  Usage :
+    {% include 'components/_active_filters.html.twig' with {
+        filters: filters,
+        route: 'app_alert_index',
+        labels: {
+            'statut': 'Statut',
+            'niveauPriorite': 'Priorité',
+            ...
+        },
+        values_labels: {
+            'statut': {'nouveau': 'Nouveau', 'validee': 'Validée', 'transmis': 'Transmis', ...},
+        },
+    } %}
+#}
+
+{% set labels = labels|default({}) %}
+{% set values_labels = values_labels|default({}) %}
+
+{# Construire la liste des filtres actifs (hors params internes) #}
+{% set internal_keys = ['page', 'tri', 'triSens'] %}
+{% set active = [] %}
+{% for key, val in filters %}
+    {% if val is not null and val is not same as('') and key not in internal_keys %}
+        {% set filterValue = val.value is defined ? val.value : val %}
+        {% set active = active|merge([{key: key, val: filterValue}]) %}
+    {% endif %}
+{% endfor %}
+
+{% if active|length > 0 %}
+<div class="active-filters-bar" id="activeFiltersBar" role="region" aria-label="Filtres actifs">
+    <span class="active-filters-label">
+        <i class="bi bi-funnel-fill me-1.5"></i>Filtres actifs :
+    </span>
+    <div class="active-filters-chips" id="activeFilterChips">
+        {% for item in active %}
+            {% set friendlyKey = labels[item.key]|default(item.key|capitalize) %}
+            {% set friendlyVal = values_labels[item.key][item.val]|default(item.val) %}
+            <button
+                type="button"
+                class="active-filter-chip"
+                data-filter-key="{{ item.key }}"
+                aria-label="Supprimer le filtre {{ friendlyKey }}"
+                title="Retirer ce filtre">
+                <span class="active-filter-chip-text">{{ friendlyKey }} : {{ friendlyVal }}</span>
+                <i class="bi bi-x active-filter-chip-x"></i>
+            </button>
+        {% endfor %}
+    </div>
+    <a href="{{ path(route, {}) }}" class="active-filters-reset">
+        <i class="bi bi-x-circle me-1"></i>Tout effacer
+    </a>
+</div>
+
+<style>
+.active-filters-bar {
+    display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+    padding:8px 0 4px 0;
+}
+.active-filters-label {
+    font-size:10.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--text-muted); white-space:nowrap;
+}
+.active-filters-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.active-filter-chip {
+    display:inline-flex; align-items:center; gap:5px;
+    background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.2);
+    border-radius:99px; padding:3px 10px 3px 10px;
+    font-size:11px; color:var(--amber);
+    cursor:pointer; transition:background .15s, border-color .15s;
+    white-space:nowrap;
+}
+.active-filter-chip:hover {
+    background:rgba(251,191,36,.15); border-color:rgba(251,191,36,.4);
+}
+.active-filter-chip-text { font-weight:600; }
+.active-filter-chip-x { font-size:12px; opacity:.7; }
+.active-filters-reset {
+    font-size:11px; color:var(--text-muted); text-decoration:none;
+    display:flex; align-items:center; gap:4px; margin-left:4px;
+    white-space:nowrap;
+}
+.active-filters-reset:hover { color:#f87171; }
+</style>
+
+<script>
+(function() {
+    function removeFilterParam(key) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete(key);
+        url.searchParams.set('page', '1'); // reset page à 1
+        window.location.href = url.toString();
+    }
+
+    document.querySelectorAll('.active-filter-chip[data-filter-key]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            removeFilterParam(btn.dataset.filterKey);
+        });
+    });
+})();
+</script>
+{% endif %}

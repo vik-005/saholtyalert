@@ -52,7 +52,7 @@ class ScoreCalculatorTest extends TestCase
     {
         $alert = $this->buildAlert(
             FiabiliteSource::A,
-            credibilite: 1,
+            1,
             AlertUrgence::IMMEDIAT,
             AlertImpact::ELEVE,
             AlertExploitabilite::ACTIONNABLE
@@ -80,7 +80,7 @@ class ScoreCalculatorTest extends TestCase
     {
         $alert = $this->buildAlert(
             FiabiliteSource::D,
-            credibilite: 4,
+            4,
             AlertUrgence::ROUTINE,
             AlertImpact::FAIBLE,
             AlertExploitabilite::ARCHIVAGE
@@ -107,7 +107,7 @@ class ScoreCalculatorTest extends TestCase
     {
         $alert = $this->buildAlert(
             FiabiliteSource::B,  // score 3
-            credibilite: 1,       // doit valoir 4 (inversé)
+            1,       // doit valoir 4 (inversé)
             AlertUrgence::ROUTINE,
             AlertImpact::FAIBLE,
             AlertExploitabilite::ARCHIVAGE
@@ -127,7 +127,7 @@ class ScoreCalculatorTest extends TestCase
     {
         $alert = $this->buildAlert(
             FiabiliteSource::A,  // score 4
-            credibilite: 4,       // doit valoir 1 (inversé)
+            4,       // doit valoir 1 (inversé)
             AlertUrgence::ROUTINE,
             AlertImpact::FAIBLE,
             AlertExploitabilite::ARCHIVAGE
@@ -182,7 +182,7 @@ class ScoreCalculatorTest extends TestCase
         // Fiabilité B (3) × Crédibilité 2 (3) = 9, + Immédiat (3) + Élevé (3) + Actionnable (3) = 18 ✓
         $alert = $this->buildAlert(
             FiabiliteSource::B,
-            credibilite: 2,
+            2,
             AlertUrgence::IMMEDIAT,
             AlertImpact::ELEVE,
             AlertExploitabilite::ACTIONNABLE
@@ -202,7 +202,7 @@ class ScoreCalculatorTest extends TestCase
         // Fiabilité C (2) × Crédibilité 1 (4) = 8, + Immédiat (3) + Élevé (3) + Actionnable (3) = 17 ✓
         $alert = $this->buildAlert(
             FiabiliteSource::C,
-            credibilite: 1,
+            1,
             AlertUrgence::IMMEDIAT,
             AlertImpact::ELEVE,
             AlertExploitabilite::ACTIONNABLE
@@ -223,7 +223,7 @@ class ScoreCalculatorTest extends TestCase
         // Fiabilité D (1) × Crédibilité 2 (3) = 3, + 72h (2) + Moyen (2) + Actionnable (3) = 10 ✓
         $alert = $this->buildAlert(
             FiabiliteSource::D,
-            credibilite: 2,
+            2,
             AlertUrgence::SOIXANTE_DOUZE_H,
             AlertImpact::MOYEN,
             AlertExploitabilite::ACTIONNABLE
@@ -243,7 +243,7 @@ class ScoreCalculatorTest extends TestCase
         // Fiabilité D (1) × Crédibilité 2 (3) = 3, + Routine (1) + Moyen (2) + Actionnable (3) = 9 ✓
         $alert = $this->buildAlert(
             FiabiliteSource::D,
-            credibilite: 2,
+            2,
             AlertUrgence::ROUTINE,
             AlertImpact::MOYEN,
             AlertExploitabilite::ACTIONNABLE

@@ -3,20 +3,19 @@
 namespace App\DataFixtures;
 
 use App\Entity\Alert;
+use App\Entity\ListeReferenceValeur;
 use App\Entity\Market;
 use App\Entity\RuleConfig;
 use App\Entity\User;
-use App\Enum\AlertCategorie;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
-use App\Enum\AnonymisationNiveau;
 use App\Enum\FiabiliteSource;
 use App\Enum\Sensibilite;
 use App\Enum\TransmissionStatut;
-use App\Enum\TypeSource;
 use App\Enum\UserRoleEnum;
+use App\Repository\ListeReferenceValeurRepository;
 use App\Repository\RuleConfigRepository;
 use App\Service\AlertCodeGeneratorService;
 use App\Service\ScoreCalculatorService;
@@ -42,6 +41,7 @@ class AppFixtures extends Fixture
         private readonly UserPasswordHasherInterface $hasher,
         private readonly RuleConfigRepository       $ruleConfigRepo,
         private readonly AlertCodeGeneratorService  $codeGen,
+        private readonly ListeReferenceValeurRepository $listeRefRepo,
     ) {}
 
     public function load(ObjectManager $manager): void
@@ -66,6 +66,68 @@ class AppFixtures extends Fixture
         }
 
         $manager->flush(); // flush RuleConfig d'abord — OBLIGATOIRE avant calcul des scores
+
+        // ── ÉTAPE 1b : Listes de référence (Catégorie, Type de source) ─────────
+        // Valeurs réelles fournies par le client (Annexe B) — 20 catégories + 16 types de source
+        // Idempotent : ne pas insérer si la valeur existe déjà (doublon avec la migration)
+        $listesReferenceData = [
+            // Catégorie (champ 9 du formulaire agent)
+            ['categorie', 'Transit de cigarettes', 1],
+            ['categorie', 'Transit de tabac brut', 2],
+            ['categorie', 'Transit de cigares', 3],
+            ['categorie', 'Importation de cigarettes', 4],
+            ['categorie', 'Importation de tabac', 5],
+            ['categorie', 'Réexportation de produits du tabac', 6],
+            ['categorie', 'Mouvement transfrontalier de tabac', 7],
+            ['categorie', 'Saisie de produits du tabac', 8],
+            ['categorie', 'Interception / contrôle de cargaison', 9],
+            ['categorie', 'Régularisation douanière', 10],
+            ['categorie', 'Absence de déclaration douanière', 11],
+            ['categorie', 'Anomalie documentaire', 12],
+            ['categorie', 'Fausse déclaration présumée', 13],
+            ['categorie', 'Incohérence d\'origine / destination', 14],
+            ['categorie', 'Exportateur ou destinataire non identifié', 15],
+            ['categorie', 'Dissimulation du bénéficiaire réel', 16],
+            ['categorie', 'Récurrence de flux / opérateur', 17],
+            ['categorie', 'Schéma de transit suspect', 18],
+            ['categorie', 'Renseignement / signalement', 19],
+            ['categorie', 'Veille / analyse de marché', 20],
+            // Type de source (champ 11 du formulaire agent)
+            ['type_source', 'Source douanière', 1],
+            ['type_source', 'Déclaration douanière', 2],
+            ['type_source', 'Manifeste transporteur', 3],
+            ['type_source', 'Connaissement / Bill of Lading', 4],
+            ['type_source', 'Document de transport', 5],
+            ['type_source', 'Document commercial', 6],
+            ['type_source', 'Document administratif', 7],
+            ['type_source', 'Rapport institutionnel', 8],
+            ['type_source', 'Rapport de mission', 9],
+            ['type_source', 'Rapport d\'enquête', 10],
+            ['type_source', 'Renseignement de terrain', 11],
+            ['type_source', 'Information d\'un partenaire institutionnel', 12],
+            ['type_source', 'Information d\'un consultant / correspondant', 13],
+            ['type_source', 'Donnée portuaire', 14],
+            ['type_source', 'Donnée aéroportuaire', 15],
+            ['type_source', 'Source ouverte (OSINT)', 16],
+        ];
+
+        foreach ($listesReferenceData as [$type, $libelle, $ordre]) {
+            $existing = $this->listeRefRepo->findOneBy([
+                'typeListe' => $type,
+                'libelle'   => $libelle,
+            ]);
+            if ($existing) {
+                continue;
+            }
+            $lr = new ListeReferenceValeur();
+            $lr->setTypeListe($type);
+            $lr->setLibelle($libelle);
+            $lr->setOrdreAffichage($ordre);
+            $lr->setActif(true);
+            $manager->persist($lr);
+        }
+
+        $manager->flush(); // flush Listes de référence
 
         // ── ÉTAPE 2 : Markets ───────────────────────────────────────────────────
         $marketsData = [
@@ -139,7 +201,7 @@ class AppFixtures extends Fixture
             [
                 'BEN', 'emetteur.benin@gei.org',
                 'Corridor Cotonou - Niamey',
-                AlertCategorie::CONTAINER_SUSPECT,
+                'Schéma de transit suspect',
                 'Soupçon de transit illicite de conteneurs de tabac déclarés comme carrelage.',
                 FiabiliteSource::A, 1, AlertUrgence::IMMEDIAT, AlertImpact::ELEVE, AlertExploitabilite::ACTIONNABLE,
                 'Conteneur MSKU9283741 arrivé au Port de Cotonou le 10/08/2026. Manifeste indiquant du carrelage mais scan RX montrant une densité organique type cartons.',
@@ -149,7 +211,7 @@ class AppFixtures extends Fixture
             [
                 'TGO', 'pft.togo@gei.org',
                 'Port de Lomé — Môle 2',
-                AlertCategorie::TRANSIT_TABAC,
+                'Transit de tabac brut',
                 'Cargaison suspecte de marque ESSE EDGE en provenance de Dubaï via Tanger.',
                 FiabiliteSource::B, 2, AlertUrgence::SOIXANTE_DOUZE_H, AlertImpact::ELEVE, AlertExploitabilite::ACTIONNABLE,
                 'Interception de 500 cartons au môle 2. Documents falsifiés au nom de la société AVENTUS SARL.',
@@ -159,7 +221,7 @@ class AppFixtures extends Fixture
             [
                 'GHA', 'emetteur.ghana@gei.org',
                 'Poste Frontière de Widana',
-                AlertCategorie::FLUX_TERRESTRE,
+                'Mouvement transfrontalier de tabac',
                 'Mouvement nocturne inhabituel de camions de transit non déclarés.',
                 FiabiliteSource::C, 3, AlertUrgence::ROUTINE, AlertImpact::MOYEN, AlertExploitabilite::A_COMPLETER,
                 'Observation terrain de 3 camions benne franchissant la frontière après 23h.',
@@ -169,7 +231,7 @@ class AppFixtures extends Fixture
             [
                 'CIV', 'emetteur.benin@gei.org',
                 'Abidjan — Zone portuaire',
-                AlertCategorie::ACTEUR,
+                'Exportateur ou destinataire non identifié',
                 'Repérage d\'un intermédiaire connu impliqué dans des réseaux de fausse déclaration.',
                 FiabiliteSource::B, 1, AlertUrgence::SOIXANTE_DOUZE_H, AlertImpact::ELEVE, AlertExploitabilite::ACTIONNABLE,
                 'L\'individu A.K. (alias "le courtier") a été identifié comme transitaire pour 3 importateurs suspects.',
@@ -179,7 +241,7 @@ class AppFixtures extends Fixture
             [
                 'BEN', 'emetteur.benin@gei.org',
                 'Corridor Cotonou - Parakou',
-                AlertCategorie::SAISIE,
+                'Saisie de produits du tabac',
                 'Saisie de 200 cartons de cigarettes de marque non homologuée.',
                 FiabiliteSource::A, 1, AlertUrgence::IMMEDIAT, AlertImpact::ELEVE, AlertExploitabilite::ACTIONNABLE,
                 'Saisie opérée le 05/08/2026 au PK 45 de la RN2. Marque FINE 100s non présente dans la liste homologuée.',
@@ -199,8 +261,8 @@ class AppFixtures extends Fixture
             $alert->setPortCorridor($corridor);
             $alert->setCategorie($cat);
             $alert->setResumeExecutif($resume);
-            $alert->setTypeSource(TypeSource::TERRAIN);
-            $alert->setAnonymisation(AnonymisationNiveau::ELEVE);
+            $alert->setTypeSource('Renseignement de terrain');
+            $alert->setAnonymisation('oui');
             $alert->setSensibilite(Sensibilite::RESTREINTE);
             $alert->setElementsFactuels($faits);
             $alert->setHypothesesAnalytiques($hyp);

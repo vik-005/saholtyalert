@@ -17,6 +17,8 @@ enum AlertStatut: string
     case A_INVESTIGUER        = 'a_investiguer';
     case OUVERT_PRIORITAIRE   = 'ouvert_prioritaire';  // ajout audit — "Ouvert – prioritaire"
     case A_VALIDER_SAHOLTY    = 'a_valider_saholty';
+    /** Validation finale par le Manager du marché. */
+    case VALIDEE              = 'validee';
     case TRANSMIS             = 'transmis';
     case SUIVI                = 'suivi';
     case ARCHIVE              = 'archive';
@@ -32,7 +34,8 @@ enum AlertStatut: string
             self::A_COMPLETER          => 'À compléter',
             self::A_INVESTIGUER        => 'À investiguer',
             self::OUVERT_PRIORITAIRE   => 'Ouvert – prioritaire',
-            self::A_VALIDER_SAHOLTY    => 'À valider (SAHOLTY)',
+            self::A_VALIDER_SAHOLTY    => 'En attente de validation Manager',
+            self::VALIDEE              => 'Validée',
             self::TRANSMIS             => 'Transmis',
             self::SUIVI                => 'Suivi',
             self::ARCHIVE              => 'Archivé',
@@ -51,6 +54,7 @@ enum AlertStatut: string
             self::A_INVESTIGUER        => 'badge-warning',
             self::OUVERT_PRIORITAIRE   => 'badge-danger',
             self::A_VALIDER_SAHOLTY    => 'badge-orange',
+            self::VALIDEE              => 'badge-success',
             self::TRANSMIS             => 'badge-success',
             self::SUIVI                => 'badge-secondary',
             self::ARCHIVE              => 'badge-muted',

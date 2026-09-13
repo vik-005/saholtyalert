@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -23,6 +24,9 @@ class ExportService
     // Colonnes du registre dans l'ordre exact du fichier source (Annexe B / Partie E.1)
     // Score GEI et Niveau priorité sont en COLONNES 24 et 25 (ajout plateforme, validé client)
     // NON insérés en position 12/13 comme dans l'ancienne version incorrecte.
+    // Colonnes 26-29 : traçabilité nominative et horodatages (Parties B & D — prompt expert final)
+    // operateur_acteur : POSITION À CONFIRMER — non documentée dans le registre source (Annexe B).
+    // À placer selon validation métier ultérieure. NE PAS INVENTER d'ordre officiel.
     private const COLUMNS = [
         'ID GEI',                            // A
         'Date',                              // B
@@ -47,8 +51,13 @@ class ExportService
         'Dernière MAJ',                       // U
         'Responsable suivi',                  // V
         'Commentaires',                       // W
-        'Score GEI',                          // X — ajout plateforme (recommandé client)
-        'Niveau de priorité',                 // Y — ajout plateforme (recommandé client)
+        'Score GEI',                          // X — ajout plateforme
+        'Niveau de priorité',                 // Y — ajout plateforme
+        'Agent soumetteur',                   // Z  — traçabilité nominative (Partie B)
+        'Manager validateur',                 // AA — traçabilité nominative (Partie B)
+        'Date de validation',                 // AB — horodatage validation (Partie D)
+        'Délai traitement (h)',               // AC — délai soumission→validation (Partie D)
+        'Opérateur / Acteur',                 // AD — ajout plateforme (champ 30)
     ];
 
     /**
@@ -88,10 +97,10 @@ class ExportService
         ];
 
         foreach (self::COLUMNS as $col => $label) {
-            $cell = $sheet->getCellByColumnAndRow($col + 1, 1);
+            $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($col + 1) . '1');
             $cell->setValue($label);
         }
-        $sheet->getStyle('A1:' . $sheet->getCellByColumnAndRow(count(self::COLUMNS), 1)->getCoordinate())->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:' . Coordinate::stringFromColumnIndex(count(self::COLUMNS)) . '1')->applyFromArray($headerStyle);
         $sheet->getRowDimension(1)->setRowHeight(30);
 
         // Données
@@ -107,10 +116,10 @@ class ExportService
                 (string)($alert->getEmetteur()?->getNomComplet() ?? ''),          // C — Émetteur
                 (string)($alert->getMarket()?->getNom() ?? ''),                   // D — Zone (pays)
                 (string)($alert->getPortCorridor() ?? ''),                         // E — Port / Corridor
-                (string)($alert->getCategorie()?->label() ?? ''),                 // F — Catégorie
+                (string)($alert->getCategorie() ?? ''),                            // F — Catégorie
                 (string)($alert->getResumeExecutif() ?? ''),                      // G — Résumé court
-                (string)($alert->getTypeSource()?->label() ?? ''),                // H — Type de source
-                (string)($alert->getAnonymisation()?->label() ?? ''),             // I — Anonymisation (Enum→string)
+                (string)($alert->getTypeSource() ?? ''),                          // H — Type de source
+                (string)($alert->getAnonymisation() ?? ''),                      // I — Anonymisation
                 (string)($alert->getFiabiliteSource()?->value ?? ''),             // J — Fiabilité (A–D)
                 (string)($alert->getCredibiliteContenu() ?? ''),                  // K — Crédibilité (1–4)
                 (string)($alert->getUrgence()?->label() ?? ''),                   // L — Urgence
@@ -127,10 +136,17 @@ class ExportService
                 (string)($alert->getCommentaires() ?? ''),                        // W — Commentaires
                 (string)($alert->getEffectiveScore() ?? ''),                      // X — Score GEI
                 (string)($alert->getEffectiveNiveauPriorite()?->label() ?? ''),   // Y — Niveau priorité
+                (string)($alert->getEmetteur()?->getNomComplet() ?? ''),          // Z  — Agent soumetteur (Partie B)
+                (string)($alert->getValidatedBy()?->getNomComplet() ?? ''),       // AA — Manager validateur (Partie B)
+                $alert->getDateValidation()?->format('d/m/Y H:i') ?? '',          // AB — Date validation (Partie D)
+                $alert->getDelaiTraitementHeures() !== null
+                    ? (string) $alert->getDelaiTraitementHeures()
+                    : '',                                                          // AC — Délai traitement h (Partie D)
+                (string)($alert->getOperateurActeur() ?? ''),                     // AD — Opérateur / Acteur
             ];
 
             foreach ($row as $colIdx => $value) {
-                $sheet->getCellByColumnAndRow($colIdx + 1, $rowNum)->setValue($value ?? '');
+                $sheet->getCell(Coordinate::stringFromColumnIndex($colIdx + 1) . $rowNum)->setValue($value ?? '');
             }
 
             // Couleur de ligne selon priorité
@@ -141,8 +157,8 @@ class ExportService
                 default => 'F8FAFC',
             };
 
-            $lastCol = $sheet->getCellByColumnAndRow(count(self::COLUMNS), $rowNum)->getCoordinate();
-            $sheet->getStyle('A' . $rowNum . ':' . $lastCol)->applyFromArray([
+            $lastCol = Coordinate::stringFromColumnIndex(count(self::COLUMNS));
+            $sheet->getStyle('A' . $rowNum . ':' . $lastCol . $rowNum)->applyFromArray([
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $priorityColor]],
             ]);
 
@@ -158,7 +174,7 @@ class ExportService
         $sheet->freezePane('A2');
 
         // Filtre automatique
-        $lastCell = $sheet->getCellByColumnAndRow(count(self::COLUMNS), 1)->getCoordinate();
+        $lastCell = Coordinate::stringFromColumnIndex(count(self::COLUMNS)) . '1';
         $sheet->setAutoFilter('A1:' . $lastCell);
 
         return $spreadsheet;

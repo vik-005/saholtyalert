@@ -1,0 +1,192 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ajouter un pays — GEI{% endblock %}
+{% block header_title %}Paramètres système{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi-plus me-1.5 text-amber-400"></i>Nouveau pays / marché
+            </p>
+            <h2 class="page-title">Ajouter un pays</h2>
+        </div>
+        <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">
+            <i class="bi-arrow-left me-1.5"></i>Retour
+        </a>
+    </div>
+
+    <form method="post" action="{{ path('app_admin_market_new') }}" class="market-form">
+
+        <div class="db-card mb-4">
+            <div class="db-card-header">
+                <p class="db-card-eyebrow"><i class="bi-globe me-1.5"></i>Informations du pays</p>
+            </div>
+            <div class="db-card-body">
+                <div class="form-grid-2">
+
+                    <div class="form-field">
+                        <label class="form-label" for="nom">
+                            Nom du pays <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" name="nom" id="nom" class="form-input" required
+                               placeholder="ex. Côte d'Ivoire"
+                               oninput="suggestIso3(this.value)">
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="codeIso3">
+                            Code ISO 3166-1 alpha-3 <span class="text-red-400">*</span>
+                        </label>
+                        <input type="text" name="codeIso3" id="codeIso3" class="form-input font-mono"
+                               maxlength="3" required
+                               placeholder="ex. CIV"
+                               style="text-transform:uppercase">
+                        <p class="form-help">3 lettres majuscules. <a href="https://fr.wikipedia.org/wiki/ISO_3166-1_alpha-3" target="_blank" class="text-amber-400">Table ISO</a></p>
+                    </div>
+
+                    <div class="form-field">
+                        <label class="form-label" for="region">Région</label>
+                        <select name="region" id="region" class="form-select">
+                            {% for r in regions %}
+                                <option value="{{ r }}" {% if r == "Afrique de l'Ouest" %}selected{% endif %}>
+                                    {{ r }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        {# Coordonnées GPS pour la carte #}
+        <div class="db-card mb-4">
+            <div class="db-card-header">
+                <p class="db-card-eyebrow">
+                    <i class="bi-geo-alt me-1.5 text-amber-400"></i>
+                    Coordonnées géographiques (pour la cartographie)
+                </p>
+            </div>
+            <div class="db-card-body">
+                <p class="text-slate-500 text-sm mb-4">
+                    Optionnel mais recommandé. Ces coordonnées permettent d'afficher le pays sur la carte des alertes.
+                    Saisissez les coordonnées du centre du pays ou du principal point douanier.
+                </p>
+                <div class="form-grid-2">
+                    <div class="form-field">
+                        <label class="form-label" for="latitude">Latitude</label>
+                        <input type="number" name="latitude" id="latitude" class="form-input"
+                               step="0.000001" placeholder="ex. 7.5400">
+                        <p class="form-help">Positive = Nord, négative = Sud</p>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="longitude">Longitude</label>
+                        <input type="number" name="longitude" id="longitude" class="form-input"
+                               step="0.000001" placeholder="ex. -5.5471">
+                        <p class="form-help">Positive = Est, négative = Ouest</p>
+                    </div>
+                </div>
+
+                {# Mini-carte pour choisir visuellement les coordonnées #}
+                <div class="mt-4">
+                    <p class="form-label mb-2">
+                        <i class="bi-crosshairs me-1.5 text-amber-400"></i>
+                        Ou cliquez sur la carte pour placer le marqueur
+                    </p>
+                    <div id="pickMap" style="height: 300px; border-radius: var(--radius); overflow: hidden;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+            <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">Annuler</a>
+            <button type="submit" class="db-btn db-btn-amber">
+                <i class="bi-plus me-1.5"></i>Ajouter le pays
+            </button>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const map = L.map('pickMap').setView([10, 20], 3);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd', maxZoom: 18,
+    }).addTo(map);
+
+    let marker = null;
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+
+    // Si déjà rempli, placer le marqueur
+    function updateMarkerFromInputs() {
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
+        if (!isNaN(lat) && !isNaN(lng)) {
+            if (marker) marker.setLatLng([lat, lng]);
+            else {
+                marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                marker.on('dragend', e => {
+                    const pos = e.target.getLatLng();
+                    latInput.value = pos.lat.toFixed(6);
+                    lngInput.value = pos.lng.toFixed(6);
+                });
+            }
+            map.setView([lat, lng], 6);
+        }
+    }
+
+    latInput.addEventListener('change', updateMarkerFromInputs);
+    lngInput.addEventListener('change', updateMarkerFromInputs);
+    updateMarkerFromInputs();
+
+    // Clic sur carte → placer marqueur + remplir inputs
+    map.on('click', e => {
+        latInput.value = e.latlng.lat.toFixed(6);
+        lngInput.value = e.latlng.lng.toFixed(6);
+        updateMarkerFromInputs();
+    });
+});
+
+// Suggestion ISO3 basée sur le nom (correspondances communes Afrique)
+const isoMap = {
+    'bénin': 'BEN', 'benin': 'BEN', 'togo': 'TGO', 'niger': 'NER',
+    'mali': 'MLI', 'sénégal': 'SEN', 'senegal': 'SEN',
+    'côte d\'ivoire': 'CIV', "cote d'ivoire": 'CIV', 'ghana': 'GHA',
+    'guinée': 'GIN', 'guinee': 'GIN', 'burkina faso': 'BFA', 'burkina': 'BFA',
+    'cameroun': 'CMR', 'nigeria': 'NGA', 'nigéria': 'NGA',
+    'mauritanie': 'MRT', 'maroc': 'MAR', 'algérie': 'DZA', 'tunisie': 'TUN',
+    'libye': 'LBY', 'égypte': 'EGY', 'egypte': 'EGY', 'soudan': 'SDN',
+    'éthiopie': 'ETH', 'kenya': 'KEN', 'tanzanie': 'TZA', 'ouganda': 'UGA',
+    'angola': 'AGO', 'mozambique': 'MOZ', 'zambie': 'ZMB', 'zimbabwe': 'ZWE',
+    'afrique du sud': 'ZAF', 'madagascar': 'MDG', 'congo': 'COG',
+    'rd congo': 'COD', 'gabon': 'GAB', 'centrafrique': 'CAF',
+    'tchad': 'TCD', 'libéria': 'LBR', 'sierra leone': 'SLE',
+    'gambie': 'GMB', 'guinée-bissau': 'GNB', 'cap-vert': 'CPV',
+};
+
+function suggestIso3(name) {
+    const lower = name.toLowerCase().trim();
+    const iso3El = document.getElementById('codeIso3');
+    if (!iso3El || iso3El.value.length === 3) return;
+    const match = Object.entries(isoMap).find(([k]) => lower.startsWith(k) || k.startsWith(lower.slice(0, 3)));
+    if (match) {
+        iso3El.value = match[1];
+    }
+}
+</script>
+{% endblock %}

@@ -25,6 +25,14 @@ class AlertQualificationHistory
     #[ORM\Column(type: 'integer')]
     private int $scoreGei;
 
+    /** Score avant recalcul ; null pour le premier calcul de l'alerte. */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $oldScore = null;
+
+    /** Score courant issu de ce recalcul (explicite pour l'audit). */
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $newScore = null;
+
     #[ORM\Column(type: 'string', enumType: NiveauPriorite::class)]
     private NiveauPriorite $niveauPriorite;
 
@@ -51,6 +59,12 @@ class AlertQualificationHistory
 
     public function getScoreGei(): int { return $this->scoreGei; }
     public function setScoreGei(int $scoreGei): static { $this->scoreGei = $scoreGei; return $this; }
+
+    public function getOldScore(): ?int { return $this->oldScore; }
+    public function setOldScore(?int $oldScore): static { $this->oldScore = $oldScore; return $this; }
+
+    public function getNewScore(): ?int { return $this->newScore; }
+    public function setNewScore(?int $newScore): static { $this->newScore = $newScore; return $this; }
 
     public function getNiveauPriorite(): NiveauPriorite { return $this->niveauPriorite; }
     public function setNiveauPriorite(NiveauPriorite $niveauPriorite): static { $this->niveauPriorite = $niveauPriorite; return $this; }

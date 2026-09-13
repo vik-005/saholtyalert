@@ -2,19 +2,17 @@
 
 namespace App\Entity;
 
-use App\Enum\AlertCategorie;
-use App\Enum\AlertExploitabilite;
+    use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
-use App\Enum\AnonymisationNiveau;
 use App\Enum\FiabiliteSource;
 use App\Enum\NiveauPriorite;
 use App\Enum\Recommandation;
 use App\Enum\Sensibilite;
 use App\Enum\TransmissionStatut;
 use App\Enum\TypeAlerte;
-use App\Enum\TypeSource;
+use App\Enum\TypeLocalisation;
 use App\Repository\AlertRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -28,7 +26,15 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Ils ne sont JAMAIS saisis manuellement (garde-fou §3).
  */
 #[ORM\Entity(repositoryClass: AlertRepository::class)]
-#[ORM\Table(name: 'alert')]
+#[ORM\Table(name: 'alert', indexes: [
+    new ORM\Index(name: 'idx_alert_statut', columns: ['statut']),
+    new ORM\Index(name: 'idx_alert_market', columns: ['market_id']),
+    new ORM\Index(name: 'idx_alert_emetteur', columns: ['emetteur_id']),
+    new ORM\Index(name: 'idx_alert_date', columns: ['date_creation']),
+    new ORM\Index(name: 'idx_alert_priorite', columns: ['niveau_priorite']),
+    new ORM\Index(name: 'idx_alert_statut_market', columns: ['statut', 'market_id']),
+    new ORM\Index(name: 'idx_alert_date_statut', columns: ['date_creation', 'statut']),
+])]
 #[ORM\HasLifecycleCallbacks]
 class Alert
 {
@@ -55,26 +61,32 @@ class Alert
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $portCorridor = null;
 
-    #[ORM\Column(type: 'string', enumType: AlertCategorie::class)]
-    private ?AlertCategorie $categorie = null;
+    #[ORM\Column(type: 'string', enumType: TypeLocalisation::class, nullable: true)]
+    private ?TypeLocalisation $typeLocalisation = null;
+
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $categorie = null;
+
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $marque = null;
 
     /**
      * Résumé exécutif — max 500 caractères, séparé des faits et hypothèses (garde-fou §3.1).
      */
-    #[ORM\Column(type: 'text')]
+    #[ORM\Column(type: 'text', nullable: true)]
     #[Assert\NotBlank(message: 'Le résumé exécutif est obligatoire.')]
     #[Assert\Length(max: 500, maxMessage: 'Le résumé ne peut pas dépasser {{ limit }} caractères.')]
     private ?string $resumeExecutif = null;
 
-    #[ORM\Column(type: 'string', enumType: TypeSource::class, nullable: true)]
-    private ?TypeSource $typeSource = null;
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $typeSource = null;
 
     #[ORM\Column(type: 'string', enumType: TypeAlerte::class, nullable: true)]
     private ?TypeAlerte $typeAlerte = null;
 
-    /** Anonymisation ÉLEVÉ par défaut — non désactivable sans rôle SAHOLTY (§3.5) */
-    #[ORM\Column(type: 'string', enumType: AnonymisationNiveau::class)]
-    private AnonymisationNiveau $anonymisation = AnonymisationNiveau::ELEVE;
+    /** Anonymisation Oui / Non — liste fermée fixe (champ 12) */
+    #[ORM\Column(type: 'string', length: 10, nullable: true)]
+    private ?string $anonymisation = null;
 
     /**
      * Historique de la source — section 3 de l'Annexe A, rempli par l'AGENT.
@@ -137,8 +149,18 @@ class Alert
     #[ORM\JoinColumn(nullable: true)]
     private ?User $responsableSuivi = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $operateurActeur = null;
+
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $commentaires = null;
+
+    /**
+     * Décision GEI — réservé au Manager (champ 18 du formulaire agent).
+     * Acte de j décision, pas de collecte.
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $decisionGei = null;
 
     /**
      * Éléments factuels — JAMAIS mélangés avec les hypothèses analytiques (garde-fou Annexe C).
@@ -185,6 +207,25 @@ class Alert
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $justificationSurcharge = null;
 
+    /** Commentaire de rejet par le Manager (obligatoire si rejet) */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $commentaireRejet = null;
+
+    /**
+     * Manager qui a validé ou rejeté cette alerte (traçabilité nominative — Partie B).
+     * Renseigné automatiquement par QualificationController lors de la décision Manager.
+     */
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(name: 'validated_by_id', nullable: true, onDelete: 'SET NULL')]
+    private ?User $validatedBy = null;
+
+    /**
+     * Date et heure exactes de validation/rejet par le Manager (Partie D).
+     * Permet de calculer le délai de traitement (soumission → validation).
+     */
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTime $dateValidation = null;
+
     /** Origine de l'alerte : saisie_agent ou import_excel (Spec B.4) */
     #[ORM\Column(type: 'string', length: 30)]
     private string $origine = 'saisie_agent';
@@ -207,6 +248,10 @@ class Alert
     #[ORM\Column(type: 'datetime')]
     private \DateTime $updatedAt;
 
+    /** Soft-delete : date de suppression (si null, alerte active) */
+    #[ORM\Column(type: 'datetime', nullable: true)]
+    private ?\DateTime $deletedAt = null;
+
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertActor::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $acteurs;
 
@@ -224,6 +269,10 @@ class Alert
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertTransmission::class, cascade: ['persist'])]
     private Collection $transmissions;
 
+    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertComment::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    private Collection $commentairesHistorises;
+
     #[ORM\OneToOne(mappedBy: 'alert', targetEntity: Urgence72hCase::class, cascade: ['persist'])]
     private ?Urgence72hCase $urgence72hCase = null;
 
@@ -234,6 +283,7 @@ class Alert
         $this->qualificationHistories = new ArrayCollection();
         $this->statusHistories = new ArrayCollection();
         $this->transmissions = new ArrayCollection();
+        $this->commentairesHistorises = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTime();
         $this->dateCreation = new \DateTime();
@@ -312,14 +362,36 @@ class Alert
         return $this;
     }
 
-    public function getCategorie(): ?AlertCategorie
+    public function getTypeLocalisation(): ?TypeLocalisation
+    {
+        return $this->typeLocalisation;
+    }
+
+    public function setTypeLocalisation(?TypeLocalisation $typeLocalisation): static
+    {
+        $this->typeLocalisation = $typeLocalisation;
+        return $this;
+    }
+
+    public function getCategorie(): ?string
     {
         return $this->categorie;
     }
 
-    public function setCategorie(?AlertCategorie $categorie): static
+    public function setCategorie(?string $categorie): static
     {
         $this->categorie = $categorie;
+        return $this;
+    }
+
+    public function getMarque(): ?string
+    {
+        return $this->marque;
+    }
+
+    public function setMarque(?string $marque): static
+    {
+        $this->marque = $marque;
         return $this;
     }
 
@@ -334,12 +406,12 @@ class Alert
         return $this;
     }
 
-    public function getTypeSource(): ?TypeSource
+    public function getTypeSource(): ?string
     {
         return $this->typeSource;
     }
 
-    public function setTypeSource(?TypeSource $typeSource): static
+    public function setTypeSource(?string $typeSource): static
     {
         $this->typeSource = $typeSource;
         return $this;
@@ -356,12 +428,12 @@ class Alert
         return $this;
     }
 
-    public function getAnonymisation(): AnonymisationNiveau
+    public function getAnonymisation(): ?string
     {
         return $this->anonymisation;
     }
 
-    public function setAnonymisation(AnonymisationNiveau $anonymisation): static
+    public function setAnonymisation(?string $anonymisation): static
     {
         $this->anonymisation = $anonymisation;
         return $this;
@@ -543,6 +615,28 @@ class Alert
         return $this;
     }
 
+    public function getOperateurActeur(): ?string
+    {
+        return $this->operateurActeur;
+    }
+
+    public function setOperateurActeur(?string $operateurActeur): static
+    {
+        $this->operateurActeur = $operateurActeur;
+        return $this;
+    }
+
+    public function getDecisionGei(): ?string
+    {
+        return $this->decisionGei;
+    }
+
+    public function setDecisionGei(?string $decisionGei): static
+    {
+        $this->decisionGei = $decisionGei;
+        return $this;
+    }
+
     public function getElementsFactuels(): ?string
     {
         return $this->elementsFactuels;
@@ -642,6 +736,55 @@ class Alert
         return $this;
     }
 
+    public function getCommentaireRejet(): ?string
+    {
+        return $this->commentaireRejet;
+    }
+
+    public function setCommentaireRejet(?string $commentaireRejet): static
+    {
+        $this->commentaireRejet = $commentaireRejet;
+        return $this;
+    }
+
+    // ── Traçabilité Manager (Partie B & D) ────────────────────────────────────
+
+    public function getValidatedBy(): ?User
+    {
+        return $this->validatedBy;
+    }
+
+    public function setValidatedBy(?User $user): static
+    {
+        $this->validatedBy = $user;
+        return $this;
+    }
+
+    public function getDateValidation(): ?\DateTime
+    {
+        return $this->dateValidation;
+    }
+
+    public function setDateValidation(?\DateTime $dateValidation): static
+    {
+        $this->dateValidation = $dateValidation;
+        return $this;
+    }
+
+    /**
+     * Calcule et retourne le délai de traitement en heures (soumission → validation).
+     * Retourne null si la validation n'a pas encore eu lieu.
+     */
+    public function getDelaiTraitementHeures(): ?float
+    {
+        if (null === $this->dateValidation) {
+            return null;
+        }
+        $soumission = \DateTime::createFromInterface($this->createdAt);
+        $diff = $this->dateValidation->getTimestamp() - $soumission->getTimestamp();
+        return round($diff / 3600, 1);
+    }
+
     public function getOrigine(): string
     {
         return $this->origine;
@@ -708,6 +851,17 @@ class Alert
         return $this->updatedAt;
     }
 
+    public function getDeletedAt(): ?\DateTime
+    {
+        return $this->deletedAt;
+    }
+
+    public function setDeletedAt(?\DateTime $deletedAt): static
+    {
+        $this->deletedAt = $deletedAt;
+        return $this;
+    }
+
     public function getActeurs(): Collection
     {
         return $this->acteurs;
@@ -763,6 +917,26 @@ class Alert
         return $this->transmissions;
     }
 
+    public function getCommentairesHistorises(): Collection
+    {
+        return $this->commentairesHistorises;
+    }
+
+    public function addCommentaireHistorise(AlertComment $comment): static
+    {
+        if (!$this->commentairesHistorises->contains($comment)) {
+            $this->commentairesHistorises->add($comment);
+            $comment->setAlert($this);
+        }
+        return $this;
+    }
+
+    public function removeCommentaireHistorise(AlertComment $comment): static
+    {
+        $this->commentairesHistorises->removeElement($comment);
+        return $this;
+    }
+
     public function getUrgence72hCase(): ?Urgence72hCase
     {
         return $this->urgence72hCase;
@@ -782,6 +956,16 @@ class Alert
             && null !== $this->urgence
             && null !== $this->impact
             && null !== $this->exploitabilite;
+    }
+
+    /**
+     * Garde-fou métier serveur pour l'espace opérationnel Urgence 72h.
+     * Un score critique ou une URL directe ne suffisent jamais.
+     */
+    public function isEligibleForUrgence72h(): bool
+    {
+        return $this->urgence === AlertUrgence::SOIXANTE_DOUZE_H
+            && $this->statut === AlertStatut::VALIDEE;
     }
 
     public function __toString(): string

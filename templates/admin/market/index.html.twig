@@ -1,0 +1,337 @@
+{% extends 'base.html.twig' %}
+{% block title %}Pays & Marchés — Admin{% endblock %}
+{% block header_title %}Administration{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-globe-africa me-1.5 text-amber-400"></i>
+                Administration · Paramètres système
+            </p>
+            <h2 class="page-title">Pays & Marchés</h2>
+            <p class="page-subtitle">
+                Les pays <strong class="text-white">actifs</strong> s'affichent dans tous les formulaires, filtres
+                et sur la carte. Un pays sans alertes peut être supprimé définitivement.
+            </p>
+        </div>
+        <button type="button" class="db-btn db-btn-amber" onclick="showAddForm()">
+            <i class="bi bi-plus me-1.5"></i>Ajouter un pays
+        </button>
+    </div>
+
+    {# ── KPIs ── #}
+    <div class="kpi-row mb-4">
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-globe-africa text-amber-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ markets|length }}</p>
+                <p class="kpi-card-label">Pays total</p>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-check-circle text-emerald-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ markets|filter(m => m.actif)|length }}</p>
+                <p class="kpi-card-label">Pays actifs</p>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi-pause-circle text-slate-500"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ markets|filter(m => not m.actif)|length }}</p>
+                <p class="kpi-card-label">Désactivés</p>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi-geo-alt text-blue-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ markets|filter(m => m.zoneGeo is not null)|length }}</p>
+                <p class="kpi-card-label">Géolocalisés</p>
+            </div>
+        </div>
+    </div>
+
+    {# ── Formulaire d'ajout inline (caché par défaut) ── #}
+    <div id="addCountryForm" class="db-card mb-4 hidden">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-plus me-1.5 text-amber-400"></i>Nouveau pays
+            </p>
+            <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="hideAddForm()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="db-card-body">
+            <form method="post" action="{{ path('app_admin_market_new') }}">
+                <div class="form-grid-2 mb-4">
+                    <div class="form-field">
+                        <label class="form-label">Nom du pays <span class="text-red-400">*</span></label>
+                        <input type="text" name="nom" id="addNom" class="form-input" required
+                               placeholder="ex. Côte d'Ivoire"
+                               oninput="suggestIso(this.value)">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">
+                            Code ISO3 <span class="text-red-400">*</span>
+                            <a href="https://fr.wikipedia.org/wiki/ISO_3166-1_alpha-3" target="_blank"
+                               class="text-amber-400 text-xs ms-2">Table ISO →</a>
+                        </label>
+                        <input type="text" name="codeIso3" id="addIso3" class="form-input font-mono"
+                               maxlength="3" required placeholder="ex. CIV"
+                               style="text-transform:uppercase">
+                        <p class="form-help">3 lettres majuscules.</p>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Région</label>
+                        <select name="region" class="form-select">
+                            {% for r in ["Afrique de l'Ouest", "Afrique Centrale", "Afrique de l'Est", "Afrique du Nord", "Afrique Australe"] %}
+                                <option value="{{ r }}" {% if r == "Afrique de l'Ouest" %}selected{% endif %}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-field" style="grid-column:span 2">
+                        <p class="form-label mb-2">
+                            <i class="bi-crosshairs me-1.5 text-amber-400"></i>
+                            Position sur la carte (cliquez pour placer le marqueur)
+                        </p>
+                        <div id="addMap" style="height:220px;border-radius:var(--radius);overflow:hidden;"></div>
+                        <div class="form-grid-2 mt-2">
+                            <div>
+                                <label class="form-label">Latitude</label>
+                                <input type="number" name="latitude" id="addLat" class="form-input" step="0.000001" placeholder="ex. 7.5400">
+                            </div>
+                            <div>
+                                <label class="form-label">Longitude</label>
+                                <input type="number" name="longitude" id="addLng" class="form-input" step="0.000001" placeholder="ex. -5.5471">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" class="db-btn db-btn-ghost" onclick="hideAddForm()">Annuler</button>
+                    <button type="submit" class="db-btn db-btn-amber">
+                        <i class="bi bi-plus me-1.5"></i>Ajouter ce pays
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Tableau des pays ── #}
+    <div class="db-card">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi-table me-1.5"></i>{{ markets|length }} pays enregistré{{ markets|length > 1 ? 's' : '' }}
+            </p>
+            <div class="db-search-wrap">
+                <i class="bi bi-search db-search-icon"></i>
+                <input type="text" id="searchMarket" class="form-input db-search-input"
+                       placeholder="Rechercher un pays, ISO3…"
+                       oninput="filterTable(this.value)">
+            </div>
+        </div>
+        <div class="db-card-body p-0">
+            <div class="table-scroll">
+                <table class="gei-table" id="marketsTable">
+                    <thead>
+                        <tr>
+                            <th>Pays</th>
+                            <th>ISO3</th>
+                            <th>Région</th>
+                            <th>Coordonnées</th>
+                            <th>Statut</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for market in markets %}
+                    <tr class="market-row {% if not market.actif %}opacity-50{% endif %}"
+                        data-nom="{{ market.nom|lower }}" data-iso="{{ market.codeIso3|lower }}">
+                        <td>
+                            <span class="font-semibold text-white">{{ market.nom }}</span>
+                        </td>
+                        <td>
+                            <span class="font-mono font-bold text-amber-400 text-sm">{{ market.codeIso3 }}</span>
+                        </td>
+                        <td class="text-slate-400 text-sm">{{ market.region }}</td>
+                        <td class="text-xs font-mono">
+                            {% if market.zoneGeo %}
+                                <span class="text-emerald-400">
+                                    <i class="bi-geo-alt me-1"></i>
+                                    {{ market.zoneGeo.latitude|number_format(4) }},
+                                    {{ market.zoneGeo.longitude|number_format(4) }}
+                                </span>
+                            {% else %}
+                                <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if market.actif %}
+                                <span class="status-pill status-active">
+                                    <span class="status-dot"></span>Actif
+                                </span>
+                            {% else %}
+                                <span class="status-pill status-closed">
+                                    <span class="status-dot"></span>Désactivé
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right">
+                            <div class="flex gap-2 justify-end">
+                                <a href="{{ path('app_admin_market_edit', {id: market.id}) }}"
+                                   class="db-btn db-btn-ghost db-btn-sm">
+                                    <i class="bi bi-pen me-1"></i>Modifier
+                                </a>
+                                <form method="post" action="{{ path('app_admin_market_toggle', {id: market.id}) }}" style="display:inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle-market-' ~ market.id) }}">
+                                    <button type="submit" class="db-btn db-btn-sm db-btn-ghost">
+                                        {% if market.actif %}
+                                            <i class="bi bi-eye-slash me-1"></i>Désactiver
+                                        {% else %}
+                                            <i class="bi bi-eye me-1"></i>Activer
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ path('app_admin_market_delete', {id: market.id}) }}"
+                                      style="display:inline"
+                                      onsubmit="return confirm('Supprimer définitivement « {{ market.nom }} » ? Cette action est irréversible.')">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete-market-' ~ market.id) }}">
+                                    <button type="submit" class="db-btn db-btn-sm db-btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-slate-500 py-10">
+                            <i class="bi bi-globe-africa bi-2x mb-3 block opacity-20"></i>
+                            Aucun pays enregistré.
+                            <button onclick="showAddForm()" class="text-amber-400 underline ms-2">
+                                Ajouter le premier pays
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# Note prise en compte temps réel #}
+    <div class="workflow-banner workflow-banner-amber mt-4">
+        <i class="bi bi-info-circle text-amber-400 flex-shrink-0"></i>
+        <div>
+            <p class="workflow-banner-title">Prise en compte immédiate</p>
+            <p class="workflow-banner-sub">
+                Tout pays <strong>activé</strong> apparaît instantanément dans les sélecteurs de marchés,
+                les filtres du registre, la cartographie et la page Audit.
+                Pas de redémarrage serveur requis.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+// ── Afficher/cacher le formulaire d'ajout ─────────────────────────────────
+function showAddForm() {
+    const form = document.getElementById('addCountryForm');
+    form.classList.remove('hidden');
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(initAddMap, 100);
+    document.getElementById('addNom').focus();
+}
+function hideAddForm() {
+    document.getElementById('addCountryForm').classList.add('hidden');
+}
+
+// ── Mini-carte pour le formulaire d'ajout ─────────────────────────────────
+let addMap = null;
+let addMarker = null;
+
+function initAddMap() {
+    if (addMap !== null) { addMap.invalidateSize(); return; }
+
+    addMap = L.map('addMap').setView([10, 20], 3);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        subdomains: 'abcd', maxZoom: 18,
+    }).addTo(addMap);
+
+    const latEl = document.getElementById('addLat');
+    const lngEl = document.getElementById('addLng');
+
+    function placeMarker(lat, lng) {
+        if (addMarker) addMarker.setLatLng([lat, lng]);
+        else {
+            addMarker = L.marker([lat, lng], { draggable: true }).addTo(addMap);
+            addMarker.on('dragend', e => {
+                const pos = e.target.getLatLng();
+                latEl.value = pos.lat.toFixed(6);
+                lngEl.value = pos.lng.toFixed(6);
+            });
+        }
+        addMap.setView([lat, lng], 6);
+    }
+
+    addMap.on('click', e => {
+        latEl.value = e.latlng.lat.toFixed(6);
+        lngEl.value = e.latlng.lng.toFixed(6);
+        placeMarker(e.latlng.lat, e.latlng.lng);
+    });
+
+    [latEl, lngEl].forEach(el => el.addEventListener('change', () => {
+        const lat = parseFloat(latEl.value);
+        const lng = parseFloat(lngEl.value);
+        if (!isNaN(lat) && !isNaN(lng)) placeMarker(lat, lng);
+    }));
+}
+
+// ── Suggestion ISO3 ────────────────────────────────────────────────────────
+const ISO_MAP = {
+    'bénin':'BEN','benin':'BEN','togo':'TGO','niger':'NER','mali':'MLI',
+    'sénégal':'SEN','senegal':'SEN',"côte d'ivoire":'CIV',"cote d'ivoire":'CIV',
+    'ghana':'GHA','guinée':'GIN','guinee':'GIN','burkina faso':'BFA','burkina':'BFA',
+    'cameroun':'CMR','nigeria':'NGA','mauritanie':'MRT','maroc':'MAR',
+    'algérie':'DZA','tunisie':'TUN','libye':'LBY','égypte':'EGY','egypte':'EGY',
+    'soudan':'SDN','éthiopie':'ETH','kenya':'KEN','tanzanie':'TZA',
+    'ouganda':'UGA','angola':'AGO','mozambique':'MOZ','zambie':'ZMB',
+    'zimbabwe':'ZWE','afrique du sud':'ZAF','madagascar':'MDG','congo':'COG',
+    'rd congo':'COD','gabon':'GAB','centrafrique':'CAF','tchad':'TCD',
+    'libéria':'LBR','sierra leone':'SLE','gambie':'GMB','cap-vert':'CPV',
+};
+
+function suggestIso(name) {
+    const isoEl = document.getElementById('addIso3');
+    if (!isoEl || isoEl.value.length === 3) return;
+    const low   = name.toLowerCase().trim();
+    const match = Object.entries(ISO_MAP).find(([k]) => low === k || low.startsWith(k.slice(0, 4)));
+    if (match) isoEl.value = match[1];
+}
+
+// ── Recherche dans le tableau ──────────────────────────────────────────────
+function filterTable(q) {
+    const term = q.toLowerCase().trim();
+    document.querySelectorAll('.market-row').forEach(row => {
+        const nom = row.dataset.nom ?? '';
+        const iso = row.dataset.iso ?? '';
+        row.style.display = (!term || nom.includes(term) || iso.includes(term)) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

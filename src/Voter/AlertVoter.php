@@ -18,6 +18,7 @@ class AlertVoter extends Voter
     public const EXPORT = 'ALERT_EXPORT';
     public const QUALIFY = 'ALERT_QUALIFY';
     public const TRANSMIT = 'ALERT_TRANSMIT';
+    public const REJECT = 'ALERT_REJECT';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
@@ -29,6 +30,7 @@ class AlertVoter extends Voter
             self::EXPORT,
             self::QUALIFY,
             self::TRANSMIT,
+            self::REJECT,
         ]) && $subject instanceof Alert;
     }
 
@@ -61,7 +63,9 @@ class AlertVoter extends Voter
             self::VIEW => $this->canView($alert, $user),
             self::EDIT_COLLECTE => $this->canEditCollecte($alert, $user),
             self::EDIT_QUALIFICATION, self::QUALIFY => $this->canEditQualification($alert, $user),
-            self::DECIDE, self::TRANSMIT => $this->canDecide($alert, $user),
+            self::DECIDE => $this->canDecide($alert, $user),
+            self::TRANSMIT => $this->canTransmit($alert, $user),
+            self::REJECT => $this->canReject($alert, $user),
             self::EXPORT => $this->canExport($alert, $user),
             default => false,
         };
@@ -107,11 +111,6 @@ class AlertVoter extends Voter
 
     private function canEditQualification(Alert $alert, User $user): bool
     {
-        // Bloqué pour l'AGENT (EMETTEUR_TERRAIN)
-        if ($user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
-            return false;
-        }
-
         // MANAGER (PFT) : Qualification sur ses marchés gérés
         if ($user->getRole() === UserRoleEnum::PFT) {
             return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
@@ -120,17 +119,30 @@ class AlertVoter extends Voter
         return false;
     }
 
-    private function canDecide(Alert $alert, User $user): bool
+    private function canReject(Alert $alert, User $user): bool
     {
-        if ($user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
+        // Seul le Manager (PFT) peut rejeter une fiche
+        if ($user->getRole() !== UserRoleEnum::PFT) {
             return false;
         }
 
-        if ($user->getRole() === UserRoleEnum::PFT) {
-            return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+        return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+    }
+
+    private function canDecide(Alert $alert, User $user): bool
+    {
+        // Seul le Manager (PFT) peut décider (valider)
+        if ($user->getRole() !== UserRoleEnum::PFT) {
+            return false;
         }
 
-        return false;
+        return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+    }
+
+    private function canTransmit(Alert $alert, User $user): bool
+    {
+        return $this->canDecide($alert, $user)
+            && $alert->getStatut() === AlertStatut::VALIDEE;
     }
 
     private function canExport(Alert $alert, User $user): bool

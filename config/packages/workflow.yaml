@@ -16,6 +16,7 @@ framework:
                 - a_completer
                 - a_investiguer
                 - a_valider_saholty
+                - validee
                 - transmis
                 - suivi
                 - archive
@@ -33,9 +34,12 @@ framework:
                 soumettre_validation:
                     from: [en_cours, a_investiguer]
                     to: a_valider_saholty
-                transmettre:
-                    from: [en_cours, a_investiguer, a_valider_saholty]
-                    to: transmis
+                valider:
+                    from: a_valider_saholty
+                    to: validee
+                rejeter:
+                    from: a_valider_saholty
+                    to: a_completer
                 passer_en_suivi:
                     from: [transmis, en_cours]
                     to: suivi

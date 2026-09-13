@@ -1,0 +1,64 @@
+{# templates/emails/sla_violation.html.twig #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dépassement SLA — Urgence 72h</title>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f6faf8; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 24px; }
+        .card { background: #ffffff; border-radius: 12px; border: 1px solid #dce8e3; overflow: hidden; }
+        .header { background: #123f35; padding: 20px 24px; }
+        .header h1 { color: #f87171; font-size: 18px; font-weight: 800; margin: 0; }
+        .header p { color: #8fe9d0; font-size: 12px; margin: 4px 0 0; }
+        .body { padding: 24px; }
+        .alert-box { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .alert-box h2 { color: #f87171; font-size: 14px; font-weight: 700; margin: 0 0 8px; }
+        .alert-box p { color: #4c625a; font-size: 13px; margin: 0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .info-item { background: #f6faf8; border: 1px solid #dce8e3; border-radius: 8px; padding: 12px; }
+        .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6e817a; margin-bottom: 4px; }
+        .info-value { font-size: 13px; font-weight: 700; color: #17352e; }
+        .footer { text-align: center; padding: 16px; font-size: 11px; color: #6e817a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1><i class="bi-clock"></i> Dépassement SLA — Urgence 72h</h1>
+                <p>Plateforme GEI — Renseignement Opérationnel</p>
+            </div>
+            <div class="body">
+                <div class="alert-box">
+                    <h2>Phase {{ phase }} en retard</h2>
+                    <p>Le délai imparti pour la phase <strong>{{ phase }}</strong> du cas d'urgence 72h #{{ caseId }} a été dépassé. Veuillez prendre les mesures nécessaires immédiatement.</p>
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Cas urgence</div>
+                        <div class="info-value">#{{ caseId }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Phase</div>
+                        <div class="info-value">{{ phase }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Type</div>
+                        <div class="info-value">{{ type == 'depassement' ? 'Dépassement' : 'Escalade comité AIT' }}</div>
+                    </div>
+                </div>
+
+                <p style="font-size: 13px; color: #4c625a; margin: 0;">
+                    Connectez-vous à la plateforme GEI pour consulter le détail du cas et mettre à jour les actions.
+                </p>
+            </div>
+            <div class="footer">
+                Message automatique — Plateforme GEI · Ne pas répondre à ce courriel
+            </div>
+        </div>
+    </div>
+</body>
+</html>

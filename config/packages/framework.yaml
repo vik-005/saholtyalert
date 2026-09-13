@@ -6,7 +6,10 @@ framework:
     session:
         handler_id: null
         cookie_secure: auto
+        cookie_httponly: true
         cookie_samesite: lax
+        cookie_lifetime: 28800  # 8 heures maximum (conforme à l'affichage "Session 8h maximum")
+        gc_maxlifetime: 28800   # Doit correspondre à cookie_lifetime pour éviter la perte de session
         storage_factory_id: 'session.storage.factory.native'
         save_path: '%kernel.project_dir%/var/sessions/%kernel.environment%'
 

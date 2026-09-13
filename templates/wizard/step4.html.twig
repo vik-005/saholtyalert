@@ -1,0 +1,68 @@
+{# Étape 4 — Source (champs 11 à 12) #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 4}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="4">
+
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-eye-slash me-1.5 text-amber-400"></i>
+                Étape 4 sur 6 — Source
+            </p>
+            <p class="text-xs text-slate-500">Champs 11 à 12 du formulaire Agent</p>
+        </div>
+        <div class="db-card-body space-y-4">
+
+            {# Champ 11 — Type de source (liste administrable) #}
+            <div class="form-field">
+                <label class="form-label" for="w_typeSource">
+                    Type de source <span class="text-red-400">*</span>
+                </label>
+                <select name="alert[typeSource]" id="w_typeSource" class="form-select" required>
+                    <option value="">Sélectionnez le type de source</option>
+                    {% for s in typeSources %}
+                        <option value="{{ s.libelle }}"
+                            {% if draftData and (draftData['alert[typeSource]'] ?? null) == s.libelle %}selected{% endif %}>
+                            {{ s.libelle }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">Origine de l'information. Cette liste est administrable par le Manager.</p>
+            </div>
+
+            {# Champ 12 — Niveau d'anonymisation (Oui / Non) #}
+            <div class="form-field">
+                <label class="form-label">
+                    Niveau d'anonymisation <span class="text-red-400">*</span>
+                </label>
+                <div class="radio-group">
+                    <label class="radio-option {% if (draftData['alert[anonymisation]'] ?? '') == 'oui' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[anonymisation]" value="oui"
+                               {% if (draftData['alert[anonymisation]'] ?? '') == 'oui' %}checked{% endif %} required>
+                        <i class="bi bi-shield-check me-1"></i>
+                        <span class="radio-option-label">Oui</span>
+                    </label>
+                    <label class="radio-option {% if (draftData['alert[anonymisation]'] ?? '') == 'non' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[anonymisation]" value="non"
+                               {% if (draftData['alert[anonymisation]'] ?? '') == 'non' %}checked{% endif %}>
+                        <i class="bi bi-shield-x me-1"></i>
+                        <span class="radio-option-label">Non</span>
+                    </label>
+                </div>
+                <p class="form-help">La source doit-elle être protégée (anonymisée) dans les communications ?</p>
+            </div>
+
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <button type="submit" name="_action" value="prev" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-2"></i>Précédent
+        </button>
+        <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
+            Suivant — Qualification<i class="bi bi-arrow-right ms-2"></i>
+        </button>
+    </div>
+
+</form>

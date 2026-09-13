@@ -1,109 +1,178 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Espace Automatisations — GEI{% endblock %}
-{% block header_title %}Espace Dédié Automatisations & Moteur de Règles (Spec B.1){% endblock %}
+{% block header_title %}Automatisations & Moteur de Règles{% endblock %}
 
 {% block body %}
-<div class="space-y-6">
-    <!-- Scheduler SLA Health Status Widget -->
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-extrabold text-xl">
-                ⚡
-            </div>
-            <div>
-                <h3 class="font-bold text-white text-base">État du Scheduler SLA & Automatisations</h3>
-                <p class="text-xs text-slate-400">Exécution en arrière-plan toutes les 15 minutes (`messenger:consume` active)</p>
-            </div>
-        </div>
+<div class="db-wrapper">
 
-        <div class="flex items-center gap-4 text-xs">
-            <div class="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg">
-                <span class="text-slate-500 font-medium">Dernier passage :</span>
-                <span class="text-emerald-400 font-mono font-bold ml-1">{{ last_scheduler_run|date('H:i:s') }}</span>
-            </div>
-            <div class="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-lg">
-                <span class="text-slate-500 font-medium">Statut :</span>
-                <span class="text-emerald-400 font-bold ml-1">✓ OPÉRATIONNEL</span>
+    {# ── En-tête centré ── #}
+    <div class="page-header-row">
+        <div class="text-center" style="flex:1">
+            <p class="page-eyebrow">
+                <i class="bi bi-robot me-1.5 text-amber-400"></i>
+                Administration · Spec B.1
+            </p>
+            <h2 class="page-title">Espace Automatisations & Moteur de Règles</h2>
+            <p class="page-subtitle mx-auto" style="max-width:600px">
+                Gérez les règles d'escalade, les seuils paramétrables et l'historique des déclenchements automatiques.
+            </p>
+        </div>
+    </div>
+
+    {# ── Scheduler SLA Health Status ── #}
+    <div class="db-card mb-4">
+        <div class="db-card-body text-center py-4">
+            <div class="d-inline-flex align-items-center gap-3 flex-wrap justify-content-center">
+                <div class="kpi-icon-wrap kpi-icon-emerald" style="width:48px;height:48px;border-radius:12px">
+                    <i class="bi bi-bolt" style="font-size:20px"></i>
+                </div>
+                <div>
+                    <p style="font-size:14px;font-weight:700;color:var(--text)">État du Scheduler SLA & Automatisations</p>
+                    <p style="font-size:11px;color:var(--muted)">Exécution en arrière-plan toutes les 15 minutes</p>
+                </div>
+                <div class="d-inline-flex align-items-center gap-2">
+                    <span class="status-pill status-active" style="font-size:11px">
+                        <span class="status-dot"></span>OPÉRATIONNEL
+                    </span>
+                    <span style="font-size:11px;color:var(--muted)">Dernier passage :</span>
+                    <code style="font-size:12px;font-weight:700;color:var(--amber)">{{ last_scheduler_run|date('H:i:s') }}</code>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Active Rules & Thresholds (Editable inline) -->
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl space-y-4">
-        <div>
-            <h3 class="text-lg font-bold text-white">Règles d'Escalade et Seuils Paramétrables</h3>
-            <p class="text-xs text-slate-400">Modifier les valeurs ou basculer l'interrupteur marche/arrêt sans toucher au code</p>
+    {# ── Règles d'Escalade ── #}
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <div class="text-center" style="flex:1">
+                <p class="db-card-eyebrow"><i class="bi bi-funnel me-1.5"></i>Règles & Seuils</p>
+                <p class="db-card-title">Règles d'Escalade et Seuils Paramétrables</p>
+            </div>
         </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {% for rule in rules %}
-                <div class="p-5 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono font-bold text-amber-400 text-xs">{{ rule.cle }}</span>
+        <div class="db-card-body">
+            <div class="form-grid-2">
+                {% for rule in rules %}
+                <div class="form-section" style="margin-bottom:0">
+                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                        <div class="d-flex align-items-center gap-2">
+                            <code style="font-size:11px;font-weight:700;color:var(--amber)">{{ rule.cle }}</code>
                             {% if rule.isActif %}
-                                <span class="px-2 py-0.5 rounded-full text-2xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">ACTIF</span>
+                                <span class="status-pill status-active" style="font-size:9px"><span class="status-dot"></span>ACTIF</span>
                             {% else %}
-                                <span class="px-2 py-0.5 rounded-full text-2xs font-bold bg-red-500/10 text-red-400 border border-red-500/20">INACTIF</span>
+                                <span class="status-pill status-inactive" style="font-size:9px"><span class="status-dot"></span>INACTIF</span>
                             {% endif %}
                         </div>
-
-                        <!-- Toggle ON/OFF Switch -->
                         <form method="post" action="{{ path('app_admin_automation_rule_toggle', {id: rule.id}) }}">
-                            <button type="submit" class="px-3 py-1 text-2xs font-bold rounded-lg border transition 
-                                {% if rule.isActif %}
-                                    bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20
-                                {% else %}
-                                    bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20
-                                {% endif %}">
+                            <button type="submit" class="db-btn {% if rule.isActif %}db-btn-ghost{% else %}db-btn-emerald{% endif %} db-btn-sm">
                                 {% if rule.isActif %}Désactiver{% else %}Activer{% endif %}
                             </button>
                         </form>
                     </div>
 
-                    <p class="text-xs text-slate-400">{{ rule.description }}</p>
+                    <p style="font-size:11px;color:var(--dim);line-height:1.6;text-align:center">{{ rule.description }}</p>
 
-                    <!-- Inline Value Update Form -->
-                    <form method="post" action="{{ path('app_admin_automation_rule_update', {id: rule.id}) }}" class="flex items-center gap-2 pt-2 border-t border-slate-800">
-                        <label class="text-2xs text-slate-400 font-semibold">Seuil :</label>
-                        <input type="text" name="valeur" value="{{ rule.valeur }}" class="w-24 px-3 py-1 bg-slate-900 border border-slate-700 rounded text-xs text-white font-mono focus:border-amber-500">
-                        <button type="submit" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-2xs rounded">Enregistrer</button>
+                    <form method="post" action="{{ path('app_admin_automation_rule_update', {id: rule.id}) }}" class="d-flex align-items-center gap-2 justify-content-center">
+                        <label style="font-size:10px;color:var(--muted);font-weight:600">Seuil :</label>
+                        <input type="text" name="valeur" value="{{ rule.valeur }}" class="form-input" style="width:80px;padding:4px 8px;font-size:11px;font-family:monospace;text-align:center">
+                        <button type="submit" class="db-btn db-btn-amber db-btn-sm">
+                            <i class="bi bi-save"></i>
+                        </button>
                     </form>
                 </div>
-            {% endfor %}
+                {% endfor %}
+            </div>
         </div>
     </div>
 
-    <!-- History of Automated Triggers -->
-    <div class="p-6 bg-slate-900 border border-slate-800 rounded-xl space-y-4">
-        <h3 class="text-lg font-bold text-white">Historique des Déclenchements Automatiques Récentes</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-                <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-                    <tr>
-                        <th class="p-3">Horodatage</th>
-                        <th class="p-3">Action Automatique</th>
-                        <th class="p-3">Alerte concernée</th>
-                        <th class="p-3">Résultat</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-800">
-                    {% for tr in triggers %}
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-3 text-slate-400 font-mono whitespace-nowrap">{{ tr.dateAction|date('d/m/Y H:i:s') }}</td>
-                            <td class="p-3 font-bold text-amber-400">{{ tr.action }}</td>
-                            <td class="p-3 font-mono text-slate-200">{{ tr.alert ? tr.alert.codeGei : '-' }}</td>
-                            <td class="p-3"><span class="text-emerald-400 font-bold">Succès</span></td>
-                        </tr>
-                    {% else %}
+    {# ── Historique des Déclenchements ── #}
+    <div class="db-card">
+        <div class="db-card-header">
+            <div class="text-center" style="flex:1">
+                <p class="db-card-eyebrow"><i class="bi bi-clock me-1.5"></i>Historique</p>
+                <p class="db-card-title">Déclenchements Automatiques Récents</p>
+            </div>
+        </div>
+        <div class="db-card-body">
+            {# Barre de recherche centrée #}
+            <div class="mb-3" style="max-width:500px;margin-left:auto;margin-right:auto">
+                <div class="db-search-wrap" style="flex:1">
+                    <i class="bi bi-search db-search-icon"></i>
+                    <input type="text" placeholder="Rechercher par action, code alerte…"
+                           class="db-search-input" style="width:100%"
+                           id="triggerSearchInput" oninput="filterTriggers(this.value)">
+                </div>
+            </div>
+
+            <div class="table-scroll">
+                <table class="gei-table" id="triggersTable">
+                    <thead>
                         <tr>
-                            <td colspan="4" class="p-6 text-center text-slate-500 italic">Aucun déclenchement récent enregistré.</td>
+                            <th class="text-center"><i class="bi bi-calendar me-1 opacity-50"></i>Horodatage</th>
+                            <th class="text-center"><i class="bi bi-bolt me-1 opacity-50"></i>Action Automatique</th>
+                            <th class="text-center"><i class="bi bi-file-shield me-1 opacity-50"></i>Alerte concernée</th>
+                            <th class="text-center"><i class="bi bi-bullseye me-1 opacity-50"></i>Résultat</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for tr in triggers %}
+                        <tr class="db-tr trigger-row"
+                            data-action="{{ tr.action|lower }}"
+                            data-code="{{ tr.alert ? tr.alert.codeGei|lower : '' }}">
+                            <td class="font-mono text-center" style="color:var(--muted);font-size:11px;white-space:nowrap">
+                                {{ tr.dateAction|date('d/m/Y H:i:s') }}
+                            </td>
+                            <td class="text-center">
+                                <span style="font-weight:700;color:var(--amber)">{{ tr.action }}</span>
+                            </td>
+                            <td class="font-mono text-center" style="font-size:11px">
+                                {% if tr.alert %}
+                                    <a href="{{ path('app_alert_show', {id: tr.alert.id}) }}" class="code-gei-link">
+                                        {{ tr.alert.codeGei }}
+                                    </a>
+                                {% else %}
+                                    <span style="color:var(--muted)">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="status-pill status-active mx-auto" style="font-size:9px">
+                                    <span class="status-dot"></span>Succès
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="db-empty-state" style="padding:30px">
+                                    <i class="bi bi-robot fa-2x" style="color:var(--muted);margin-bottom:8px;display:block"></i>
+                                    <p>Aucun déclenchement récent enregistré.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ── Filtrage live des déclenchements ── */
+let _triggerTimer;
+function filterTriggers(q) {
+    clearTimeout(_triggerTimer);
+    _triggerTimer = setTimeout(() => {
+        const term = q.toLowerCase().trim();
+        document.querySelectorAll('.trigger-row').forEach(row => {
+            const text = (row.dataset.action || '') + ' ' + (row.dataset.code || '');
+            row.style.display = !term || text.includes(term) ? '' : 'none';
+        });
+    }, 250);
+}
+</script>
 {% endblock %}

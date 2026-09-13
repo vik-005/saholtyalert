@@ -3,6 +3,8 @@
 namespace App\Repository;
 
 use App\Entity\Urgence72hCase;
+use App\Enum\AlertStatut;
+use App\Enum\AlertUrgence;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -23,7 +25,11 @@ class Urgence72hCaseRepository extends ServiceEntityRepository
             ->leftJoin('c.phases', 'p')
             ->addSelect('a', 'p')
             ->where('c.statutCase = :active')
+            ->andWhere('a.urgence = :urgence72h')
+            ->andWhere('a.statut = :validee')
             ->setParameter('active', 'active')
+            ->setParameter('urgence72h', AlertUrgence::SOIXANTE_DOUZE_H)
+            ->setParameter('validee', AlertStatut::VALIDEE)
             ->orderBy('c.dateActivation', 'DESC')
             ->getQuery()
             ->getResult();

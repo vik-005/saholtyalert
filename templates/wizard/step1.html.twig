@@ -1,0 +1,153 @@
+{# Étape 1 — Identification (champs 1 à 4) #}
+
+<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 1}) }}" novalidate>
+    <input type="hidden" name="wizard_step" value="1">
+
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
+                <i class="bi bi-geo-alt me-1.5 text-amber-400"></i>
+                Étape 1 sur 6 — Identification
+            </p>
+            <p class="text-xs text-slate-500">Champs 1 à 4 du formulaire Agent</p>
+        </div>
+        <div class="db-card-body space-y-4">
+
+            {# Champ 1 — Date de réception #}
+            <div class="form-field">
+                <label class="form-label" for="w_date">
+                    Date de réception <span class="text-red-400">*</span>
+                </label>
+                <input type="date" name="alert[dateCreation]" id="w_date" class="form-input" required
+                       value="{{ draftData and draftData['alert[dateCreation]'] is defined ? draftData['alert[dateCreation]'] : '' }}">
+                <p class="form-help">Date à laquelle l'information a été reçue ou créée.</p>
+            </div>
+
+            {# Champ 2 — Marché émetteur #}
+            <div class="form-field">
+                <label class="form-label" for="w_market">
+                    Marché émetteur <span class="text-red-400">*</span>
+                </label>
+                <select name="alert[market]" id="w_market" class="form-select" required>
+                    <option value="">Sélectionnez un pays / marché</option>
+                    {% for market in markets %}
+                        <option value="{{ market.id }}"
+                            {% if draftData and (draftData['alert[market]'] ?? null) == market.id %}selected{% endif %}>
+                            {{ market.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">Origine géographique ou commerciale de l'information.</p>
+            </div>
+
+            {# Champ 3 — Port / Corridor / Aéroport (radio) #}
+            <div class="form-field">
+                <label class="form-label">
+                    Type de localisation <span class="text-red-400">*</span>
+                </label>
+                <div class="radio-group">
+                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'port' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[typeLocalisation]" value="port"
+                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'port' %}checked{% endif %} required>
+                        <i class="bi-anchor me-1"></i>
+                        <span class="radio-option-label">Port</span>
+                    </label>
+                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'corridor' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[typeLocalisation]" value="corridor"
+                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'corridor' %}checked{% endif %}>
+                        <i class="bi-signpost-figure me-1"></i>
+                        <span class="radio-option-label">Corridor</span>
+                    </label>
+                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'aeroport' %}radio-option-active{% endif %}">
+                        <input type="radio" name="alert[typeLocalisation]" value="aeroport"
+                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'aeroport' %}checked{% endif %}>
+                        <i class="bi-airplane me-1"></i>
+                        <span class="radio-option-label">Aéroport</span>
+                    </label>
+                </div>
+                <p class="form-help">Choisissez s'il s'agit d'un port, d'un corridor de transit ou d'un aéroport.</p>
+            </div>
+
+            {# Champ 4 — Nom (label dynamique) #}
+            <div class="form-field">
+                <label class="form-label" for="w_corridor" id="label_corridor">
+                    Nom <span class="text-red-400">*</span>
+                </label>
+                <input type="text" name="alert[portCorridor]" id="w_corridor"
+                       class="form-input" required
+                       placeholder=""
+                       value="{{ draftData and draftData['alert[portCorridor]'] is defined ? draftData['alert[portCorridor]'] : '' }}">
+                <p class="form-help" id="help_corridor">Nom du port, corridor ou aéroport concerné.</p>
+            </div>
+
+        </div>
+    </div>
+
+    {# Navigation sticky #}
+    <div class="wizard-step-buttons">
+        <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-ban me-1.5"></i>Annuler
+        </a>
+        <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
+            Suivant — Contenu<i class="bi bi-arrow-right ms-2"></i>
+        </button>
+    </div>
+
+</form>
+
+<script>
+const labelEl = document.getElementById('label_corridor');
+const helpEl  = document.getElementById('help_corridor');
+const inputEl = document.getElementById('w_corridor');
+const radios  = document.querySelectorAll('input[name="alert[typeLocalisation]"]');
+const options = document.querySelectorAll('.radio-option');
+
+function updateLabel() {
+    const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
+    if (!selected) {
+        labelEl.innerHTML = 'Nom <span class="text-red-400">*</span>';
+        helpEl.textContent = 'Nom du port, corridor ou aéroport concerné.';
+        inputEl.placeholder = '';
+        return;
+    }
+    switch (selected.value) {
+        case 'port':
+            labelEl.innerHTML = 'Nom du port <span class="text-red-400">*</span>';
+            helpEl.textContent = 'Nom du port concerné.';
+            inputEl.placeholder = 'ex. Port de Lomé, Port de Cotonou';
+            break;
+        case 'corridor':
+            labelEl.innerHTML = 'Nom du corridor <span class="text-red-400">*</span>';
+            helpEl.textContent = 'Nom du corridor de transit concerné.';
+            inputEl.placeholder = 'ex. Corridor Cotonou - Niamey';
+            break;
+        case 'aeroport':
+            labelEl.innerHTML = 'Nom de l\'aéroport <span class="text-red-400">*</span>';
+            helpEl.textContent = 'Nom de l\'aéroport concerné.';
+            inputEl.placeholder = 'ex. Aéroport de Lomé, Aéroport de Cotonou';
+            break;
+        default:
+            labelEl.innerHTML = 'Nom <span class="text-red-400">*</span>';
+            helpEl.textContent = 'Nom du port, corridor ou aéroport concerné.';
+            inputEl.placeholder = '';
+    }
+}
+
+function updateActiveClass() {
+    options.forEach(opt => opt.classList.remove('radio-option-active'));
+    const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
+    if (selected) {
+        const parent = selected.closest('.radio-option');
+        if (parent) parent.classList.add('radio-option-active');
+    }
+}
+
+radios.forEach(r => {
+    r.addEventListener('change', () => {
+        updateLabel();
+        updateActiveClass();
+    });
+});
+updateLabel();
+updateActiveClass();
+</script>

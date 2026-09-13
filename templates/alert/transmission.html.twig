@@ -10,13 +10,13 @@
     <div class="page-header-row">
         <div>
             <p class="page-eyebrow">
-                <i class="fa-solid fa-paper-plane me-1.5"></i>Transmission institutionnelle
+                <i class="bi-send me-1.5"></i>Transmission institutionnelle
             </p>
             <h2 class="page-title">Transmettre {{ alert.codeGei }}</h2>
             <p class="page-subtitle">Transmettre l'information qualifiée aux autorités compétentes.</p>
         </div>
         <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
-            <i class="fa-solid fa-arrow-left me-1.5"></i>Retour à la fiche
+            <i class="bi-arrow-left me-1.5"></i>Retour à la fiche
         </a>
     </div>
 
@@ -26,7 +26,7 @@
         <div class="form-section">
             <div class="form-section-header">
                 <div class="form-section-num form-section-num-amber">
-                    <i class="fa-solid fa-paper-plane fa-xs"></i>
+                    <i class="bi-send fa-xs"></i>
                 </div>
                 <div>
                     <p class="form-section-title">Décision de transmission</p>
@@ -54,10 +54,10 @@
 
                 <div class="form-actions" style="margin-bottom:0; border-radius: 0 0 var(--r) var(--r);">
                     <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
-                        <i class="fa-solid fa-ban me-1.5"></i>Annuler
+                        <i class="bi-x-circle me-1.5"></i>Annuler
                     </a>
                     <button type="submit" class="db-btn db-btn-amber">
-                        <i class="fa-solid fa-paper-plane me-1.5"></i>Confirmer la Transmission
+                        <i class="bi-send me-1.5"></i>Confirmer la Transmission
                     </button>
                 </div>
 
@@ -68,7 +68,7 @@
         <div class="transmission-recap">
             <div class="form-section">
                 <p class="db-card-eyebrow mb-3">
-                    <i class="fa-solid fa-file-shield me-1.5"></i>Alerte transmise
+                    <i class="bi-file-shield me-1.5"></i>Alerte transmise
                 </p>
                 <div class="qualify-recap-grid">
                     <span class="qualify-recap-label">Code GEI</span>
@@ -78,7 +78,7 @@
                     <span class="qualify-recap-text">{{ alert.market.nom }}</span>
 
                     <span class="qualify-recap-label">Catégorie</span>
-                    <span class="qualify-recap-text">{{ alert.categorie ? alert.categorie.label : '—' }}</span>
+                    <span class="qualify-recap-text">{{ alert.categorie ?: '—' }}</span>
 
                     <span class="qualify-recap-label">Score GEI</span>
                     <span class="qualify-recap-val">{{ alert.effectiveScore ?? '—' }} / 25</span>
@@ -87,7 +87,7 @@
                     <span>
                         {% if alert.effectiveNiveauPriorite %}
                             <span class="priority-badge priority-{{ alert.effectiveNiveauPriorite.value }}">
-                                {{ alert.effectiveNiveauPriorite.label }}
+                                {{ alert.effectiveNiveauPriorite.label() }}
                             </span>
                         {% else %}—{% endif %}
                     </span>

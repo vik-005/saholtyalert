@@ -1,0 +1,140 @@
+{% extends 'base.html.twig' %}
+{% block title %}Modifier {{ market.nom }} — GEI{% endblock %}
+{% block header_title %}Paramètres système{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow"><i class="bi-pencil me-1.5 text-amber-400"></i>Modification</p>
+            <h2 class="page-title">Modifier — {{ market.nom }}</h2>
+            <p class="page-subtitle">Code ISO3 : <span class="font-mono text-amber-400">{{ market.codeIso3 }}</span> · Non modifiable après création.</p>
+        </div>
+        <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">
+            <i class="bi-arrow-left me-1.5"></i>Retour
+        </a>
+    </div>
+
+    <form method="post" action="{{ path('app_admin_market_edit', {id: market.id}) }}">
+
+        <div class="db-card mb-4">
+            <div class="db-card-header">
+                <p class="db-card-eyebrow"><i class="bi-globe me-1.5"></i>Informations</p>
+            </div>
+            <div class="db-card-body">
+                <div class="form-grid-2">
+                    <div class="form-field">
+                        <label class="form-label">Nom du pays</label>
+                        <input type="text" name="nom" class="form-input"
+                               value="{{ market.nom }}" required>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Code ISO3</label>
+                        <input type="text" class="form-input font-mono" value="{{ market.codeIso3 }}"
+                               disabled style="opacity:.5">
+                        <p class="form-help">Non modifiable (identifiant permanent).</p>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Région</label>
+                        <select name="region" class="form-select">
+                            {% for r in regions %}
+                                <option value="{{ r }}" {% if r == market.region %}selected{% endif %}>{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="db-card mb-4">
+            <div class="db-card-header">
+                <p class="db-card-eyebrow">
+                    <i class="bi-geo-alt me-1.5 text-amber-400"></i>
+                    Coordonnées géographiques
+                </p>
+            </div>
+            <div class="db-card-body">
+                <div class="form-grid-2">
+                    <div class="form-field">
+                        <label class="form-label">Latitude</label>
+                        <input type="number" name="latitude" id="latitude" class="form-input"
+                               step="0.000001"
+                               value="{{ zone ? zone.latitude : '' }}"
+                               placeholder="ex. 6.3702">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label">Longitude</label>
+                        <input type="number" name="longitude" id="longitude" class="form-input"
+                               step="0.000001"
+                               value="{{ zone ? zone.longitude : '' }}"
+                               placeholder="ex. 2.3912">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="form-label mb-2">
+                        <i class="bi-crosshairs me-1.5 text-amber-400"></i>
+                        Cliquez pour repositionner le marqueur
+                    </p>
+                    <div id="pickMap" style="height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3 justify-end">
+            <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">Annuler</a>
+            <button type="submit" class="db-btn db-btn-amber">
+                <i class="bi-save me-1.5"></i>Enregistrer
+            </button>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block stylesheets %}{{ parent() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const initLat  = parseFloat(latInput.value) || 10;
+    const initLng  = parseFloat(lngInput.value) || 20;
+    const initZoom = latInput.value ? 6 : 3;
+
+    const map = L.map('pickMap').setView([initLat, initLng], initZoom);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 18,
+    }).addTo(map);
+
+    let marker = null;
+    if (latInput.value && lngInput.value) {
+        marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
+        marker.on('dragend', e => {
+            const pos = e.target.getLatLng();
+            latInput.value = pos.lat.toFixed(6);
+            lngInput.value = pos.lng.toFixed(6);
+        });
+    }
+
+    map.on('click', e => {
+        latInput.value = e.latlng.lat.toFixed(6);
+        lngInput.value = e.latlng.lng.toFixed(6);
+        if (marker) marker.setLatLng(e.latlng);
+        else {
+            marker = L.marker(e.latlng, { draggable: true }).addTo(map);
+            marker.on('dragend', ev => {
+                const pos = ev.target.getLatLng();
+                latInput.value = pos.lat.toFixed(6);
+                lngInput.value = pos.lng.toFixed(6);
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

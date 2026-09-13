@@ -2,11 +2,15 @@
 
 namespace App\Entity;
 
+use App\Entity\ConnectionPosition;
 use App\Enum\UserRoleEnum;
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Scheb\TwoFactorBundle\Model\Totp\TotpConfiguration;
+use Scheb\TwoFactorBundle\Model\Totp\TotpConfigurationInterface;
+use Scheb\TwoFactorBundle\Model\Totp\TwoFactorInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -16,7 +20,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Table(name: '`user`')]
 #[ORM\HasLifecycleCallbacks]
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà utilisé.')]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFactorInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -63,10 +67,27 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinTable(name: 'manager_marches')]
     private Collection $markets;
 
+    /**
+     * Marchés assignés à l'Agent (Many-to-Many, Partie C — prompt expert final).
+     * Un Agent peut être assigné à plusieurs marchés ; un marché peut avoir plusieurs Agents.
+     * L'assignation est toujours faite par le Manager créateur (jamais auto-inscription).
+     */
+    #[ORM\ManyToMany(targetEntity: Market::class)]
+    #[ORM\JoinTable(name: 'agent_marches')]
+    private Collection $agentMarkets;
+
+    /**
+     * Manager qui a créé ce compte (Partie C — un Agent ne peut pas s'auto-inscrire).
+     * Reste null pour les Managers, SAHOLTY et SUPERADMIN.
+     */
+    #[ORM\ManyToOne(targetEntity: self::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?User $createdByManager = null;
+
     #[ORM\Column(type: 'boolean')]
     private bool $actif = true;
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[ORM\Column(type: 'encrypted_string', length: 255, nullable: true)]
     private ?string $totpSecret = null;
 
     #[ORM\Column(type: 'boolean')]
@@ -84,12 +105,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'responsableSuivi', targetEntity: Alert::class)]
     private Collection $alertesSuivies;
 
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: ConnectionPosition::class, cascade: ['remove'])]
+    #[ORM\OrderBy(['connectedAt' => 'DESC'])]
+    private Collection $connectionPositions;
+
     public function __construct()
     {
-        $this->alertesEmises = new ArrayCollection();
-        $this->alertesSuivies = new ArrayCollection();
-        $this->markets = new ArrayCollection();
-        $this->createdAt = new \DateTimeImmutable();
+        $this->alertesEmises       = new ArrayCollection();
+        $this->alertesSuivies      = new ArrayCollection();
+        $this->markets             = new ArrayCollection();
+        $this->agentMarkets        = new ArrayCollection();
+        $this->connectionPositions = new ArrayCollection();
+        $this->createdAt           = new \DateTimeImmutable();
     }
 
     #[ORM\PrePersist]
@@ -273,6 +300,55 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $result;
     }
 
+    // ── Marchés Agent (N-N) ────────────────────────────────────────────────────
+
+    /** @return Collection<int, Market> */
+    public function getAgentMarkets(): Collection
+    {
+        return $this->agentMarkets;
+    }
+
+    public function addAgentMarket(Market $market): static
+    {
+        if (!$this->agentMarkets->contains($market)) {
+            $this->agentMarkets->add($market);
+        }
+        return $this;
+    }
+
+    public function removeAgentMarket(Market $market): static
+    {
+        $this->agentMarkets->removeElement($market);
+        return $this;
+    }
+
+    /**
+     * Retourne tous les marchés auxquels l'Agent a accès.
+     * Pour un Agent : collection agentMarkets + marché principal legacy (compat).
+     * Pour un Manager : utiliser getAllManagedMarkets().
+     */
+    public function getAllAgentMarkets(): array
+    {
+        $result = $this->agentMarkets->toArray();
+        if ($this->market && !in_array($this->market, $result, true)) {
+            $result[] = $this->market;
+        }
+        return $result;
+    }
+
+    // ── Manager créateur ───────────────────────────────────────────────────────
+
+    public function getCreatedByManager(): ?User
+    {
+        return $this->createdByManager;
+    }
+
+    public function setCreatedByManager(?User $manager): static
+    {
+        $this->createdByManager = $manager;
+        return $this;
+    }
+
     public function isActif(): bool
     {
         return $this->actif;
@@ -293,6 +369,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->totpSecret = $totpSecret;
         return $this;
+    }
+
+    public function isTotpAuthenticationEnabled(): bool
+    {
+        return $this->totpEnabled;
+    }
+
+    public function getTotpAuthenticationUsername(): string
+    {
+        return $this->email;
+    }
+
+    public function getTotpAuthenticationConfiguration(): TotpConfigurationInterface|null
+    {
+        if (!$this->totpEnabled || $this->totpSecret === null) {
+            return null;
+        }
+
+        return new TotpConfiguration($this->totpSecret, TotpConfiguration::ALGORITHM_SHA1, 30, 6);
     }
 
     public function isTotpEnabled(): bool
@@ -330,6 +425,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getAlertesSuivies(): Collection
     {
         return $this->alertesSuivies;
+    }
+
+    /** @return Collection<int, ConnectionPosition> */
+    public function getConnectionPositions(): Collection
+    {
+        return $this->connectionPositions;
     }
 
     public function __toString(): string

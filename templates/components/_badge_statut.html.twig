@@ -1,5 +1,6 @@
-{# Macro pour badges de statut/priorité avec couleurs réservées #}
+{# Macro pour badges de statut/priorité avec design system unifié #}
 {% macro badge_statut(statut, label = null) %}
+  {% set statutValue = statut is iterable ? statut.value : (statut ?: 'nouveau') %}
   {% set labels = {
     nouveau: 'Nouveau',
     en_cours: 'En cours',
@@ -9,31 +10,17 @@
     clos: 'Clos',
     archive: 'Archivé',
     transmis: 'Transmis',
+    validee: 'Validée',
+    a_valider_saholty: 'En attente de validation Manager',
     brouillon: 'Brouillon',
     soumis: 'Soumis',
     en_qualification: 'En qualification',
     en_attente_complement: 'En attente complément',
     actionnable: 'Actionnable'
   } %}
-  
-  {% set colors = {
-    nouveau: 'bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400',
-    en_cours: 'bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400',
-    a_investiguer: 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400',
-    suivi: 'bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-400',
-    ouvert: 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400',
-    clos: 'bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400',
-    archive: 'bg-slate-500/10 border border-slate-500/30 text-slate-600 dark:text-slate-400',
-    transmis: 'bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400',
-    brouillon: 'bg-slate-500/10 border border-slate-500/30 text-slate-600 dark:text-slate-400',
-    soumis: 'bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400',
-    en_qualification: 'bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400',
-    en_attente_complement: 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400',
-    actionnable: 'bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400'
-  } %}
-
-  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ colors[statut] ?? colors.nouveau }}">
-    {{ label ?? labels[statut] ?? statut|capitalize }}
+  <span class="status-pill status-{{ statutValue }}">
+    <span class="status-dot"></span>
+    {{ label ?? labels[statutValue] ?? statutValue|capitalize }}
   </span>
 {% endmacro %}
 
@@ -45,15 +32,7 @@
     modere: 'Modéré',
     faible: 'Faible'
   } %}
-  
-  {% set colors = {
-    critique: 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400',
-    eleve: 'bg-orange-500/10 border border-orange-500/30 text-orange-600 dark:text-orange-400',
-    modere: 'bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400',
-    faible: 'bg-slate-500/10 border border-slate-500/30 text-slate-600 dark:text-slate-400'
-  } %}
-
-  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold {{ colors[priorite] ?? colors.faible }}">
+  <span class="priority-badge priority-{{ priorite }}">
     {{ label ?? labels[priorite] ?? priorite|capitalize }}
   </span>
 {% endmacro %}

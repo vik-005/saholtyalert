@@ -12,85 +12,62 @@
 
 <div class="db-wrapper">
 
-    {# ── LIGNE 1 : 4 KPI CARDS ──────────────────────────────────────────── #}
+    {# ── LIGNE 1 : 5 KPI CARDS (Composant réutilisable _stat_card) ────────────────── #}
     <div class="db-kpi-row">
+        {# Card 1 — Total alertes #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Total Alertes',
+            value: kpis.total,
+            icon: 'bi-clipboard-data',
+            color: 'teal',
+            trend_val: '+' ~ (kpis.total > 0 ? '12%' : '0%'),
+            trend_label: 'vs. mois dernier',
+            trend_dir: 'up'
+        } %}
 
-        {# KPI 1 — Total alertes #}
-        <div class="kpi-card kpi-amber">
-            <div class="kpi-card-top">
-                <div>
-                    <p class="kpi-label">Total Alertes</p>
-                    <p class="kpi-value">{{ kpis.total }}</p>
-                </div>
-                <div class="kpi-icon-wrap kpi-icon-amber">
-                    <i class="fa-solid fa-file-shield"></i>
-                </div>
-            </div>
-            <div class="kpi-card-bottom">
-                <span class="kpi-trend kpi-trend-up">
-                    <i class="fa-solid fa-arrow-trend-up"></i> +{{ kpis.total > 0 ? '12%' : '0%' }}
-                </span>
-                <span class="kpi-trend-label">vs. mois dernier</span>
-            </div>
-        </div>
+        {# Card 2 — Alertes critiques #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Alertes Critiques',
+            value: kpis.critiques,
+            icon: 'bi-exclamation-triangle',
+            color: 'red',
+            trend_val: 'Score ≥ 18',
+            trend_label: 'Urgence 72h requise',
+            trend_dir: 'down'
+        } %}
 
-        {# KPI 2 — Alertes critiques #}
-        <div class="kpi-card kpi-red">
-            <div class="kpi-card-top">
-                <div>
-                    <p class="kpi-label">Alertes Critiques</p>
-                    <p class="kpi-value">{{ kpis.critiques }}</p>
-                </div>
-                <div class="kpi-icon-wrap kpi-icon-red">
-                    <i class="fa-solid fa-circle-radiation"></i>
-                </div>
-            </div>
-            <div class="kpi-card-bottom">
-                <span class="kpi-trend kpi-trend-down">
-                    <i class="fa-solid fa-arrow-trend-down"></i> Score ≥ 18
-                </span>
-                <span class="kpi-trend-label">Urgence 72h requise</span>
-            </div>
-        </div>
+        {# Card 3 — Actionnables #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Actionnables',
+            value: kpis.actionnables,
+            icon: 'bi-lightning-charge',
+            color: 'amber',
+            trend_val: '+' ~ (kpis.actionnables > 0 ? '8%' : '0%'),
+            trend_label: 'Exploitabilité opérat.',
+            trend_dir: 'up'
+        } %}
 
-        {# KPI 3 — Actionnables #}
-        <div class="kpi-card kpi-emerald">
-            <div class="kpi-card-top">
-                <div>
-                    <p class="kpi-label">Actionnables</p>
-                    <p class="kpi-value">{{ kpis.actionnables }}</p>
-                </div>
-                <div class="kpi-icon-wrap kpi-icon-emerald">
-                    <i class="fa-solid fa-bolt"></i>
-                </div>
-            </div>
-            <div class="kpi-card-bottom">
-                <span class="kpi-trend kpi-trend-up">
-                    <i class="fa-solid fa-arrow-trend-up"></i> +{{ kpis.actionnables > 0 ? '8%' : '0%' }}
-                </span>
-                <span class="kpi-trend-label">Exploitabilité opérat.</span>
-            </div>
-        </div>
+        {# Card 4 — Transmis #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Transmis',
+            value: kpis.transmis,
+            icon: 'bi-send',
+            color: 'blue',
+            trend_val: '+' ~ (kpis.transmis > 0 ? '3' : '0'),
+            trend_label: 'cette semaine',
+            trend_dir: 'up'
+        } %}
 
-        {# KPI 4 — Transmis #}
-        <div class="kpi-card kpi-blue">
-            <div class="kpi-card-top">
-                <div>
-                    <p class="kpi-label">Transmis</p>
-                    <p class="kpi-value">{{ kpis.transmis }}</p>
-                </div>
-                <div class="kpi-icon-wrap kpi-icon-blue">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </div>
-            </div>
-            <div class="kpi-card-bottom">
-                <span class="kpi-trend kpi-trend-up">
-                    <i class="fa-solid fa-arrow-trend-up"></i> +{{ kpis.transmis > 0 ? '3' : '0' }}
-                </span>
-                <span class="kpi-trend-label">cette semaine</span>
-            </div>
-        </div>
-
+        {# Card 5 — Délai traitement moy. #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Délai traitement moy.',
+            value: kpis.delaiMoyenH is defined and kpis.delaiMoyenH is not null ? (kpis.delaiMoyenH ~ 'h') : (avgDelaiTraitement is defined and avgDelaiTraitement is not null ? (avgDelaiTraitement ~ 'h') : 'N/A'),
+            icon: 'bi-hourglass-split',
+            color: 'slate',
+            trend_val: 'Soumission → Validation',
+            trend_label: 'Parties B & D',
+            trend_dir: 'neutral'
+        } %}
     </div>
 
     {# ── LIGNE 2 : GRAPHIQUE ÉVOLUTION + DONUT + SCORE GEI ──────────────── #}
@@ -100,7 +77,7 @@
         <div class="db-chart-card db-chart-lg">
             <div class="db-card-header">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-chart-line me-1.5"></i>Évolution des alertes</p>
+                    <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Évolution des alertes</p>
                     <p class="db-card-title">Activité du Registre GEI</p>
                 </div>
                 <div class="db-card-actions">
@@ -115,7 +92,7 @@
                 <span class="chart-legend-item chart-legend-amber">
                     <span class="chart-legend-dot"></span>Nouvelles alertes
                 </span>
-                <span class="chart-legend-item chart-legend-emerald">
+                <span class="chart-legend-item chart-legend-blue">
                     <span class="chart-legend-dot"></span>Transmises
                 </span>
             </div>
@@ -128,12 +105,12 @@
         <div class="db-chart-card db-chart-sm">
             <div class="db-card-header">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-chart-pie me-1.5"></i>Répartition</p>
+                    <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1.5"></i>Répartition</p>
                     <p class="db-card-title">Par Priorité</p>
                 </div>
                 <div class="db-card-actions">
                     <button class="db-icon-btn" title="Actualiser">
-                        <i class="fa-solid fa-rotate"></i>
+                        <i class="bi bi-arrow-clockwise"></i>
                     </button>
                 </div>
             </div>
@@ -183,14 +160,14 @@
         <div class="db-table-card">
             <div class="db-card-header db-card-header-border">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-table-list me-1.5"></i>Registre GEI</p>
+                    <p class="db-card-eyebrow"><i class="bi bi-table-list me-1.5"></i>Registre GEI</p>
                     <p class="db-card-title">Alertes récentes</p>
                 </div>
                 <div class="db-card-actions">
                     {# Filtres rapides #}
                     <form method="get" class="db-filter-form">
                         <div class="db-search-wrap">
-                            <i class="fa-solid fa-magnifying-glass db-search-icon"></i>
+                            <i class="bi bi-search db-search-icon"></i>
                             <input type="text" name="search" value="{{ filters.search }}"
                                    placeholder="Code GEI, corridor…" class="db-search-input">
                         </div>
@@ -210,13 +187,13 @@
                             <option value="faible"   {% if filters.niveauPriorite == 'faible'   %}selected{% endif %}>🟢 Faible</option>
                         </select>
                         <button type="submit" class="db-filter-btn">
-                            <i class="fa-solid fa-filter"></i>
+                            <i class="bi bi-funnel"></i>
                         </button>
                     </form>
 
                     <div class="db-card-btn-group">
                         <a href="{{ path('app_alert_import') }}" class="db-btn db-btn-emerald" title="Import Excel">
-                            <i class="fa-solid fa-file-arrow-up"></i>
+                            <i class="bi bi-file-arrow-up"></i>
                             <span>Import</span>
                         </a>
                         <a href="{{ path('app_export_registre', {
@@ -226,7 +203,7 @@
                                 statut:   filters.statut          ?? ''
                             }) }}"
                            class="db-btn db-btn-ghost" title="Export Excel (données filtrées)">
-                            <i class="fa-solid fa-file-excel"></i>
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
                         </a>
                         <a href="{{ path('app_export_registre_pdf', {
                                 search:   filters.search          ?? '',
@@ -235,10 +212,10 @@
                                 statut:   filters.statut          ?? ''
                             }) }}"
                            class="db-btn db-btn-ghost" title="Rapport PDF (données filtrées)">
-                            <i class="fa-solid fa-file-pdf"></i>
+                            <i class="bi bi-file-earmark-pdf"></i>
                         </a>
                         <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
-                            <i class="fa-solid fa-plus"></i>
+                            <i class="bi bi-plus"></i>
                             <span>Nouvelle</span>
                         </a>
                     </div>
@@ -249,13 +226,13 @@
             {% if active_cases|length > 0 %}
             <div class="urgence-banner">
                 <span class="urgence-pulse"></span>
-                <i class="fa-solid fa-stopwatch urgence-icon"></i>
+                <i class="bi bi-stopwatch urgence-icon"></i>
                 <span class="urgence-text">
                     <strong>{{ active_cases|length }} cas urgence 72h actifs</strong>
                     — procédure critique en cours
                 </span>
                 <a href="{{ path('app_dashboard_urgence') }}" class="urgence-link">
-                    Voir le suivi SLA <i class="fa-solid fa-arrow-right ms-1"></i>
+                    Voir le suivi SLA <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
             {% endif %}
@@ -266,15 +243,15 @@
                     <thead>
                         <tr>
                             <th class="w-8"></th>
-                            <th><i class="fa-solid fa-hashtag me-1 opacity-50"></i>Code GEI</th>
-                            <th><i class="fa-regular fa-calendar me-1 opacity-50"></i>Date</th>
-                            <th><i class="fa-solid fa-earth-africa me-1 opacity-50"></i>Zone / Corridor</th>
-                            <th><i class="fa-solid fa-tag me-1 opacity-50"></i>Catégorie</th>
-                            <th><i class="fa-solid fa-align-left me-1 opacity-50"></i>Résumé</th>
-                            <th class="text-center"><i class="fa-solid fa-star-half-stroke me-1 opacity-50"></i>Score</th>
-                            <th><i class="fa-solid fa-flag me-1 opacity-50"></i>Priorité</th>
-                            <th><i class="fa-solid fa-circle-dot me-1 opacity-50"></i>Statut</th>
-                            <th class="text-right"><i class="fa-solid fa-ellipsis me-1 opacity-50"></i>Actions</th>
+                            <th><i class="bi bi-hash me-1 opacity-50"></i>Code GEI</th>
+                            <th><i class="bi bi-calendar me-1 opacity-50"></i>Date</th>
+                            <th><i class="bi bi-globe-africa me-1 opacity-50"></i>Zone / Corridor</th>
+                            <th><i class="bi bi-tag me-1 opacity-50"></i>Catégorie</th>
+                            <th><i class="bi bi-text-left me-1 opacity-50"></i>Résumé</th>
+                            <th class="text-center"><i class="bi bi-star-half me-1 opacity-50"></i>Score</th>
+                            <th><i class="bi bi-flag me-1 opacity-50"></i>Priorité</th>
+                            <th><i class="bi bi-circle-dot me-1 opacity-50"></i>Statut</th>
+                            <th class="text-right"><i class="bi bi-three-dots me-1 opacity-50"></i>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -290,7 +267,7 @@
                         <tr class="db-tr {{ rowClass }}" id="row-{{ alert.id }}">
                             <td>
                                 <button onclick="toggleRow({{ alert.id }})" class="row-expand-btn" id="expbtn-{{ alert.id }}" title="Détails">
-                                    <i class="fa-solid fa-plus" id="expicon-{{ alert.id }}"></i>
+                                    <i class="bi bi-plus" id="expicon-{{ alert.id }}"></i>
                                 </button>
                             </td>
                             <td>
@@ -298,10 +275,10 @@
                                     {{ alert.codeGei ?? 'BROUILLON' }}
                                 </a>
                                 {% if alert.surveillanceRenforcee %}
-                                    <i class="fa-solid fa-eye text-amber-400 ms-1" title="Surveillance renforcée"></i>
+                                    <i class="bi bi-eye text-amber-400 ms-1" title="Surveillance renforcée"></i>
                                 {% endif %}
                                 {% if alert.transmissionPrioritaire %}
-                                    <i class="fa-solid fa-bolt text-red-400 ms-1" title="Transmission prioritaire"></i>
+                                    <i class="bi bi-lightning text-red-400 ms-1" title="Transmission prioritaire"></i>
                                 {% endif %}
                             </td>
                             <td class="text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
@@ -309,14 +286,14 @@
                                 <span class="table-market">{{ alert.market.nom }}</span>
                                 {% if alert.portCorridor %}
                                     <span class="table-corridor">
-                                        <i class="fa-solid fa-route fa-xs me-0.5 opacity-50"></i>
+                                        <i class="bi bi-route bi-xs me-0.5 opacity-50"></i>
                                         {{ alert.portCorridor|slice(0,28) }}{% if alert.portCorridor|length > 28 %}…{% endif %}
                                     </span>
                                 {% endif %}
                             </td>
                             <td class="whitespace-nowrap">
                                 <span class="table-categorie">
-                                    {{ alert.categorie ? alert.categorie.label : '—' }}
+                                    {{ alert.categorie ?: '—' }}
                                 </span>
                             </td>
                             <td class="table-resume" title="{{ alert.resumeExecutif }}">
@@ -333,7 +310,7 @@
                                         {{ score }}
                                     </span>
                                     {% if alert.scoreSurcharge %}
-                                        <i class="fa-solid fa-pen-to-square fa-xs text-amber-400 ms-0.5" title="Score surchargé par Manager"></i>
+                                        <i class="bi bi-pen bi-xs text-amber-400 ms-0.5" title="Score surchargé par Manager"></i>
                                     {% endif %}
                                 {% else %}
                                     <span class="text-slate-600">—</span>
@@ -343,11 +320,11 @@
                                 {% set prio = alert.effectiveNiveauPriorite %}
                                 {% if prio %}
                                     <span class="priority-badge priority-{{ prio.value }}">
-                                        {% if prio.value == 'critique' %}<i class="fa-solid fa-circle-radiation fa-xs me-1"></i>
-                                        {% elseif prio.value == 'eleve' %}<i class="fa-solid fa-fire fa-xs me-1"></i>
-                                        {% elseif prio.value == 'modere' %}<i class="fa-solid fa-circle-exclamation fa-xs me-1"></i>
-                                        {% else %}<i class="fa-solid fa-circle-check fa-xs me-1"></i>{% endif %}
-                                        {{ prio.label }}
+                                        {% if prio.value == 'critique' %}<i class="bi bi-broadcast bi-xs me-1"></i>
+                                        {% elseif prio.value == 'eleve' %}<i class="bi bi-fire bi-xs me-1"></i>
+                                        {% elseif prio.value == 'modere' %}<i class="bi bi-exclamation-circle bi-xs me-1"></i>
+                                        {% else %}<i class="bi bi-check-circle bi-xs me-1"></i>{% endif %}
+                                        {{ prio.label() }}
                                     </span>
                                 {% else %}
                                     <span class="text-slate-600">—</span>
@@ -357,24 +334,24 @@
                                 {% set st = alert.statut %}
                                 <span class="status-pill status-{{ st.value }}">
                                     <span class="status-dot"></span>
-                                    {{ st.label }}
+                                    {{ st.label() }}
                                 </span>
                             </td>
                             <td class="text-right whitespace-nowrap">
                                 <div class="table-actions">
                                     <a href="{{ path('app_alert_show', {id: alert.id}) }}"
                                        class="tbl-btn tbl-btn-ghost" title="Voir la fiche">
-                                        <i class="fa-solid fa-eye"></i>
+                                        <i class="bi bi-eye"></i>
                                     </a>
                                     {% if is_granted('ALERT_QUALIFY', alert) %}
                                     <a href="{{ path('app_alert_qualify', {id: alert.id}) }}"
                                        class="tbl-btn tbl-btn-amber" title="Qualifier">
-                                        <i class="fa-solid fa-star-half-stroke"></i>
+                                        <i class="bi bi-star-half"></i>
                                     </a>
                                     {% endif %}
                                     <a href="{{ path('app_alert_pdf', {id: alert.id}) }}"
                                        class="tbl-btn tbl-btn-red" title="PDF">
-                                        <i class="fa-solid fa-file-pdf"></i>
+                                        <i class="bi bi-file-earmark-pdf"></i>
                                     </a>
                                 </div>
                             </td>
@@ -386,21 +363,21 @@
                                 <div class="detail-grid">
                                     <div class="detail-col">
                                         <p class="detail-col-title">
-                                            <i class="fa-solid fa-list-check me-1.5 text-amber-400"></i>
+                                            <i class="bi bi-check2-all me-1.5 text-amber-400"></i>
                                             Éléments Factuels
                                         </p>
                                         <p class="detail-text">{{ alert.elementsFactuels ?: 'Non renseigné' }}</p>
                                     </div>
                                     <div class="detail-col">
                                         <p class="detail-col-title">
-                                            <i class="fa-solid fa-lightbulb me-1.5 text-amber-400"></i>
+                                            <i class="bi bi-lightbulb me-1.5 text-amber-400"></i>
                                             Hypothèses Analytiques
                                         </p>
                                         <p class="detail-text">{{ alert.hypothesesAnalytiques ?: 'Non renseigné' }}</p>
                                     </div>
                                     <div class="detail-col detail-col-meta">
                                         <p class="detail-col-title">
-                                            <i class="fa-solid fa-sliders me-1.5 text-amber-400"></i>
+                                            <i class="bi bi-sliders me-1.5 text-amber-400"></i>
                                             Qualification
                                         </p>
                                         <div class="detail-meta-grid">
@@ -409,17 +386,17 @@
                                             <span class="meta-lbl">Crédibilité</span>
                                             <span class="meta-val">{{ alert.credibiliteContenu ?? '—' }}/4</span>
                                             <span class="meta-lbl">Urgence</span>
-                                            <span class="meta-val">{{ alert.urgence ? alert.urgence.label : '—' }}</span>
+                                            <span class="meta-val">{{ alert.urgence ? alert.urgence.label() : '—' }}</span>
                                             <span class="meta-lbl">Impact</span>
-                                            <span class="meta-val">{{ alert.impact ? alert.impact.label : '—' }}</span>
+                                            <span class="meta-val">{{ alert.impact ? alert.impact.label() : '—' }}</span>
                                             <span class="meta-lbl">Exploitabilité</span>
-                                            <span class="meta-val">{{ alert.exploitabilite ? alert.exploitabilite.label : '—' }}</span>
+                                            <span class="meta-val">{{ alert.exploitabilite ? alert.exploitabilite.label() : '—' }}</span>
                                             <span class="meta-lbl">Recommandation</span>
-                                            <span class="meta-val text-amber-400">{{ alert.recommandation ? alert.recommandation.label : '—' }}</span>
+                                            <span class="meta-val text-amber-400">{{ alert.recommandation ? alert.recommandation.label() : '—' }}</span>
                                         </div>
                                         {% if alert.actionsEnCours %}
                                         <div class="detail-actions-note">
-                                            <i class="fa-solid fa-clipboard-list me-1 text-slate-400"></i>
+                                            <i class="bi bi-clipboard me-1 text-slate-400"></i>
                                             {{ alert.actionsEnCours }}
                                         </div>
                                         {% endif %}
@@ -430,10 +407,10 @@
                     {% else %}
                         <tr>
                             <td colspan="10" class="db-empty-state">
-                                <i class="fa-solid fa-folder-open fa-2x text-slate-600 mb-3"></i>
+                                <i class="bi bi-folder2-open bi-2x text-slate-600 mb-3"></i>
                                 <p>Aucune alerte trouvée</p>
                                 <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber mt-3">
-                                    <i class="fa-solid fa-plus me-1.5"></i>Créer la première alerte
+                                    <i class="bi bi-plus me-1.5"></i>Créer la première alerte
                                 </a>
                             </td>
                         </tr>
@@ -450,11 +427,11 @@
             <div class="db-score-card">
                 <div class="db-card-header">
                     <div>
-                        <p class="db-card-eyebrow"><i class="fa-solid fa-star me-1.5"></i>Score GEI Moyen</p>
+                        <p class="db-card-eyebrow"><i class="bi bi-star me-1.5"></i>Score GEI Moyen</p>
                         <p class="db-card-title">Indice de Risque</p>
                     </div>
                     <button class="db-icon-btn" title="Détails">
-                        <i class="fa-solid fa-ellipsis"></i>
+                        <i class="bi bi-three-dots"></i>
                     </button>
                 </div>
                 <div class="score-display">
@@ -484,18 +461,18 @@
             <div class="db-countries-card">
                 <div class="db-card-header">
                     <div>
-                        <p class="db-card-eyebrow"><i class="fa-solid fa-earth-africa me-1.5"></i>Par Pays</p>
+                        <p class="db-card-eyebrow"><i class="bi bi-globe-africa me-1.5"></i>Par Pays</p>
                         <p class="db-card-title">Répartition marchés</p>
                     </div>
                     <a href="{{ path('app_alert_new') }}" class="db-text-link">
-                        <i class="fa-solid fa-plus me-1"></i>Ajouter
+                        <i class="bi bi-plus me-1"></i>Ajouter
                     </a>
                 </div>
                 <div class="countries-list">
                     {% for stat in kpis.parPays ?? [] %}
                     <div class="country-item">
                         <span class="country-label">
-                            <i class="fa-solid fa-location-dot fa-xs me-1.5 text-amber-400"></i>
+                            <i class="bi bi-geo-alt bi-xs me-1.5 text-amber-400"></i>
                             {{ stat.nom }}
                         </span>
                         <div class="country-bar-wrap">
@@ -510,7 +487,7 @@
                     {% for m in markets|slice(0,5) %}
                     <div class="country-item">
                         <span class="country-label">
-                            <i class="fa-solid fa-location-dot fa-xs me-1.5 text-amber-400"></i>
+                            <i class="bi bi-geo-alt bi-xs me-1.5 text-amber-400"></i>
                             {{ m.nom }}
                         </span>
                         <div class="country-bar-wrap">
@@ -529,11 +506,11 @@
             <div class="db-activities-card">
                 <div class="db-card-header">
                     <div>
-                        <p class="db-card-eyebrow"><i class="fa-solid fa-clock-rotate-left me-1.5"></i>Activité</p>
+                        <p class="db-card-eyebrow"><i class="bi bi-clock-history me-1.5"></i>Activité</p>
                         <p class="db-card-title">Activités Récentes</p>
                     </div>
                     <button class="db-icon-btn">
-                        <i class="fa-solid fa-ellipsis"></i>
+                        <i class="bi bi-three-dots"></i>
                     </button>
                 </div>
 
@@ -558,11 +535,11 @@
                             {% elseif alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'eleve' %}activity-icon-amber
                             {% else %}activity-icon-blue{% endif %}">
                             {% if alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'critique' %}
-                                <i class="fa-solid fa-circle-radiation fa-xs"></i>
-                            {% elseif alert.statut.value == 'transmis' %}
-                                <i class="fa-solid fa-paper-plane fa-xs"></i>
+                                <i class="bi bi-broadcast bi-xs"></i>
+                            {% elseif alert.statut.value in ['validee', 'transmis'] %}
+                                <i class="bi bi-send bi-xs"></i>
                             {% else %}
-                                <i class="fa-solid fa-file-circle-plus fa-xs"></i>
+                                <i class="bi bi-file-earmark-plus bi-xs"></i>
                             {% endif %}
                         </div>
                         <div class="activity-body">
@@ -588,7 +565,7 @@
                     {% for alert in yesterday_activities %}
                     <div class="activity-item">
                         <div class="activity-icon-wrap activity-icon-slate">
-                            <i class="fa-solid fa-file-lines fa-xs"></i>
+                            <i class="bi bi-file-text bi-xs"></i>
                         </div>
                         <div class="activity-body">
                             <p class="activity-title">
@@ -596,7 +573,7 @@
                                     {{ alert.codeGei ?? 'Brouillon' }}
                                 </a>
                             </p>
-                            <span class="activity-meta">{{ alert.dateCreation|date('d/m/Y') }} · {{ alert.statut.label }}</span>
+                            <span class="activity-meta">{{ alert.dateCreation|date('d/m/Y') }} · {{ alert.statut ? alert.statut.label() : '—' }}</span>
                         </div>
                     </div>
                     {% endfor %}
@@ -604,7 +581,7 @@
 
                     {% if alerts|length == 0 %}
                     <div class="activity-empty">
-                        <i class="fa-regular fa-clock text-slate-600 fa-lg mb-2"></i>
+                        <i class="bi bi-clock text-slate-600 bi-lg mb-2"></i>
                         <p>Aucune activité récente</p>
                     </div>
                     {% endif %}
@@ -621,7 +598,9 @@
    SCRIPTS : Chart.js — graphique évolution + donut priorités
 ════════════════════════════════════════════════════════════════════════════ #}
 {% block javascripts %}
+{{ parent() }}
 <script>
+document.addEventListener('DOMContentLoaded', function() {
 /* ─── Données injectées depuis le contrôleur ─── */
 const chartData = {
     labels:      {{ chartLabels|default(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'])|json_encode|raw }},
@@ -642,17 +621,18 @@ Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
 Chart.defaults.font.size      = 11;
 
 /* ─── 1) Graphique évolution (line chart) ─── */
+/* ─── 1) Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
 const evolutionCtx = document.getElementById('alertEvolutionChart').getContext('2d');
 
-/* Palette GEI institutionnelle : vert primaire + vert clair secondaire     */
-/* Fill plat à faible opacité (10-12%) — pas de dégradé criard              */
-const gradientAmber = evolutionCtx.createLinearGradient(0, 0, 0, 180);
-gradientAmber.addColorStop(0,   'rgba(22,133,107,0.12)');
-gradientAmber.addColorStop(1,   'rgba(22,133,107,0.01)');
+/* Nouvelles alertes : Teal primaire (#16856b) */
+const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 200);
+gradientTeal.addColorStop(0,   'rgba(22,133,107,0.16)');
+gradientTeal.addColorStop(1,   'rgba(22,133,107,0.01)');
 
-const gradientEmerald = evolutionCtx.createLinearGradient(0, 0, 0, 180);
-gradientEmerald.addColorStop(0, 'rgba(69,227,184,0.10)');
-gradientEmerald.addColorStop(1, 'rgba(69,227,184,0.01)');
+/* Transmises : Bleu de la charte (#3b82f6) */
+const gradientBlue = evolutionCtx.createLinearGradient(0, 0, 0, 200);
+gradientBlue.addColorStop(0, 'rgba(59,130,246,0.15)');
+gradientBlue.addColorStop(1, 'rgba(59,130,246,0.01)');
 
 const evolutionChart = new Chart(evolutionCtx, {
     type: 'line',
@@ -663,12 +643,12 @@ const evolutionChart = new Chart(evolutionCtx, {
                 label: 'Nouvelles alertes',
                 data: chartData.nouvelles,
                 borderColor:     '#16856b',
-                backgroundColor: gradientAmber,
+                backgroundColor: gradientTeal,
                 borderWidth:     2,
                 pointBackgroundColor: '#16856b',
                 pointBorderColor:     'var(--card, #fff)',
                 pointBorderWidth:     2,
-                pointRadius:     3,
+                pointRadius:     3.5,
                 pointHoverRadius: 6,
                 tension: 0.35,
                 fill: true,
@@ -676,13 +656,13 @@ const evolutionChart = new Chart(evolutionCtx, {
             {
                 label: 'Transmises',
                 data: chartData.transmises,
-                borderColor:     '#45e3b8',
-                backgroundColor: gradientEmerald,
+                borderColor:     '#3b82f6',
+                backgroundColor: gradientBlue,
                 borderWidth:     2,
-                pointBackgroundColor: '#45e3b8',
+                pointBackgroundColor: '#3b82f6',
                 pointBorderColor:     'var(--card, #fff)',
                 pointBorderWidth:     2,
-                pointRadius:     3,
+                pointRadius:     3.5,
                 pointHoverRadius: 6,
                 tension: 0.35,
                 fill: true,
@@ -712,12 +692,12 @@ const evolutionChart = new Chart(evolutionCtx, {
         },
         scales: {
             x: {
-                grid: { color: 'rgba(148,163,184,0.06)', drawBorder: false },
+                grid: { color: 'rgba(148,163,184,0.04)', drawBorder: false },
                 ticks: { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
                 border: { display: false }
             },
             y: {
-                grid: { color: 'rgba(148,163,184,0.06)', drawBorder: false },
+                grid: { color: 'rgba(148,163,184,0.04)', drawBorder: false },
                 ticks: { color: '#7da090', stepSize: 1, font: { size: 10, family: 'Inter, sans-serif' } },
                 border: { display: false },
                 beginAtZero: true
@@ -808,15 +788,16 @@ function toggleRow(id) {
 
     if (row.classList.contains('hidden')) {
         row.classList.remove('hidden');
-        icon.classList.replace('fa-plus', 'fa-minus');
+        icon.classList.replace('bi bi-plus', 'bi bi-dash');
         btn.classList.add('expand-active');
     } else {
         row.classList.add('hidden');
-        icon.classList.replace('fa-minus', 'fa-plus');
+        icon.classList.replace('bi bi-dash', 'bi bi-plus');
         btn.classList.remove('expand-active');
     }
 }
+
+}); // END DOMContentLoaded
 </script>
 {% endblock %}
 {% endblock %}
-

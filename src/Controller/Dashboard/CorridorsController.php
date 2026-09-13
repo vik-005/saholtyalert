@@ -2,6 +2,8 @@
 
 namespace App\Controller\Dashboard;
 
+use App\Dto\CorridorFilterDTO;
+use App\Entity\User;
 use App\Service\StatistiquesService;
 use App\Repository\MarketRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,26 +21,41 @@ class CorridorsController extends AbstractController
         StatistiquesService $stats,
         MarketRepository    $marketRepo,
     ): Response {
-        $fin   = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
-        $debut = $request->query->get('debut', (new \DateTime('-90 days'))->format('Y-m-d'));
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
 
+        // Tous les marchés actifs (nécessaire pour le DTO et l'affichage des filtres)
         $allMarkets = $marketRepo->findBy(['actif' => true]);
-        $marketIds  = array_filter(
-            explode(',', $request->query->get('markets', '')),
-            fn($v) => is_numeric($v)
-        );
-        $marketIds = array_map('intval', $marketIds);
 
-        $topCorridors  = $stats->getTopCorridors($debut, $fin, $marketIds, 20);
-        $volumeParPays = $stats->getVolumeParPays($debut, $fin, $marketIds);
+        // Construire le DTO — normalise correctement markets[] ou markets=1,2
+        // et résout le bug "Input value 'markets' contains a non-scalar value"
+        $dto = CorridorFilterDTO::fromRequest($request, $allMarkets);
+
+        // Récupérer toutes les statistiques via la méthode centralisée
+        $dashboard = $stats->getCorridorDashboard($dto);
 
         return $this->render('dashboard/corridors.html.twig', [
-            'debut'          => $debut,
-            'fin'            => $fin,
-            'selected_markets' => $marketIds,
-            'all_markets'    => $allMarkets,
-            'top_corridors'  => $topCorridors,
-            'volume_par_pays'=> $volumeParPays,
+            // Filtres
+            'debut'            => $dto->dateDebut,
+            'fin'              => $dto->dateFin,
+            'selected_markets' => $dto->marketIds,
+            'all_markets'      => $allMarkets,
+            'type_loc'         => $dto->typeLoc ?? '',
+            // Labels dynamiques (calculés dans le DTO, pas dans Twig)
+            'page_title'       => $dto->pageTitle(),
+            'page_subtitle'    => $dto->pageSubtitle(),
+            'chart_title'      => $dto->chartTitle(),
+            'chart_subtitle'   => $dto->chartSubtitle(),
+            'chart_item_label' => $dto->itemLabel(),
+            'type_icon'        => $dto->typeIcon(),
+            // Données statistiques (toutes préparées côté service)
+            'top_localisations' => $dashboard['top_localisations'],
+            'volume_par_pays'   => $dashboard['volume_par_pays'],
+            'loc_type_stats'    => $dashboard['loc_type_stats'],
+            'kpis'              => $dashboard['kpis'],
+            'has_data'          => $dashboard['has_data'],
         ]);
     }
 }

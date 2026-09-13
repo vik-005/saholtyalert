@@ -10,7 +10,10 @@ use App\Repository\AlertRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+use Twig\Environment;
 
 /**
  * Handler des messages d'escalade GEI.
@@ -35,6 +38,8 @@ class AlertEscalationHandler
         private readonly EntityManagerInterface $em,
         private readonly AlertRepository       $alertRepository,
         private readonly UserRepository        $userRepository,
+        private readonly MailerInterface       $mailer,
+        private readonly Environment           $twig,
     ) {}
 
     public function __invoke(AlertEscalationMessage $message): void
@@ -72,19 +77,20 @@ class AlertEscalationHandler
     }
 
     /**
-     * Règle 1 : Score ≥ 18 → notification urgence critique à TOUS les PFT + SAHOLTY du marché.
-     */
+      * Règle 1 : Score ≥ 18 → notification urgence critique à TOUS les PFT + SAHOLTY du marché.
+      */
     private function handleUrgence72h(Alert $alert, array $details): void
     {
         $managers = $this->getManagersForAlert($alert);
         $contenu  = sprintf(
-            '🔴 CRITIQUE — Alerte %s — Score %d — Procédure urgence 72h activée automatiquement.',
+            ' CRITIQUE — Alerte %s — Score %d — Procédure urgence 72h activée automatiquement.',
             $alert->getCodeGei() ?? '#' . $alert->getId(),
             $details['score'] ?? $alert->getScoreGei()
         );
 
         foreach ($managers as $manager) {
             $this->createNotification($manager, $contenu, 'urgence', $alert);
+            $this->sendCriticalEmail($manager, $alert, $details['score'] ?? $alert->getScoreGei());
         }
     }
 
@@ -95,7 +101,7 @@ class AlertEscalationHandler
     {
         $managers = $this->getManagersForAlert($alert);
         $contenu  = sprintf(
-            '🟠 TRANSMISSION PRIORITAIRE — Alerte %s — Urgence Immédiat + Impact Élevé détectés.',
+            'TRANSMISSION PRIORITAIRE — Alerte %s — Urgence Immédiat + Impact Élevé détectés.',
             $alert->getCodeGei() ?? '#' . $alert->getId()
         );
 
@@ -148,7 +154,7 @@ class AlertEscalationHandler
     {
         $saholtyUsers = $this->userRepository->findByRole(UserRoleEnum::SAHOLTY);
         $contenu      = sprintf(
-            '⚠️ VALIDATION REQUISE — Alerte %s — Score %d (Élevé) — Transmission bloquée jusqu\'à validation GEI explicite.',
+            'VALIDATION REQUISE — Alerte %s — Score %d (Élevé) — Transmission bloquée jusqu\'à validation GEI explicite.',
             $alert->getCodeGei() ?? '#' . $alert->getId(),
             $details['score'] ?? $alert->getScoreGei()
         );
@@ -187,7 +193,8 @@ class AlertEscalationHandler
     {
         $managers = $this->getManagersForAlert($alert);
         $contenu  = sprintf(
-            '👁️ SURVEILLANCE RENFORCÉE — Alerte %s — Crédibilité douteuse avec urgence élevée. Reste en tête de liste.',
+            '
+            SURVEILLANCE RENFORCÉE — Alerte %s — Crédibilité douteuse avec urgence élevée. Reste en tête de liste.',
             $alert->getCodeGei() ?? '#' . $alert->getId()
         );
 
@@ -217,5 +224,28 @@ class AlertEscalationHandler
         $notif->setAlert($alert);
 
         $this->em->persist($notif);
+    }
+
+    private function sendCriticalEmail(\App\Entity\User $destinataire, Alert $alert, int $score): void
+    {
+        if (!$destinataire->getEmail()) {
+            return;
+        }
+
+        $html = $this->twig->render('emails/alerte_critique.html.twig', [
+            'codeGei'  => $alert->getCodeGei() ?? '#' . $alert->getId(),
+            'score'    => $score,
+            'market'   => $alert->getMarket()?->getNom() ?? '—',
+            'priorite' => \App\Enum\NiveauPriorite::fromScore($score)->label(),
+            'url'      => sprintf('%s/alert/%d', rtrim($_SERVER['APP_URL'] ?? 'http://localhost'), $alert->getId()),
+        ]);
+
+        $email = (new Email())
+            ->from('gei@example.com')
+            ->to($destinataire->getEmail())
+            ->subject(sprintf('[URGENT] Alerte Critique GEI — %s (Score %d)', $alert->getCodeGei() ?? '#' . $alert->getId(), $score))
+            ->html($html);
+
+        $this->mailer->send($email);
     }
 }

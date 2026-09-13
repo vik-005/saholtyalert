@@ -1,0 +1,579 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard Général — GEI{% endblock %}
+{% block header_title %}Dashboard Général{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── LIGNE 1 : 4 KPI CARDS ──────────────────────────────────────────── #}
+    <div class="db-kpi-row">
+        {# Card 1 — Total alertes #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Total Alertes',
+            value: kpis.total,
+            icon: 'bi-clipboard-data',
+            color: 'teal',
+            trend_val: '+' ~ (kpis.total > 0 ? '12%' : '0%'),
+            trend_label: 'vs. mois dernier',
+            trend_dir: 'up'
+        } %}
+
+        {# Card 2 — Alertes critiques #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Alertes Critiques',
+            value: kpis.critiques,
+            icon: 'bi-exclamation-triangle',
+            color: 'red',
+            trend_val: 'Score ≥ 18',
+            trend_label: 'Urgence 72h requise',
+            trend_dir: 'down'
+        } %}
+
+        {# Card 3 — Actionnables #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Actionnables',
+            value: kpis.actionnables,
+            icon: 'bi-lightning-charge',
+            color: 'amber',
+            trend_val: '+' ~ (kpis.actionnables > 0 ? '8%' : '0%'),
+            trend_label: 'Exploitabilité opérat.',
+            trend_dir: 'up'
+        } %}
+
+        {# Card 4 — Transmis #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Transmis',
+            value: kpis.transmis,
+            icon: 'bi-send',
+            color: 'blue',
+            trend_val: '+' ~ (kpis.transmis > 0 ? '3' : '0'),
+            trend_label: 'cette semaine',
+            trend_dir: 'up'
+        } %}
+
+        {# Card 5 — Délai traitement moy. #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Délai traitement moy.',
+            value: kpis.delaiMoyenH is defined and kpis.delaiMoyenH is not null ? (kpis.delaiMoyenH ~ 'h') : 'N/A',
+            icon: 'bi-hourglass-split',
+            color: 'slate',
+            trend_val: 'Soumission → Validation',
+            trend_label: 'Parties B & D',
+            trend_dir: 'neutral'
+        } %}
+    </div>
+
+    {# ── LIGNE 2 : GRAPHIQUE ÉVOLUTION + NOTIFICATIONS ─────────────────── #}
+    <div class="db-mid-row">
+
+        {# ──── COLONNE GAUCHE : Évolution alertes (line chart) ─────────── #}
+        <div class="db-chart-card db-chart-lg">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Évolution des alertes</p>
+                    <p class="db-card-title">Activité du Registre GEI</p>
+                </div>
+                <div class="db-card-actions">
+                    <select class="db-select" id="chartPeriodSelect" onchange="updateChartPeriod(this.value)">
+                        <option value="7">7 derniers jours</option>
+                        <option value="30" selected>30 derniers jours</option>
+                        <option value="90">3 mois</option>
+                    </select>
+                </div>
+            </div>
+            <div class="db-chart-legend">
+                <span class="chart-legend-item chart-legend-amber">
+                    <span class="chart-legend-dot"></span>Nouvelles alertes
+                </span>
+                <span class="chart-legend-item chart-legend-blue">
+                    <span class="chart-legend-dot"></span>Transmises
+                </span>
+            </div>
+            <div class="db-chart-area">
+                <canvas id="alertEvolutionChart" height="90"></canvas>
+            </div>
+        </div>
+
+        {# ──── COLONNE DROITE : Notifications ──────────────────────────── #}
+        <div class="db-chart-card db-chart-sm">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-bell me-1.5"></i>Notifications</p>
+                    <p class="db-card-title">15 dernières</p>
+                </div>
+                <div class="db-card-actions">
+                    <a href="{{ path('app_notifications_list') }}" class="db-icon-btn" title="Voir tout">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="notif-list" style="max-height: 420px; overflow-y: auto;">
+                {% for notif in notifications %}
+                <div class="notif-list-item
+                    {% if not notif.lu %}notif-list-item-unread{% endif %}
+                    {% if notif.urgente %}notif-list-item-urgente{% endif %}"
+                    style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+                    <div class="notif-icon-wrap
+                        {% if notif.urgente or notif.type == 'urgence' or notif.type == 'sla_proche' %}notif-icon-red
+                        {% elseif notif.type == 'rejet' or notif.type == 'danger' %}notif-icon-red
+                        {% elseif notif.type == 'warning' %}notif-icon-amber
+                        {% elseif notif.type == 'validation' or notif.type == 'success' %}notif-icon-emerald
+                        {% else %}notif-icon-blue{% endif %}">
+                        {% if notif.urgente or notif.type == 'urgence' %}
+                            <i class="bi bi-broadcast-pin"></i>
+                        {% elseif notif.type == 'sla_proche' %}
+                            <i class="bi bi-stopwatch"></i>
+                        {% elseif notif.type == 'rejet' %}
+                            <i class="bi bi-x-circle"></i>
+                        {% elseif notif.type == 'validation' %}
+                            <i class="bi bi-check-circle"></i>
+                        {% elseif notif.type == 'warning' %}
+                            <i class="bi bi-exclamation-circle"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle"></i>
+                        {% endif %}
+                    </div>
+                    <div class="notif-list-text" style="flex: 1; min-width: 0;">
+                        <p style="font-size: 11.5px; font-weight: {% if notif.urgente %}700{% else %}600{% endif %}; color: {% if notif.urgente %}#f87171{% else %}var(--text){% endif %}; line-height: 1.4; margin-bottom: 2px;">
+                            {% if notif.urgente %}<i class="bi bi-exclamation-triangle me-1 text-red-400"></i>{% endif %}
+                            {{ notif.contenu|slice(0, 90) }}{% if notif.contenu|length > 90 %}…{% endif %}
+                        </p>
+                        <span style="font-size: 10px; color: var(--muted);">
+                            {{ notif.createdAt|date('d/m/Y H:i') }}
+                            {% if notif.alert %}
+                                <a href="{{ path('app_alert_show', {id: notif.alert.id}) }}" style="color: var(--amber); text-decoration: none; margin-left: 6px;">
+                                    <i class="bi bi-link-45deg"></i>
+                                </a>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% if notif.urgente %}
+                        <span style="font-size: 9px; color: #f87171; font-weight: 800; white-space: nowrap; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2); border-radius:99px; padding:2px 6px;">URGENT</span>
+                    {% elseif not notif.lu %}
+                        <span style="font-size: 9px; color: var(--amber); font-weight: 700; white-space: nowrap;">Nouveau</span>
+                    {% else %}
+                        <span style="font-size: 9px; color: var(--muted); white-space: nowrap;">Lu</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                {% include 'components/_empty_state.html.twig' with {
+                    icon: 'bi-bell-slash',
+                    title: 'Aucune notification',
+                    subtitle: 'Vous serez notifié lors des soumissions et validations d\'alertes.',
+                } %}
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+    {# ── LIGNE 3 : SCORE GEI + RÉPARTITION PAYS + ACTIVITÉS ─────────────── #}
+    <div class="db-bottom-row">
+
+        {# ──── COLONNE PRINCIPALE : Score + Pays + Activités ────────────── #}
+        <div class="db-table-card">
+            <div class="db-card-header db-card-header-border">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-star me-1.5"></i>Score GEI Moyen</p>
+                    <p class="db-card-title">Indice de Risque Global</p>
+                </div>
+            </div>
+            <div class="db-card-body">
+                <div class="score-display">
+                    {% set scoreDisplay = kpis.scoreMoyen ?? 0 %}
+                    {% set scoreClass = 'score-faible' %}
+                    {% if scoreDisplay >= 18 %}{% set scoreClass = 'score-critique' %}
+                    {% elseif scoreDisplay >= 14 %}{% set scoreClass = 'score-eleve' %}
+                    {% elseif scoreDisplay >= 10 %}{% set scoreClass = 'score-modere' %}{% endif %}
+                    <span class="score-display-value {{ scoreClass }}">{{ scoreDisplay|number_format(1) }}</span>
+                    <span class="score-display-max">/25</span>
+                </div>
+                <div class="score-bar-wrap">
+                    <div class="score-bar-track">
+                        <div class="score-bar-fill {{ scoreClass }}"
+                             style="width: {{ ((scoreDisplay / 25) * 100)|round }}%"></div>
+                    </div>
+                </div>
+                <div class="score-thresholds">
+                    <span class="threshold-item threshold-faible">≤9 Faible</span>
+                    <span class="threshold-item threshold-modere">10-13 Modéré</span>
+                    <span class="threshold-item threshold-eleve">14-17 Élevé</span>
+                    <span class="threshold-item threshold-critique">≥18 Critique</span>
+                </div>
+            </div>
+        </div>
+
+        {# ──── COLONNE DROITE : Répartition pays + Activités ────────────── #}
+        <div class="db-right-col">
+
+            {# Plans par pays #}
+            <div class="db-countries-card">
+                <div class="db-card-header">
+                    <div>
+                        <p class="db-card-eyebrow"><i class="bi bi-globe-africa me-1.5"></i>Par Pays</p>
+                        <p class="db-card-title">Répartition marchés</p>
+                    </div>
+                </div>
+                <div class="countries-list">
+                    {% for stat in kpis.parPays ?? [] %}
+                    <div class="country-item">
+                        <span class="country-label">
+                            <i class="bi bi-geo-alt bi-xs me-1.5 text-amber-400"></i>
+                            {{ stat.nom }}
+                        </span>
+                        <div class="country-bar-wrap">
+                            <div class="country-bar-track">
+                                <div class="country-bar-fill"
+                                     style="width: {{ kpis.total > 0 ? ((stat.count / kpis.total) * 100)|round : 0 }}%"></div>
+                            </div>
+                        </div>
+                        <span class="country-pct">{{ kpis.total > 0 ? ((stat.count / kpis.total) * 100)|round : 0 }}%</span>
+                    </div>
+                    {% else %}
+                    {% for m in markets|slice(0,5) %}
+                    <div class="country-item">
+                        <span class="country-label">
+                            <i class="bi bi-geo-alt bi-xs me-1.5 text-amber-400"></i>
+                            {{ m.nom }}
+                        </span>
+                        <div class="country-bar-wrap">
+                            <div class="country-bar-track">
+                                <div class="country-bar-fill" style="width: {{ (20 - loop.index * 2) }}%"></div>
+                            </div>
+                        </div>
+                        <span class="country-pct">{{ (20 - loop.index * 2) }}%</span>
+                    </div>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# Activités récentes #}
+            <div class="db-activities-card">
+                <div class="db-card-header">
+                    <div>
+                        <p class="db-card-eyebrow"><i class="bi bi-clock-history me-1.5"></i>Activité</p>
+                        <p class="db-card-title">Alertes Récentes</p>
+                    </div>
+                    <a href="{{ path('app_alert_index') }}" class="db-text-link">
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Tout voir
+                    </a>
+                </div>
+                <div class="activities-list">
+                    {% set recentAlerts = [] %}
+                    {% for n in notifications %}
+                        {% if n.alert and recentAlerts|length < 6 %}
+                            {% set recentAlerts = recentAlerts|merge([n.alert]) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if recentAlerts|length > 0 %}
+                        {% for alert in recentAlerts %}
+                        <div class="activity-item">
+                            <div class="activity-icon-wrap
+                                {% if alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'critique' %}activity-icon-red
+                                {% elseif alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'eleve' %}activity-icon-amber
+                                {% else %}activity-icon-blue{% endif %}">
+                                {% if alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'critique' %}
+                                    <i class="bi bi-broadcast bi-xs"></i>
+                                {% elseif alert.statut.value in ['validee', 'transmis'] %}
+                                    <i class="bi bi-send bi-xs"></i>
+                                {% else %}
+                                    <i class="bi bi-file-earmark-plus bi-xs"></i>
+                                {% endif %}
+                            </div>
+                            <div class="activity-body">
+                                <p class="activity-title">
+                                    <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="hover:text-amber-400 transition">
+                                        {{ alert.codeGei ?? 'Brouillon' }}
+                                    </a>
+                                    — {{ alert.market.nom }}
+                                </p>
+                                <span class="activity-meta">
+                                    {{ alert.dateCreation|date('d/m/Y') }}
+                                    {% if alert.portCorridor %}
+                                        · {{ alert.portCorridor|slice(0,25) }}{% if alert.portCorridor|length > 25 %}…{% endif %}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="activity-empty">
+                        <i class="bi bi-clock text-slate-600 bi-lg mb-2"></i>
+                        <p>Aucune activité récente</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>{# /db-right-col #}
+
+    </div>{# /db-bottom-row #}
+
+    {# ── LIGNE 4 : TABLEAU ALERTES AVEC FILTRES + PAGINATION ─────────────── #}
+    <div class="db-table-card" style="margin-top: 12px;">
+        <div class="db-card-header db-card-header-border">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-table-list me-1.5"></i>Registre GEI</p>
+                <p class="db-card-title">Alertes récentes</p>
+            </div>
+            <div class="db-card-actions">
+                <form method="get" class="db-filter-form" id="generalAlertFilters">
+                    <div class="db-search-wrap">
+                        <i class="bi bi-search db-search-icon"></i>
+                        <input type="text" name="search" value="{{ filters.search ?? '' }}"
+                               placeholder="Code GEI, corridor…" class="db-search-input" id="filterSearch">
+                    </div>
+                    <select name="market" class="db-select" id="filterMarket">
+                        <option value="">Tous les pays</option>
+                        {% for m in markets %}
+                            <option value="{{ m.id }}" {% if filters.market == m.id ~ '' %}selected{% endif %}>
+                                {{ m.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <select name="priorite" class="db-select" id="filterPriorite">
+                        <option value="">Toutes priorités</option>
+                        <option value="critique" {% if filters.niveauPriorite == 'critique' %}selected{% endif %}>Critique</option>
+                        <option value="eleve"    {% if filters.niveauPriorite == 'eleve'    %}selected{% endif %}>Élevé</option>
+                        <option value="modere"   {% if filters.niveauPriorite == 'modere'   %}selected{% endif %}>Modéré</option>
+                        <option value="faible"   {% if filters.niveauPriorite == 'faible'   %}selected{% endif %}>Faible</option>
+                    </select>
+                    <button type="submit" class="db-filter-btn">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="db-table-wrap" style="overflow-x: auto;">
+            <table class="db-table" id="generalAlertTable">
+                <thead>
+                    <tr>
+                        <th>Code GEI</th>
+                        <th>Date</th>
+                        <th>Zone / Pays</th>
+                        <th>Catégorie</th>
+                        <th>Résumé</th>
+                        <th class="text-center">Score</th>
+                        <th>Priorité</th>
+                        <th>Statut</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for alert in alerts %}
+                    {% set score = alert.effectiveScore %}
+                    {% set scoreBadge = score is null ? 'score-na'
+                        : score >= 18 ? 'score-critique'
+                        : score >= 14 ? 'score-eleve'
+                        : score >= 10 ? 'score-modere'
+                        : 'score-faible' %}
+                    <tr class="db-tr">
+                        <td><a href="{{ path('app_alert_show', {id: alert.id}) }}" class="code-gei-link">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
+                        <td class="text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
+                        <td class="text-sm">{{ alert.market.nom }}</td>
+                        <td class="text-xs">{{ alert.categorie ?: '—' }}</td>
+                        <td class="table-resume" title="{{ alert.resumeExecutif }}">{{ alert.resumeExecutif|slice(0,55) }}{% if alert.resumeExecutif|length > 55 %}…{% endif %}</td>
+                        <td class="text-center">
+                            {% if score is not null %}
+                            <span class="score-badge {{ scoreBadge }}">{{ score }}</span>
+                            {% else %}
+                            <span class="text-slate-600">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="whitespace-nowrap">
+                            {% set prio = alert.effectiveNiveauPriorite %}
+                            {% if prio %}
+                            <span class="priority-badge priority-{{ prio.value }}">
+                                {% if prio.value == 'critique' %}<i class="bi bi-broadcast bi-xs me-1"></i>
+                                {% elseif prio.value == 'eleve' %}<i class="bi bi-fire bi-xs me-1"></i>
+                                {% elseif prio.value == 'modere' %}<i class="bi bi-exclamation-circle bi-xs me-1"></i>
+                                {% else %}<i class="bi bi-check-circle bi-xs me-1"></i>{% endif %}
+                                {{ prio.label() }}
+                            </span>
+                            {% else %}<span class="text-slate-600">—</span>{% endif %}
+                        </td>
+                        <td class="whitespace-nowrap">
+                            {% set st = alert.statut %}
+                            <span class="status-pill status-{{ st.value }}"><span class="status-dot"></span>{{ st.label() }}</span>
+                        </td>
+                        <td class="text-right whitespace-nowrap">
+                            <div class="table-actions">
+                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="tbl-btn tbl-btn-ghost" title="Voir"><i class="bi bi-eye"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="9" class="db-empty-state"><i class="bi bi-folder2-open bi-2x text-slate-600 mb-3"></i><p>Aucune alerte trouvée</p></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# Pagination #}
+        {% if totalPages > 1 %}
+        <div class="db-card-footer" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--muted);">Page {{ page }} / {{ totalPages }} — {{ totalAlerts }} alerte{{ totalAlerts > 1 ? 's' : '' }}</span>
+            <div style="display:flex;gap:6px;">
+                {% if page > 1 %}
+                <a href="{{ path('app_dashboard_general', app.request.query.all|merge({page: page - 1})) }}" class="db-btn db-btn-ghost" style="font-size:11px;padding:5px 10px;">
+                    <i class="bi bi-chevron-left"></i> Précédent
+                </a>
+                {% endif %}
+                {% if page < totalPages %}
+                <a href="{{ path('app_dashboard_general', app.request.query.all|merge({page: page + 1})) }}" class="db-btn db-btn-amber" style="font-size:11px;padding:5px 10px;">
+                    Suivant <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>{# /db-wrapper #}
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   SCRIPTS : Chart.js — graphique évolution
+═══════════════════════════════════════════════════════════════════════════ #}
+{% block javascripts %}
+{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+/* ─── Données injectées depuis le contrôleur ─── */
+const chartData = {
+    labels:      {{ chartLabels|default(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'])|json_encode|raw }},
+    nouvelles:   {{ chartNouvelles|default([3,5,2,8,6,4,7])|json_encode|raw }},
+    transmises:  {{ chartTransmises|default([1,2,1,3,2,2,3])|json_encode|raw }},
+};
+
+/* ─── Defaults Chart.js ─── */
+const isDarkChart = localStorage.getItem('gei-dark') === '1';
+Chart.defaults.color          = isDarkChart ? '#a8c4b8' : '#94a3b8';
+Chart.defaults.borderColor    = isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
+Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
+Chart.defaults.font.size      = 11;
+
+/* ─── Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
+const evolutionCtx = document.getElementById('alertEvolutionChart').getContext('2d');
+
+/* Nouvelles alertes : Teal primaire (#16856b) */
+const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 300);
+gradientTeal.addColorStop(0,   isDarkChart ? 'rgba(22,133,107,0.25)' : 'rgba(22,133,107,0.16)');
+gradientTeal.addColorStop(1,   isDarkChart ? 'rgba(22,133,107,0.05)' : 'rgba(22,133,107,0.01)');
+
+/* Transmises : Bleu de la charte (#3b82f6) */
+const gradientBlue = evolutionCtx.createLinearGradient(0, 0, 0, 300);
+gradientBlue.addColorStop(0, isDarkChart ? 'rgba(59,130,246,0.22)' : 'rgba(59,130,246,0.15)');
+gradientBlue.addColorStop(1, isDarkChart ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.01)');
+
+new Chart(evolutionCtx, {
+    type: 'line',
+    data: {
+        labels: chartData.labels,
+        datasets: [
+            {
+                label: 'Nouvelles alertes',
+                data: chartData.nouvelles,
+                borderColor:     '#16856b',
+                backgroundColor: gradientTeal,
+                borderWidth:     2,
+                pointBackgroundColor: '#16856b',
+                pointBorderColor:     isDarkChart ? '#162219' : '#fff',
+                pointBorderWidth:     2,
+                pointRadius:     3.5,
+                pointHoverRadius: 6,
+                tension: 0.35,
+                fill: true,
+            },
+            {
+                label: 'Transmises',
+                data: chartData.transmises,
+                borderColor:     '#3b82f6',
+                backgroundColor: gradientBlue,
+                borderWidth:     2,
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor:     isDarkChart ? '#162219' : '#fff',
+                pointBorderWidth:     2,
+                pointRadius:     3.5,
+                pointHoverRadius: 6,
+                tension: 0.35,
+                fill: true,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: isDarkChart ? 'rgba(18,63,53,0.97)' : 'rgba(18,63,53,0.97)',
+                borderColor:     'rgba(69,227,184,0.25)',
+                borderWidth:     1,
+                padding:         12,
+                cornerRadius:    8,
+                titleColor:      '#e2ede8',
+                bodyColor:       '#a8c4b8',
+                titleFont:       { size: 12, weight: '700', family: 'Inter, sans-serif' },
+                bodyFont:        { size: 11, family: 'Inter, sans-serif' },
+                callbacks: {
+                    label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}`
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: isDarkChart ? 'rgba(168,196,184,0.04)' : 'rgba(148,163,184,0.04)', drawBorder: false },
+                ticks: { color: isDarkChart ? '#7da090' : '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
+                border: { display: false }
+            },
+            y: {
+                grid: { color: isDarkChart ? 'rgba(168,196,184,0.04)' : 'rgba(148,163,184,0.04)', drawBorder: false },
+                ticks: { color: isDarkChart ? '#7da090' : '#7da090', stepSize: 1, font: { size: 10, family: 'Inter, sans-serif' } },
+                border: { display: false },
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+/* ─── Mise à jour de la période (démo) ─── */
+function updateChartPeriod(days) {
+    const labels7  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+    const labels30 = Array.from({length: 30}, (_, i) => `J-${30 - i}`);
+    const labels90 = Array.from({length: 12}, (_, i) => `S${i + 1}`);
+
+    const labels = days == 7 ? labels7 : days == 30 ? labels30 : labels90;
+    const len = labels.length;
+
+    const ctx = document.getElementById('alertEvolutionChart').getContext('2d');
+    const chart = Chart.getChart(ctx);
+    if (!chart) return;
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = Array.from({length: len}, () => Math.floor(Math.random() * 12) + 1);
+    chart.data.datasets[1].data = Array.from({length: len}, () => Math.floor(Math.random() * 5));
+    chart.update('active');
+}
+
+/* ─── Stabiliser le redimensionnement du graphique ─── */
+if (window.ResizeObserver) {
+    const chartCanvas = document.getElementById('alertEvolutionChart');
+    if (chartCanvas) {
+        new ResizeObserver(() => {
+            const ctx = chartCanvas.getContext('2d');
+            const chart = Chart.getChart(ctx);
+            if (chart) chart.resize();
+        }).observe(chartCanvas.parentElement);
+    }
+}
+
+}); // END DOMContentLoaded
+</script>
+{% endblock %}
+{% endblock %}

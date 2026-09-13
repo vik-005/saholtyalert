@@ -33,7 +33,7 @@
 
         {# ── Contenu branding (au-dessus de l'overlay) ── #}
         <a href="{{ path('app_login') }}" class="auth-brand">
-            <span><i class="fa-solid fa-shield-halved"></i></span>GEI Platform
+            <span><i class="bi-shield-lock"></i></span>GEI Platform
         </a>
 
         <div class="auth-brand-copy">
@@ -43,12 +43,12 @@
         </div>
 
         <ul class="auth-brand-points">
-            <li><i class="fa-solid fa-circle-check"></i>Accès contrôlé par rôle</li>
-            <li><i class="fa-solid fa-circle-check"></i>Traçabilité des opérations</li>
-            <li><i class="fa-solid fa-circle-check"></i>Suivi des urgences sous 72 h</li>
+            <li><i class="bi-check-circle"></i>Accès contrôlé par rôle</li>
+            <li><i class="bi-check-circle"></i>Traçabilité des opérations</li>
+            <li><i class="bi-check-circle"></i>Suivi des urgences sous 72 h</li>
         </ul>
 
-        <p class="auth-brand-footer"><i class="fa-solid fa-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
+        <p class="auth-brand-footer"><i class="bi-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
 
         {# ── Points de navigation ── #}
         <div class="auth-slide-dots" id="authSlideDots">
@@ -65,7 +65,7 @@
     ══════════════════════════════════════════════════════════════════ #}
     <main class="auth-form-panel auth-form-panel-pro">
         <div class="auth-mobile-brand">
-            <span><i class="fa-solid fa-shield-halved"></i></span> GEI Platform
+            <span><i class="bi-shield-lock"></i></span> GEI Platform
         </div>
         <div class="auth-form-inner">{% block auth_form %}{% endblock %}</div>
         <p class="auth-footer-note">© {{ 'now'|date('Y') }} · Plateforme GEI</p>
@@ -119,8 +119,8 @@ function togglePassword(inputId, btnId) {
     if (!input || !icon) return;
     const visible = input.type === 'password';
     input.type = visible ? 'text' : 'password';
-    icon.classList.toggle('fa-eye',      !visible);
-    icon.classList.toggle('fa-eye-slash', visible);
+    icon.classList.toggle('bi-eye',      !visible);
+    icon.classList.toggle('bi-eye-slash', visible);
 }
 </script>
 {% endblock %}

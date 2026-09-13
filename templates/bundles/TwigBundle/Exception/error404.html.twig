@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page introuvable — GEI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Inter',sans-serif;background:#090e1a;color:#94a3b8;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+        .err-box{max-width:440px;width:100%}
+        .err-code{font-size:88px;font-weight:900;line-height:1;color:#1e293b;letter-spacing:-4px;margin-bottom:8px}
+        .err-icon{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);font-size:26px;color:#fbbf24;margin-bottom:20px}
+        .err-title{font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px}
+        .err-sub{font-size:13px;line-height:1.7;color:#64748b;margin-bottom:28px}
+        .err-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;color:#fbbf24;font-size:13px;font-weight:600;text-decoration:none;transition:opacity .15s}
+        .err-btn:hover{opacity:.8}
+        .err-sep{margin:0 10px;color:#334155}
+        .err-link{color:#64748b;font-size:12px;text-decoration:none}
+        .err-link:hover{color:#94a3b8}
+    </style>
+</head>
+<body>
+    <div class="err-box">
+        <div class="err-code">404</div>
+        <div class="err-icon"><i class="bi bi-compass"></i></div>
+        <h1 class="err-title">Page introuvable</h1>
+        <p class="err-sub">La page que vous cherchez n'existe pas ou a été déplacée.<br>Vérifiez l'URL ou retournez au tableau de bord.</p>
+        <a href="/" class="err-btn"><i class="bi bi-house-fill"></i>Tableau de bord</a>
+        <span class="err-sep">·</span>
+        <a href="javascript:history.back()" class="err-link">← Retour</a>
+    </div>
+</body>
+</html>

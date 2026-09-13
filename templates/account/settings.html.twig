@@ -12,19 +12,19 @@
     <div class="account-grid">
         <form method="post" class="account-card">
             <input type="hidden" name="action" value="profile"><input type="hidden" name="_token" value="{{ csrf_token('account-profile') }}">
-            <div class="account-card-head"><i class="fa-regular fa-id-card"></i><div><h2>Informations personnelles</h2><p>Ces données sont visibles dans vos actions et transmissions.</p></div></div>
+            <div class="account-card-head"><i class="bi-id-card"></i><div><h2>Informations personnelles</h2><p>Ces données sont visibles dans vos actions et transmissions.</p></div></div>
             <div class="form-grid-2"><div class="form-field"><label class="form-label" for="prenom">Prénom</label><input class="form-input" id="prenom" name="prenom" value="{{ user.prenom }}" required></div><div class="form-field"><label class="form-label" for="nom">Nom</label><input class="form-input" id="nom" name="nom" value="{{ user.nom }}" required></div></div>
             <div class="form-grid-2 mt-4"><div class="form-field"><label class="form-label" for="telephone">Téléphone</label><input class="form-input" id="telephone" name="telephone" value="{{ user.telephone ?? '' }}" autocomplete="tel"></div><div class="form-field"><label class="form-label" for="fonction">Fonction</label><input class="form-input" id="fonction" name="fonction" value="{{ user.fonction ?? '' }}"></div></div>
-            <div class="account-readonly"><i class="fa-regular fa-envelope"></i><div><span>Adresse email professionnelle</span><strong>{{ user.email }}</strong></div><small>Modification par un administrateur.</small></div>
-            <button class="account-submit" type="submit"><i class="fa-solid fa-floppy-disk"></i>Enregistrer le profil</button>
+            <div class="account-readonly"><i class="bi-envelope"></i><div><span>Adresse email professionnelle</span><strong>{{ user.email }}</strong></div><small>Modification par un administrateur.</small></div>
+            <button class="account-submit" type="submit"><i class="bi-save"></i>Enregistrer le profil</button>
         </form>
         <form method="post" class="account-card">
             <input type="hidden" name="action" value="password"><input type="hidden" name="_token" value="{{ csrf_token('account-password') }}">
-            <div class="account-card-head"><i class="fa-solid fa-lock"></i><div><h2>Mot de passe</h2><p>Utilisez un mot de passe unique et difficile à deviner.</p></div></div>
+            <div class="account-card-head"><i class="bi-lock"></i><div><h2>Mot de passe</h2><p>Utilisez un mot de passe unique et difficile à deviner.</p></div></div>
             <div class="form-field"><label class="form-label" for="current_password">Mot de passe actuel</label><input class="form-input" id="current_password" name="current_password" type="password" autocomplete="current-password" required></div>
             <div class="form-field mt-4"><label class="form-label" for="new_password">Nouveau mot de passe</label><input class="form-input" id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="12" required><p class="form-help">12 caractères minimum, avec majuscule, minuscule et chiffre.</p></div>
             <div class="form-field mt-4"><label class="form-label" for="confirm_password">Confirmer le nouveau mot de passe</label><input class="form-input" id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required></div>
-            <button class="account-submit" type="submit"><i class="fa-solid fa-key"></i>Modifier le mot de passe</button>
+            <button class="account-submit" type="submit"><i class="bi-key"></i>Modifier le mot de passe</button>
         </form>
     </div>
 </section>

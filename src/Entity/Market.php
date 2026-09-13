@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\MarketRepository;
+use App\Entity\ZoneGeo;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -29,6 +30,10 @@ class Market
 
     #[ORM\Column(type: 'boolean')]
     private bool $actif = true;
+
+    /** Lien vers la zone géographique (lat/lon pour la cartographie) */
+    #[ORM\OneToOne(mappedBy: 'market', targetEntity: ZoneGeo::class, cascade: ['persist', 'remove'])]
+    private ?ZoneGeo $zoneGeo = null;
 
     public function getId(): ?int
     {
@@ -82,5 +87,16 @@ class Market
     public function __toString(): string
     {
         return $this->nom;
+    }
+
+    public function getZoneGeo(): ?ZoneGeo
+    {
+        return $this->zoneGeo;
+    }
+
+    public function setZoneGeo(?ZoneGeo $zoneGeo): static
+    {
+        $this->zoneGeo = $zoneGeo;
+        return $this;
     }
 }

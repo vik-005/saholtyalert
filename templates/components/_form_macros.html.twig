@@ -84,3 +84,21 @@
   {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
 </div>
 {% endmacro %}
+
+{# Macro pour groupe radio (boutons larges) #}
+{% macro radio_group(name, label, options = {}, value = '', error = null, required = false, class = '') %}
+<div class="flex flex-col gap-1.5">
+  <label class="text-sm font-medium text-slate-700 dark:text-slate-200">
+    {{ label }}{% if required %} <span class="text-orange-500">*</span>{% endif %}
+  </label>
+  <div class="radio-group {{ class }}">
+    {% for optValue, optLabel in options %}
+      <label class="radio-option {% if optValue == value %}radio-option-active{% endif %}">
+        <input type="radio" name="{{ name }}" value="{{ optValue }}" {% if optValue == value %}checked{% endif %} {% if required %}required{% endif %}>
+        <span class="radio-option-label">{{ optLabel }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  {% if error %}<p class="text-xs text-red-500">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}

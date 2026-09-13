@@ -1,0 +1,11 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Composant icône centralisé — méthode unique fiable pour tout le projet.
+   Utilise Bootstrap Icons (bi bi-*) qui fonctionne déjà dans le menu sidebar.
+   Usage : {% include 'components/_icon.html.twig' with {name: 'bell'} %}
+   Optionnel : size ('sm','lg'), class (classes additionnelles)
+   ───────────────────────────────────────────────────────────────────────── #}
+{% set iconName = name|default('circle') %}
+{% set iconSize = size|default('') %}
+{% set iconClass = class|default('') %}
+{% set sizeClass = iconSize == 'sm' ? 'fa-xs' : iconSize == 'lg' ? 'fa-lg' : '' %}
+<i class="bi bi-{{ iconName }} {{ sizeClass }} {{ iconClass }}" aria-hidden="true"></i>

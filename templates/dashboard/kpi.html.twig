@@ -8,7 +8,7 @@
     {# ── En-tête ── #}
     <div class="page-header-row">
         <div>
-            <p class="page-eyebrow"><i class="fa-solid fa-chart-pie me-1.5"></i>Comité AIT — Partie E §14</p>
+            <p class="page-eyebrow"><i class="bi-pie-chart me-1.5"></i>Comité AIT — Partie E §14</p>
             <h2 class="page-title">Tableau de bord KPI</h2>
             <p class="page-subtitle">
                 Période :
@@ -18,7 +18,7 @@
             </p>
         </div>
         <a href="{{ path('app_dashboard_statistiques') }}" class="db-btn db-btn-ghost">
-            <i class="fa-solid fa-chart-bar me-1.5"></i>Statistiques détaillées
+            <i class="bi-bar-chart me-1.5"></i>Statistiques détaillées
         </a>
     </div>
 
@@ -33,12 +33,12 @@
                     <p class="kpi-value">{{ kpi_alertes_soumises.value }}</p>
                 </div>
                 <div class="kpi-icon-wrap kpi-icon-amber">
-                    <i class="fa-solid fa-file-lines"></i>
+                    <i class="bi-file-text"></i>
                 </div>
             </div>
             <div class="kpi-card-bottom">
                 <span class="kpi-trend {{ kpi_alertes_soumises.trend == 'up' ? 'kpi-trend-up' : (kpi_alertes_soumises.trend == 'down' ? 'kpi-trend-down' : 'kpi-trend-up') }}">
-                    <i class="fa-solid fa-arrow-trend-{{ kpi_alertes_soumises.trend == 'down' ? 'down' : 'up' }}"></i>
+                    <i class="bi-arrow-{{ kpi_alertes_soumises.trend == 'down' ? 'down' : 'up' }}"></i>
                     {{ kpi_alertes_soumises.variation >= 0 ? '+' : '' }}{{ kpi_alertes_soumises.variation|number_format(1) }}%
                 </span>
                 <span class="kpi-trend-label">vs période préc.</span>
@@ -53,12 +53,12 @@
                     <p class="kpi-value">{{ kpi_alertes_traitees.value }}</p>
                 </div>
                 <div class="kpi-icon-wrap kpi-icon-emerald">
-                    <i class="fa-solid fa-circle-check"></i>
+                    <i class="bi-check-circle"></i>
                 </div>
             </div>
             <div class="kpi-card-bottom">
                 <span class="kpi-trend {{ kpi_alertes_traitees.trend == 'up' ? 'kpi-trend-up' : 'kpi-trend-down' }}">
-                    <i class="fa-solid fa-arrow-trend-{{ kpi_alertes_traitees.trend == 'down' ? 'down' : 'up' }}"></i>
+                    <i class="bi-arrow-{{ kpi_alertes_traitees.trend == 'down' ? 'down' : 'up' }}"></i>
                     {{ kpi_alertes_traitees.variation >= 0 ? '+' : '' }}{{ kpi_alertes_traitees.variation|number_format(1) }}%
                 </span>
                 <span class="kpi-trend-label">transmises / clôturées</span>
@@ -73,7 +73,7 @@
                     <p class="kpi-value" style="color:var(--amber)">{{ kpi_taux_transmission.value }}%</p>
                 </div>
                 <div class="kpi-icon-wrap kpi-icon-blue">
-                    <i class="fa-solid fa-paper-plane"></i>
+                    <i class="bi-send"></i>
                 </div>
             </div>
             <div class="kpi-card-bottom">
@@ -91,7 +91,7 @@
                     <p class="kpi-value" style="color:var(--green)">{{ kpi_score_moyen.value }}</p>
                 </div>
                 <div class="kpi-icon-wrap kpi-icon-emerald">
-                    <i class="fa-solid fa-star-half-stroke"></i>
+                    <i class="bi-star"></i>
                 </div>
             </div>
             <div class="kpi-card-bottom">
@@ -107,7 +107,7 @@
         <div class="db-chart-card">
             <div class="db-card-header db-card-header-border">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-stopwatch me-1.5"></i>Suivi Réaction 72h</p>
+                    <p class="db-card-eyebrow"><i class="bi-stopwatch me-1.5"></i>Suivi Réaction 72h</p>
                     <p class="db-card-title">Performance SLA urgence</p>
                 </div>
             </div>
@@ -120,7 +120,7 @@
                         <span class="kpi-label">heures</span>
                     </div>
                     <div style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:{{ delai_moyen_72h <= 72 ? 'var(--green)' : 'var(--red)' }}">
-                        <i class="fa-solid fa-{{ delai_moyen_72h <= 72 ? 'circle-check' : 'circle-xmark' }} fa-xs"></i>
+                        <i class="bi-{{ delai_moyen_72h <= 72 ? 'check-circle' : 'x-circle' }} fa-xs"></i>
                         Objectif ≤ 72h {% if delai_moyen_72h <= 72 %}respecté{% else %}dépassé{% endif %}
                     </div>
                 </div>
@@ -152,18 +152,18 @@
         <div class="db-chart-card">
             <div class="db-card-header db-card-header-border">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-flag me-1.5"></i>Répartition</p>
+                    <p class="db-card-eyebrow"><i class="bi-flag me-1.5"></i>Répartition</p>
                     <p class="db-card-title">Par priorité</p>
                 </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
                 {% for item in repartition_priorite %}
                 {% set pval = item.priorite %}
-                {% set picon = pval == 'critique' ? 'fa-circle-radiation' : (pval == 'eleve' ? 'fa-fire' : (pval == 'modere' ? 'fa-circle-exclamation' : 'fa-circle-check')) %}
+                {% set picon = pval == 'critique' ? 'bi-radioactive' : (pval == 'eleve' ? 'bi-fire' : (pval == 'modere' ? 'bi-exclamation-circle' : 'bi-check-circle')) %}
                 {% set pclass = pval == 'critique' ? 'priority-critique' : (pval == 'eleve' ? 'priority-eleve' : (pval == 'modere' ? 'priority-modere' : 'priority-faible')) %}
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                     <span class="priority-badge {{ pclass }}">
-                        <i class="fa-solid {{ picon }} fa-xs me-1"></i>
+                        <i class="bi-{{ picon }} fa-xs me-1"></i>
                         {{ pval|capitalize }}
                     </span>
                     <span style="font-size:18px;font-weight:800;color:var(--text)">{{ item.nb }}</span>
@@ -180,22 +180,22 @@
     <div class="db-table-card">
         <div class="db-card-header db-card-header-border" style="padding:14px 16px">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-clock-rotate-left me-1.5"></i>Alertes récentes</p>
+                <p class="db-card-eyebrow"><i class="bi-clock me-1.5"></i>Alertes récentes</p>
                 <p class="db-card-title">Top 8 — dernières saisies</p>
             </div>
             <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-ghost" style="font-size:11px">
-                <i class="fa-solid fa-arrow-right me-1"></i>Tout voir
+                <i class="bi-arrow-right me-1"></i>Tout voir
             </a>
         </div>
         <div class="db-table-wrap">
             <table class="db-table">
                 <thead>
                     <tr>
-                        <th><i class="fa-solid fa-hashtag me-1 opacity-50"></i>Code GEI</th>
-                        <th><i class="fa-solid fa-circle-dot me-1 opacity-50"></i>Statut</th>
-                        <th class="text-center"><i class="fa-solid fa-star-half-stroke me-1 opacity-50"></i>Score</th>
-                        <th><i class="fa-solid fa-user me-1 opacity-50"></i>Agent</th>
-                        <th><i class="fa-regular fa-calendar me-1 opacity-50"></i>Mise à jour</th>
+                        <th><i class="bi-hashtag me-1 opacity-50"></i>Code GEI</th>
+                        <th><i class="bi-bullseye me-1 opacity-50"></i>Statut</th>
+                        <th class="text-center"><i class="bi-star me-1 opacity-50"></i>Score</th>
+                        <th><i class="bi-person me-1 opacity-50"></i>Agent</th>
+                        <th><i class="bi-calendar me-1 opacity-50"></i>Mise à jour</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -242,7 +242,7 @@
     <div class="db-chart-card">
         <div class="db-card-header db-card-header-border">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-wave-square me-1.5"></i>Journal d'activité</p>
+                <p class="db-card-eyebrow"><i class="bi-journal me-1.5"></i>Journal d'activité</p>
                 <p class="db-card-title">10 dernières actions</p>
             </div>
         </div>
@@ -250,7 +250,7 @@
             {% for log in activite_recente %}
             <div class="activity-item">
                 <div class="activity-icon-wrap activity-icon-slate">
-                    <i class="fa-solid fa-circle-dot fa-xs"></i>
+                    <i class="bi-bullseye fa-xs"></i>
                 </div>
                 <div class="activity-body">
                     <p class="activity-title">
@@ -271,7 +271,7 @@
     {# ── Note de bas de page ── #}
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px">
         <p style="font-size:10.5px;color:var(--muted);line-height:1.6">
-            <i class="fa-solid fa-circle-info me-1.5" style="color:var(--amber)"></i>
+            <i class="bi-info-circle me-1.5" style="color:var(--amber)"></i>
             <strong>Légende KPI :</strong>
             Alertes soumises = saisies sur la plateforme ·
             Alertes traitées = transmises, archivées ou clôturées ·

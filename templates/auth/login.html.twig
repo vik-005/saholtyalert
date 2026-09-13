@@ -14,7 +14,7 @@
 {# ── Erreur ── #}
 {% if error %}
 <div class="auth-error">
-    <i class="fa-solid fa-circle-xmark auth-error-icon"></i>
+    <i class="bi-x-circle auth-error-icon"></i>
     <div>
         <p class="auth-error-title">Connexion échouée</p>
         <p class="auth-error-msg">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
@@ -28,7 +28,7 @@
     {# Email #}
     <div class="auth-field-wrap">
         <label class="auth-label" for="username">
-            <i class="fa-regular fa-envelope me-1.5 opacity-60"></i>Adresse email
+            <i class="bi-envelope me-1.5 opacity-60"></i>Adresse email
         </label>
         <div class="auth-input-wrap">
             <input
@@ -48,7 +48,7 @@
     <div class="auth-field-wrap">
         <div class="auth-label-row">
             <label class="auth-label" for="password">
-                <i class="fa-solid fa-lock me-1.5 opacity-60"></i>Mot de passe
+                <i class="bi-lock me-1.5 opacity-60"></i>Mot de passe
             </label>
             {# <a href="#" class="auth-forgot">Mot de passe oublié ?</a> #}
         </div>
@@ -64,7 +64,7 @@
             >
             <button type="button" class="auth-input-btn" id="togglePasswordBtn"
                     onclick="togglePassword('password', 'togglePasswordBtn')" tabindex="-1">
-                <i class="fa-regular fa-eye"></i>
+                <i class="bi-eye"></i>
             </button>
         </div>
     </div>
@@ -79,10 +79,13 @@
     </div>
 
     <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+    {# Champs GPS — remplis automatiquement par JS si l'utilisateur donne son accord #}
+    <input type="hidden" name="_geo_lat" id="geoLat" value="">
+    <input type="hidden" name="_geo_lng" id="geoLng" value="">
 
     {# Bouton principal #}
     <button type="submit" class="auth-submit-btn">
-        <i class="fa-solid fa-right-to-bracket me-2"></i>
+        <i class="bi-box-arrow-in-right me-2"></i>
         Se connecter
     </button>
 
@@ -98,16 +101,47 @@
 {# ── Info sécurité ── #}
 <div class="auth-security-note">
     <div class="auth-security-item">
-        <i class="fa-solid fa-shield-halved text-amber-400"></i>
+        <i class="bi-shield-lock text-amber-400"></i>
         <span>Connexion chiffrée TLS</span>
     </div>
     <div class="auth-security-item">
-        <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+        <i class="bi-clock-history text-amber-400"></i>
         <span>Session 8h maximum</span>
     </div>
     <div class="auth-security-item">
-        <i class="fa-solid fa-eye-slash text-amber-400"></i>
+        <i class="bi-eye-slash text-amber-400"></i>
         <span>Données confidentielles</span>
     </div>
 </div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (!('geolocation' in navigator)) return;
+    const form  = document.querySelector('form[action*="login"]');
+    const latEl = document.getElementById('geoLat');
+    const lngEl = document.getElementById('geoLng');
+    if (!form || !latEl || !lngEl) return;
+
+    function capturePosition() {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                latEl.value = pos.coords.latitude.toFixed(6);
+                lngEl.value = pos.coords.longitude.toFixed(6);
+                document.cookie = 'geo_consent=granted; max-age=31536000; path=/; SameSite=Lax; Secure';
+            },
+            () => { document.cookie = 'geo_consent=denied; max-age=86400; path=/; SameSite=Lax; Secure'; },
+            { timeout: 5000, maximumAge: 60000 }
+        );
+    }
+
+    const consent = document.cookie.split('; ').find(r => r.startsWith('geo_consent='));
+    if (consent && consent.includes('granted')) {
+        capturePosition();
+    } else if (!consent) {
+        form.addEventListener('submit', capturePosition, { once: true });
+    }
+});
+</script>
 {% endblock %}

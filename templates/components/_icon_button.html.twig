@@ -1,0 +1,29 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   Composant réutilisable : Bouton d'icône Header / Topbar (GEI Platform)
+   Paramètres :
+   - icon        : Classe Bootstrap Icons (ex: 'bi-bell', 'bi-chat', 'bi-moon')
+   - label       : Attribut aria-label pour l'accessibilité
+   - title       : Attribut title (optionnel)
+   - id          : Attribut id (optionnel)
+   - icon_id     : Attribut id sur la balise <i> (optionnel)
+   - onclick     : Gestionnaire de clic JS (optionnel)
+   - badge_id    : Attribut id pour le badge numérique (optionnel)
+   - badge_count : Valeur initiale du badge (optionnel, entier ou string)
+   - class       : Classes supplémentaires (optionnel)
+───────────────────────────────────────────────────────────────────────── #}
+
+{% set iconClass = icon starts with 'bi-' ? ('bi ' ~ icon) : (icon starts with 'bi ' ? icon : ('bi bi-' ~ icon)) %}
+
+<button type="button"
+        class="topbar-icon-btn {{ class|default('') }}"
+        {% if id is defined and id %}id="{{ id }}"{% endif %}
+        {% if onclick is defined and onclick %}onclick="{{ onclick }}"{% endif %}
+        {% if title is defined and title %}title="{{ title }}"{% endif %}
+        aria-label="{{ label|default('Action') }}">
+    <i class="{{ iconClass }}" {% if icon_id is defined and icon_id %}id="{{ icon_id }}"{% endif %}></i>
+    {% if badge_id is defined and badge_id %}
+        <span class="topbar-badge" id="{{ badge_id }}" {% if badge_count|default(0) <= 0 %}style="display:none"{% endif %}>
+            {{ badge_count|default(0) }}
+        </span>
+    {% endif %}
+</button>

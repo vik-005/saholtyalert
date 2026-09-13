@@ -37,8 +37,13 @@ class AutomationsController extends AbstractController
     }
 
     #[Route('/rule/{id}/toggle', name: 'app_admin_automation_rule_toggle', methods: ['POST'])]
-    public function toggleRule(RuleConfig $rule, EntityManagerInterface $em): Response
+    public function toggleRule(Request $request, RuleConfig $rule, EntityManagerInterface $em): Response
     {
+        if (!$this->isCsrfTokenValid('toggle-rule-' . $rule->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_automations');
+        }
+
         $rule->setActif(!$rule->isActif());
         $em->flush();
 
@@ -50,6 +55,11 @@ class AutomationsController extends AbstractController
     #[Route('/rule/{id}/update', name: 'app_admin_automation_rule_update', methods: ['POST'])]
     public function updateRule(Request $request, RuleConfig $rule, EntityManagerInterface $em): Response
     {
+        if (!$this->isCsrfTokenValid('update-rule-' . $rule->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_automations');
+        }
+
         $valeur = $request->request->get('valeur');
         if ($valeur !== null) {
             $rule->setValeur(trim($valeur));

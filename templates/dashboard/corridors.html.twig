@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
-{% block title %}Carte Corridors — GEI{% endblock %}
-{% block header_title %}Corridors{% endblock %}
+{% block title %}Analyses & Cartes — GEI{% endblock %}
+{% block header_title %}Analyses & Cartes{% endblock %}
 
 {% block body %}
 <div class="db-wrapper">
@@ -9,104 +9,257 @@
     <div class="page-header-row">
         <div>
             <p class="page-eyebrow">
-                <i class="fa-solid fa-map-location-dot me-1.5"></i>Analyse géographique
+                <i class="bi {{ type_icon }} me-1.5"></i>Analyse géographique
             </p>
-            <h2 class="page-title">Carte des corridors de transit</h2>
+            <h2 class="page-title">{{ page_title }}</h2>
             <p class="page-subtitle">
-                Analyse des corridors les plus actifs sur la période
+                {{ page_subtitle }}
+                sur la période
                 <strong style="color:var(--amber)">{{ debut|date('d/m/Y') }}</strong>
                 →
                 <strong style="color:var(--amber)">{{ fin|date('d/m/Y') }}</strong>
             </p>
         </div>
         <a href="{{ path('app_dashboard_statistiques') }}" class="db-btn db-btn-ghost">
-            <i class="fa-solid fa-chart-bar me-1.5"></i>Statistiques complètes
+            <i class="bi bi-bar-chart me-1.5"></i>Statistiques complètes
         </a>
     </div>
 
     {# ── Filtres ── #}
     <div class="stats-filter-bar">
         <form method="get" class="stats-filter-form" id="corridorFilterForm">
+
+            {# Période #}
             <div class="stats-filter-group">
                 <label class="stats-filter-label">
-                    <i class="fa-regular fa-calendar me-1"></i>Période
+                    <i class="bi bi-calendar me-1"></i>Période
                 </label>
-                <input type="date" name="debut" value="{{ debut }}" class="stats-input">
+                <input type="date" name="debut" value="{{ debut }}" class="stats-input" id="filterDebut">
                 <span style="color:var(--muted);font-size:11px">→</span>
-                <input type="date" name="fin"   value="{{ fin }}"   class="stats-input">
+                <input type="date" name="fin"   value="{{ fin }}"   class="stats-input" id="filterFin">
             </div>
-            <div class="stats-filter-group">
+
+            {# Marchés #}
+            <div class="stats-filter-group" style="flex-wrap:wrap;gap:6px">
                 <label class="stats-filter-label">
-                    <i class="fa-solid fa-earth-africa me-1"></i>Marchés
+                    <i class="bi bi-globe-africa me-1"></i>Marchés
                 </label>
-                <div class="stats-market-checks">
+                <div class="stats-market-checks" id="marketChecksContainer">
                     {% for m in all_markets %}
                     <label class="stats-check-label">
                         <input type="checkbox" name="markets[]" value="{{ m.id }}"
-                               {% if m.id in selected_markets or selected_markets is empty %}checked{% endif %}
-                               class="stats-checkbox">
+                               {% if m.id in selected_markets %}checked{% endif %}
+                               class="stats-checkbox market-cb">
                         <span>{{ m.codeIso3 }}</span>
                     </label>
                     {% endfor %}
                 </div>
+                <div style="display:flex;gap:4px;margin-left:4px">
+                    <button type="button" class="corridor-mkt-btn" onclick="selectAllMarkets(true)" title="Tout sélectionner">
+                        <i class="bi bi-check2-all"></i>
+                    </button>
+                    <button type="button" class="corridor-mkt-btn" onclick="selectAllMarkets(false)" title="Tout désélectionner">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
             </div>
+
+            {# Type #}
+            <div class="stats-filter-group">
+                <label class="stats-filter-label">
+                    <i class="bi bi-tag me-1"></i>Type
+                </label>
+                <select name="type_loc" class="stats-input" id="filterTypeLoc"
+                        onchange="document.getElementById('corridorFilterForm').submit()">
+                    <option value=""        {% if not type_loc %}selected{% endif %}>Tous</option>
+                    <option value="corridor" {% if type_loc == 'corridor' %}selected{% endif %}>Corridor</option>
+                    <option value="port"     {% if type_loc == 'port' %}selected{% endif %}>Port</option>
+                    <option value="aeroport" {% if type_loc == 'aeroport' %}selected{% endif %}>Aéroport</option>
+                </select>
+            </div>
+
             <div class="stats-filter-actions">
                 <button type="submit" class="stats-apply-btn">
-                    <i class="fa-solid fa-rotate me-1.5"></i>Appliquer
+                    <i class="bi bi-arrow-clockwise me-1.5"></i>Appliquer
                 </button>
                 <a href="{{ path('app_dashboard_corridors') }}" class="stats-reset-btn">
-                    <i class="fa-solid fa-xmark me-1"></i>Reset
+                    <i class="bi bi-x me-1"></i>Reset
                 </a>
             </div>
         </form>
+
+        {# Boutons raccourcis période — état actif calculé en PHP #}
+        {% set diffDays = (debut|date('U') - fin|date('U'))|abs // 86400 %}
         <div class="stats-period-shortcuts">
-            <button class="stats-shortcut" onclick="setCorridorPeriod(30)">30j</button>
-            <button class="stats-shortcut" onclick="setCorridorPeriod(90)">3 mois</button>
-            <button class="stats-shortcut" onclick="setCorridorPeriod(365)">1 an</button>
+            <button class="stats-shortcut {% if diffDays >= 28 and diffDays <= 32 %}active{% endif %}"
+                    onclick="setCorridorPeriod(30)">30j</button>
+            <button class="stats-shortcut {% if diffDays >= 85 and diffDays <= 95 %}active{% endif %}"
+                    onclick="setCorridorPeriod(90)">3 mois</button>
+            <button class="stats-shortcut {% if diffDays >= 360 and diffDays <= 370 %}active{% endif %}"
+                    onclick="setCorridorPeriod(365)">1 an</button>
         </div>
     </div>
 
-    {# ── Grille principale : graphique + carte SVG ── #}
-    <div class="db-mid-row" style="grid-template-columns:1fr 360px">
+    {# ── État vide global soigné (Spec A.3) ── #}
+    {% if not has_data %}
+    <div class="db-chart-card db-empty-state" style="padding:60px 20px;text-align:center;margin-top:16px">
+        <i class="bi {{ type_icon }}" style="font-size:44px;color:var(--muted);opacity:0.75;display:block;margin-bottom:14px"></i>
+        <h3 style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Aucune alerte trouvée</h3>
+        <p style="color:var(--muted);font-size:13px;margin-bottom:20px;max-width:500px;margin-left:auto;margin-right:auto;line-height:1.5">
+            Aucune alerte ne correspond à cette sélection sur la période choisie.
+        </p>
+        <div style="display:inline-flex;flex-direction:column;gap:6px;text-align:left;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:12px 18px;margin-bottom:24px;font-size:11.5px;color:var(--muted)">
+            <div><i class="bi bi-calendar3 me-2" style="color:var(--amber)"></i>
+                Période : <strong style="color:var(--text)">{{ debut|date('d/m/Y') }} → {{ fin|date('d/m/Y') }}</strong>
+            </div>
+            <div><i class="bi bi-globe-africa me-2" style="color:var(--amber)"></i>
+                Marchés : <strong style="color:var(--text)">{{ selected_markets|length > 0 ? selected_markets|length ~ ' sélectionné(s)' : 'Aucun sélectionné' }}</strong>
+            </div>
+            <div><i class="bi {{ type_icon }} me-2" style="color:var(--amber)"></i>
+                Type : <strong style="color:var(--text)">{{ type_loc ? type_loc|capitalize : 'Tous' }}</strong>
+            </div>
+        </div>
+        <div>
+            <a href="{{ path('app_dashboard_corridors') }}" class="db-btn db-btn-amber">
+                <i class="bi bi-arrow-clockwise me-1.5"></i>Réinitialiser les filtres
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+
+    {# ── KPI Cards ── #}
+    <div class="corridor-kpi-row" style="margin-top:12px">
+        {# Total alertes #}
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(69,227,184,0.1);color:#45e3b8">
+                <i class="bi bi-shield-exclamation"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ kpis.total }}</div>
+                <div class="corridor-kpi-label">Alerte{{ kpis.total > 1 ? 's' : '' }} au total</div>
+            </div>
+        </div>
+
+        {% if not type_loc %}
+        {# Mode Tous : décomposition par type #}
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(34,197,94,0.1);color:#22c55e">
+                <i class="bi bi-signpost-2"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ kpis.nb_corridors }}</div>
+                <div class="corridor-kpi-label">Corridor{{ kpis.nb_corridors > 1 ? 's' : '' }}</div>
+                {% if kpis.total > 0 %}
+                <div class="corridor-kpi-pct">{{ (kpis.nb_corridors / kpis.total * 100)|round(1) }}%</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(59,130,246,0.1);color:#60a5fa">
+                <i class="bi bi-anchor"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ kpis.nb_ports }}</div>
+                <div class="corridor-kpi-label">Port{{ kpis.nb_ports > 1 ? 's' : '' }}</div>
+                {% if kpis.total > 0 %}
+                <div class="corridor-kpi-pct">{{ (kpis.nb_ports / kpis.total * 100)|round(1) }}%</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(251,191,36,0.1);color:var(--amber)">
+                <i class="bi bi-airplane"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ kpis.nb_aeroports }}</div>
+                <div class="corridor-kpi-label">Aéroport{{ kpis.nb_aeroports > 1 ? 's' : '' }}</div>
+                {% if kpis.total > 0 %}
+                <div class="corridor-kpi-pct">{{ (kpis.nb_aeroports / kpis.total * 100)|round(1) }}%</div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        {# Mode type unique : éléments distincts + top #}
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(69,227,184,0.08);color:#45e3b8">
+                <i class="bi {{ type_icon }}"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ top_localisations|length }}</div>
+                <div class="corridor-kpi-label">{{ chart_item_label|capitalize }}{{ top_localisations|length > 1 ? 's' : '' }} distincts</div>
+            </div>
+        </div>
+        {% if kpis.top_element %}
+        <div class="corridor-kpi-card" style="flex:2">
+            <div class="corridor-kpi-icon" style="background:rgba(251,191,36,0.1);color:var(--amber)">
+                <i class="bi bi-trophy"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-label" style="margin-bottom:4px">Top {{ chart_item_label }}</div>
+                <div style="font-size:13px;font-weight:700;color:var(--text)">{{ kpis.top_element.corridor }}</div>
+                <div style="font-size:10.5px;color:var(--muted)">{{ kpis.top_element.nb }} alerte{{ kpis.top_element.nb > 1 ? 's' : '' }} · {{ kpis.top_element.pays }}</div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {# ── Grille principale : graphique + volume par pays ── #}
+    <div class="db-mid-row" style="grid-template-columns:1fr 340px;margin-top:12px">
 
         {# ── Graphique barres horizontales ── #}
         <div class="db-chart-card">
             <div class="db-card-header db-card-header-border">
                 <div>
                     <p class="db-card-eyebrow">
-                        <i class="fa-solid fa-route me-1.5"></i>Top corridors de transit
+                        <i class="bi {{ type_icon }} me-1.5"></i>{{ chart_title }}
                     </p>
-                    <p class="db-card-title">Fréquence des alertes par corridor</p>
+                    <p class="db-card-title">{{ chart_subtitle }}</p>
                 </div>
                 <span class="db-card-eyebrow" style="font-size:10px;background:var(--card2);padding:3px 8px;border-radius:6px;border:1px solid var(--border)">
-                    {{ top_corridors|length }} corridors identifiés
+                    {{ top_localisations|length }} {{ chart_item_label }}{{ top_localisations|length > 1 ? 's' : '' }}
                 </span>
             </div>
+            {% if top_localisations|length > 0 %}
             <div style="position:relative;margin-top:8px">
-                <canvas id="corridorsChart" height="{{ top_corridors|length * 28 > 200 ? top_corridors|length * 28 : 200 }}"></canvas>
+                <canvas id="corridorsChart"
+                        height="{{ top_localisations|length * 32 > 220 ? top_localisations|length * 32 : 220 }}">
+                </canvas>
             </div>
+            {% else %}
+            <div class="db-empty-state" style="padding:40px">
+                <i class="bi {{ type_icon }}" style="font-size:36px;color:var(--muted);display:block;margin-bottom:12px"></i>
+                <p>Aucun {{ chart_item_label }} sur cette période.</p>
+            </div>
+            {% endif %}
         </div>
 
         {# ── Volume par pays ── #}
         <div class="db-chart-card">
             <div class="db-card-header db-card-header-border">
                 <div>
-                    <p class="db-card-eyebrow"><i class="fa-solid fa-earth-africa me-1.5"></i>Volume par pays</p>
-                    <p class="db-card-title">Alertes par marché</p>
+                    <p class="db-card-eyebrow"><i class="bi bi-globe-africa me-1.5"></i>Volume par pays</p>
+                    <p class="db-card-title">
+                        Alertes par marché
+                        {% if type_loc %}<span style="font-size:10px;color:var(--muted)"> · {{ type_loc|capitalize }}s</span>{% endif %}
+                    </p>
                 </div>
             </div>
             <div class="countries-list" style="margin-top:8px">
-                {% set nbList = volume_par_pays|map(r => r.nb)|sort %}
-                {% set maxVol = nbList is not empty ? nbList|last : 1 %}
+                {% set maxVol = volume_par_pays|length > 0 ? (volume_par_pays|map(r => r.nb)|sort|last) : 1 %}
+                {% if maxVol == 0 %}{% set maxVol = 1 %}{% endif %}
                 {% for row in volume_par_pays %}
                 <div class="country-item">
                     <span class="country-label">
-                        <i class="fa-solid fa-location-dot fa-xs me-1" style="color:var(--muted)"></i>
-                        {{ row.pays }}
+                        <i class="bi bi-geo-alt me-1" style="color:var(--muted)"></i>
+                        {{ row.iso3 }}
                     </span>
                     <div class="country-bar-wrap">
                         <div class="country-bar-track">
-                            <div class="country-bar-fill" style="width:{{ (row.nb / maxVol * 100)|round }}%"></div>
+                            <div class="country-bar-fill"
+                                 style="width:{{ maxVol > 0 ? (row.nb / maxVol * 100)|round : 0 }}%">
+                            </div>
                         </div>
                     </div>
                     <span class="country-pct">{{ row.nb }}</span>
@@ -121,60 +274,129 @@
 
     </div>
 
-    {# ── Tableau détaillé des corridors ── #}
-    <div class="db-table-card">
+    {# ── Répartition par type de localisation (uniquement en mode « Tous ») ── #}
+    {% if not type_loc and loc_type_stats|length > 0 %}
+    <div class="db-chart-card" style="margin-top:12px">
+        <div class="db-card-header db-card-header-border">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-diagram-3 me-1.5"></i>Répartition par type</p>
+                <p class="db-card-title">Ventilation corridor / port / aéroport</p>
+            </div>
+        </div>
+        {% set totalLoc = loc_type_stats|reduce((acc, s) => acc + s.nb, 0) %}
+        <div class="corridor-type-grid" style="margin-top:12px">
+            {% for stat in loc_type_stats %}
+            {% set typeColors = {
+                'corridor': {bg: 'rgba(34,197,94,0.1)', color: '#22c55e', icon: 'bi-signpost-2'},
+                'port':     {bg: 'rgba(59,130,246,0.1)', color: '#60a5fa', icon: 'bi-anchor'},
+                'aeroport': {bg: 'rgba(251,191,36,0.1)', color: 'var(--amber)', icon: 'bi-airplane'}
+            } %}
+            {% set tc = typeColors[stat.type] ?? typeColors['corridor'] %}
+            <div class="corridor-type-card">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                    <span style="width:36px;height:36px;border-radius:8px;background:{{ tc.bg }};display:grid;place-items:center;font-size:16px;color:{{ tc.color }}">
+                        <i class="bi {{ tc.icon }}"></i>
+                    </span>
+                    <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dim)">
+                        {{ stat.type|capitalize }}
+                    </span>
+                </div>
+                <div style="font-size:30px;font-weight:800;color:var(--text);line-height:1">{{ stat.nb }}</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:6px">
+                    {% if totalLoc > 0 %}{{ (stat.nb / totalLoc * 100)|round(1) }}% du total{% else %}—{% endif %}
+                </div>
+                {# Barre de progression proportionnelle réelle #}
+                <div style="margin-top:10px;height:4px;background:var(--card2);border-radius:99px;overflow:hidden">
+                    <div style="height:100%;width:{{ totalLoc > 0 ? (stat.nb / totalLoc * 100)|round : 0 }}%;background:{{ tc.color }};border-radius:99px"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Tableau détaillé ── #}
+    <div class="db-table-card" style="margin-top:12px">
         <div class="db-card-header db-card-header-border" style="padding:14px 16px">
             <div>
-                <p class="db-card-eyebrow"><i class="fa-solid fa-table-list me-1.5"></i>Détail</p>
-                <p class="db-card-title">Corridors — classement complet</p>
+                <p class="db-card-eyebrow"><i class="bi bi-table me-1.5"></i>Détail</p>
+                <p class="db-card-title">
+                    {% if type_loc == 'port' %}Classement des ports
+                    {% elseif type_loc == 'corridor' %}Classement des corridors
+                    {% elseif type_loc == 'aeroport' %}Classement des aéroports
+                    {% else %}Classement global — tous types{% endif %}
+                </p>
             </div>
+            {% if type_loc %}
+            <a href="{{ path('app_dashboard_corridors', {debut: debut, fin: fin}) }}"
+               class="db-btn db-btn-ghost" style="font-size:10.5px">
+                <i class="bi bi-x me-1"></i>Voir tous les types
+            </a>
+            {% endif %}
         </div>
         <div class="db-table-wrap">
             <table class="db-table">
                 <thead>
                     <tr>
-                        <th style="width:40px">#</th>
-                        <th><i class="fa-solid fa-route me-1 opacity-50"></i>Corridor</th>
-                        <th class="text-center"><i class="fa-solid fa-file-shield me-1 opacity-50"></i>Alertes</th>
-                        <th><i class="fa-solid fa-chart-bar me-1 opacity-50"></i>Part relative</th>
+                        <th style="width:36px">#</th>
+                        <th>
+                            <i class="bi {{ type_icon }} me-1 opacity-50"></i>
+                            {% if type_loc == 'port' %}Port{% elseif type_loc == 'aeroport' %}Aéroport{% elseif type_loc == 'corridor' %}Corridor{% else %}Localisation{% endif %}
+                        </th>
+                        {% if not type_loc %}
+                        <th style="width:90px">Type</th>
+                        {% endif %}
+                        <th style="width:80px">Pays</th>
+                        <th class="text-center" style="width:80px"><i class="bi bi-shield-fill me-1 opacity-50"></i>Alertes</th>
+                        <th style="min-width:140px"><i class="bi bi-bar-chart me-1 opacity-50"></i>Part relative</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% set totalAlertes = 0 %}
-                    {% for r in top_corridors %}{% set totalAlertes = totalAlertes + r.nb %}{% endfor %}
-                    {% for row in top_corridors %}
+                    {% for row in top_localisations %}
                     <tr class="db-tr">
                         <td style="color:var(--muted);font-weight:700;font-size:11px">{{ loop.index }}</td>
                         <td>
                             <div style="display:flex;align-items:center;gap:8px">
-                                <i class="fa-solid fa-route fa-xs" style="color:var(--amber)"></i>
+                                {% if not type_loc %}
+                                {% set rowIcon = row.type == 'port' ? 'bi-anchor' : (row.type == 'aeroport' ? 'bi-airplane' : 'bi-signpost-2') %}
+                                {% else %}
+                                {% set rowIcon = type_icon %}
+                                {% endif %}
+                                <i class="bi {{ rowIcon }}" style="color:var(--amber);font-size:12px"></i>
                                 <span style="font-weight:600;color:var(--text)">{{ row.corridor }}</span>
                             </div>
+                        </td>
+                        {% if not type_loc %}
+                        <td>
+                            <span class="loc-type loc-type-{{ row.type }}">{{ row.type|capitalize }}</span>
+                        </td>
+                        {% endif %}
+                        <td>
+                            <span style="font-size:10.5px;color:var(--muted);font-weight:600">{{ row.iso3 }}</span>
                         </td>
                         <td class="text-center">
                             <span class="score-badge {% if row.nb >= 10 %}score-critique{% elseif row.nb >= 5 %}score-eleve{% elseif row.nb >= 3 %}score-modere{% else %}score-faible{% endif %}">
                                 {{ row.nb }}
                             </span>
                         </td>
-                        <td style="min-width:140px">
-                            {% set pct = totalAlertes > 0 ? (row.nb / totalAlertes * 100)|round(1) : 0 %}
+                        <td>
+                            {# part_relative est pré-calculée côté service — valeur réelle garantie #}
                             <div style="display:flex;align-items:center;gap:8px">
                                 <div style="flex:1;height:5px;background:var(--card2);border-radius:99px;overflow:hidden">
-                                    <div style="height:100%;width:{{ pct }}%;background:var(--amber);border-radius:99px"></div>
+                                    <div style="height:100%;width:{{ row.part_relative }}%;background:var(--amber);border-radius:99px;transition:width .3s"></div>
                                 </div>
-                                <span style="font-size:10.5px;font-weight:600;color:var(--muted);min-width:36px;text-align:right">{{ pct }}%</span>
+                                <span style="font-size:10.5px;font-weight:600;color:var(--muted);min-width:38px;text-align:right">
+                                    {{ row.part_relative }}%
+                                </span>
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4">
-                            <div class="db-empty-state">
-                                <i class="fa-solid fa-map-location-dot fa-2x" style="color:var(--muted);margin-bottom:8px;display:block"></i>
-                                <p>Aucun corridor identifié sur cette période.</p>
-                                <p style="font-size:10.5px;color:var(--muted);margin-top:4px">
-                                    Les corridors sont extraits du champ "Port / Corridor" des alertes.
-                                </p>
+                        <td colspan="{{ type_loc ? 5 : 6 }}">
+                            <div class="db-empty-state" style="padding:30px">
+                                <i class="bi {{ type_icon }}" style="font-size:32px;color:var(--muted);display:block;margin-bottom:8px"></i>
+                                <p>Aucun {{ chart_item_label }} identifié sur cette période.</p>
                             </div>
                         </td>
                     </tr>
@@ -184,81 +406,105 @@
         </div>
     </div>
 
+    {% endif %}{# end has_data #}
 </div>
 {% endblock %}
 
 {% block javascripts %}
 {{ parent() }}
 <script>
-/* ── Graphique barres horizontales corridors ── */
-const corridorsData = {
-    labels: {{ top_corridors|map(r => r.corridor)|json_encode|raw }},
-    values: {{ top_corridors|map(r => r.nb)|json_encode|raw }},
-};
+/* ══════════════════════════════════════════════════════════════════════════
+   Page /corridors — Chart.js + filtres marchés + raccourcis période
+   Toutes les données viennent du backend (aucune valeur fictive).
+   ══════════════════════════════════════════════════════════════════════════ */
 
+/* ── Données préparées par le backend ── */
+const corridorsData = {
+    labels: {{ top_localisations|map(r => r.corridor)|json_encode|raw }},
+    values: {{ top_localisations|map(r => r.nb)|json_encode|raw }},
+    types:  {{ top_localisations|map(r => r.type)|json_encode|raw }},
+};
+const currentType = '{{ type_loc|escape('js') }}';
+
+/* ── Palette de couleurs par type (charte GEI : amber/vert, bleu discret) ── */
+function getBarColor(type, alpha) {
+    switch (type) {
+        case 'corridor': return `rgba(34,197,94,${alpha})`;
+        case 'port':     return `rgba(96,165,250,${alpha})`;
+        case 'aeroport': return `rgba(251,191,36,${alpha})`;
+        default:         return `rgba(69,227,184,${alpha})`;
+    }
+}
+function getBorderColor(type) {
+    switch (type) {
+        case 'corridor': return '#22c55e';
+        case 'port':     return '#60a5fa';
+        case 'aeroport': return 'var(--amber)';
+        default:         return '#45e3b8';
+    }
+}
+
+/* ── Rendu du graphique ── */
 if (corridorsData.labels.length > 0) {
-    const ctx = document.getElementById('corridorsChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: corridorsData.labels,
-            datasets: [{
-                label: 'Alertes',
-                data: corridorsData.values,
-                backgroundColor: corridorsData.values.map((v, i) => {
-                    const max = Math.max(...corridorsData.values);
-                    const alpha = 0.4 + (v / max) * 0.55;
-                    return `rgba(22,133,107,${alpha})`;
-                }),
-                borderColor: '#16856b',
-                borderWidth: 1,
-                borderRadius: 4,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(18,63,53,0.97)',
-                    borderColor:     'rgba(69,227,184,0.25)',
-                    borderWidth:     1,
-                    padding:         10,
-                    cornerRadius:    8,
-                    titleColor:      '#e2ede8',
-                    bodyColor:       '#a8c4b8',
-                    titleFont:       { family: 'Inter, sans-serif', size: 11 },
-                    bodyFont:        { family: 'Inter, sans-serif', size: 11 },
-                    callbacks: {
-                        label: ctx => ` ${ctx.parsed.x} alerte${ctx.parsed.x > 1 ? 's' : ''}`
+    const ctx = document.getElementById('corridorsChart');
+    if (ctx) {
+        const maxVal = Math.max(...corridorsData.values, 1);
+        new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: corridorsData.labels,
+                datasets: [{
+                    label: 'Alertes',
+                    data: corridorsData.values,
+                    backgroundColor: corridorsData.values.map((v, i) => {
+                        const type = corridorsData.types[i] || currentType || '';
+                        const alpha = 0.4 + (v / maxVal) * 0.55;
+                        return getBarColor(type, alpha);
+                    }),
+                    borderColor: corridorsData.types.map(t => getBorderColor(t || currentType || '')),
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(10,40,30,0.97)',
+                        borderColor:     'rgba(69,227,184,0.25)',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleColor: '#e2ede8',
+                        bodyColor:  '#a8c4b8',
+                        titleFont: { family: 'Inter, sans-serif', size: 11, weight: 'bold' },
+                        bodyFont:  { family: 'Inter, sans-serif', size: 11 },
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.x} alerte${ctx.parsed.x > 1 ? 's' : ''}`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid:   { color: 'rgba(148,163,184,0.06)', drawBorder: false },
+                        ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' }, precision: 0 },
+                        border: { display: false },
+                        beginAtZero: true,
+                    },
+                    y: {
+                        grid:   { display: false },
+                        ticks:  { color: '#a8c4b8', font: { size: 10, family: 'Inter, sans-serif' },
+                                  callback: v => v.length > 28 ? v.slice(0, 26) + '…' : v },
+                        border: { display: false },
                     }
                 }
-            },
-            scales: {
-                x: {
-                    grid:   { color: 'rgba(148,163,184,0.06)', drawBorder: false },
-                    ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
-                    border: { display: false },
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                },
-                y: {
-                    grid:   { display: false },
-                    ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
-                    border: { display: false },
-                }
             }
-        }
-    });
-} else {
-    document.getElementById('corridorsChart').closest('.db-chart-card').innerHTML += `
-        <div class="db-empty-state" style="padding:40px">
-            <i class="fa-solid fa-map-location-dot" style="font-size:36px;color:var(--muted);display:block;margin-bottom:12px"></i>
-            <p>Aucune donnée corridor sur cette période.</p>
-        </div>`;
+        });
+    }
 }
 
 /* ── Raccourcis période ── */
@@ -267,9 +513,14 @@ function setCorridorPeriod(days) {
     const from  = new Date(today);
     from.setDate(from.getDate() - days);
     const fmt = d => d.toISOString().split('T')[0];
-    document.querySelector('[name="debut"]').value = fmt(from);
-    document.querySelector('[name="fin"]').value   = fmt(today);
+    document.getElementById('filterDebut').value = fmt(from);
+    document.getElementById('filterFin').value   = fmt(today);
     document.getElementById('corridorFilterForm').submit();
+}
+
+/* ── Tout sélectionner / désélectionner les marchés ── */
+function selectAllMarkets(checked) {
+    document.querySelectorAll('.market-cb').forEach(cb => cb.checked = checked);
 }
 </script>
 {% endblock %}

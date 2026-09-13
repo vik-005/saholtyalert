@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+{% block title %}Ajouter une valeur — Listes de référence{% endblock %}
+{% block header_title %}Ajouter une valeur{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    <div class="page-header-row">
+        <div class="text-center" style="flex:1">
+            <p class="page-eyebrow">
+                <i class="bi bi-list-check me-1.5 text-amber-400"></i>
+                Administration · Listes de référence
+            </p>
+            <h2 class="page-title">Ajouter une valeur</h2>
+            <p class="page-subtitle mx-auto" style="max-width:500px">
+                Cette valeur apparaîtra dans le menu déroulant correspondant du formulaire Agent.
+            </p>
+        </div>
+    </div>
+
+    <div class="db-card mx-auto" style="max-width: 600px;">
+        <div class="db-card-body">
+            <form method="post" action="{{ path('app_admin_liste_reference_new') }}">
+                <div class="form-field mb-4">
+                    <label class="form-label text-center" for="lr_type">Type de liste <span class="text-red-400">*</span></label>
+                    <select name="type_liste" id="lr_type" class="form-select" required>
+                        <option value="">Sélectionnez </option>
+                        <option value="categorie">Catégorie </option>
+                        <option value="type_source">Type de source </option>
+                    </select>
+                </div>
+
+                <div class="form-field mb-4">
+                    <label class="form-label text-center" for="lr_libelle">Libellé <span class="text-red-400">*</span></label>
+                    <input type="text" name="libelle" id="lr_libelle" class="form-input" required
+                           placeholder="ex. Tabac brut, Source terrain…" maxlength="150">
+                    <p class="form-help text-center">Le texte exact qui apparaîtra dans le menu déroulant.</p>
+                </div>
+
+                <div class="form-field mb-4">
+                    <label class="form-label text-center" for="lr_ordre">Ordre d'affichage</label>
+                    <input type="number" name="ordre_affichage" id="lr_ordre" class="form-input"
+                           value="0" min="0" max="999">
+                    <p class="form-help text-center">Plus le numéro est petit, plus la valeur apparaît en haut (0 = auto).</p>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="{{ path('app_admin_liste_reference_index') }}" class="db-btn db-btn-ghost">Annuler</a>
+                    <button type="submit" class="db-btn db-btn-amber">
+                        <i class="bi bi-plus me-1.5"></i>Ajouter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

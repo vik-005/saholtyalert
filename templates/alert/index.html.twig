@@ -7,12 +7,12 @@
 <section class="registry-page">
     <header class="registry-hero">
         <div>
-            <p class="registry-kicker"><i class="fa-solid fa-shield-halved me-1"></i>Suivi opérationnel</p>
+            <p class="registry-kicker"><i class="bi bi-shield-half me-1"></i>Suivi opérationnel</p>
             <h1 class="registry-title">Registre national & régional</h1>
             <p class="registry-subtitle">Centralisez, qualifiez et suivez les fiches d’alerte GEI en toute clarté.</p>
         </div>
         <div class="registry-actions">
-            <a href="{{ path('app_alert_import') }}" class="registry-action"><i class="fa-solid fa-file-arrow-up"></i><span>Importer Excel</span></a>
+            <a href="{{ path('app_alert_import') }}" class="registry-action"><i class="bi bi-file-arrow-up"></i><span>Importer Excel</span></a>
             <a href="{{ path('app_export_registre', {
                     statut:   filters.statut          ?? '',
                     priorite: filters.niveauPriorite  ?? '',
@@ -20,7 +20,7 @@
                     search:   filters.search          ?? '',
                     categorie: filters.categorie      ?? '',
                     urgence:  filters.urgence         ?? ''
-                }) }}" class="registry-action"><i class="fa-solid fa-file-excel"></i><span>Export Excel</span></a>
+                }) }}" class="registry-action"><i class="bi bi-file-earmark-spreadsheet"></i><span>Export Excel</span></a>
             <a href="{{ path('app_export_registre_pdf', {
                     statut:   filters.statut          ?? '',
                     priorite: filters.niveauPriorite  ?? '',
@@ -28,49 +28,210 @@
                     search:   filters.search          ?? '',
                     categorie: filters.categorie      ?? '',
                     urgence:  filters.urgence         ?? ''
-                }) }}" class="registry-action"><i class="fa-solid fa-file-pdf"></i><span>Rapport PDF</span></a>
-            <a href="{{ path('app_alert_new') }}" class="registry-action registry-action-primary"><i class="fa-solid fa-plus"></i><span>Nouvelle alerte</span></a>
+                }) }}" class="registry-action"><i class="bi bi-file-earmark-pdf"></i><span>Rapport PDF</span></a>
+            <a href="{{ path('app_alert_new') }}" class="registry-action registry-action-primary"><i class="bi bi-plus"></i><span>Nouvelle alerte</span></a>
         </div>
     </header>
 
     <div class="registry-card">
         <div class="registry-toolbar">
             <span class="registry-count">{{ alerts|length }} alerte{{ alerts|length > 1 ? 's' : '' }} enregistrée{{ alerts|length > 1 ? 's' : '' }}</span>
-            <span class="registry-hint"><i class="fa-solid fa-circle-info me-1"></i>Ouvrez une ligne pour consulter les informations détaillées.</span>
+            <span class="registry-hint"><i class="bi bi-info-circle me-1"></i>Ouvrez une ligne pour consulter les informations détaillées.</span>
+        </div>
+
+        {# ── Filtres Agent / Manager (Partie B) ── #}
+        {% if agentsForFilter|default([])|length > 0 or managersForFilter|default([])|length > 0 %}
+        <form method="get" class="registry-filters-row mb-3" id="registreFilterForm">
+            {% for key, val in filters %}
+                {% if key != 'agent' and key != 'manager' and val is not null and val != '' %}
+                    <input type="hidden" name="{{ key }}" value="{{ val }}">
+                {% endif %}
+            {% endfor %}
+            {% if agentsForFilter|default([])|length > 0 %}
+            <div class="registry-filter-field">
+                <label class="registry-filter-label" for="filterAgent">Agent</label>
+                <select name="agent" id="filterAgent" class="form-select form-select-sm"
+                        onchange="document.getElementById('registreFilterForm').submit()">
+                    <option value="">Tous les agents</option>
+                    {% for agent in agentsForFilter %}
+                        <option value="{{ agent.id }}" {% if filters.agent|default(null) == agent.id %}selected{% endif %}>
+                            {{ agent.nomComplet }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if managersForFilter|default([])|length > 0 %}
+            <div class="registry-filter-field">
+                <label class="registry-filter-label" for="filterManager">Manager</label>
+                <select name="manager" id="filterManager" class="form-select form-select-sm"
+                        onchange="document.getElementById('registreFilterForm').submit()">
+                    <option value="">Tous les managers</option>
+                    {% for manager in managersForFilter %}
+                        <option value="{{ manager.id }}" {% if filters.manager|default(null) == manager.id %}selected{% endif %}>
+                            {{ manager.nomComplet }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if filters.agent or filters.manager %}
+            <a href="{{ path('app_alert_index') }}" class="registry-filter-reset">
+                <i class="bi bi-x-circle me-1"></i>Réinitialiser
+            </a>
+            {% endif %}
+        </form>
+        {% endif %}
+
+        <div class="mb-3" style="padding: 0 1px">
+            <div class="relative">
+                <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px"></i>
+                <input id="registreSearch" type="text" placeholder="Rechercher par code, zone, catégorie, résumé…"
+                       class="form-input" style="padding-left:36px;height:38px;font-size:13px"
+                       oninput="filterRegistreTable(this.value)">
+            </div>
         </div>
         <div class="registry-table-wrap">
+            {# ── Récapitulatif de filtres actifs (Partie F.3) ── #}
+            {% include 'components/_active_filters.html.twig' with {
+                filters: filters,
+                route: 'app_alert_index',
+                labels: {
+                    'statut': 'Statut',
+                    'niveauPriorite': 'Priorité',
+                    'market': 'Marché',
+                    'search': 'Recherche',
+                    'categorie': 'Catégorie',
+                    'urgence': 'Urgence',
+                    'scoreMin': 'Score min',
+                    'scoreMax': 'Score max',
+                    'origine': 'Origine',
+                    'dateDebut': 'Depuis',
+                    'dateFin': "Jusqu'au",
+                    'agent': 'Agent',
+                    'manager': 'Manager',
+                },
+                values_labels: {
+                    'statut': {
+                        'nouveau': 'Nouveau',
+                        'en_cours': 'En cours',
+                        'transmis': 'Transmis',
+                        'validee': 'Validée',
+                        'qualifie': 'Qualifié',
+                        'rejete': 'Rejeté',
+                        'cloture': 'Clôturé',
+                    },
+                    'urgence': {
+                        'immediate': 'Immédiate',
+                        '24h': '24 heures',
+                        '72h': '72 heures',
+                    },
+                },
+            } %}
             <table class="registry-table">
                 <thead><tr>
-                    <th>Détails</th><th>Code GEI</th><th>Date</th><th>Zone / pays</th><th>Catégorie</th><th>Résumé</th><th>Score</th><th>Priorité</th><th>Statut</th><th></th>
+                    <th style="width:44px"></th>
+                    <th>Code GEI</th>
+                    <th>Date</th>
+                    <th>Zone / pays</th>
+                    <th>Type</th>
+                    <th>Port / Corridor</th>
+                    <th>Catégorie</th>
+                    <th>Résumé</th>
+                    <th style="text-align:center">Score</th>
+                    <th>Priorité</th>
+                    <th>Statut</th>
+                    <th>Agent</th>
+                    <th>Manager</th>
+                    <th style="width:100px;text-align:right">Actions</th>
                 </tr></thead>
                 <tbody>
                 {% for alert in alerts %}
-                    <tr>
+                    {% set score = alert.effectiveScore %}
+                    {% set scoreBadge = score is null ? 'bi-dash-circle text-slate-500 bg-slate-800/10 border-slate-700/30'
+                        : score >= 18 ? 'bi-exclamation-triangle-fill text-red-400 bg-red-500/10 border-red-500/30'
+                        : score >= 14 ? 'bi-arrow-up-circle text-orange-400 bg-orange-500/10 border-orange-500/30'
+                        : score >= 10 ? 'bi-dash-circle text-amber-400 bg-amber-500/10 border-amber-500/30'
+                        : 'bi-check-circle text-emerald-400 bg-emerald-500/10 border-emerald-500/30' %}                    <tr class="reg-row"
+                        data-code="{{ (alert.codeGei ?? 'BROUILLON')|lower }}"
+                        data-zone="{{ alert.market.nom|lower }}"
+                        data-cat="{{ alert.categorie|lower }}"
+                        data-resume="{{ alert.resumeExecutif|default('')|lower }}"
+                        data-operateur="{{ alert.operateurActeur|default('')|lower }}">
                         <td><button type="button" onclick="toggleDetailsIndex({{ alert.id }})" id="btn-idx-toggle-{{ alert.id }}" class="registry-expand" aria-label="Afficher les détails">+</button></td>
                         <td><a class="registry-code" href="{{ path('app_alert_show', {id: alert.id}) }}">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
-                        <td>{{ alert.dateCreation|date('d/m/Y') }}</td>
-                        <td>{{ alert.market.nom }}</td>
-                        <td>{{ alert.categorie ? alert.categorie.label : '—' }}</td>
+                        <td class="text-xs text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
+                        <td class="text-sm">{{ alert.market.nom }}</td>
+                        <td>
+                            {% if alert.typeLocalisation %}
+                                <span class="loc-type loc-type-{{ alert.typeLocalisation.value }}">
+                                    <i class="bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
+                                    {{ alert.typeLocalisation.label() }}
+                                </span>
+                            {% else %}
+                                <span style="color:var(--muted)">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-sm" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ alert.portCorridor ?: '—' }}</td>
+                        <td class="text-xs">{{ alert.categorie ?: '—' }}</td>
                         <td><div class="registry-summary">{{ alert.resumeExecutif ?: 'Aucun résumé renseigné' }}</div></td>
-                        <td><span class="registry-score">{{ alert.effectiveScore ?? '—' }}</span></td>
+                        <td style="text-align:center">
+                            {% if score is not null %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border {{ scoreBadge }}">
+                                <i class="bi {{ scoreBadge|split(' ')[0] }}"></i>
+                                {{ score }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border {{ scoreBadge }}">
+                                <i class="bi {{ scoreBadge|split(' ')[0] }}"></i>
+                                —
+                            </span>
+                            {% endif %}
+                        </td>
                         <td>{% include 'components/_alert_badge.html.twig' with {priority: alert.effectiveNiveauPriorite} %}</td>
-                        <td>{% include 'components/_alert_badge.html.twig' with {status: alert.statut} %}</td>
+                        <td>
+                            {% if alert.statut %}
+                                <span class="status-pill status-{{ alert.statut.value }}">
+                                    <span class="status-dot"></span>{{ alert.statut.label() }}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        {# Traçabilité nominative (Partie B) #}
+                        <td class="text-xs text-slate-400 whitespace-nowrap">
+                            {% if alert.emetteur %}
+                                <i class="bi bi-person-fill me-1 opacity-50"></i>{{ alert.emetteur.nomComplet }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="text-xs text-slate-400 whitespace-nowrap">
+                            {% if alert.validatedBy %}
+                                <i class="bi bi-shield-check me-1 text-emerald-400 opacity-70"></i>{{ alert.validatedBy.nomComplet }}
+                            {% else %}<span class="text-slate-600">—</span>{% endif %}
+                        </td>
                         <td><div class="registry-buttons">
-                            <a class="registry-icon-btn" title="Consulter" href="{{ path('app_alert_show', {id: alert.id}) }}"><i class="fa-solid fa-eye"></i></a>
-                            {% if is_granted('ALERT_QUALIFY', alert) %}<a class="registry-icon-btn" title="Qualifier" href="{{ path('app_alert_qualify', {id: alert.id}) }}"><i class="fa-solid fa-pen-to-square"></i></a>{% endif %}
+                            <a class="registry-icon-btn" title="Consulter" href="{{ path('app_alert_show', {id: alert.id}) }}"><i class="bi bi-eye"></i></a>
+                            {% if is_granted('ALERT_QUALIFY', alert) %}<a class="registry-icon-btn" title="Qualifier" href="{{ path('app_alert_qualify', {id: alert.id}) }}"><i class="bi bi-pencil-square"></i></a>{% endif %}
                         </div></td>
                     </tr>
                     <tr id="idx-details-row-{{ alert.id }}" class="registry-detail hidden">
-                        <td colspan="10"><div class="registry-detail-grid">
+                        <td colspan="11"><div class="registry-detail-grid">
                             <div class="registry-detail-block"><span class="registry-detail-label">Éléments factuels</span>{{ alert.elementsFactuels ?: 'Non renseigné' }}</div>
                             <div class="registry-detail-block"><span class="registry-detail-label">Hypothèses analytiques</span>{{ alert.hypothesesAnalytiques ?: 'Non renseigné' }}</div>
-                            <div class="registry-detail-block"><span class="registry-detail-label">Informations de suivi</span><strong>Corridor :</strong> {{ alert.portCorridor ?? '—' }}<br><strong>Source :</strong> {{ alert.typeSource ? alert.typeSource.label : '—' }}<br><strong>Transmission :</strong> {{ alert.transmission.label }}<br><strong>Sensibilité :</strong> {{ alert.sensibilite.label }}</div>
+                            <div class="registry-detail-block"><span class="registry-detail-label">Informations de suivi</span><strong>Type :</strong> {{ alert.typeLocalisation ? alert.typeLocalisation.label() : '—' }}<br><strong>Corridor :</strong> {{ alert.portCorridor ?? '—' }}<br><strong>Opérateur :</strong> {{ alert.operateurActeur ?: '—' }}<br><strong>Source :</strong> {{ alert.typeSource ?: '—' }}<br><strong>Transmission :</strong> {{ alert.transmission.label() }}<br><strong>Sensibilité :</strong> {{ alert.sensibilite.label() }}</div>
                         </div></td>
                     </tr>
                 {% else %}
-                    <tr><td colspan="10" class="registry-empty"><i class="fa-regular fa-folder-open fa-2x"></i><p class="mt-2">Aucune alerte ne correspond aux critères actuels.</p></td></tr>
-                {% endfor %}
-                </tbody>
+                    <tr><td colspan="12">
+                        {% include 'components/_empty_state.html.twig' with {
+                            icon: 'bi-folder2-open',
+                            title: 'Aucune alerte ne correspond à cette sélection',
+                            subtitle: 'Modifiez ou réinitialisez les filtres pour voir des résultats.',
+                            has_active_filters: (filters|filter(v => v is not null and v is not same as(''))|length > 0),
+                            reset_url: path('app_alert_index'),
+                        } %}
+                    </td></tr>
+                {% endfor %}                </tbody>
             </table>
         </div>
     </div>
@@ -78,6 +239,20 @@
 {% endblock %}
 
 {% block javascripts %}
+<style>
+.registry-filters-row {
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:10px 1px;
+}
+.registry-filter-field { display:flex; align-items:center; gap:6px; }
+.registry-filter-label { font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+.form-select-sm { height:32px; font-size:12px; padding:0 28px 0 8px; }
+.registry-filter-reset {
+    font-size:11px; color:var(--text-muted); text-decoration:none;
+    display:flex; align-items:center; gap:4px;
+}
+.registry-filter-reset:hover { color:#f87171; }
+</style>
 <script>
 function toggleDetailsIndex(id) {
     const row = document.getElementById('idx-details-row-' + id);
@@ -86,6 +261,29 @@ function toggleDetailsIndex(id) {
     row.classList.toggle('hidden', !isHidden);
     button.textContent = isHidden ? '−' : '+';
     button.setAttribute('aria-label', isHidden ? 'Masquer les détails' : 'Afficher les détails');
+}
+
+let _regTimer;
+function filterRegistreTable(q) {
+    clearTimeout(_regTimer);
+    _regTimer = setTimeout(() => {
+        const term = q.toLowerCase().trim();
+        document.querySelectorAll('.reg-row').forEach(row => {
+            const text = [
+                row.dataset.code,
+                row.dataset.zone,
+                row.dataset.cat,
+                row.dataset.resume,
+                row.dataset.operateur
+            ].join(' ').toLowerCase();
+            const matchRow = !term || text.includes(term);
+            row.style.display = matchRow ? '' : 'none';
+            const detailRow = row.nextElementSibling;
+            if (detailRow && detailRow.classList.contains('registry-detail')) {
+                if (!matchRow) detailRow.style.display = 'none';
+            }
+        });
+    }, 250);
 }
 </script>
 {% endblock %}

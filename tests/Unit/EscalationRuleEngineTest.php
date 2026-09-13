@@ -51,18 +51,20 @@ class EscalationRuleEngineTest extends TestCase
 
     /**
      * @test
-     * Score ≥ 18 doit déclencher la création d'un Urgence72hCase et une notification.
+     * Une urgence 72h validée par le Manager doit déclencher la procédure,
+     * indépendamment du score.
      */
     public function testRegle1_ScoreCritique_DeclenchemantUrgence72h(): void
     {
         $alert = $this->buildScoredAlert(
             scoreGei: 25,
-            urgence: AlertUrgence::IMMEDIAT,
+            urgence: AlertUrgence::SOIXANTE_DOUZE_H,
             impact: AlertImpact::ELEVE,
             exploitabilite: AlertExploitabilite::ACTIONNABLE,
             fiabilite: FiabiliteSource::A,
             credibilite: 1
         );
+        $alert->setStatut(AlertStatut::VALIDEE);
         // Pas de case existant
         $this->assertNull($alert->getUrgence72hCase());
 
@@ -70,7 +72,7 @@ class EscalationRuleEngineTest extends TestCase
         $engine->evaluate($alert);
 
         // Un Urgence72hCase doit être créé
-        $this->assertNotNull($alert->getUrgence72hCase(), 'Règle 1 : Urgence72hCase doit être créé pour score ≥ 18');
+        $this->assertNotNull($alert->getUrgence72hCase(), 'Règle 1 : Urgence72hCase doit être créé pour une urgence 72h validée');
 
         // Message dispatché
         $this->assertDispatchedType('urgence_72h_created');
@@ -88,6 +90,25 @@ class EscalationRuleEngineTest extends TestCase
         $engine->evaluate($alert);
 
         $this->assertNull($alert->getUrgence72hCase(), 'Règle 1 : Pas d\'Urgence72hCase pour score < 18');
+        $this->assertNotDispatchedType('urgence_72h_created');
+    }
+
+    /** Une urgence 72h en attente Manager ne doit jamais ouvrir le dossier opérationnel. */
+    public function testRegle1_Urgence72hNonValidee_PasDeProcedure(): void
+    {
+        $alert = $this->buildScoredAlert(
+            scoreGei: 25,
+            urgence: AlertUrgence::SOIXANTE_DOUZE_H,
+            impact: AlertImpact::ELEVE,
+            exploitabilite: AlertExploitabilite::ACTIONNABLE,
+            fiabilite: FiabiliteSource::A,
+            credibilite: 1,
+        );
+        $alert->setStatut(AlertStatut::A_VALIDER_SAHOLTY);
+
+        $this->buildEngine()->evaluate($alert);
+
+        $this->assertNull($alert->getUrgence72hCase());
         $this->assertNotDispatchedType('urgence_72h_created');
     }
 
@@ -353,7 +374,6 @@ class EscalationRuleEngineTest extends TestCase
     private function buildEngine(): EscalationRuleEngine
     {
         $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('persist')->willReturn(null);
 
         $ruleConfigRepo = $this->createMock(RuleConfigRepository::class);
         $ruleConfigRepo->method('findAllAsMap')->willReturn([

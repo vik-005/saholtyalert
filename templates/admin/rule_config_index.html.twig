@@ -1,52 +1,73 @@
 {% extends 'base.html.twig' %}
+
 {% block title %}Règles de Scoring — Administration GEI{% endblock %}
 {% block header_title %}Règles de Scoring{% endblock %}
 
 {% block body %}
 <div class="db-wrapper">
 
-    {# En-tête page #}
+    {# En-tête #}
     <div class="page-header-row">
         <div>
             <p class="page-eyebrow">
-                <i class="fa-solid fa-screwdriver-wrench me-1.5"></i>Administration
+                <i class="bi bi-sliders me-1.5 text-amber-400"></i>
+                Administration · Configuration
             </p>
             <h2 class="page-title">Règles de scoring & seuils</h2>
             <p class="page-subtitle">
-                Configurez les seuils de priorité GEI (Annexe C). Toute modification est immédiatement prise en compte
-                sans redéploiement. Les valeurs par défaut sont issues de l'Annexe C officielle.
+                Gérez les seuils de priorité GEI (Annexe C). Les modifications sont prises en compte immédiatement.
             </p>
         </div>
         <a href="{{ path('app_dashboard_superadmin') }}" class="db-btn db-btn-ghost">
-            <i class="fa-solid fa-arrow-left me-1.5"></i>Retour Admin
+            <i class="bi bi-arrow-left me-1.5"></i>Retour Admin
         </a>
     </div>
 
-    {# Rappel formule #}
-    <div class="rule-formula-card">
-        <div class="rule-formula-icon">
-            <i class="fa-solid fa-function"></i>
+    {# KPIs #}
+    <div class="kpi-row mb-4">
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-list-ul text-amber-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ rules|length }}</p>
+                <p class="kpi-card-label">Total règles</p>
+            </div>
         </div>
-        <div class="rule-formula-body">
-            <p class="rule-formula-label">Formule officielle Annexe C — non modifiable</p>
-            <p class="rule-formula-text">
-                Score GEI = <strong>(Fiabilité × Crédibilité)</strong> + Urgence + Impact + Exploitabilité
-            </p>
-            <div class="rule-formula-legend">
-                <span>Fiabilité : A=4, B=3, C=2, D=1</span>
-                <span class="rule-sep">·</span>
-                <span>Crédibilité : 1→4, 2→3, 3→2, 4→1 (inversée)</span>
-                <span class="rule-sep">·</span>
-                <span>Urgence : Immédiat=3, 72h=2, Routine=1</span>
-                <span class="rule-sep">·</span>
-                <span>Impact : Élevé=3, Moyen=2, Faible=1</span>
-                <span class="rule-sep">·</span>
-                <span>Exploitabilité : Actionnable=3, À compléter=2, Archivage=1</span>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-check-circle text-emerald-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ rules|filter(r => r.actif)|length }}</p>
+                <p class="kpi-card-label">Actives</p>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-stars text-blue-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ rules|filter(r => r.categorie == 'scoring')|length }}</p>
+                <p class="kpi-card-label">Scoring</p>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-card-icon"><i class="bi bi-stopwatch text-orange-400"></i></div>
+            <div class="kpi-card-body">
+                <p class="kpi-card-val">{{ rules|filter(r => r.categorie == 'sla')|length }}</p>
+                <p class="kpi-card-label">SLA</p>
             </div>
         </div>
     </div>
 
-    {# Grille de règles groupées par catégorie #}
+    {# Recherche #}
+    <div class="db-card mb-4">
+        <div class="db-card-body" style="padding:12px 16px;">
+            <div class="db-search-wrap" style="flex:1">
+                <i class="bi-search db-search-icon"></i>
+                <input type="text" placeholder="Rechercher une règle par clé, description, catégorie…"
+                       class="db-search-input" style="width:100%"
+                       id="ruleSearchInput" oninput="filterRules(this.value)">
+            </div>
+        </div>
+    </div>
+
+    {# Groupement par catégorie #}
     {% set categories = {} %}
     {% for rule in rules %}
         {% set cat = rule.categorie ?? 'general' %}
@@ -57,154 +78,108 @@
     {% endfor %}
 
     {% for categorie, catRules in categories %}
-    <div class="rule-section">
-        <div class="rule-section-header">
-            <span class="rule-section-icon">
+    <div class="db-card mb-4">
+        <div class="db-card-header">
+            <p class="db-card-eyebrow">
                 {% if categorie == 'scoring' %}
-                    <i class="fa-solid fa-star-half-stroke text-amber-400"></i>
+                    <i class="bi bi-stars text-amber-400 me-1.5"></i>Scoring
                 {% elseif categorie == 'sla' %}
-                    <i class="fa-solid fa-stopwatch text-blue-400"></i>
+                    <i class="bi bi-stopwatch text-blue-400 me-1.5"></i>SLA
                 {% else %}
-                    <i class="fa-solid fa-sliders text-slate-400"></i>
+                    <i class="bi bi-funnel text-slate-400 me-1.5"></i>{{ categorie|capitalize }}
                 {% endif %}
-            </span>
-            <span class="rule-section-title">
-                {{ categorie|capitalize }} — {{ catRules|length }} règle{{ catRules|length > 1 ? 's' : '' }}
-            </span>
+            </p>
+            <span class="text-xs text-slate-500">{{ catRules|length }} règle{{ catRules|length > 1 ? 's' : '' }}</span>
         </div>
-
-        <div class="rule-cards-grid">
-            {% for rule in catRules %}
-            <div class="rule-card {% if not rule.actif %}rule-card-inactive{% endif %}">
-                <div class="rule-card-top">
-                    <div class="rule-card-key">
-                        <i class="fa-solid fa-key fa-xs me-1.5 opacity-50"></i>
-                        <code>{{ rule.cle }}</code>
-                    </div>
-                    <div class="rule-card-badges">
-                        {% if rule.modifiable %}
-                            <span class="rule-badge rule-badge-green">
-                                <i class="fa-solid fa-pen fa-xs me-1"></i>Modifiable
-                            </span>
-                        {% else %}
-                            <span class="rule-badge rule-badge-slate">
-                                <i class="fa-solid fa-lock fa-xs me-1"></i>Fixe
-                            </span>
-                        {% endif %}
-                        <span class="rule-badge {% if rule.actif %}rule-badge-emerald{% else %}rule-badge-red{% endif %}">
-                            <i class="fa-solid fa-circle fa-xs me-1"></i>
-                            {{ rule.actif ? 'Actif' : 'Inactif' }}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="rule-card-value-row">
-                    <span class="rule-card-value">{{ rule.valeur }}</span>
-                    {% if categorie == 'scoring' %}
-                        <span class="rule-card-unit">points</span>
-                    {% elseif categorie == 'sla' %}
-                        <span class="rule-card-unit">heures</span>
-                    {% endif %}
-                </div>
-
-                <p class="rule-card-desc">{{ rule.description }}</p>
-
-                {# Visualisation barre pour seuils scoring #}
-                {% if categorie == 'scoring' %}
-                <div class="rule-card-bar-wrap">
-                    <div class="rule-card-bar-track">
-                        <div class="rule-card-bar-fill"
-                             style="width: {{ (rule.valeur / 25 * 100)|round > 100 ? 100 : (rule.valeur / 25 * 100)|round }}%"></div>
-                    </div>
-                    <span class="rule-card-bar-max">/25</span>
-                </div>
-                {% endif %}
-
-                {% if rule.modifiable %}
-                <div class="rule-card-footer">
-                    <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}" class="rule-edit-btn">
-                        <i class="fa-solid fa-pen-to-square me-1.5"></i>Modifier
-                    </a>
-                </div>
-                {% endif %}
+        <div class="db-card-body p-0">
+            <div class="table-scroll">
+                <table class="gei-table">
+                    <thead>
+                        <tr>
+                            <th>Clé</th>
+                            <th>Valeur</th>
+                            <th>Description</th>
+                            <th>Statut</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for rule in catRules %}
+                        <tr class="{% if not rule.actif %}opacity-50{% endif %}"
+                            data-key="{{ rule.cle|lower }}"
+                            data-desc="{{ rule.description|lower }}"
+                            data-cat="{{ categorie|lower }}">
+                            <td>
+                                <span class="font-mono text-amber-400 text-xs">{{ rule.cle }}</span>
+                            </td>
+                            <td>
+                                <span class="text-white font-semibold">{{ rule.valeur }}</span>
+                                {% if categorie == 'scoring' %}
+                                    <span class="text-xs text-slate-500 ms-1">points</span>
+                                {% elseif categorie == 'sla' %}
+                                    <span class="text-xs text-slate-500 ms-1">heures</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-slate-300 text-sm">{{ rule.description }}</td>
+                            <td>
+                                {% if rule.modifiable %}
+                                    <span class="status-pill status-active">
+                                        <span class="status-dot"></span>Modifiable
+                                    </span>
+                                {% else %}
+                                    <span class="status-pill status-closed">
+                                        <span class="status-dot"></span>Fixe
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                {% if rule.modifiable %}
+                                    <a href="{{ path('app_admin_rule_edit', {id: rule.id}) }}" class="db-btn db-btn-ghost db-btn-sm">
+                                        <i class="bi bi-pencil me-1"></i>Modifier
+                                    </a>
+                                {% else %}
+                                    <span class="text-xs text-slate-500">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            {% endfor %}
         </div>
     </div>
     {% endfor %}
 
     {% if rules|length == 0 %}
-    <div class="db-empty-state">
-        <i class="fa-solid fa-sliders fa-2x text-slate-600 mb-3"></i>
-        <p>Aucune règle de configuration trouvée.</p>
-        <p class="text-xs mt-2 text-slate-600">Exécutez la migration <code>Version20260817120100</code> pour initialiser les seuils.</p>
+    <div class="db-card">
+        <div class="db-card-body text-center py-12">
+            <i class="bi bi-funnel fa-2x text-slate-600 mb-3"></i>
+            <p class="text-slate-400">Aucune règle de configuration trouvée.</p>
+        </div>
     </div>
     {% endif %}
 
 </div>
-
-<style>
-.page-header-row { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
-
-.rule-formula-card {
-    display:flex; gap:16px; align-items:flex-start;
-    background:var(--card); border:1px solid var(--border);
-    border-left:3px solid var(--amber); border-radius:var(--r); padding:18px;
-}
-.rule-formula-icon {
-    width:40px; height:40px; background:var(--amber-bg); border-radius:10px;
-    display:grid; place-items:center; color:var(--amber); font-size:18px; flex-shrink:0;
-}
-.rule-formula-label { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:6px; }
-.rule-formula-text  { font-size:14px; font-weight:600; color:var(--text); margin-bottom:8px; }
-.rule-formula-legend { display:flex; flex-wrap:wrap; gap:6px; font-size:11px; color:var(--muted); }
-.rule-sep { color:var(--border2); }
-
-.rule-section { display:flex; flex-direction:column; gap:14px; }
-.rule-section-header { display:flex; align-items:center; gap:10px; padding-bottom:8px; border-bottom:1px solid var(--border); }
-.rule-section-icon  { font-size:16px; }
-.rule-section-title { font-size:13px; font-weight:700; color:var(--text); }
-
-.rule-cards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-.rule-card {
-    background:var(--card); border:1px solid var(--border);
-    border-radius:var(--r); padding:18px; transition:border-color .2s;
-}
-.rule-card:hover { border-color:var(--border2); }
-.rule-card-inactive { opacity:.5; }
-
-.rule-card-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.rule-card-key { display:flex; align-items:center; font-size:11px; color:var(--muted); }
-.rule-card-key code { font-family:'JetBrains Mono','Fira Code',monospace; font-size:11px; color:var(--amber); }
-.rule-card-badges { display:flex; gap:6px; }
-.rule-badge { font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:99px; }
-.rule-badge-green   { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-bd); }
-.rule-badge-slate   { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
-.rule-badge-emerald { background:rgba(52,211,153,.1); color:var(--green); border:1px solid rgba(52,211,153,.2); }
-.rule-badge-red     { background:rgba(239,68,68,.1); color:#f87171; border:1px solid rgba(239,68,68,.2); }
-
-.rule-card-value-row { display:flex; align-items:baseline; gap:6px; margin-bottom:8px; }
-.rule-card-value { font-size:42px; font-weight:900; color:var(--text); line-height:1; }
-.rule-card-unit  { font-size:13px; color:var(--muted); font-weight:500; }
-.rule-card-desc  { font-size:11.5px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
-
-.rule-card-bar-wrap  { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
-.rule-card-bar-track { flex:1; height:5px; background:var(--card2); border-radius:99px; overflow:hidden; }
-.rule-card-bar-fill  { height:100%; background:var(--amber); border-radius:99px; }
-.rule-card-bar-max   { font-size:10.5px; color:var(--muted); white-space:nowrap; }
-
-.rule-card-footer { border-top:1px solid var(--border); padding-top:12px; }
-.rule-edit-btn { display:inline-flex; align-items:center; font-size:12px; font-weight:600; color:var(--amber); transition:opacity .2s; }
-.rule-edit-btn:hover { opacity:.75; }
-
-/* Dark mode */
-body.dark .rule-card { background:var(--card); }
-body.dark .rule-formula-card { background:var(--card); }
-body.dark .rule-card-value { color:var(--text); }
-body.dark .rule-section-title { color:var(--text); }
-body.dark .rule-formula-text { color:var(--text); }
-
-@media(max-width:640px) { .rule-cards-grid { grid-template-columns:1fr; } }
-</style>
 {% endblock %}
 
+{% block javascripts %}
+{{ parent() }}
+<script>
+let _ruleTimer;
+function filterRules(q) {
+    clearTimeout(_ruleTimer);
+    _ruleTimer = setTimeout(() => {
+        const term = q.toLowerCase().trim();
+        document.querySelectorAll('.gei-table tbody tr').forEach(row => {
+            const text = (row.dataset.key || '') + ' ' + (row.dataset.desc || '') + ' ' + (row.dataset.cat || '');
+            row.style.display = !term || text.includes(term) ? '' : 'none';
+        });
+        document.querySelectorAll('.db-card').forEach(card => {
+            const rows = card.querySelectorAll('.gei-table tbody tr');
+            const visible = Array.from(rows).some(r => r.style.display !== 'none');
+            card.style.display = visible ? '' : 'none';
+        });
+    }, 200);
+}
+</script>
+{% endblock %}

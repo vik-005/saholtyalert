@@ -60,7 +60,7 @@ class KPIService
     }
 
     /**
-     * Alertes traitées (transmis + archive + clos) sur la période.
+     * Alertes traitées (validées + archive + clos) sur la période.
      */
     public function getAlerteesTraitees(\DateTime $debut, \DateTime $fin, array $marches): array
     {
@@ -103,7 +103,7 @@ class KPIService
                 ->where('a.statut = :tx')
                 ->andWhere('a.dateCreation BETWEEN :d AND :f')
                 ->andWhere('a.market IN (:m)')
-                ->setParameter('tx', 'transmis')
+                ->setParameter('tx', 'validee')
                 ->setParameter('d', $debut)
                 ->setParameter('f', $fin)
                 ->setParameter('m', $marches)
@@ -114,7 +114,7 @@ class KPIService
                 ->where('a.statut IN (:statuts)')
                 ->andWhere('a.dateCreation BETWEEN :d AND :f')
                 ->andWhere('a.market IN (:m)')
-                ->setParameter('statuts', ['transmis', 'archive'])
+                ->setParameter('statuts', ['validee', 'archive'])
                 ->setParameter('d', $debut)
                 ->setParameter('f', $fin)
                 ->setParameter('m', $marches)
@@ -359,7 +359,7 @@ class KPIService
             ->where('a.statut IN (:statuts)')
             ->andWhere('a.updatedAt BETWEEN :d AND :f')
             ->andWhere('a.market IN (:m)')
-            ->setParameter('statuts', ['transmis', 'archive', 'clos'])
+                ->setParameter('statuts', ['validee', 'archive', 'clos'])
             ->setParameter('d', $debut)
             ->setParameter('f', $fin)
             ->setParameter('m', $marches)

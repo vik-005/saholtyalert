@@ -1,73 +1,151 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}{% if is_new %}Créer Utilisateur{% else %}Éditer Utilisateur{% endif %} — GEI{% endblock %}
-{% block header_title %}{% if is_new %}Créer un Utilisateur GEI{% else %}Éditer l'Utilisateur {{ user.nomComplet }}{% endif %}{% endblock %}
+{% block title %}{% if is_new %}Créer un utilisateur{% else %}Modifier {{ user.nomComplet }}{% endif %} — GEI{% endblock %}
+{% block header_title %}{% if is_new %}Nouvel utilisateur{% else %}Profil utilisateur{% endif %}{% endblock %}
 
 {% block body %}
-<div class="max-w-3xl mx-auto">
-    <div class="bg-slate-900/90 border border-slate-800 rounded-[1.75rem] p-5 sm:p-7 shadow-[0_30px_70px_-30px_rgba(15,23,42,1)]">
-        <div class="mb-6 pb-4 border-b border-slate-800 flex items-center justify-between gap-4">
-            <div>
-                <p class="text-[10px] uppercase tracking-[0.22em] text-amber-400 font-bold">Compte utilisateur</p>
-                <h3 class="text-xl font-bold text-white mt-2">{% if is_new %}Créer un nouvel accès{% else %}Modifier le profil{% endif %}</h3>
-            </div>
-            <div class="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-amber-300 text-[10px] font-bold uppercase tracking-[0.18em]">
-                {% if is_new %}Nouveau{% else %}Édition{% endif %}
+<div class="db-wrapper">
+
+    {# ── En-tête centré ── #}
+    <div class="page-header-row">
+        <div class="text-center" style="flex:1">
+            <p class="page-eyebrow">
+                <i class="bi bi-people me-1.5 text-amber-400"></i>
+                Administration · Utilisateurs
+            </p>
+            <h2 class="page-title">
+                {% if is_new %}Créer un utilisateur{% else %}Modifier le profil{% endif %}
+            </h2>
+            <p class="page-subtitle mx-auto" style="max-width:520px">
+                {% if is_new %}Définir les accès et permissions du nouveau membre{% else %}Informations de {{ user.nomComplet }}{% endif %}
+            </p>
+        </div>
+    </div>
+
+    {# ── Formulaire centré ── #}
+    <div style="max-width:640px;margin:0 auto;width:100%">
+        <div class="db-card">
+            <div class="db-card-body">
+                {{ form_start(form, {attr: {class: 'auth-fields', novalidate: 'novalidate'}}) }}
+
+                    {# Prénom + Nom côte à côte #}
+                    <div class="form-grid-2">
+                        <div class="form-field">
+                            <label class="form-label text-center" for="{{ form.prenom.vars.id }}">
+                                <i class="bi bi-person me-1 text-amber-400"></i>Prénom
+                            </label>
+                            {{ form_widget(form.prenom, {attr: {class: 'form-input', placeholder: 'Prénom', autocomplete: 'given-name'}}) }}
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label text-center" for="{{ form.nom.vars.id }}">
+                                <i class="bi bi-person me-1 text-amber-400"></i>Nom
+                            </label>
+                            {{ form_widget(form.nom, {attr: {class: 'form-input', placeholder: 'Nom de famille', autocomplete: 'family-name'}}) }}
+                        </div>
+                    </div>
+
+                    {# Email #}
+                    <div class="form-field">
+                        <label class="form-label text-center" for="{{ form.email.vars.id }}">
+                            <i class="bi bi-envelope me-1 text-amber-400"></i>Adresse email professionnelle
+                        </label>
+                        {{ form_widget(form.email, {attr: {class: 'form-input', placeholder: 'nom@gei.org', autocomplete: 'email'}}) }}
+                    </div>
+
+                    {# Fonction #}
+                    <div class="form-field">
+                        <label class="form-label text-center" for="{{ form.fonction.vars.id }}">
+                            <i class="bi bi-briefcase me-1 text-amber-400"></i>Fonction / Titre
+                        </label>
+                        {{ form_widget(form.fonction, {attr: {class: 'form-input', placeholder: 'Agent terrain, PFT, Analyste…', autocomplete: 'off'}}) }}
+                    </div>
+
+                    {# Rôle + Marché côte à côte #}
+                    <div class="form-grid-2">
+                        <div class="form-field">
+                            <label class="form-label text-center" for="{{ form.role.vars.id }}">
+                                <i class="bi bi-shield-lock me-1 text-amber-400"></i>Rôle applicatif GEI
+                            </label>
+                            {{ form_widget(form.role, {attr: {class: 'form-input', style: 'appearance:none;cursor-pointer'}}) }}
+                        </div>
+                        <div class="form-field">
+                            <label class="form-label text-center" for="{{ form.market.vars.id }}">
+                                <i class="bi bi-globe-africa me-1 text-amber-400"></i>Marché / Pays
+                            </label>
+                            {{ form_widget(form.market, {attr: {class: 'form-input', style: 'appearance:none;cursor-pointer'}}) }}
+                        </div>
+                    </div>
+
+                    {# Mot de passe #}
+                    <div class="form-field">
+                        <label class="form-label text-center" for="{{ form.plainPassword.vars.id }}">
+                            <i class="bi bi-lock me-1 text-amber-400"></i>Mot de passe
+                        </label>
+                        <div style="position:relative">
+                            {{ form_widget(form.plainPassword, {attr: {class: 'form-input', placeholder: is_new ? '12 caractères minimum' : 'Laisser vide pour conserver', autocomplete: 'new-password', style: 'padding-right:44px'}}) }}
+                            <button type="button" class="auth-input-btn" onclick="togglePassword('{{ form.plainPassword.vars.id }}', this)" tabindex="-1" style="right:12px">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {# Compte actif #}
+                    <div class="form-field" style="padding:6px 0">
+                        <label class="auth-checkbox-label">
+                            {{ form_widget(form.actif, {attr: {class: 'auth-checkbox'}}) }}
+                            <span class="auth-checkbox-custom"></span>
+                            <span style="color:var(--dim);font-size:12px">Compte utilisateur actif — autoriser la connexion immédiate</span>
+                        </label>
+                    </div>
+
+                    <input type="hidden" name="_token" value="{{ csrf_token('user_form') }}">
+
+                    {# Bouton principal #}
+                    <div class="d-flex justify-content-center mt-3">
+                        <button type="submit" class="db-btn db-btn-amber" style="min-width:220px;justify-content:center">
+                            <i class="bi bi-check-lg me-2"></i>
+                            {% if is_new %}Créer le compte{% else %}Enregistrer{% endif %}
+                        </button>
+                    </div>
+
+                {{ form_end(form) }}
             </div>
         </div>
 
-        {{ form_start(form, {'attr': {'class': 'space-y-5'}}) }}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    {{ form_label(form.prenom, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.prenom, {'attr': {'class': 'form-input'}}) }}
-                </div>
-                <div>
-                    {{ form_label(form.nom, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.nom, {'attr': {'class': 'form-input'}}) }}
-                </div>
-            </div>
-
-            <div>
-                {{ form_label(form.email, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.email, {'attr': {'class': 'form-input'}}) }}
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    {{ form_label(form.role, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.role, {'attr': {'class': 'form-select'}}) }}
-                </div>
-                <div>
-                    {{ form_label(form.market, null, {'label_attr': {'class': 'form-label'}}) }}
-                    {{ form_widget(form.market, {'attr': {'class': 'form-select'}}) }}
-                </div>
-            </div>
-
-            <div>
-                {{ form_label(form.plainPassword, null, {'label_attr': {'class': 'form-label'}}) }}
-                {{ form_widget(form.plainPassword, {'attr': {'class': 'form-input'}}) }}
-            </div>
-
-            <div class="rounded-2xl bg-slate-950/60 border border-slate-800 p-4">
-                <label class="flex items-center justify-between gap-4 cursor-pointer">
-                    <div>
-                        <span class="block text-sm font-semibold text-white">Compte actif</span>
-                        <span class="block text-xs text-slate-400">Autoriser l’accès immédiat à la plateforme</span>
-                    </div>
-                    <span class="inline-flex items-center">
-                        {{ form_widget(form.actif, {'attr': {'class': 'form-checkbox h-5 w-5'}}) }}
+        {# ── Info sécurité ── #}
+        <div class="db-card mt-4">
+            <div class="db-card-body text-center py-3">
+                <div class="d-flex flex-wrap gap-3 justify-content-center">
+                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
+                        <i class="bi bi-shield-check text-emerald-400"></i> Connexion chiffrée TLS
                     </span>
-                </label>
+                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
+                        <i class="bi bi-clock-history text-amber-400"></i> Session 8h maximum
+                    </span>
+                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
+                        <i class="bi bi-shield-lock text-blue-400"></i> Données confidentielles
+                    </span>
+                </div>
             </div>
-
-            <div class="pt-4 border-t border-slate-800 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                <a href="{{ path('app_dashboard_superadmin') }}" class="inline-flex items-center justify-center px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-2xl border border-slate-700 transition">Annuler</a>
-                <button type="submit" class="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-2xl shadow-[0_18px_30px_-18px_rgba(251,191,36,0.9)] transition-all">
-                    Enregistrer
-                </button>
-            </div>
-        {{ form_end(form) }}
+        </div>
     </div>
+
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
 {% endblock %}

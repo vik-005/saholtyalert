@@ -7,6 +7,8 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
 
 class RuleConfigType extends AbstractType
 {
@@ -15,11 +17,13 @@ class RuleConfigType extends AbstractType
         $builder
             ->add('valeur', TextType::class, [
                 'label' => 'Valeur du seuil',
-                'attr' => ['class' => 'form-input'],
+                'help' => 'Valeur numérique ou littérale de la règle. Ex: 18, 72, 6.',
+                'attr' => ['class' => 'form-input', 'placeholder' => 'ex. 18, 72, 6'],
             ])
             ->add('description', TextType::class, [
                 'label' => 'Description de la règle',
-                'attr' => ['class' => 'form-input'],
+                'help' => 'Explication métier affichée dans les écrans de configuration.',
+                'attr' => ['class' => 'form-input', 'placeholder' => 'ex. Seuil minimum pour statut Critique...'],
             ]);
     }
 

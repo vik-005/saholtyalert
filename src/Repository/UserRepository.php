@@ -48,18 +48,62 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
-     * Retourne les PFT (Managers) actifs responsables d'un marché donné.
-     * Utilisé pour cibler les notifications d'escalade au bon Manager.
-     */
+      * Retourne les PFT (Managers) actifs responsables d'un marché donné.
+      * Utilisé pour cibler les notifications d'escalade au bon Manager.
+      */
     public function findByRoleAndMarket(UserRoleEnum $role, Market $market): array
     {
         return $this->createQueryBuilder('u')
             ->leftJoin('u.markets', 'managedMarket')
+            ->addSelect('managedMarket')
             ->where('u.role = :role')
             ->andWhere('u.actif = true')
             ->andWhere('managedMarket = :market OR u.market = :market')
             ->setParameter('role', $role->value)
             ->setParameter('market', $market)
+            ->orderBy('u.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @param Market[] $markets
+     * @return User[]
+     */
+    public function findByRoleAndMarkets(UserRoleEnum $role, array $markets): array
+    {
+        if (empty($markets)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('u')
+            ->leftJoin('u.markets', 'managedMarket')
+            ->addSelect('managedMarket')
+            ->where('u.role = :role')
+            ->andWhere('u.actif = true')
+            ->andWhere('managedMarket IN (:markets) OR u.market IN (:markets)')
+            ->setParameter('role', $role->value)
+            ->setParameter('markets', $markets)
+            ->orderBy('u.nom', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @param Market[] $markets
+     * @return User[]
+     */
+    public function findAgentsByMarkets(array $markets): array
+    {
+        if (empty($markets)) {
+            return [];
+        }
+
+        return $this->createQueryBuilder('u')
+            ->where('u.role = :role')
+            ->andWhere('u.market IN (:markets)')
+            ->setParameter('role', UserRoleEnum::EMETTEUR_TERRAIN->value)
+            ->setParameter('markets', $markets)
             ->orderBy('u.nom', 'ASC')
             ->getQuery()
             ->getResult();

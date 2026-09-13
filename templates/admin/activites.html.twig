@@ -1,0 +1,395 @@
+{% extends 'base.html.twig' %}
+{% block title %}Journal d'activité — GEI{% endblock %}
+{% block header_title %}Journal d'activité{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi-scroll me-1.5 text-amber-400"></i>
+                Traçabilité · Annexe D §6/§8
+            </p>
+            <h2 class="page-title">Journal d'activité</h2>
+            <p class="page-subtitle">
+                {% if total > 0 %}
+                    <strong class="text-white">{{ total }}</strong> entrée{{ total > 1 ? 's' : '' }} trouvée{{ total > 1 ? 's' : '' }}
+                {% else %}
+                    Aucune entrée pour ces critères.
+                {% endif %}
+            </p>
+        </div>
+        <a href="{{ path('app_admin_activity_export', app.request.query.all) }}" class="db-btn db-btn-ghost">
+            <i class="bi-file-csv me-1.5 text-emerald-400"></i>Exporter CSV
+        </a>
+    </div>
+
+    {# ── Filtres ── #}
+    <div class="db-card mb-4">
+        <div class="db-card-body">
+            <form method="get" action="{{ path('app_admin_activity_index') }}" class="filter-grid">
+                {# Utilisateur #}
+                <div>
+                    <label class="form-label">Utilisateur</label>
+                    <select name="userId" class="form-select">
+                        <option value="">Tous les utilisateurs</option>
+                        {% for u in users %}
+                            <option value="{{ u.id }}" {% if filters.userId == (u.id ~ '') %}selected{% endif %}>
+                                {{ u.nomComplet }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Type d'action #}
+                <div>
+                    <label class="form-label">Type d'action</label>
+                    <select name="action" class="form-select">
+                        <option value="">Toutes les actions</option>
+                        {% for value, label in actions %}
+                            <option value="{{ value }}" {% if filters.action == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# Code alerte #}
+                <div>
+                    <label class="form-label">Code alerte</label>
+                    <input type="text" name="alertCode" value="{{ filters.alertCode|default('') }}"
+                           class="form-input" placeholder="ex. GEI-BEN-2026-001">
+                </div>
+
+                {# Date début #}
+                <div>
+                    <label class="form-label">Du</label>
+                    <input type="date" name="dateDebut" value="{{ filters.dateDebut|default('') }}" class="form-input">
+                </div>
+
+                {# Date fin #}
+                <div>
+                    <label class="form-label">Au</label>
+                    <input type="date" name="dateFin" value="{{ filters.dateFin|default('') }}" class="form-input">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="submit" class="db-btn db-btn-primary">
+                        <i class="bi bi-search me-1.5"></i>Filtrer
+                    </button>
+                    <a href="{{ path('app_admin_activity_index') }}" class="db-btn db-btn-ghost">
+                        <i class="bi bi-arrow-clockwise-left me-1.5"></i>Réinitialiser
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# ── Barre de recherche rapide ── #}
+    <div class="mb-4 flex items-center gap-3">
+        <div class="relative flex-1">
+            <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px"></i>
+            <input id="activitySearch" type="text" placeholder="Rechercher dans les logs (utilisateur, action, code alerte, IP…)"
+                   class="form-input" style="padding-left:36px;height:38px;font-size:13px"
+                   oninput="filterActivityTable(this.value)">
+        </div>
+    </div>
+
+    {# ── Tableau ── #}
+    <div class="db-card">
+        <div class="db-card-body p-0">
+            <div class="table-scroll">
+                <table class="gei-table">
+                    <thead>
+                        <tr>
+                            <th>Date / Heure</th>
+                            <th>Utilisateur</th>
+                            <th>Action</th>
+                            <th>Alerte</th>
+                            <th>Détails</th>
+                            <th>IP</th>
+                            <th>Résultat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr class="act-row" style="cursor:pointer"
+                            data-action="{{ log.action }}"
+                            data-user="{{ log.user ? log.user.nomComplet|lower : 'système' }}"
+                            data-code="{{ log.alert ? (log.alert.codeGei ?? log.alert.id)|lower : '' }}"
+                            data-ip="{{ log.ipAdresse|default('')|lower }}"
+                            data-details="{{ log.details|default('')|lower }}"
+                            data-diff="{{ log.diffData|default({})|json_encode|e('html_attr') }}"
+                            onclick="openLogModal({
+                                date:     '{{ log.dateAction|date('d/m/Y H:i:s') }}',
+                                user:     '{{ log.user ? log.user.nomComplet : 'Système' }}',
+                                role:     '{{ log.user ? log.user.role.label() : '' }}',
+                                action:   '{{ log.action }}',
+                                actionLabel: '{{ actionLabels[log.action]|default(log.action) }}',
+                                alert:    '{{ log.alert ? (log.alert.codeGei ?? log.alert.id) : '' }}',
+                                details:  {{ log.details|default('')|json_encode|raw }},
+                                diff:     {{ log.diffData|default({})|json_encode|raw }},
+                                ip:       '{{ log.ipAdresse|default('—') }}',
+                                resultat: '{{ log.resultat|default('') }}'
+                            })">
+                            <td class="text-xs font-mono whitespace-nowrap" style="color:var(--text-muted)">
+                                {{ log.dateAction|date('d/m/Y H:i:s') }}
+                            </td>
+                            <td>
+                                {% if log.user %}
+                                    <span class="font-600" style="color:#fff">{{ log.user.nomComplet }}</span>
+                                    <span class="text-xs block" style="color:var(--text-muted)">{{ log.user.role.label() }}</span>
+                                {% else %}
+                                    <span style="color:var(--text-muted)">Système</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% set actionColors = {
+                                    'creation':     'text-emerald-400 bg-emerald-900/20',
+                                    'modification': 'text-amber-400 bg-amber-900/20',
+                                    'suppression':  'text-red-400 bg-red-900/20',
+                                    'lecture':      'text-slate-400 bg-slate-800',
+                                    'export':       'text-blue-400 bg-blue-900/20',
+                                    'login':        'text-teal-400 bg-teal-900/20',
+                                    'logout':       'text-slate-400 bg-slate-800',
+                                    'transmission': 'text-purple-400 bg-purple-900/20',
+                                    'vue_source':   'text-orange-400 bg-orange-900/20',
+                                } %}
+                                {% set actionLabels = {
+                                    'creation': 'Création',
+                                    'modification': 'Modification',
+                                    'suppression': 'Suppression',
+                                    'lecture': 'Consultation',
+                                    'export': 'Export',
+                                    'login': 'Connexion',
+                                    'logout': 'Déconnexion',
+                                    'transmission': 'Transmission',
+                                    'vue_source': 'Vue source',
+                                } %}
+                                {% set actionIcons = {
+                                    'creation':     'bi bi-plus-circle-fill',
+                                    'modification': 'bi bi-pencil-square',
+                                    'suppression':  'bi bi-trash3-fill',
+                                    'lecture':      'bi bi-eye',
+                                    'export':       'bi bi-file-earmark-arrow-down',
+                                    'login':        'bi bi-box-arrow-in-right',
+                                    'logout':       'bi bi-box-arrow-right',
+                                    'transmission': 'bi bi-send-fill',
+                                    'vue_source':   'bi bi-incognito',
+                                } %}
+                                <span class="status-pill {{ actionColors[log.action]|default('text-slate-400 bg-slate-800') }}">
+                                    <i class="{{ actionIcons[log.action]|default('bi bi-circle') }} me-1"></i>
+                                    {{ actionLabels[log.action]|default(log.action) }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.alert %}
+                                    <a href="{{ path('app_alert_show', {id: log.alert.id}) }}"
+                                       class="font-mono hover:underline text-xs" style="color:var(--amber)"
+                                       onclick="event.stopPropagation()">
+                                        {{ log.alert.codeGei ?? '#' ~ log.alert.id }}
+                                    </a>
+                                {% else %}
+                                    <span style="color:var(--border)">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-xs max-w-xs truncate" title="{{ log.details|default('') }}" style="color:var(--text-muted)">
+                                {{ log.details|default('—')|slice(0, 80) }}{% if log.details|default('')|length > 80 %}…{% endif %}
+                            </td>
+                            <td class="font-mono text-xs" style="color:var(--text-muted)">
+                                {{ log.ipAdresse ?? '—' }}
+                            </td>
+                            <td>
+                                {% if log.resultat == 'success' %}
+                                    <span class="text-xs" style="color:#34d399"><i class="bi bi-check-circle-fill me-1"></i>OK</span>
+                                {% else %}
+                                    <span class="text-xs" style="color:#f87171"><i class="bi bi-x-circle-fill me-1"></i>{{ log.resultat }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-slate-500 py-8">
+                                <i class="bi-scroll bi-2x mb-3 block opacity-20"></i>
+                                Aucune activité enregistrée pour ces critères.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Pagination #}
+        {% if totalPages > 1 %}
+        <div class="db-card-footer flex items-center justify-between">
+            <span class="text-slate-500 text-sm">Page {{ page }} / {{ totalPages }}</span>
+            <div class="flex gap-2">
+                {% if page > 1 %}
+                    <a href="{{ path('app_admin_activity_index', filters|merge({page: page - 1})) }}" class="db-btn db-btn-ghost">
+                        <i class="bi-chevron-left me-1"></i>Précédent
+                    </a>
+                {% endif %}
+                {% if page < totalPages %}
+                    <a href="{{ path('app_admin_activity_index', filters|merge({page: page + 1})) }}" class="db-btn db-btn-ghost">
+                        Suivant<i class="bi-chevron-right ms-1"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<style>
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 140px 140px auto;
+    gap: 12px;
+    align-items: end;
+}
+@media(max-width: 1024px) {
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+    .filter-actions { grid-column: 1 / -1; }
+}
+@media(max-width: 640px) {
+    .filter-grid { grid-template-columns: 1fr; }
+}
+.filter-actions { display: flex; gap: 8px; }
+.table-scroll { overflow-x: auto; }
+.max-w-xs { max-width: 280px; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-row:hover { background: rgba(255,255,255,.04) !important; }
+</style>
+
+{# ── Modale de détail d'un log ── #}
+<div id="logDetailModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:620px;margin:16px;padding:28px;position:relative;box-shadow:0 24px 80px rgba(0,0,0,.5);max-height:85vh;overflow-y:auto">
+        <button onclick="closeLogModal()" style="position:absolute;top:16px;right:16px;background:var(--card2);border:1px solid var(--border);border:none;border-radius:8px;width:32px;height:32px;color:var(--muted);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <h3 style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px">
+            <i class="bi bi-clock-history" style="color:var(--amber)"></i>
+            Détail de l'activité
+        </h3>
+        <div id="logModalBody" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ─── Modale détail log ─── */
+function openLogModal(data) {
+    const actionIcons = {
+        creation: 'bi-plus-circle-fill',
+        modification: 'bi-pencil-square',
+        suppression: 'bi-trash3-fill',
+        lecture: 'bi-eye',
+        export: 'bi-file-earmark-arrow-down',
+        login: 'bi-box-arrow-in-right',
+        logout: 'bi-box-arrow-right',
+        transmission: 'bi-send-fill',
+        vue_source: 'bi-incognito',
+    };
+    const actionColors = {
+        creation: '#34d399', modification: '#fbbf24', suppression: '#f87171',
+        lecture: '#94a3b8', export: '#60a5fa', login: '#2dd4bf',
+        logout: '#94a3b8', transmission: '#c084fc', vue_source: '#fb923c',
+    };
+    const icon  = actionIcons[data.action] || 'bi-circle';
+    const color = actionColors[data.action] || '#94a3b8';
+
+    function field(label, value, full = false) {
+        return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;${full ? 'grid-column:1/-1' : ''}">
+            <p style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${label}</p>
+            <p style="font-size:13px;font-weight:600;color:var(--text);word-break:break-word">${value || '—'}</p>
+        </div>`;
+    }
+
+    // Construction de la section avant/après pour les modifications
+    let diffHtml = '';
+    if (data.action === 'modification' && data.diff && (data.diff.before || data.diff.after)) {
+        const before = data.diff.before || {};
+        const after = data.diff.after || {};
+        const allKeys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
+        if (allKeys.length > 0) {
+            const rows = allKeys.map(k => {
+                const b = before[k] != null ? String(before[k]) : '—';
+                const a = after[k] != null ? String(after[k]) : '—';
+                const changed = b !== a;
+                return `<tr style="border-bottom:1px solid var(--border)">
+                    <td style="padding:6px 8px;font-size:11px;font-weight:600;color:var(--muted);vertical-align:top">${k}</td>
+                    <td style="padding:6px 8px;font-size:11px;color:var(--dim);vertical-align:top">${b}</td>
+                    <td style="padding:6px 8px;font-size:11px;color:var(--text);vertical-align:top${changed ? ';background:var(--amber-bg);font-weight:600' : ''}">${a}</td>
+                </tr>`;
+            }).join('');
+            diffHtml = `<div style="grid-column:1/-1;margin-top:8px">
+                <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+                    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">
+                        <i class="bi bi-arrow-left-right" style="color:var(--amber)"></i>
+                        <span style="font-size:11px;font-weight:700;color:var(--text)">Détail des modifications</span>
+                    </div>
+                    <table style="width:100%;border-collapse:collapse">
+                        <thead><tr style="background:var(--card2)">
+                            <th style="padding:6px 8px;font-size:9px;text-transform:uppercase;color:var(--muted);text-align:left">Champ</th>
+                            <th style="padding:6px 8px;font-size:9px;text-transform:uppercase;color:var(--muted);text-align:left">Avant</th>
+                            <th style="padding:6px 8px;font-size:9px;text-transform:uppercase;color:var(--muted);text-align:left">Après</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+    }
+
+    document.getElementById('logModalBody').innerHTML =
+        field('Date / Heure', data.date) +
+        field('Résultat', data.resultat === 'success'
+            ? '<i class="bi bi-check-circle-fill" style="color:#34d399"></i> Succès'
+            : `<i class="bi bi-x-circle-fill" style="color:#f87171"></i> ${data.resultat}`) +
+        field('Utilisateur', data.user + (data.role ? ` <span style="font-size:10px;color:var(--muted)">(${data.role})</span>` : ''), true) +
+        field('Action', `<i class="bi ${icon}" style="color:${color}"></i> ${data.actionLabel}`) +
+        field('Alerte concernée', data.alert) +
+        field('Adresse IP', data.ip) +
+        field('Détails', data.details || '—', true) +
+        diffHtml;
+
+    const modal = document.getElementById('logDetailModal');
+    modal.style.display = 'flex';
+}
+
+function closeLogModal() {
+    document.getElementById('logDetailModal').style.display = 'none';
+}
+document.getElementById('logDetailModal')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeLogModal();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLogModal();
+});
+
+/* ─── Recherche en direct ─── */
+let _searchTimer;
+function filterActivityTable(q) {
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(() => {
+        const term = q.toLowerCase().trim();
+        document.querySelectorAll('.act-row').forEach(row => {
+            const text = (
+                (row.dataset.user || '') + ' ' +
+                (row.dataset.action || '') + ' ' +
+                (row.dataset.code || '') + ' ' +
+                (row.dataset.ip || '') + ' ' +
+                (row.dataset.details || '')
+            ).toLowerCase();
+            row.style.display = !term || text.includes(term) ? '' : 'none';
+        });
+    }, 250);
+}
+</script>
+{% endblock %}

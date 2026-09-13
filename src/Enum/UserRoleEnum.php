@@ -48,7 +48,7 @@ enum UserRoleEnum: string
     public function symfonyRoles(): array
     {
         return match($this) {
-            self::SUPERADMIN => ['ROLE_SUPERADMIN', 'ROLE_SAHOLTY', 'ROLE_PFT', 'ROLE_USER'],
+            self::SUPERADMIN => ['ROLE_SUPERADMIN', 'ROLE_SAHOLTY', 'ROLE_SECRETARIAT_GEI', 'ROLE_COMITE_AIT', 'ROLE_PFT', 'ROLE_USER'],
             self::SAHOLTY => ['ROLE_SAHOLTY', 'ROLE_PFT', 'ROLE_USER'],
             self::PFT => ['ROLE_PFT', 'ROLE_USER'],
             self::SECRETARIAT_GEI => ['ROLE_SECRETARIAT_GEI', 'ROLE_USER'],
