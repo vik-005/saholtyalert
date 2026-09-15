@@ -5,211 +5,338 @@
 {% block body %}
 <div class="db-wrapper">
 
-    {# ── En-tête centré ── #}
-    <div class="page-header-row">
-        <div class="text-center" style="flex:1">
-            <p class="page-eyebrow">
-                <i class="bi bi-list-check me-1.5 text-amber-400"></i>
-                Administration · Paramètres système
-            </p>
-            <h2 class="page-title">Listes de référence</h2>
-            <p class="page-subtitle mx-auto" style="max-width:700px">
-                Gérez les valeurs des menus déroulants <strong class="text-white">Catégorie</strong> et
-                <strong class="text-white">Type de source</strong> utilisés dans le formulaire Agent.
-                Les valeurs désactivées n'apparaissent plus pour les nouvelles alertes mais restent visibles sur l'historique.
-            </p>
+{# ══ EN-TÊTE ══ #}
+<div class="page-header-row">
+    <div>
+        <p class="page-eyebrow">
+            <i class="bi bi-list-check me-1.5 text-amber-400"></i>
+            Administration · Paramètres système
+        </p>
+        <h2 class="page-title">Listes de référence</h2>
+        <p class="page-subtitle">
+            Catégories et types de source utilisés dans les formulaires Agent.
+        </p>
+    </div>
+    <a href="{{ path('app_admin_liste_reference_new') }}" class="db-btn db-btn-amber">
+        <i class="bi bi-plus-lg me-1.5"></i>Ajouter une valeur
+    </a>
+</div>
+
+{# ══ KPI STRIP ══ #}
+<div class="lrv-kpi-row">
+    <div class="lrv-kpi-card">
+        <div class="lrv-kpi-icon" style="background:rgba(251,191,36,.1);color:var(--amber)">
+            <i class="bi bi-tags"></i>
         </div>
-        <a href="{{ path('app_admin_liste_reference_new') }}" class="db-btn db-btn-amber">
-            <i class="bi bi-plus me-1.5"></i>Ajouter une valeur
+        <div>
+            <p class="lrv-kpi-val">{{ categories|length }}</p>
+            <p class="lrv-kpi-label">Catégories</p>
+        </div>
+    </div>
+    <div class="lrv-kpi-card">
+        <div class="lrv-kpi-icon" style="background:rgba(52,211,153,.1);color:#34d399">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div>
+            <p class="lrv-kpi-val">{{ categories|filter(c => c.actif)|length }}</p>
+            <p class="lrv-kpi-label">Catégories actives</p>
+        </div>
+    </div>
+    <div class="lrv-kpi-card">
+        <div class="lrv-kpi-icon" style="background:rgba(96,165,250,.1);color:#60a5fa">
+            <i class="bi bi-collection"></i>
+        </div>
+        <div>
+            <p class="lrv-kpi-val">{{ typeSources|length }}</p>
+            <p class="lrv-kpi-label">Types de source</p>
+        </div>
+    </div>
+    <div class="lrv-kpi-card">
+        <div class="lrv-kpi-icon" style="background:rgba(148,163,184,.08);color:var(--text-muted)">
+            <i class="bi bi-eye-slash"></i>
+        </div>
+        <div>
+            <p class="lrv-kpi-val">{{ (categories|filter(c => not c.actif)|length) + (typeSources|filter(s => not s.actif)|length) }}</p>
+            <p class="lrv-kpi-label">Valeurs désactivées</p>
+        </div>
+    </div>
+</div>
+
+{# ══ TABLEAU CATÉGORIES ══ #}
+<div class="db-table-card">
+    <div class="db-card-header db-card-header-border" style="padding:14px 16px">
+        <div>
+            <p class="db-card-eyebrow"><i class="bi bi-tags me-1.5"></i>Catégories d'alerte</p>
+            <p class="db-card-title">{{ categories|length }} valeur{{ categories|length > 1 ? 's' : '' }}</p>
+        </div>
+        <a href="{{ path('app_admin_liste_reference_new') }}?type=categorie" class="db-btn db-btn-ghost" style="font-size:11px">
+            <i class="bi bi-plus me-1"></i>Ajouter
         </a>
     </div>
-
-    {# ── KPIs centrés ── #}
-    <div class="kpi-row mb-4">
-        <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi bi-tags text-amber-400"></i></div>
-            <div class="kpi-card-body">
-                <p class="kpi-card-val">{{ categories|length }}</p>
-                <p class="kpi-card-label">Catégories</p>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi bi-check-circle text-emerald-400"></i></div>
-            <div class="kpi-card-body">
-                <p class="kpi-card-val">{{ categories|filter(c => c.actif)|length }}</p>
-                <p class="kpi-card-label">Catégories actives</p>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi bi-eye-slash text-slate-500"></i></div>
-            <div class="kpi-card-body">
-                <p class="kpi-card-val">{{ categories|filter(c => not c.actif)|length }}</p>
-                <p class="kpi-card-label">Catégories désactivées</p>
-            </div>
-        </div>
-        <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi bi-collection text-blue-400"></i></div>
-            <div class="kpi-card-body">
-                <p class="kpi-card-val">{{ typeSources|length }}</p>
-                <p class="kpi-card-label">Types de source</p>
-            </div>
-        </div>
+    <div class="db-table-wrap">
+        <table class="db-table">
+            <thead>
+                <tr>
+                    <th>Libellé</th>
+                    <th style="width:80px;text-align:center">Ordre</th>
+                    <th style="width:120px;text-align:center">Statut</th>
+                    <th style="width:110px">Créé le</th>
+                    <th style="width:200px;text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in categories %}
+                <tr class="db-tr {% if not item.actif %}lrv-inactive{% endif %}">
+                    <td>
+                        <div class="lrv-label-cell">
+                            <span class="lrv-dot {% if item.actif %}lrv-dot-on{% else %}lrv-dot-off{% endif %}"></span>
+                            <span class="lrv-libelle {% if not item.actif %}lrv-libelle-off{% endif %}">
+                                {{ item.libelle }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align:center">
+                        <span class="lrv-order">{{ item.ordreAffichage }}</span>
+                    </td>
+                    <td style="text-align:center">
+                        {% if item.actif %}
+                            <span class="status-pill status-active">
+                                <span class="status-dot"></span>Actif
+                            </span>
+                        {% else %}
+                            <span class="status-pill status-closed">
+                                <span class="status-dot"></span>Désactivé
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted)">
+                        {{ item.createdAt|date('d/m/Y') }}
+                    </td>
+                    <td>
+                        <div class="lrv-actions">
+                            {# Modifier #}
+                            <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}"
+                               class="tbl-btn tbl-btn-ghost" title="Modifier">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            {# Activer / Désactiver #}
+                            <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
+                                <button type="submit" class="tbl-btn tbl-btn-ghost"
+                                        title="{{ item.actif ? 'Désactiver' : 'Activer' }}">
+                                    <i class="bi bi-{{ item.actif ? 'eye-slash' : 'eye' }}"></i>
+                                </button>
+                            </form>
+                            {# Supprimer — déclenche la modale globale #}
+                            <button type="button"
+                                    class="tbl-btn tbl-btn-red delete-trigger"
+                                    title="Supprimer définitivement"
+                                    data-delete-url="{{ path('app_admin_liste_reference_delete', {id: item.id}) }}"
+                                    data-delete-token="{{ csrf_token('delete-lrv-' ~ item.id) }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">
+                        <div class="db-empty-state">
+                            <i class="bi bi-tags" style="font-size:28px;color:var(--muted);display:block;margin-bottom:8px"></i>
+                            <p>Aucune catégorie enregistrée.</p>
+                            <a href="{{ path('app_admin_liste_reference_new') }}" class="db-btn db-btn-amber" style="margin-top:12px;font-size:11px">
+                                <i class="bi bi-plus me-1"></i>Ajouter la première catégorie
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 
-    {# ── Tableau Catégories ── #}
-    <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-tags me-1.5"></i>Catégories d'alerte
-            </p>
-            <span class="text-xs text-slate-500">{{ categories|length }} valeur{{ categories|length > 1 ? 's' : '' }}</span>
-        </div>
-        <div class="db-card-body p-0">
-            <div class="table-scroll">
-                <table class="gei-table">
-                    <thead>
-                        <tr>
-                            <th class="text-center">Libellé</th>
-                            <th class="text-center">Ordre</th>
-                            <th class="text-center">Statut</th>
-                            <th class="text-center">Créé le</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for item in categories %}
-                        <tr class="{% if not item.actif %}opacity-50{% endif %}">
-                            <td class="text-center">
-                                <span class="font-semibold text-white">{{ item.libelle }}</span>
-                            </td>
-                            <td class="text-slate-400 text-sm text-center">{{ item.ordreAffichage }}</td>
-                            <td class="text-center">
-                                {% if item.actif %}
-                                    <span class="status-pill status-active mx-auto">
-                                        <span class="status-dot"></span>Actif
-                                    </span>
-                                {% else %}
-                                    <span class="status-pill status-closed mx-auto">
-                                        <span class="status-dot"></span>Désactivé
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="text-xs text-slate-500 text-center">{{ item.createdAt|date('d/m/Y') }}</td>
-                            <td>
-                                <div class="d-flex gap-2 justify-content-center">
-                                    <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}"
-                                       class="db-btn db-btn-ghost db-btn-sm">
-                                        <i class="bi bi-pen me-1"></i>Modifier
-                                    </a>
-                                    <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}" style="display:inline">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
-                                        <button type="submit" class="db-btn db-btn-sm db-btn-ghost">
-                                            {% if item.actif %}
-                                                <i class="bi bi-eye-slash me-1"></i>Désactiver
-                                            {% else %}
-                                                <i class="bi bi-eye me-1"></i>Activer
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-slate-500 py-8">
-                                Aucune catégorie enregistrée.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    {# ── Tableau Types de source ── #}
-    <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-collection me-1.5"></i>Types de source (champ 11)
-            </p>
-            <span class="text-xs text-slate-500">{{ typeSources|length }} valeur{{ typeSources|length > 1 ? 's' : '' }}</span>
-        </div>
-        <div class="db-card-body p-0">
-            <div class="table-scroll">
-                <table class="gei-table">
-                    <thead>
-                        <tr>
-                            <th class="text-center">Libellé</th>
-                            <th class="text-center">Ordre</th>
-                            <th class="text-center">Statut</th>
-                            <th class="text-center">Créé le</th>
-                            <th class="text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for item in typeSources %}
-                        <tr class="{% if not item.actif %}opacity-50{% endif %}">
-                            <td class="text-center">
-                                <span class="font-semibold text-white">{{ item.libelle }}</span>
-                            </td>
-                            <td class="text-slate-400 text-sm text-center">{{ item.ordreAffichage }}</td>
-                            <td class="text-center">
-                                {% if item.actif %}
-                                    <span class="status-pill status-active mx-auto">
-                                        <span class="status-dot"></span>Actif
-                                    </span>
-                                {% else %}
-                                    <span class="status-pill status-closed mx-auto">
-                                        <span class="status-dot"></span>Désactivé
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="text-xs text-slate-500 text-center">{{ item.createdAt|date('d/m/Y') }}</td>
-                            <td>
-                                <div class="d-flex gap-2 justify-content-center">
-                                    <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}"
-                                       class="db-btn db-btn-ghost db-btn-sm">
-                                        <i class="bi bi-pen me-1"></i>Modifier
-                                    </a>
-                                    <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}" style="display:inline">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
-                                        <button type="submit" class="db-btn db-btn-sm db-btn-ghost">
-                                            {% if item.actif %}
-                                                <i class="bi bi-eye-slash me-1"></i>Désactiver
-                                            {% else %}
-                                                <i class="bi bi-eye me-1"></i>Activer
-                                            {% endif %}
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-slate-500 py-8">
-                                Aucun type de source enregistré.
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    {# Note comportement #}
-    <div class="workflow-banner workflow-banner-amber mt-4 text-center">
-        <i class="bi bi-info-circle text-amber-400 flex-shrink-0"></i>
+{# ══ TABLEAU TYPES DE SOURCE ══ #}
+<div class="db-table-card">
+    <div class="db-card-header db-card-header-border" style="padding:14px 16px">
         <div>
-            <p class="workflow-banner-title">Comportement des listes</p>
-            <p class="workflow-banner-sub">
-                Une valeur <strong>désactivée</strong> n'apparaît plus dans le formulaire de saisie pour les nouvelles alertes,
-                mais reste affichée normalement sur les alertes existantes qui l'utilisent déjà.
-                <strong>Jamais de suppression physique</strong> pour préserver l'intégrité des données historiques.
-            </p>
+            <p class="db-card-eyebrow"><i class="bi bi-collection me-1.5"></i>Types de source</p>
+            <p class="db-card-title">{{ typeSources|length }} valeur{{ typeSources|length > 1 ? 's' : '' }}</p>
         </div>
+        <a href="{{ path('app_admin_liste_reference_new') }}?type=type_source" class="db-btn db-btn-ghost" style="font-size:11px">
+            <i class="bi bi-plus me-1"></i>Ajouter
+        </a>
     </div>
+    <div class="db-table-wrap">
+        <table class="db-table">
+            <thead>
+                <tr>
+                    <th>Libellé</th>
+                    <th style="width:80px;text-align:center">Ordre</th>
+                    <th style="width:120px;text-align:center">Statut</th>
+                    <th style="width:110px">Créé le</th>
+                    <th style="width:200px;text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in typeSources %}
+                <tr class="db-tr {% if not item.actif %}lrv-inactive{% endif %}">
+                    <td>
+                        <div class="lrv-label-cell">
+                            <span class="lrv-dot {% if item.actif %}lrv-dot-on{% else %}lrv-dot-off{% endif %}"></span>
+                            <span class="lrv-libelle {% if not item.actif %}lrv-libelle-off{% endif %}">
+                                {{ item.libelle }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align:center">
+                        <span class="lrv-order">{{ item.ordreAffichage }}</span>
+                    </td>
+                    <td style="text-align:center">
+                        {% if item.actif %}
+                            <span class="status-pill status-active">
+                                <span class="status-dot"></span>Actif
+                            </span>
+                        {% else %}
+                            <span class="status-pill status-closed">
+                                <span class="status-dot"></span>Désactivé
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted)">
+                        {{ item.createdAt|date('d/m/Y') }}
+                    </td>
+                    <td>
+                        <div class="lrv-actions">
+                            <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}"
+                               class="tbl-btn tbl-btn-ghost" title="Modifier">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
+                                <button type="submit" class="tbl-btn tbl-btn-ghost"
+                                        title="{{ item.actif ? 'Désactiver' : 'Activer' }}">
+                                    <i class="bi bi-{{ item.actif ? 'eye-slash' : 'eye' }}"></i>
+                                </button>
+                            </form>
+                            <button type="button"
+                                    class="tbl-btn tbl-btn-red delete-trigger"
+                                    title="Supprimer définitivement"
+                                    data-delete-url="{{ path('app_admin_liste_reference_delete', {id: item.id}) }}"
+                                    data-delete-token="{{ csrf_token('delete-lrv-' ~ item.id) }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">
+                        <div class="db-empty-state">
+                            <i class="bi bi-collection" style="font-size:28px;color:var(--muted);display:block;margin-bottom:8px"></i>
+                            <p>Aucun type de source enregistré.</p>
+                            <a href="{{ path('app_admin_liste_reference_new') }}" class="db-btn db-btn-amber" style="margin-top:12px;font-size:11px">
+                                <i class="bi bi-plus me-1"></i>Ajouter le premier type
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ══ NOTE COMPORTEMENT ══ #}
+<div class="workflow-banner workflow-banner-amber">
+    <i class="bi bi-info-circle text-amber-400 flex-shrink-0"></i>
+    <div>
+        <p class="workflow-banner-title">Suppression vs Désactivation</p>
+        <p class="workflow-banner-sub">
+            <strong>Désactiver</strong> masque la valeur dans les nouveaux formulaires mais conserve l'affichage sur l'historique.
+            <strong>Supprimer</strong> est irréversible — à réserver aux valeurs jamais utilisées.
+        </p>
+    </div>
+</div>
 
 </div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<style>
+/* ══ KPI strip ══ */
+.lrv-kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.lrv-kpi-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 18px;
+    display: flex; align-items: center; gap: 14px;
+}
+.lrv-kpi-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 18px; flex-shrink: 0;
+}
+.lrv-kpi-val   { font-size: 28px; font-weight: 900; color: var(--text); line-height: 1; }
+.lrv-kpi-label { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+/* ══ Tableau ══ */
+.db-table thead th {
+    font-size: 10px !important; font-weight: 700 !important;
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--text-muted) !important; padding: 11px 14px !important;
+    background: var(--card2) !important; white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+}
+.db-table tbody td {
+    font-size: 12.5px; color: var(--dim); padding: 11px 14px;
+    border-bottom: 1px solid rgba(148,163,184,.06); vertical-align: middle;
+}
+.db-table .db-tr:last-child td { border-bottom: none; }
+.db-table .db-tr:hover td { background: rgba(255,255,255,.018); }
+
+/* Ligne inactive */
+.lrv-inactive td { opacity: .5; }
+
+/* Cellule libellé */
+.lrv-label-cell { display: flex; align-items: center; gap: 10px; }
+.lrv-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.lrv-dot-on  { background: #34d399; box-shadow: 0 0 4px rgba(52,211,153,.5); }
+.lrv-dot-off { background: var(--text-muted); opacity: .4; }
+.lrv-libelle     { font-weight: 600; color: var(--text); font-size: 13px; }
+.lrv-libelle-off { color: var(--text-muted); font-weight: 400; font-style: italic; }
+
+/* Badge ordre */
+.lrv-order {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 22px; border-radius: 6px;
+    background: var(--navy-800); border: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+}
+
+/* Actions */
+.lrv-actions { display: flex; gap: 5px; justify-content: flex-end; align-items: center; }
+
+@media(max-width:900px) { .lrv-kpi-row { grid-template-columns: repeat(2,1fr); } }
+@media(max-width:560px) { .lrv-kpi-row { grid-template-columns: 1fr; } }
+</style>
+<script>
+/* Modale de confirmation suppression */
+document.querySelectorAll('.delete-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const url   = btn.dataset.deleteUrl;
+        const token = btn.dataset.deleteToken;
+        const form  = document.getElementById('deleteConfirmForm');
+        const inp   = document.getElementById('deleteTokenInput');
+        if (form && url) {
+            form.action = url;
+            if (inp) inp.value = token ?? '';
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+    });
+});
+</script>
 {% endblock %}

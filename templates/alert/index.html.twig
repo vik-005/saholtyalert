@@ -4,225 +4,342 @@
 {% block header_title %}Registre des alertes{% endblock %}
 
 {% block body %}
-<section class="registry-page">
-    <header class="registry-hero">
-        <div>
-            <p class="registry-kicker"><i class="bi bi-shield-half me-1"></i>Suivi opérationnel</p>
-            <h1 class="registry-title">Registre national & régional</h1>
-            <p class="registry-subtitle">Centralisez, qualifiez et suivez les fiches d’alerte GEI en toute clarté.</p>
-        </div>
-        <div class="registry-actions">
-            <a href="{{ path('app_alert_import') }}" class="registry-action"><i class="bi bi-file-arrow-up"></i><span>Importer Excel</span></a>
-            <a href="{{ path('app_export_registre', {
-                    statut:   filters.statut          ?? '',
-                    priorite: filters.niveauPriorite  ?? '',
-                    market:   filters.market          ?? '',
-                    search:   filters.search          ?? '',
-                    categorie: filters.categorie      ?? '',
-                    urgence:  filters.urgence         ?? ''
-                }) }}" class="registry-action"><i class="bi bi-file-earmark-spreadsheet"></i><span>Export Excel</span></a>
-            <a href="{{ path('app_export_registre_pdf', {
-                    statut:   filters.statut          ?? '',
-                    priorite: filters.niveauPriorite  ?? '',
-                    market:   filters.market          ?? '',
-                    search:   filters.search          ?? '',
-                    categorie: filters.categorie      ?? '',
-                    urgence:  filters.urgence         ?? ''
-                }) }}" class="registry-action"><i class="bi bi-file-earmark-pdf"></i><span>Rapport PDF</span></a>
-            <a href="{{ path('app_alert_new') }}" class="registry-action registry-action-primary"><i class="bi bi-plus"></i><span>Nouvelle alerte</span></a>
-        </div>
-    </header>
+<div class="db-wrapper">
 
-    <div class="registry-card">
-        <div class="registry-toolbar">
-            <span class="registry-count">{{ alerts|length }} alerte{{ alerts|length > 1 ? 's' : '' }} enregistrée{{ alerts|length > 1 ? 's' : '' }}</span>
-            <span class="registry-hint"><i class="bi bi-info-circle me-1"></i>Ouvrez une ligne pour consulter les informations détaillées.</span>
-        </div>
+{# ══════════════════════════════════════
+   EN-TÊTE PAGE
+══════════════════════════════════════ #}
+<div class="page-header-row">
+    <div>
+        <p class="page-eyebrow">
+            <i class="bi bi-shield-half me-1.5 text-amber-400"></i>Suivi opérationnel
+        </p>
+        <h2 class="page-title">Registre GEI</h2>
+        <p class="page-subtitle">{{ total ?? alerts|length }} alerte{{ (total ?? alerts|length) > 1 ? 's' : '' }} enregistrée{{ (total ?? alerts|length) > 1 ? 's' : '' }}</p>
+    </div>
+    <div class="reg-header-actions">
+        <a href="{{ path('app_alert_import') }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-file-arrow-up me-1.5"></i><span class="btn-label">Importer</span>
+        </a>
+        <a href="{{ path('app_export_registre', {
+                statut:   filters.statut          ?? '',
+                priorite: filters.niveauPriorite  ?? '',
+                market:   filters.market          ?? '',
+                search:   filters.search          ?? '',
+                categorie: filters.categorie      ?? '',
+                urgence:  filters.urgence         ?? ''
+            }) }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-file-earmark-spreadsheet me-1.5"></i><span class="btn-label">Excel</span>
+        </a>
+        <a href="{{ path('app_export_registre_pdf', {
+                statut:   filters.statut          ?? '',
+                priorite: filters.niveauPriorite  ?? '',
+                market:   filters.market          ?? '',
+                search:   filters.search          ?? '',
+                categorie: filters.categorie      ?? ''
+            }) }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-file-earmark-pdf me-1.5 text-red-400"></i><span class="btn-label">PDF</span>
+        </a>
+        <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
+            <i class="bi bi-plus-lg me-1.5"></i><span>Nouvelle alerte</span>
+        </a>
+    </div>
+</div>
 
-        {# ── Filtres Agent / Manager (Partie B) ── #}
-        {% if agentsForFilter|default([])|length > 0 or managersForFilter|default([])|length > 0 %}
-        <form method="get" class="registry-filters-row mb-3" id="registreFilterForm">
-            {% for key, val in filters %}
-                {% if key != 'agent' and key != 'manager' and val is not null and val != '' %}
-                    <input type="hidden" name="{{ key }}" value="{{ val }}">
-                {% endif %}
-            {% endfor %}
-            {% if agentsForFilter|default([])|length > 0 %}
-            <div class="registry-filter-field">
-                <label class="registry-filter-label" for="filterAgent">Agent</label>
-                <select name="agent" id="filterAgent" class="form-select form-select-sm"
-                        onchange="document.getElementById('registreFilterForm').submit()">
-                    <option value="">Tous les agents</option>
-                    {% for agent in agentsForFilter %}
-                        <option value="{{ agent.id }}" {% if filters.agent|default(null) == agent.id %}selected{% endif %}>
-                            {{ agent.nomComplet }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+{# ══════════════════════════════════════
+   FILTRES
+══════════════════════════════════════ #}
+<div class="reg-filters-bar">
+    {# Barre de recherche rapide #}
+    <div class="reg-search-wrap">
+        <i class="bi bi-search reg-search-icon"></i>
+        <input id="registreSearch" type="text"
+               placeholder="Code GEI, pays, catégorie, résumé…"
+               class="reg-search-input"
+               value="{{ filters.search ?? '' }}"
+               oninput="filterRegistreTable(this.value)">
+        <button id="regSearchClear" class="reg-search-clear hidden" onclick="clearSearch()" type="button">
+            <i class="bi bi-x"></i>
+        </button>
+    </div>
+
+    {# Filtres agents / managers #}
+    {% if agentsForFilter|default([])|length > 0 or managersForFilter|default([])|length > 0 %}
+    <form method="get" class="reg-inline-filters" id="registreFilterForm">
+        {% for key, val in filters %}
+            {% if key != 'agent' and key != 'manager' and val is not null and val != '' %}
+                <input type="hidden" name="{{ key }}" value="{{ val }}">
             {% endif %}
-            {% if managersForFilter|default([])|length > 0 %}
-            <div class="registry-filter-field">
-                <label class="registry-filter-label" for="filterManager">Manager</label>
-                <select name="manager" id="filterManager" class="form-select form-select-sm"
-                        onchange="document.getElementById('registreFilterForm').submit()">
-                    <option value="">Tous les managers</option>
-                    {% for manager in managersForFilter %}
-                        <option value="{{ manager.id }}" {% if filters.manager|default(null) == manager.id %}selected{% endif %}>
-                            {{ manager.nomComplet }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% endif %}
-            {% if filters.agent or filters.manager %}
-            <a href="{{ path('app_alert_index') }}" class="registry-filter-reset">
-                <i class="bi bi-x-circle me-1"></i>Réinitialiser
-            </a>
-            {% endif %}
-        </form>
+        {% endfor %}
+        {% if agentsForFilter|default([])|length > 0 %}
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-person me-1"></i>Agent</label>
+            <select name="agent" class="reg-select" onchange="document.getElementById('registreFilterForm').submit()">
+                <option value="">Tous</option>
+                {% for agent in agentsForFilter %}
+                    <option value="{{ agent.id }}" {% if filters.agent|default(null) == agent.id %}selected{% endif %}>
+                        {{ agent.nomComplet }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
         {% endif %}
-
-        <div class="mb-3" style="padding: 0 1px">
-            <div class="relative">
-                <i class="bi bi-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px"></i>
-                <input id="registreSearch" type="text" placeholder="Rechercher par code, zone, catégorie, résumé…"
-                       class="form-input" style="padding-left:36px;height:38px;font-size:13px"
-                       oninput="filterRegistreTable(this.value)">
-            </div>
+        {% if managersForFilter|default([])|length > 0 %}
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-shield-check me-1"></i>Manager</label>
+            <select name="manager" class="reg-select" onchange="document.getElementById('registreFilterForm').submit()">
+                <option value="">Tous</option>
+                {% for manager in managersForFilter %}
+                    <option value="{{ manager.id }}" {% if filters.manager|default(null) == manager.id %}selected{% endif %}>
+                        {{ manager.nomComplet }}
+                    </option>
+                {% endfor %}
+            </select>
         </div>
-        <div class="registry-table-wrap">
-            {# ── Récapitulatif de filtres actifs (Partie F.3) ── #}
-            {% include 'components/_active_filters.html.twig' with {
-                filters: filters,
-                route: 'app_alert_index',
-                labels: {
-                    'statut': 'Statut',
-                    'niveauPriorite': 'Priorité',
-                    'market': 'Marché',
-                    'search': 'Recherche',
-                    'categorie': 'Catégorie',
-                    'urgence': 'Urgence',
-                    'scoreMin': 'Score min',
-                    'scoreMax': 'Score max',
-                    'origine': 'Origine',
-                    'dateDebut': 'Depuis',
-                    'dateFin': "Jusqu'au",
-                    'agent': 'Agent',
-                    'manager': 'Manager',
-                },
-                values_labels: {
-                    'statut': {
-                        'nouveau': 'Nouveau',
-                        'en_cours': 'En cours',
-                        'transmis': 'Transmis',
-                        'validee': 'Validée',
-                        'qualifie': 'Qualifié',
-                        'rejete': 'Rejeté',
-                        'cloture': 'Clôturé',
-                    },
-                    'urgence': {
-                        'immediate': 'Immédiate',
-                        '24h': '24 heures',
-                        '72h': '72 heures',
-                    },
-                },
-            } %}
-            <table class="registry-table">
-                <thead><tr>
-                    <th style="width:44px"></th>
-                    <th>Code GEI</th>
-                    <th>Date</th>
-                    <th>Zone / pays</th>
-                    <th>Type</th>
-                    <th>Port / Corridor</th>
-                    <th>Catégorie</th>
-                    <th>Résumé</th>
-                    <th style="text-align:center">Score</th>
-                    <th>Priorité</th>
-                    <th>Statut</th>
-                    <th>Agent</th>
-                    <th>Manager</th>
-                    <th style="width:100px;text-align:right">Actions</th>
-                </tr></thead>
-                <tbody>
-                {% for alert in alerts %}
-                    {% set score = alert.effectiveScore %}
-                    {% set scoreBadge = score is null ? 'bi-dash-circle text-slate-500 bg-slate-800/10 border-slate-700/30'
-                        : score >= 18 ? 'bi-exclamation-triangle-fill text-red-400 bg-red-500/10 border-red-500/30'
-                        : score >= 14 ? 'bi-arrow-up-circle text-orange-400 bg-orange-500/10 border-orange-500/30'
-                        : score >= 10 ? 'bi-dash-circle text-amber-400 bg-amber-500/10 border-amber-500/30'
-                        : 'bi-check-circle text-emerald-400 bg-emerald-500/10 border-emerald-500/30' %}                    <tr class="reg-row"
-                        data-code="{{ (alert.codeGei ?? 'BROUILLON')|lower }}"
-                        data-zone="{{ alert.market.nom|lower }}"
-                        data-cat="{{ alert.categorie|lower }}"
-                        data-resume="{{ alert.resumeExecutif|default('')|lower }}"
-                        data-operateur="{{ alert.operateurActeur|default('')|lower }}">
-                        <td><button type="button" onclick="toggleDetailsIndex({{ alert.id }})" id="btn-idx-toggle-{{ alert.id }}" class="registry-expand" aria-label="Afficher les détails">+</button></td>
-                        <td><a class="registry-code" href="{{ path('app_alert_show', {id: alert.id}) }}">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
-                        <td class="text-xs text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
-                        <td class="text-sm">{{ alert.market.nom }}</td>
-                        <td>
+        {% endif %}
+        {% if filters.agent or filters.manager %}
+        <a href="{{ path('app_alert_index') }}" class="reg-reset-btn">
+            <i class="bi bi-x-circle me-1"></i>Réinitialiser
+        </a>
+        {% endif %}
+    </form>
+    {% endif %}
+
+    {# Filtres actifs #}
+    {% include 'components/_active_filters.html.twig' with {
+        filters: filters, route: 'app_alert_index',
+        labels: {
+            'statut': 'Statut', 'niveauPriorite': 'Priorité', 'market': 'Marché',
+            'search': 'Recherche', 'categorie': 'Catégorie', 'urgence': 'Urgence',
+            'scoreMin': 'Score min', 'scoreMax': 'Score max', 'origine': 'Origine',
+            'dateDebut': 'Depuis', 'dateFin': "Jusqu'au", 'agent': 'Agent', 'manager': 'Manager',
+        },
+        values_labels: {
+            'statut': { 'nouveau': 'Nouveau', 'en_cours': 'En cours', 'transmis': 'Transmis',
+                        'validee': 'Validée', 'qualifie': 'Qualifié', 'rejete': 'Rejeté', 'cloture': 'Clôturé' },
+            'urgence': { 'immediate': 'Immédiate', '24h': '24h', '72h': '72h' },
+        },
+    } %}
+</div>
+
+{# ══════════════════════════════════════
+   TABLEAU
+══════════════════════════════════════ #}
+<div class="db-table-card">
+    <div class="reg-table-scroll">
+        <table class="reg-table" id="regTable">
+            <thead>
+                <tr>
+                    <th class="reg-th-toggle"></th>
+                    <th class="reg-th">Code GEI</th>
+                    <th class="reg-th reg-col-date">Date</th>
+                    <th class="reg-th">Pays / Zone</th>
+                    <th class="reg-th reg-col-hide-sm">Port / Corridor</th>
+                    <th class="reg-th reg-col-hide-md">Catégorie</th>
+                    <th class="reg-th reg-col-resume">Résumé</th>
+                    <th class="reg-th reg-col-center">Score</th>
+                    <th class="reg-th">Priorité</th>
+                    <th class="reg-th">Statut</th>
+                    <th class="reg-th reg-col-hide-md">Agent</th>
+                    <th class="reg-th reg-col-actions"></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for alert in alerts %}
+                {% set score = alert.effectiveScore %}
+                {% set prio  = alert.effectiveNiveauPriorite %}
+
+                {# Classe de ligne selon priorité pour l'indicateur latéral #}
+                {% set rowPrio = prio ? prio.value : 'none' %}
+
+                <tr class="reg-row reg-row-{{ rowPrio }}"
+                    data-id="{{ alert.id }}"
+                    data-code="{{ (alert.codeGei ?? 'BROUILLON')|lower }}"
+                    data-zone="{{ alert.market.nom|lower }}"
+                    data-cat="{{ alert.categorie|default('')|lower }}"
+                    data-resume="{{ alert.resumeExecutif|default('')|lower }}"
+                    data-operateur="{{ alert.operateurActeur|default('')|lower }}">
+
+                    {# Toggle expand #}
+                    <td class="reg-td-toggle">
+                        <button type="button"
+                                class="reg-expand-btn"
+                                onclick="toggleRow({{ alert.id }}, this)"
+                                aria-label="Détails">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </td>
+
+                    {# Code GEI #}
+                    <td class="reg-td">
+                        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="reg-code-link">
+                            {{ alert.codeGei ?? 'BROUILLON' }}
+                        </a>
+                        {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
+                            <span class="reg-urgence-dot" title="Urgence 72h active"></span>
+                        {% endif %}
+                    </td>
+
+                    {# Date #}
+                    <td class="reg-td reg-col-date">
+                        <span class="reg-date">{{ alert.dateCreation|date('d/m/Y') }}</span>
+                    </td>
+
+                    {# Pays #}
+                    <td class="reg-td">
+                        <div class="reg-pays-cell">
+                            <span class="reg-pays">{{ alert.market.nom }}</span>
                             {% if alert.typeLocalisation %}
-                                <span class="loc-type loc-type-{{ alert.typeLocalisation.value }}">
-                                    <i class="bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
-                                    {{ alert.typeLocalisation.label() }}
+                                <span class="reg-loc-type reg-loc-{{ alert.typeLocalisation.value }}">
+                                    <i class="bi bi-{{ alert.typeLocalisation.icon() }}"></i>
                                 </span>
-                            {% else %}
-                                <span style="color:var(--muted)">—</span>
                             {% endif %}
-                        </td>
-                        <td class="text-sm" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ alert.portCorridor ?: '—' }}</td>
-                        <td class="text-xs">{{ alert.categorie ?: '—' }}</td>
-                        <td><div class="registry-summary">{{ alert.resumeExecutif ?: 'Aucun résumé renseigné' }}</div></td>
-                        <td style="text-align:center">
-                            {% if score is not null %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border {{ scoreBadge }}">
-                                <i class="bi {{ scoreBadge|split(' ')[0] }}"></i>
+                        </div>
+                    </td>
+
+                    {# Corridor — masqué sur mobile #}
+                    <td class="reg-td reg-col-hide-sm">
+                        <span class="reg-corridor">{{ alert.portCorridor ?: '—' }}</span>
+                    </td>
+
+                    {# Catégorie — masqué sur tablette #}
+                    <td class="reg-td reg-col-hide-md">
+                        {% if alert.categorie %}
+                            <span class="reg-categorie">{{ alert.categorie }}</span>
+                        {% else %}
+                            <span class="reg-empty">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Résumé #}
+                    <td class="reg-td reg-col-resume">
+                        <p class="reg-resume">{{ alert.resumeExecutif ?: 'Aucun résumé' }}</p>
+                    </td>
+
+                    {# Score — centré #}
+                    <td class="reg-td reg-col-center">
+                        {% if score is not null %}
+                            <span class="reg-score
+                                {% if score >= 18 %}reg-score-critique
+                                {% elseif score >= 14 %}reg-score-eleve
+                                {% elseif score >= 10 %}reg-score-modere
+                                {% else %}reg-score-faible{% endif %}">
                                 {{ score }}
                             </span>
-                            {% else %}
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold border {{ scoreBadge }}">
-                                <i class="bi {{ scoreBadge|split(' ')[0] }}"></i>
-                                —
+                        {% else %}
+                            <span class="reg-score-na">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Priorité — badge custom #}
+                    <td class="reg-td">
+                        {% if prio %}
+                            <span class="reg-prio reg-prio-{{ prio.value }}">
+                                {% if prio.value == 'critique' %}
+                                    <span class="reg-prio-dot"></span>Critique
+                                {% elseif prio.value == 'eleve' %}
+                                    <span class="reg-prio-dot"></span>Élevé
+                                {% elseif prio.value == 'modere' %}
+                                    <span class="reg-prio-dot"></span>Modéré
+                                {% else %}
+                                    <span class="reg-prio-dot"></span>Faible
+                                {% endif %}
                             </span>
+                        {% else %}
+                            <span class="reg-score-na">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Statut #}
+                    <td class="reg-td">
+                        {% if alert.statut %}
+                            <span class="status-pill status-{{ alert.statut.value }}">
+                                <span class="status-dot"></span>{{ alert.statut.label() }}
+                            </span>
+                        {% else %}
+                            <span class="reg-empty">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Agent — masqué sur tablette #}
+                    <td class="reg-td reg-col-hide-md">
+                        {% if alert.emetteur %}
+                            <span class="reg-agent">
+                                <i class="bi bi-person-fill me-1 opacity-40"></i>{{ alert.emetteur.nomComplet }}
+                            </span>
+                        {% else %}
+                            <span class="reg-empty">—</span>
+                        {% endif %}
+                    </td>
+
+                    {# Actions #}
+                    <td class="reg-td reg-col-actions">
+                        <div class="reg-actions">
+                            <a href="{{ path('app_alert_show', {id: alert.id}) }}"
+                               class="reg-action-btn" title="Consulter">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if is_granted('ALERT_QUALIFY', alert) %}
+                            <a href="{{ path('app_alert_qualify', {id: alert.id}) }}"
+                               class="reg-action-btn reg-action-qualify" title="Qualifier">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
                             {% endif %}
-                        </td>
-                        <td>{% include 'components/_alert_badge.html.twig' with {priority: alert.effectiveNiveauPriorite} %}</td>
-                        <td>
-                            {% if alert.statut %}
-                                <span class="status-pill status-{{ alert.statut.value }}">
-                                    <span class="status-dot"></span>{{ alert.statut.label() }}
-                                </span>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        {# Traçabilité nominative (Partie B) #}
-                        <td class="text-xs text-slate-400 whitespace-nowrap">
-                            {% if alert.emetteur %}
-                                <i class="bi bi-person-fill me-1 opacity-50"></i>{{ alert.emetteur.nomComplet }}
-                            {% else %}—{% endif %}
-                        </td>
-                        <td class="text-xs text-slate-400 whitespace-nowrap">
-                            {% if alert.validatedBy %}
-                                <i class="bi bi-shield-check me-1 text-emerald-400 opacity-70"></i>{{ alert.validatedBy.nomComplet }}
-                            {% else %}<span class="text-slate-600">—</span>{% endif %}
-                        </td>
-                        <td><div class="registry-buttons">
-                            <a class="registry-icon-btn" title="Consulter" href="{{ path('app_alert_show', {id: alert.id}) }}"><i class="bi bi-eye"></i></a>
-                            {% if is_granted('ALERT_QUALIFY', alert) %}<a class="registry-icon-btn" title="Qualifier" href="{{ path('app_alert_qualify', {id: alert.id}) }}"><i class="bi bi-pencil-square"></i></a>{% endif %}
-                        </div></td>
-                    </tr>
-                    <tr id="idx-details-row-{{ alert.id }}" class="registry-detail hidden">
-                        <td colspan="11"><div class="registry-detail-grid">
-                            <div class="registry-detail-block"><span class="registry-detail-label">Éléments factuels</span>{{ alert.elementsFactuels ?: 'Non renseigné' }}</div>
-                            <div class="registry-detail-block"><span class="registry-detail-label">Hypothèses analytiques</span>{{ alert.hypothesesAnalytiques ?: 'Non renseigné' }}</div>
-                            <div class="registry-detail-block"><span class="registry-detail-label">Informations de suivi</span><strong>Type :</strong> {{ alert.typeLocalisation ? alert.typeLocalisation.label() : '—' }}<br><strong>Corridor :</strong> {{ alert.portCorridor ?? '—' }}<br><strong>Opérateur :</strong> {{ alert.operateurActeur ?: '—' }}<br><strong>Source :</strong> {{ alert.typeSource ?: '—' }}<br><strong>Transmission :</strong> {{ alert.transmission.label() }}<br><strong>Sensibilité :</strong> {{ alert.sensibilite.label() }}</div>
-                        </div></td>
-                    </tr>
-                {% else %}
-                    <tr><td colspan="12">
+                        </div>
+                    </td>
+                </tr>
+
+                {# Ligne détail repliable #}
+                <tr class="reg-detail-row hidden" id="reg-detail-{{ alert.id }}">
+                    <td colspan="12">
+                        <div class="reg-detail-body">
+                            <div class="reg-detail-grid">
+                                <div class="reg-detail-block">
+                                    <span class="reg-detail-label">
+                                        <i class="bi bi-file-text me-1 text-amber-400"></i>Résumé complet
+                                    </span>
+                                    <p>{{ alert.resumeExecutif ?: '—' }}</p>
+                                </div>
+                                <div class="reg-detail-block">
+                                    <span class="reg-detail-label">
+                                        <i class="bi bi-clipboard-data me-1 text-amber-400"></i>Éléments factuels
+                                    </span>
+                                    <p>{{ alert.elementsFactuels ?: '—' }}</p>
+                                </div>
+                                <div class="reg-detail-block">
+                                    <span class="reg-detail-label">
+                                        <i class="bi bi-info-circle me-1 text-amber-400"></i>Informations
+                                    </span>
+                                    <div class="reg-detail-meta">
+                                        <span><strong>Opérateur :</strong> {{ alert.operateurActeur ?: '—' }}</span>
+                                        <span><strong>Source :</strong> {{ alert.typeSource ?: '—' }}</span>
+                                        <span><strong>Transmission :</strong> {{ alert.transmission.label() }}</span>
+                                        <span><strong>Sensibilité :</strong> {{ alert.sensibilite.label() }}</span>
+                                        {% if alert.validatedBy %}
+                                        <span><strong>Manager :</strong>
+                                            <i class="bi bi-shield-check me-1 text-emerald-400"></i>{{ alert.validatedBy.nomComplet }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="reg-detail-footer">
+                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost" style="font-size:11px;padding:5px 12px">
+                                    <i class="bi bi-arrow-right me-1"></i>Voir la fiche complète
+                                </a>
+                                {% if is_granted('ALERT_QUALIFY', alert) %}
+                                <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber" style="font-size:11px;padding:5px 12px">
+                                    <i class="bi bi-pencil-square me-1"></i>Qualifier
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
+            {% else %}
+                <tr>
+                    <td colspan="12">
                         {% include 'components/_empty_state.html.twig' with {
                             icon: 'bi-folder2-open',
                             title: 'Aucune alerte ne correspond à cette sélection',
@@ -230,60 +347,362 @@
                             has_active_filters: (filters|filter(v => v is not null and v is not same as(''))|length > 0),
                             reset_url: path('app_alert_index'),
                         } %}
-                    </td></tr>
-                {% endfor %}                </tbody>
-            </table>
-        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
-</section>
+
+    {# Footer tableau #}
+    {% if alerts|length > 0 %}
+    <div class="reg-table-footer">
+        <span class="reg-footer-count">
+            <i class="bi bi-table me-1.5 opacity-50"></i>
+            {{ alerts|length }} alerte{{ alerts|length > 1 ? 's' : '' }} affichée{{ alerts|length > 1 ? 's' : '' }}
+        </span>
+        <span class="reg-footer-hint">
+            <i class="bi bi-chevron-right me-1 opacity-40"></i>Cliquez sur une ligne pour les détails
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+</div>{# /db-wrapper #}
 {% endblock %}
 
 {% block javascripts %}
-<style>
-.registry-filters-row {
-    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-    padding:10px 1px;
-}
-.registry-filter-field { display:flex; align-items:center; gap:6px; }
-.registry-filter-label { font-size:11px; font-weight:600; color:var(--text-muted); white-space:nowrap; }
-.form-select-sm { height:32px; font-size:12px; padding:0 28px 0 8px; }
-.registry-filter-reset {
-    font-size:11px; color:var(--text-muted); text-decoration:none;
-    display:flex; align-items:center; gap:4px;
-}
-.registry-filter-reset:hover { color:#f87171; }
-</style>
+{{ parent() }}
 <script>
-function toggleDetailsIndex(id) {
-    const row = document.getElementById('idx-details-row-' + id);
-    const button = document.getElementById('btn-idx-toggle-' + id);
+/* ── Toggle ligne de détail ── */
+function toggleRow(id, btn) {
+    const row = document.getElementById('reg-detail-' + id);
+    const icon = btn.querySelector('i');
     const isHidden = row.classList.contains('hidden');
+    // Fermer les autres lignes ouvertes
+    document.querySelectorAll('.reg-detail-row:not(.hidden)').forEach(r => {
+        if (r.id !== 'reg-detail-' + id) {
+            r.classList.add('hidden');
+            const otherBtn = document.querySelector('[data-id="' + r.id.replace('reg-detail-', '') + '"] .reg-expand-btn i');
+            if (otherBtn) { otherBtn.className = 'bi bi-chevron-right'; }
+        }
+    });
     row.classList.toggle('hidden', !isHidden);
-    button.textContent = isHidden ? '−' : '+';
-    button.setAttribute('aria-label', isHidden ? 'Masquer les détails' : 'Afficher les détails');
+    icon.className = isHidden ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+    // Surligner la ligne parente
+    btn.closest('tr').classList.toggle('reg-row-expanded', isHidden);
 }
 
+/* ── Filtre rapide côté client ── */
 let _regTimer;
 function filterRegistreTable(q) {
     clearTimeout(_regTimer);
+    const clearBtn = document.getElementById('regSearchClear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !q);
     _regTimer = setTimeout(() => {
         const term = q.toLowerCase().trim();
         document.querySelectorAll('.reg-row').forEach(row => {
-            const text = [
-                row.dataset.code,
-                row.dataset.zone,
-                row.dataset.cat,
-                row.dataset.resume,
-                row.dataset.operateur
-            ].join(' ').toLowerCase();
-            const matchRow = !term || text.includes(term);
-            row.style.display = matchRow ? '' : 'none';
-            const detailRow = row.nextElementSibling;
-            if (detailRow && detailRow.classList.contains('registry-detail')) {
-                if (!matchRow) detailRow.style.display = 'none';
-            }
+            const text = [row.dataset.code, row.dataset.zone, row.dataset.cat,
+                          row.dataset.resume, row.dataset.operateur].join(' ');
+            const match = !term || text.includes(term);
+            row.style.display = match ? '' : 'none';
+            const detail = document.getElementById('reg-detail-' + row.dataset.id);
+            if (detail && !match) detail.classList.add('hidden');
         });
-    }, 250);
+    }, 200);
+}
+
+function clearSearch() {
+    const inp = document.getElementById('registreSearch');
+    inp.value = '';
+    filterRegistreTable('');
+    inp.focus();
 }
 </script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   REGISTRE ALERTES — Design system GEI
+   Dark navy + amber, responsive 3 breakpoints
+════════════════════════════════════════════════════════════════ */
+
+/* ── En-tête ── */
+.reg-header-actions {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; flex-shrink: 0;
+}
+
+/* ── Barre de filtres ── */
+.reg-filters-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 12px 16px;
+    margin-bottom: 4px;
+}
+.reg-search-wrap {
+    position: relative; flex: 1; min-width: 220px;
+}
+.reg-search-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); font-size: 12px; pointer-events: none;
+}
+.reg-search-input {
+    width: 100%; background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 32px 8px 32px;
+    font-size: 12.5px; color: var(--text); outline: none;
+    transition: border-color .2s;
+}
+.reg-search-input:focus { border-color: var(--amber); }
+.reg-search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: 14px; padding: 2px 4px; border-radius: 4px;
+}
+.reg-search-clear:hover { color: #f87171; }
+.reg-inline-filters { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.reg-filter-item { display: flex; align-items: center; gap: 6px; }
+.reg-filter-label { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.reg-select {
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 26px 5px 8px; font-size: 11.5px;
+    color: var(--text); height: 30px; cursor: pointer; outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+}
+.reg-select:focus { border-color: var(--amber); }
+.reg-reset-btn {
+    font-size: 11px; color: #f87171; text-decoration: none;
+    display: flex; align-items: center; gap: 3px;
+    padding: 4px 8px; border-radius: 6px;
+    border: 1px solid rgba(248,113,113,.2); background: rgba(248,113,113,.05);
+    transition: all .15s;
+}
+.reg-reset-btn:hover { background: rgba(248,113,113,.12); }
+
+/* ── Tableau ── */
+.reg-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.reg-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    min-width: 700px;
+}
+.reg-th {
+    padding: 11px 14px; text-align: left;
+    font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--text-muted);
+    background: var(--card2); border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.reg-th-toggle { width: 36px; background: var(--card2); border-bottom: 1px solid var(--border); }
+.reg-th:first-child { border-radius: 10px 0 0 0; }
+.reg-th:last-child  { border-radius: 0 10px 0 0; }
+
+.reg-td {
+    padding: 12px 14px; border-bottom: 1px solid rgba(148,163,184,0.06);
+    vertical-align: middle; color: var(--dim);
+}
+.reg-td-toggle { padding: 0 0 0 8px; width: 36px; }
+
+/* ── Ligne ── */
+.reg-row { transition: background .12s; cursor: default; }
+.reg-row:hover td { background: rgba(255,255,255,0.025); }
+.reg-row-expanded td { background: rgba(251,191,36,0.04) !important; }
+
+/* Indicateur latéral coloré selon priorité */
+.reg-row td:first-child { position: relative; }
+.reg-row-critique td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+.reg-row-eleve    td:first-child { box-shadow: inset 3px 0 0 #fb923c; }
+.reg-row-modere   td:first-child { box-shadow: inset 3px 0 0 #fbbf24; }
+.reg-row-faible   td:first-child { box-shadow: inset 3px 0 0 #34d399; }
+
+/* ── Cellules ── */
+.reg-code-link {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11.5px; font-weight: 700; color: var(--amber);
+    text-decoration: none; letter-spacing: .03em;
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.reg-code-link:hover { text-decoration: underline; }
+
+.reg-urgence-dot {
+    display: inline-block; width: 6px; height: 6px;
+    background: #ef4444; border-radius: 50%;
+    animation: pulse-red 1.5s infinite;
+    vertical-align: middle; margin-left: 4px;
+}
+@keyframes pulse-red {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .5; transform: scale(1.3); }
+}
+
+.reg-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+.reg-pays-cell { display: flex; align-items: center; gap: 6px; }
+.reg-pays { font-weight: 600; font-size: 12px; color: var(--text); }
+.reg-loc-type {
+    width: 20px; height: 20px; border-radius: 5px;
+    display: grid; place-items: center; font-size: 10px; flex-shrink: 0;
+}
+.reg-loc-corridor { background: rgba(52,211,153,.12); color: #34d399; }
+.reg-loc-port     { background: rgba(96,165,250,.12);  color: #60a5fa; }
+.reg-loc-aeroport { background: rgba(251,191,36,.12);  color: var(--amber); }
+
+.reg-corridor {
+    font-size: 11px; color: var(--dim);
+    max-width: 150px; display: block;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reg-categorie {
+    display: inline-block; font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 99px;
+    background: rgba(148,163,184,0.08); color: var(--text-muted);
+    border: 1px solid rgba(148,163,184,0.15);
+    max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.reg-resume {
+    font-size: 11.5px; color: var(--dim); line-height: 1.5;
+    max-width: 260px; overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    margin: 0;
+}
+.reg-empty { color: var(--text-muted); opacity: 0.5; }
+.reg-agent { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+
+/* ── Score ── */
+.reg-score {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 26px; border-radius: 7px;
+    font-size: 12px; font-weight: 800; border: 1px solid;
+}
+.reg-score-critique { background: rgba(239,68,68,.1);   color: #f87171; border-color: rgba(239,68,68,.25); }
+.reg-score-eleve    { background: rgba(251,146,60,.1);  color: #fb923c; border-color: rgba(251,146,60,.25); }
+.reg-score-modere   { background: rgba(251,191,36,.1);  color: #fbbf24; border-color: rgba(251,191,36,.25); }
+.reg-score-faible   { background: rgba(52,211,153,.1);  color: #34d399; border-color: rgba(52,211,153,.25); }
+.reg-score-na       { color: var(--text-muted); opacity: .4; font-size: 14px; }
+
+/* ── Badges priorité — design MANUEL (pas IA) ── */
+.reg-prio {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px; font-size: 11px;
+    font-weight: 700; border: 1px solid; white-space: nowrap;
+    letter-spacing: .02em;
+}
+.reg-prio-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+
+/* Critique — rouge vif, marquage intense */
+.reg-prio-critique {
+    background: rgba(239,68,68,.12); color: #f87171;
+    border-color: rgba(239,68,68,.3);
+}
+.reg-prio-critique .reg-prio-dot {
+    background: #ef4444;
+    box-shadow: 0 0 5px rgba(239,68,68,.7);
+    animation: pulse-red 1.5s infinite;
+}
+
+/* Élevé — orange */
+.reg-prio-eleve {
+    background: rgba(251,146,60,.1); color: #fb923c;
+    border-color: rgba(251,146,60,.25);
+}
+.reg-prio-eleve .reg-prio-dot { background: #fb923c; }
+
+/* Modéré — amber */
+.reg-prio-modere {
+    background: rgba(251,191,36,.1); color: #fbbf24;
+    border-color: rgba(251,191,36,.25);
+}
+.reg-prio-modere .reg-prio-dot { background: #fbbf24; }
+
+/* Faible — vert #}*/
+.reg-prio-faible {
+    background: rgba(52,211,153,.1); color: #34d399;
+    border-color: rgba(52,211,153,.25);
+}
+.reg-prio-faible .reg-prio-dot { background: #34d399; }
+
+/* ── Expand bouton ── */
+.reg-expand-btn {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: none; border: 1px solid var(--border);
+    display: grid; place-items: center;
+    cursor: pointer; color: var(--text-muted);
+    font-size: 10px; transition: all .15s;
+}
+.reg-expand-btn:hover { background: var(--amber-dim); border-color: var(--amber-border); color: var(--amber); }
+
+/* ── Ligne de détail ── */
+.reg-detail-row td { padding: 0; border-bottom: 2px solid var(--border); }
+.reg-detail-body {
+    background: var(--card2); padding: 16px 20px 12px;
+    border-top: 1px solid rgba(251,191,36,.15);
+}
+.reg-detail-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+}
+.reg-detail-block {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+}
+.reg-detail-label {
+    display: block; font-size: 9.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .07em;
+    color: var(--text-muted); margin-bottom: 8px;
+}
+.reg-detail-block p {
+    font-size: 11.5px; color: var(--dim); line-height: 1.6; margin: 0;
+}
+.reg-detail-meta {
+    display: flex; flex-direction: column; gap: 5px;
+    font-size: 11.5px; color: var(--dim);
+}
+.reg-detail-footer {
+    display: flex; gap: 8px; justify-content: flex-end;
+    padding-top: 12px; margin-top: 12px;
+    border-top: 1px solid var(--border);
+}
+
+/* ── Actions ── */
+.reg-col-actions { width: 72px; }
+.reg-col-center  { text-align: center; }
+.reg-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.reg-action-btn {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: grid; place-items: center; font-size: 12px;
+    background: none; border: 1px solid var(--border);
+    color: var(--text-muted); text-decoration: none;
+    transition: all .15s;
+}
+.reg-action-btn:hover { background: var(--card2); color: var(--text); border-color: rgba(148,163,184,.3); }
+.reg-action-qualify:hover { background: var(--amber-dim); color: var(--amber); border-color: var(--amber-border); }
+
+/* ── Footer tableau ── */
+.reg-table-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-muted);
+}
+.reg-footer-count { font-weight: 600; }
+
+/* ── Colonnes masquées responsive ── */
+@media (max-width: 1200px) {
+    .reg-col-hide-md { display: none; }
+    .reg-detail-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 800px) {
+    .reg-col-hide-sm  { display: none; }
+    .reg-col-date     { display: none; }
+    .reg-col-resume   { max-width: 140px; }
+    .reg-resume       { -webkit-line-clamp: 1; }
+    .reg-header-actions .btn-label { display: none; }
+    .reg-detail-grid  { grid-template-columns: 1fr; }
+    .reg-filters-bar  { padding: 10px 12px; gap: 8px; }
+}
+@media (max-width: 560px) {
+    .reg-table { min-width: 480px; }
+    .page-header-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
 {% endblock %}

@@ -59,8 +59,13 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['market'])) {
-            $qb->andWhere('a.market = :filterMarket')
-               ->setParameter('filterMarket', $filters['market']);
+            if ($filters['market'] instanceof Market) {
+                $qb->andWhere('a.market = :filterMarket')
+                   ->setParameter('filterMarket', $filters['market']);
+            } else {
+                $qb->andWhere('IDENTITY(a.market) = :filterMarket')
+                   ->setParameter('filterMarket', (int) $filters['market']);
+            }
         }
 
         if (!empty($filters['categorie'])) {
@@ -371,7 +376,7 @@ class AlertRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a')
             ->select('a.categorie AS cat', 'COUNT(a.id) AS cnt')
-            ->where('a.market = :marketId AND a.deletedAt IS NULL')
+            ->where('IDENTITY(a.market) = :marketId AND a.deletedAt IS NULL')
             ->setParameter('marketId', $marketId)
             ->groupBy('a.categorie');
 
@@ -413,7 +418,7 @@ class AlertRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a')
             ->select('a.portCorridor AS corridor', 'COUNT(a.id) AS cnt')
-            ->where('a.market = :marketId AND a.deletedAt IS NULL AND a.portCorridor IS NOT NULL AND a.portCorridor != :empty')
+            ->where('IDENTITY(a.market) = :marketId AND a.deletedAt IS NULL AND a.portCorridor IS NOT NULL AND a.portCorridor != :empty')
             ->setParameter('marketId', $marketId)
             ->setParameter('empty', '')
             ->groupBy('a.portCorridor')

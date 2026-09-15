@@ -63,6 +63,9 @@ class AlertCodeGeneratorService
         private readonly EntityManagerInterface $em,
     ) {}
 
+    /** @var array<string, int> Cache des séquences générées dans le processus courant */
+    private array $lastSequence = [];
+
     /**
      * Génère et retourne le code GEI pour l'alerte donnée.
      * Format : GEI-{ISO3}-{ANNEE}-{SEQ:003}
@@ -80,10 +83,12 @@ class AlertCodeGeneratorService
 
     /**
      * Calcule le prochain numéro de séquence pour un pays et une année donnés.
-     * Utilise FOR UPDATE pour protéger contre les créations simultanées.
+     * Utilise FOR UPDATE pour protéger contre les créations simultanées,
+     * et prend en compte les séquences déjà générées en mémoire (ex: fixtures/imports).
      */
     public function getNextSequence(string $iso3, string $annee): int
     {
+        $key = sprintf('%s-%s', $iso3, $annee);
         $conn = $this->em->getConnection();
 
         $sql = '
@@ -93,11 +98,15 @@ class AlertCodeGeneratorService
             FOR UPDATE
         ';
 
-        $maxSeq = (int) $conn->fetchOne($sql, [
+        $dbMax = (int) $conn->fetchOne($sql, [
             'pattern' => sprintf('GEI-%s-%s-%%', $iso3, $annee),
         ]);
 
-        return $maxSeq + 1;
+        $currentMax = max($dbMax, $this->lastSequence[$key] ?? 0);
+        $nextSeq = $currentMax + 1;
+        $this->lastSequence[$key] = $nextSeq;
+
+        return $nextSeq;
     }
 
     /**

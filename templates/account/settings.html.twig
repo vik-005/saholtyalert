@@ -9,6 +9,12 @@
         <div class="account-avatar">{{ user.prenom|slice(0,1) }}{{ user.nom|slice(0,1) }}</div>
         <div><p class="registry-kicker">Espace personnel</p><h1 class="registry-title">Profil et sécurité</h1><p class="registry-subtitle">Gérez vos informations et les accès à votre compte.</p></div>
     </header>
+
+    <nav class="account-tabs">
+        <a href="{{ path('app_account_settings') }}" class="account-tab active">Profil</a>
+        <a href="{{ path('app_2fa_settings') }}" class="account-tab">Sécurité 2FA</a>
+    </nav>
+
     <div class="account-grid">
         <form method="post" class="account-card">
             <input type="hidden" name="action" value="profile"><input type="hidden" name="_token" value="{{ csrf_token('account-profile') }}">

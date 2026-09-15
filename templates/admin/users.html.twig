@@ -52,12 +52,13 @@
             <table class="db-table" id="usersTable">
                 <thead>
                     <tr>
-                        <th><i class="bi-person me-1 opacity-50"></i>Nom complet</th>
-                        <th><i class="bi-envelope me-1 opacity-50"></i>Email</th>
-                        <th><i class="bi-shield-lock me-1 opacity-50"></i>Rôle GEI</th>
-                        <th><i class="bi-earth-americas me-1 opacity-50"></i>Marché</th>
-                        <th><i class="bi-bullseye me-1 opacity-50"></i>Statut</th>
-                        <th class="text-right"><i class="bi-three-dots me-1 opacity-50"></i>Actions</th>
+                        <th>Utilisateur</th>
+                        <th>Email</th>
+                        <th>Rôle GEI</th>
+                        <th>Marché(s)</th>
+                        <th>2FA</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -69,23 +70,20 @@
                         data-status="{{ u.actif ? 'actif' : 'inactif' }}">
 
                         <td>
-                            <div style="display:flex;align-items:center;gap:9px">
-                                <div class="profile-avatar"
-                                     style="width:30px;height:30px;font-size:10px;font-weight:800;border-radius:8px;flex-shrink:0">
+                            <div class="adm-user-cell">
+                                <div class="profile-avatar adm-avatar">
                                     {{ u.prenom|slice(0,1) }}{{ u.nom|slice(0,1) }}
                                 </div>
                                 <div>
-                                    <span style="display:block;font-weight:600;color:var(--text);font-size:12px">{{ u.nomComplet }}</span>
+                                    <span class="adm-user-name">{{ u.nomComplet }}</span>
                                     {% if u.fonction %}
-                                        <span style="display:block;font-size:10px;color:var(--muted)">{{ u.fonction }}</span>
+                                        <span class="adm-user-sub">{{ u.fonction }}</span>
                                     {% endif %}
                                 </div>
                             </div>
                         </td>
 
-                        <td style="font-family:monospace;color:var(--muted);font-size:11px">
-                            {{ u.email }}
-                        </td>
+                        <td class="adm-mono">{{ u.email }}</td>
 
                         <td>
                             {% set roleColor = {
@@ -96,18 +94,34 @@
                                 'ROLE_COMITE_AIT':     'priority-modere',
                                 'ROLE_SECRETARIAT_GEI':'priority-faible',
                             } %}
-                            <span class="priority-badge {{ roleColor[u.role.value] ?? 'priority-faible' }}" style="font-size:10px">
-                                <i class="bi-shield-lock fa-xs me-1"></i>
+                            <span class="priority-badge {{ roleColor[u.role.value] ?? 'priority-faible' }} adm-role-badge">
                                 {{ u.role.label() }}
                             </span>
                         </td>
 
-                        <td style="color:var(--dim);font-size:12px">
-                            {% if u.market %}
-                                <i class="bi-geo-alt fa-xs me-1" style="color:var(--muted)"></i>
-                                {{ u.market.nom }}
+                        <td>
+                            {% if u.agentMarkets is defined and u.agentMarkets|length > 0 %}
+                                <div class="adm-markets">
+                                    {% for m in u.agentMarkets %}
+                                        <span class="adm-market-tag">{{ m.codeIso3 }}</span>
+                                    {% endfor %}
+                                </div>
+                            {% elseif u.market %}
+                                <span class="adm-text-dim">{{ u.market.nom }}</span>
                             {% else %}
-                                <span style="color:var(--muted)">Global / Régional</span>
+                                <span class="adm-text-muted">Global</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if u.totpEnabled %}
+                                <span class="adm-2fa-on">
+                                    <i class="bi-shield-check-fill me-1"></i>Actif
+                                </span>
+                            {% else %}
+                                <span class="adm-2fa-off">
+                                    <i class="bi-shield-slash me-1"></i>Off
+                                </span>
                             {% endif %}
                         </td>
 
@@ -116,13 +130,9 @@
                                 <span class="status-pill status-transmis">
                                     <span class="status-dot"></span>Actif
                                 </span>
-                            {% elseif u.actif is same as(false) %}
+                            {% else %}
                                 <span class="status-pill status-archive">
                                     <span class="status-dot"></span>Inactif
-                                </span>
-                            {% else %}
-                                <span class="status-pill">
-                                    <span class="status-dot"></span>En attente
                                 </span>
                             {% endif %}
                         </td>
@@ -130,23 +140,22 @@
                         <td>
                             <div class="table-actions">
                                 <a href="{{ path('app_admin_user_edit', {id: u.id}) }}"
-                                   class="tbl-btn tbl-btn-ghost" title="Éditer l'utilisateur">
+                                   class="tbl-btn tbl-btn-ghost" title="Éditer">
                                     <i class="bi-pencil-square"></i>
                                 </a>
                                 <button type="button"
                                         class="delete-trigger tbl-btn tbl-btn-red"
-                                        title="Supprimer l'utilisateur"
+                                        title="Supprimer"
                                         data-delete-url="{{ path('app_admin_user_delete', {id: u.id}) }}"
                                         data-delete-token="{{ csrf_token('delete-user-' ~ u.id) }}">
                                     <i class="bi-trash"></i>
                                 </button>
                             </div>
                         </td>
-
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="db-empty-state">
                                 <i class="bi-person fa-2x" style="color:var(--muted);margin-bottom:8px;display:block"></i>
                                 <p>Aucun utilisateur enregistré.</p>
@@ -166,6 +175,41 @@
 
 {% block javascripts %}
 {{ parent() }}
+<style>
+/* ── Tableau utilisateurs ── */
+.adm-user-cell { display:flex; align-items:center; gap:10px; }
+.adm-avatar    { width:32px; height:32px; font-size:11px; font-weight:800; border-radius:9px; flex-shrink:0; }
+.adm-user-name { display:block; font-weight:700; color:var(--text); font-size:12.5px; line-height:1.3; }
+.adm-user-sub  { display:block; font-size:10.5px; color:var(--text-muted); margin-top:1px; }
+.adm-mono      { font-family:'JetBrains Mono',monospace; color:var(--dim); font-size:11px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.adm-role-badge { font-size:10.5px !important; white-space:nowrap; }
+.adm-markets   { display:flex; flex-wrap:wrap; gap:4px; }
+.adm-market-tag {
+    display:inline-flex; align-items:center; gap:2px;
+    font-size:10px; font-weight:700;
+    background:rgba(251,191,36,.1); color:var(--amber);
+    padding:2px 7px; border-radius:99px;
+    border:1px solid rgba(251,191,36,.25);
+}
+.adm-text-dim  { font-size:12px; color:var(--dim); }
+.adm-text-muted { font-size:12px; color:var(--text-muted); font-style:italic; }
+.adm-2fa-on  { display:inline-flex; align-items:center; font-size:10.5px; font-weight:700; color:#6ee7b7; }
+.adm-2fa-off { display:inline-flex; align-items:center; font-size:10.5px; color:var(--text-muted); }
+/* En-têtes tableau : visibles et centrés */
+.db-table thead th {
+    font-size:10px !important; font-weight:700 !important;
+    letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-muted) !important; padding:12px 14px !important;
+    white-space:nowrap; background:var(--card2);
+    border-bottom:1px solid var(--border);
+}
+.db-table tbody td {
+    font-size:12px; color:var(--dim); padding:11px 14px;
+    border-bottom:1px solid rgba(148,163,184,.06);
+    vertical-align:middle;
+}
+.db-table .db-tr:last-child td { border-bottom:none; }
+</style>
 <script>
 /* ── Filtrage live côté client ── */
 function filterUsers(val) {

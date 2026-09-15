@@ -34,7 +34,7 @@ class GeneralDashboardController extends AbstractController
         $notifications = $notificationRepo->findAllForUser($user, 15);
 
         // --- KPIs via KPIService (avec cache) ---
-        $kpis = $alertRepository->getKpiStats();
+        $kpis = $alertRepository->getKpiStats($user);  // filtré par rôle
         $kpisByPrio = $alertRepository->countByNiveauPriorite($user);
         $kpisByPays = $alertRepository->countByPays($user);
         $scoreMoyen = $alertRepository->getScoreMoyen($user);

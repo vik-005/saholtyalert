@@ -182,6 +182,57 @@ class AuditController extends AbstractController
     }
 
     /**
+     * Export Excel (multi-feuilles : Résumé, Données, Stats par marché/categorie/statut/ mois).
+     */
+    #[Route('/export/excel', name: 'app_audit_export_excel', methods: ['POST'])]
+    public function exportExcel(
+        Request $request,
+        AuditService $auditService,
+        AuditExcelExportService $excelExport,
+    ): Response {
+        $user = $this->getUser();
+        if (!$user instanceof \App\Entity\User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $dto = AuditFilterDTO::fromRequest($request);
+        $result = $auditService->getResults($dto, $user);
+        $stats = $auditService->getChartData($dto, $user);
+
+        return $excelExport->export($dto, $stats, $result['rows']);
+    }
+
+    /**
+     * Export PDF (A4 landscape, en-tête et footer officiels).
+     */
+    #[Route('/export/pdf', name: 'app_audit_export_pdf', methods: ['POST'])]
+    public function exportPdf(
+        Request $request,
+        AuditService $auditService,
+        AuditPdfExportService $pdfExport,
+    ): Response {
+        $user = $this->getUser();
+        if (!$user instanceof \App\Entity\User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $dto = AuditFilterDTO::fromRequest($request);
+        $result = $auditService->getResults($dto, $user);
+        $stats = $auditService->getChartData($dto, $user);
+
+        $pdfContent = $pdfExport->generatePdf($dto, $user, $stats, $result['rows']);
+
+        $response = new Response($pdfContent);
+        $response->headers->set('Content-Type', 'application/pdf');
+        $response->headers->set('Content-Disposition', sprintf(
+            'attachment; filename="Audit_GEI_%s.pdf"',
+            (new \DateTime())->format('Y-m-d_His')
+        ));
+        $response->headers->set('Cache-Control', 'max-age=0');
+        return $response;
+    }
+
+    /**
      * Autocomplétion des valeurs d'Opérateur / Acteur connues en base.
      * Retourne un tableau JSON de chaînes correspondant aux valeurs déjà saisies.
      */

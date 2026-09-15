@@ -31,7 +31,14 @@
     padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    max-height: calc(100vh - 170px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
 }
+.carte-filters::-webkit-scrollbar { width: 5px; }
+.carte-filters::-webkit-scrollbar-track { background: transparent; }
+.carte-filters::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 5px; }
 .carte-results {
     flex: 1; overflow-y: auto;
     padding: 8px 0;
@@ -780,7 +787,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     function loadAlertesList(zoneId, zoneName) {
         const params = new URLSearchParams();
-        params.set('market', zoneId);
+        params.set('marketId', zoneId);
         const fForm = document.getElementById('carteFiltersForm');
         new FormData(fForm).forEach((v, k) => { if (v) params.append(k, v); });
         window.open('/alert/?' + params.toString(), '_blank');

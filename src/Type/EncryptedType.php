@@ -5,6 +5,8 @@ namespace App\Type;
 use App\Service\CryptoService;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\StringType;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class EncryptedType extends StringType
 {
@@ -12,6 +14,17 @@ class EncryptedType extends StringType
 
     private static ?CryptoService $cryptoService = null;
     private static bool $cryptoServiceFailed = false;
+    private static LoggerInterface $logger;
+
+    public static function setLogger(LoggerInterface $logger): void
+    {
+        self::$logger = $logger;
+    }
+
+    private static function getLogger(): LoggerInterface
+    {
+        return self::$logger ?? (self::$logger = new NullLogger());
+    }
 
     public function __construct()
     {
@@ -53,10 +66,24 @@ class EncryptedType extends StringType
             return null;
         }
 
-        $decrypted = $this->getCryptoService()->decrypt((string) $value);
+        try {
+            $decrypted = $this->getCryptoService()->decrypt((string) $value);
+        } catch (\Throwable $e) {
+            // Si le service de déchiffrement n'est pas disponible (clé absente, etc.),
+            // on retourne null plutôt que de lever une exception.
+            // Lever une exception ici déconnecte l'utilisateur car Symfony
+            // l'attrape dans le UserProvider et invalide la session.
+            self::getLogger()->warning('EncryptedType: déchiffrement impossible (service indisponible). Vérifier APP_ENCRYPTION_KEY.', [
+                'error' => $e->getMessage(),
+            ]);
+            return null;
+        }
 
+        // Si le déchiffrement échoue (mauvaise clé, données corrompues), on retourne null
+        // plutôt que de propager une exception qui invaliderait la session.
+        // Le champ totpSecret à null désactive simplement le 2FA pour cet utilisateur.
         if ($decrypted === null) {
-            throw new \InvalidArgumentException('Failed to decrypt value. The encryption key may have changed.');
+            self::getLogger()->warning('EncryptedType: déchiffrement retourné null pour une valeur non-vide. La clé APP_ENCRYPTION_KEY a peut-être changé.');
         }
 
         return $decrypted;

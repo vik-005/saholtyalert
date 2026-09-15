@@ -27,10 +27,10 @@
         }
 
         /* ═══════════════════════════════════════════════
-           HEADER OFFICIEL — Bandeau institutionnel
+           HEADER OFFICIEL — Bandeau vert institutionnel GEI
            ═══════════════════════════════════════════════ */
         .doc-header {
-            background: #0f172a;
+            background: linear-gradient(135deg, #0d5f4a 0%, #16856b 60%, #1ca882 100%);
             color: #ffffff;
             padding: 0;
             position: relative;
@@ -38,42 +38,53 @@
         .header-inner {
             display: flex;
             align-items: center;
-            padding: 12px 18px;
-            gap: 14px;
+            padding: 14px 20px;
+            gap: 16px;
         }
         .header-logo {
-            width: 42px;
-            height: 42px;
-            background: linear-gradient(135deg, #16856b 0%, #45e3b8 100%);
-            border-radius: 6px;
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            font-weight: bold;
-            color: #0f172a;
+            font-size: 22px;
+            font-weight: 900;
+            color: #ffffff;
             flex-shrink: 0;
+            letter-spacing: -1px;
         }
         .header-text {
             flex: 1;
         }
         .header-platform {
-            font-size: 8px;
+            font-size: 7.5px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.7;
+            letter-spacing: 2.5px;
+            color: rgba(255,255,255,0.75);
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        .header-platform-name {
+            font-size: 12px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
             margin-bottom: 2px;
         }
         .header-title {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 17px;
+            font-weight: 900;
             margin: 0;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
+            color: #ffffff;
         }
         .header-subtitle {
             font-size: 9px;
-            opacity: 0.6;
-            margin-top: 2px;
+            color: rgba(255,255,255,0.65);
+            margin-top: 3px;
         }
         .header-meta {
             text-align: right;
@@ -81,26 +92,32 @@
         }
         .header-ref {
             font-family: monospace;
-            font-size: 13px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: #45e3b8;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: #c9f0e3;
         }
         .header-date {
             font-size: 8px;
-            opacity: 0.6;
+            color: rgba(255,255,255,0.65);
             margin-top: 3px;
         }
         .header-classification {
             display: inline-block;
-            background: #dc2626;
+            background: rgba(0,0,0,0.25);
             color: #fff;
             font-size: 7px;
-            font-weight: bold;
+            font-weight: 800;
             padding: 3px 10px;
-            border-radius: 2px;
-            letter-spacing: 1.5px;
+            border-radius: 3px;
+            letter-spacing: 2px;
             margin-top: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        /* Ligne de séparation décorative sous le header */
+        .header-accent-bar {
+            height: 3px;
+            background: linear-gradient(90deg, #c9f0e3 0%, #45e3b8 50%, rgba(255,255,255,0.2) 100%);
         }
 
         /* ═══════════════════════════════════════════════
@@ -175,22 +192,22 @@
         }
 
         /* ═══════════════════════════════════════════════
-           SECTIONS — Cartes avec en-tête coloré
+           SECTIONS — Cartes avec en-tête vert GEI
            ═══════════════════════════════════════════════ */
         .section {
             margin-bottom: 12px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #d1e8e0;
             border-radius: 4px;
             overflow: hidden;
         }
         .section-header {
-            background: #0f172a;
+            background: #16856b;
             color: #ffffff;
-            padding: 6px 12px;
+            padding: 7px 12px;
             font-size: 9px;
-            font-weight: bold;
+            font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -201,11 +218,11 @@
             justify-content: center;
             width: 18px;
             height: 18px;
-            background: #16856b;
+            background: rgba(255,255,255,0.2);
             color: #fff;
             border-radius: 3px;
             font-size: 9px;
-            font-weight: bold;
+            font-weight: 900;
         }
         .section-body {
             padding: 10px 12px;
@@ -232,13 +249,14 @@
             vertical-align: top;
         }
         .grid th {
-            background: #f8fafc;
-            font-weight: bold;
+            background: #e8f5f0;
+            font-weight: 700;
             width: 28%;
-            color: #475569;
+            color: #0d5f4a;
             font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.8px;
+            border-color: #c9e8de;
         }
         .grid td { color: #1e293b; }
 
@@ -275,8 +293,9 @@
             <div class="header-logo">GEI</div>
             <div class="header-text">
                 <div class="header-platform">{{ platform_full }}</div>
+                <div class="header-platform-name">{{ platform_name }}</div>
                 <div class="header-title">FICHE D'ALERTE</div>
-                <div class="header-subtitle">{{ dispositif }}</div>
+                <div class="header-subtitle">{{ dispositif }} — Renseignement Opérationnel</div>
             </div>
             <div class="header-meta">
                 <div class="header-ref">{{ alert.codeGei ?? 'BROUILLON' }}</div>
@@ -284,9 +303,10 @@
                 {% if alert.market %}
                 <div class="header-date">{{ alert.market.nom }} ({{ alert.market.codeIso3 }})</div>
                 {% endif %}
-                <div class="header-classification">DOCUMENT CONFIDENTIEL</div>
+                <div class="header-classification">CONFIDENTIEL</div>
             </div>
         </div>
+        <div class="header-accent-bar"></div>
     </div>
 
     <!-- ═══════════════════════════════════════════════

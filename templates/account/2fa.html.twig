@@ -1,0 +1,474 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Sécurité — Authentification 2FA{% endblock %}
+{% block header_title %}Sécurité du compte{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── En-tête ── #}
+    <div class="page-header-row">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-shield-lock me-1.5 text-amber-400"></i>
+                Espace personnel · Sécurité
+            </p>
+            <h2 class="page-title">Authentification à deux facteurs</h2>
+            <p class="page-subtitle">
+                Ajoutez une couche de sécurité supplémentaire à votre compte GEI.
+            </p>
+        </div>
+    </div>
+
+    {# ── Navigation onglets ── #}
+    <div class="tfa-tabs">
+        <a href="{{ path('app_account_settings') }}" class="tfa-tab">
+            <i class="bi bi-person-gear me-1.5"></i>Profil
+        </a>
+        <span class="tfa-tab tfa-tab-active">
+            <i class="bi bi-shield-lock me-1.5"></i>Sécurité 2FA
+        </span>
+    </div>
+
+    {# ── Statut global ── #}
+    <div class="tfa-status-bar {% if totp_enabled %}tfa-status-on{% else %}tfa-status-off{% endif %}">
+        <div class="tfa-status-left">
+            {% if totp_enabled %}
+                <span class="tfa-status-icon"><i class="bi bi-shield-fill-check"></i></span>
+                <div>
+                    <p class="tfa-status-title">Authentification 2FA activée</p>
+                    <p class="tfa-status-sub">Votre compte est protégé par un code TOTP renouvelé toutes les 30 secondes.</p>
+                </div>
+            {% else %}
+                <span class="tfa-status-icon"><i class="bi bi-shield-exclamation"></i></span>
+                <div>
+                    <p class="tfa-status-title">Authentification 2FA non activée</p>
+                    <p class="tfa-status-sub">Scannez le QR code ci-dessous pour commencer la configuration.</p>
+                </div>
+            {% endif %}
+        </div>
+        {% if totp_enabled %}
+        <form method="post" action="{{ path('app_2fa_disable') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('disable_2fa') }}">
+            <button type="submit" class="tfa-btn-disable"
+                    onclick="return confirm('Désactiver la 2FA ? Votre compte sera moins sécurisé.')">
+                <i class="bi bi-shield-slash me-1.5"></i>Désactiver
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if totp_enabled %}
+
+    {# ── État : 2FA déjà activé ── #}
+    <div class="tfa-card tfa-card-success">
+        <div class="tfa-success-icon"><i class="bi bi-check-circle-fill"></i></div>
+        <h3>Configuration terminée</h3>
+        <p>
+            Votre compte est protégé. À chaque connexion, après votre mot de passe,
+            vous devrez saisir le code à 6 chiffres de votre application d'authentification.
+        </p>
+        <div class="tfa-tips">
+            <div class="tfa-tip"><i class="bi bi-clock me-1.5"></i>Code valable 30 secondes</div>
+            <div class="tfa-tip"><i class="bi bi-shield-check me-1.5"></i>SHA-1 · 6 chiffres · RFC 6238</div>
+            <div class="tfa-tip"><i class="bi bi-phone me-1.5"></i>Compatible Google/Microsoft Authenticator, Authy</div>
+        </div>
+    </div>
+
+    {% else %}
+
+    {# ── Configuration 2FA ── #}
+    <div class="tfa-setup-grid">
+
+        {# Colonne gauche — QR code #}
+        <div class="tfa-qr-card">
+            <div class="tfa-qr-header">
+                <i class="bi bi-qr-code-scan me-2 text-amber-400"></i>
+                <strong>Étape 1 — Scanner le QR code</strong>
+            </div>
+
+            <div class="tfa-qr-zone">
+                {% if qr_code_base64 %}
+                    <img src="{{ qr_code_base64 }}"
+                         alt="QR Code de configuration 2FA"
+                         class="tfa-qr-img"
+                         width="220" height="220">
+                    <p class="tfa-qr-sub">Scannez ce code avec votre application TOTP</p>
+                {% else %}
+                    {# Fallback API externe — le secret est dans l'URL, acceptable uniquement en dev #}
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&ecc=L&data={{ qr_code_url|e('url') }}"
+                         alt="QR Code de configuration 2FA"
+                         class="tfa-qr-img"
+                         width="220" height="220"
+                         onerror="this.parentElement.innerHTML='<div class=\'tfa-qr-error\'><i class=\'bi bi-exclamation-triangle text-amber-400\' style=\'font-size:32px\'></i><p>QR code indisponible</p><p class=\'text-xs\'>Utilisez la clé manuelle ci-dessous</p></div>'">
+                    <p class="tfa-qr-sub tfa-qr-fallback">
+                        <i class="bi bi-wifi-off me-1 opacity-50"></i>
+                        Chargé depuis un service externe
+                    </p>
+                {% endif %}
+            </div>
+
+            {# Clé manuelle — solution de secours ── #}
+            <div class="tfa-secret-box">
+                <p class="tfa-secret-label">
+                    <i class="bi bi-key me-1.5"></i>Ou saisissez la clé manuellement
+                </p>
+                <div class="tfa-secret-row">
+                    <code id="totpSecret" class="tfa-secret-code">{{ secret }}</code>
+                    <button type="button" class="tfa-copy-btn" onclick="copySecret()" title="Copier">
+                        <i class="bi bi-copy" id="copyIcon"></i>
+                    </button>
+                </div>
+                <p class="tfa-secret-hint">
+                    Dans votre application → Ajouter manuellement → Saisissez cette clé
+                </p>
+            </div>
+        </div>
+
+        {# Colonne droite — Instructions + Validation #}
+        <div class="tfa-form-col">
+
+            {# Instructions #}
+            <div class="tfa-instructions">
+                <p class="tfa-inst-title">
+                    <i class="bi bi-list-ol me-1.5 text-amber-400"></i>Comment configurer
+                </p>
+                <ol class="tfa-steps">
+                    <li>
+                        <span class="tfa-step-num">1</span>
+                        <div>
+                            <strong>Ouvrez votre application</strong>
+                            <p>Google Authenticator, Microsoft Authenticator ou Authy</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="tfa-step-num">2</span>
+                        <div>
+                            <strong>Ajoutez un compte</strong>
+                            <p>Appuyez sur « + » puis « Scanner un code QR »</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="tfa-step-num">3</span>
+                        <div>
+                            <strong>Scannez le QR code</strong>
+                            <p>Pointez votre caméra vers le code à gauche</p>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="tfa-step-num">4</span>
+                        <div>
+                            <strong>Saisissez le code</strong>
+                            <p>Entrez le code à 6 chiffres généré et validez</p>
+                        </div>
+                    </li>
+                </ol>
+            </div>
+
+            {# Formulaire de validation #}
+            <div class="tfa-validate-card">
+                <p class="tfa-validate-title">
+                    <i class="bi bi-shield-check me-1.5 text-emerald-400"></i>
+                    Étape 2 — Valider la configuration
+                </p>
+                <p class="tfa-validate-sub">
+                    Après avoir scanné le QR code, saisissez le code à 6 chiffres affiché dans votre application.
+                </p>
+
+                <form method="post" action="{{ path('app_2fa_enable') }}" id="tfa2faForm" novalidate>
+                    <input type="hidden" name="_token" value="{{ csrf_token('enable_2fa') }}">
+
+                    <div class="tfa-code-field">
+                        <label for="code2fa" class="tfa-code-label">Code de vérification</label>
+                        <div class="tfa-code-input-wrap">
+                            <input type="text"
+                                   id="code2fa"
+                                   name="code"
+                                   inputmode="numeric"
+                                   pattern="[0-9]{6}"
+                                   maxlength="6"
+                                   placeholder="— — — — — —"
+                                   class="tfa-code-input"
+                                   autocomplete="one-time-code"
+                                   required
+                                   autofocus>
+                        </div>
+                        <p class="tfa-code-hint">6 chiffres générés par votre application · renouvelé toutes les 30 secondes</p>
+                    </div>
+
+                    <button type="submit" class="tfa-activate-btn" id="activateBtn">
+                        <i class="bi bi-shield-check me-2"></i>
+                        Activer l'authentification 2FA
+                    </button>
+                </form>
+            </div>
+
+            {# Applications recommandées #}
+            <div class="tfa-apps">
+                <p class="tfa-apps-label">Applications compatibles</p>
+                <div class="tfa-apps-list">
+                    <div class="tfa-app-item">
+                        <i class="bi bi-google me-1.5"></i>Google Authenticator
+                    </div>
+                    <div class="tfa-app-item">
+                        <i class="bi bi-microsoft me-1.5"></i>Microsoft Authenticator
+                    </div>
+                    <div class="tfa-app-item">
+                        <i class="bi bi-phone me-1.5"></i>Authy
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {% endif %}{# /not totp_enabled #}
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+/* ── Copier la clé secrète ── */
+function copySecret() {
+    const el = document.getElementById('totpSecret');
+    const icon = document.getElementById('copyIcon');
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+        icon.className = 'bi bi-check2 text-emerald-400';
+        setTimeout(() => { icon.className = 'bi bi-copy'; }, 2000);
+    }).catch(() => {
+        // Fallback ancienne méthode
+        const range = document.createRange();
+        range.selectNode(el);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        document.execCommand('copy');
+        window.getSelection().removeAllRanges();
+    });
+}
+
+/* ── Formater le code TOTP en cours de saisie ── */
+document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('code2fa');
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+        // Garder uniquement les chiffres
+        input.value = input.value.replace(/\D/g, '').slice(0, 6);
+        // Activer le bouton uniquement quand 6 chiffres
+        const btn = document.getElementById('activateBtn');
+        if (btn) btn.disabled = input.value.length !== 6;
+    });
+
+    // État initial du bouton
+    const btn = document.getElementById('activateBtn');
+    if (btn) btn.disabled = true;
+});
+</script>
+
+<style>
+/* ── Layout ── */
+.tfa-tabs {
+    display: flex; gap: 4px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0; margin-bottom: 20px;
+}
+.tfa-tab {
+    display: inline-flex; align-items: center;
+    padding: 9px 16px; font-size: 12.5px; font-weight: 600;
+    color: var(--text-muted); text-decoration: none;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    transition: all .15s; border-radius: 6px 6px 0 0;
+}
+.tfa-tab:hover { color: var(--text); }
+.tfa-tab-active {
+    color: var(--amber); border-bottom-color: var(--amber);
+    background: rgba(251,191,36,.06);
+}
+
+/* ── Barre de statut ── */
+.tfa-status-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    border-radius: var(--radius-lg); padding: 16px 20px;
+    margin-bottom: 16px; border: 1px solid;
+}
+.tfa-status-on  { background: rgba(52,211,153,.06); border-color: rgba(52,211,153,.25); }
+.tfa-status-off { background: rgba(251,191,36,.06); border-color: rgba(251,191,36,.25); }
+.tfa-status-left { display: flex; align-items: center; gap: 14px; }
+.tfa-status-icon { font-size: 22px; flex-shrink: 0; }
+.tfa-status-on  .tfa-status-icon { color: #34d399; }
+.tfa-status-off .tfa-status-icon { color: var(--amber); }
+.tfa-status-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.tfa-status-sub   { font-size: 11.5px; color: var(--text-muted); }
+
+/* ── Bouton désactiver ── */
+.tfa-btn-disable {
+    display: inline-flex; align-items: center;
+    background: none; border: 1px solid rgba(239,68,68,.3);
+    color: #f87171; border-radius: 8px; padding: 7px 14px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+}
+.tfa-btn-disable:hover { background: rgba(239,68,68,.1); }
+
+/* ── Carte succès ── */
+.tfa-card-success {
+    background: var(--navy-900); border: 1px solid rgba(52,211,153,.25);
+    border-left: 4px solid #34d399;
+    border-radius: var(--radius-lg); padding: 28px 24px; text-align: center;
+}
+.tfa-success-icon { font-size: 42px; color: #34d399; margin-bottom: 12px; }
+.tfa-card-success h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.tfa-card-success p  { font-size: 12.5px; color: var(--text-muted); max-width: 420px; margin: 0 auto 16px; line-height: 1.6; }
+.tfa-tips { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.tfa-tip {
+    display: inline-flex; align-items: center;
+    font-size: 11px; color: var(--text-muted);
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 99px; padding: 4px 12px;
+}
+
+/* ── Grille de configuration ── */
+.tfa-setup-grid {
+    display: grid; grid-template-columns: 320px 1fr; gap: 20px;
+    align-items: start;
+}
+@media(max-width:900px) { .tfa-setup-grid { grid-template-columns: 1fr; } }
+
+/* ── Carte QR code ── */
+.tfa-qr-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 0; overflow: hidden;
+}
+.tfa-qr-header {
+    display: flex; align-items: center;
+    padding: 14px 18px; font-size: 12px; font-weight: 700;
+    color: var(--text); background: var(--card2);
+    border-bottom: 1px solid var(--border);
+}
+.tfa-qr-zone {
+    padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.tfa-qr-img {
+    display: block; width: 220px; height: 220px;
+    border-radius: 12px; border: 3px solid #fff;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
+    background: #fff;
+}
+.tfa-qr-sub {
+    font-size: 11px; color: var(--text-muted); text-align: center;
+}
+.tfa-qr-fallback { color: var(--amber); }
+.tfa-qr-error {
+    width: 220px; height: 220px; border-radius: 12px;
+    border: 2px dashed var(--border); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    color: var(--text-muted); font-size: 12px; text-align: center; padding: 16px;
+}
+
+/* ── Clé secrète ── */
+.tfa-secret-box {
+    margin: 0 16px 18px; padding: 12px 14px;
+    background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.2);
+    border-radius: 10px;
+}
+.tfa-secret-label {
+    font-size: 10.5px; font-weight: 700; color: var(--amber);
+    text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px;
+}
+.tfa-secret-row {
+    display: flex; align-items: center; gap: 8px;
+}
+.tfa-secret-code {
+    flex: 1; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700; color: var(--text);
+    word-break: break-all; letter-spacing: .1em;
+    background: var(--navy-800); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 10px;
+}
+.tfa-copy-btn {
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    background: var(--navy-800); border: 1px solid var(--border);
+    color: var(--text-muted); cursor: pointer; display: grid; place-items: center;
+    font-size: 13px; transition: all .15s;
+}
+.tfa-copy-btn:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+.tfa-secret-hint { font-size: 10px; color: var(--text-muted); margin-top: 6px; font-style: italic; }
+
+/* ── Colonne formulaire ── */
+.tfa-form-col { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Instructions ── */
+.tfa-instructions {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px;
+}
+.tfa-inst-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+.tfa-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.tfa-steps li { display: flex; gap: 12px; align-items: flex-start; }
+.tfa-step-num {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    background: var(--amber-dim); border: 1px solid var(--amber-border);
+    color: var(--amber); font-size: 11px; font-weight: 800;
+    display: grid; place-items: center;
+}
+.tfa-steps li strong { font-size: 12.5px; color: var(--text); display: block; margin-bottom: 2px; }
+.tfa-steps li p { font-size: 11.5px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+/* ── Carte validation ── */
+.tfa-validate-card {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px;
+}
+.tfa-validate-title { font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.tfa-validate-sub   { font-size: 11.5px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
+.tfa-code-field { margin-bottom: 16px; }
+.tfa-code-label {
+    display: block; font-size: 11.5px; font-weight: 600;
+    color: var(--text-muted); margin-bottom: 6px;
+}
+.tfa-code-input-wrap { position: relative; }
+.tfa-code-input {
+    width: 100%; background: var(--navy-800);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; font-size: 22px; font-weight: 700;
+    color: var(--text); letter-spacing: 8px; text-align: center;
+    outline: none; transition: border-color .2s;
+    font-family: 'JetBrains Mono', monospace;
+}
+.tfa-code-input::placeholder { letter-spacing: 4px; font-size: 16px; color: var(--text-muted); }
+.tfa-code-input:focus { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(251,191,36,.1); }
+.tfa-code-hint { font-size: 10.5px; color: var(--text-muted); margin-top: 6px; text-align: center; }
+
+.tfa-activate-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center;
+    background: #16856b; border: 1px solid #16856b;
+    color: #fff; border-radius: 10px; padding: 12px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: all .15s;
+}
+.tfa-activate-btn:hover:not(:disabled) { background: #0d6b57; }
+.tfa-activate-btn:disabled {
+    opacity: .5; cursor: not-allowed;
+    background: var(--navy-800); border-color: var(--border); color: var(--text-muted);
+}
+
+/* ── Applications ── */
+.tfa-apps {
+    background: var(--navy-900); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 18px;
+}
+.tfa-apps-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 10px; }
+.tfa-apps-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.tfa-app-item {
+    display: inline-flex; align-items: center;
+    font-size: 11.5px; font-weight: 600; color: var(--dim);
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px;
+}
+</style>
+{% endblock %}

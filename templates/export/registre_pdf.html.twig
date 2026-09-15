@@ -26,31 +26,33 @@
         }
 
         /* ═══════════════════════════════════════════════
-           HEADER OFFICIEL
+           HEADER OFFICIEL — Bandeau vert institutionnel GEI
            ═══════════════════════════════════════════════ */
         .doc-header {
-            background: #0f172a;
+            background: linear-gradient(135deg, #0d5f4a 0%, #16856b 60%, #1ca882 100%);
             color: #ffffff;
             padding: 0;
         }
         .header-inner {
             display: flex;
             align-items: center;
-            padding: 10px 14px;
-            gap: 12px;
+            padding: 12px 16px;
+            gap: 14px;
         }
         .header-logo {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #16856b 0%, #45e3b8 100%);
-            border-radius: 5px;
+            width: 44px;
+            height: 44px;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            font-weight: bold;
-            color: #0f172a;
+            font-size: 18px;
+            font-weight: 900;
+            color: #ffffff;
             flex-shrink: 0;
+            letter-spacing: -1px;
         }
         .header-text {
             flex: 1;
@@ -58,40 +60,66 @@
         .header-platform {
             font-size: 7px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
-            opacity: 0.7;
+            letter-spacing: 2.5px;
+            color: rgba(255,255,255,0.75);
             margin-bottom: 2px;
+            font-weight: 600;
+        }
+        .header-platform-name {
+            font-size: 11px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.3px;
+            margin-bottom: 1px;
         }
         .header-title {
-            font-size: 13px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 900;
             margin: 0;
+            color: #ffffff;
+            letter-spacing: 0.5px;
         }
         .header-meta {
             text-align: right;
             flex-shrink: 0;
-            font-size: 8px;
-            opacity: 0.7;
         }
         .header-count {
-            font-size: 16px;
-            font-weight: bold;
-            color: #45e3b8;
+            font-size: 20px;
+            font-weight: 900;
+            color: #c9f0e3;
+            line-height: 1;
+        }
+        .header-count-label {
+            font-size: 8px;
+            color: rgba(255,255,255,0.65);
+            margin-top: 2px;
+        }
+        .header-date-meta {
+            font-size: 7.5px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 4px;
+        }
+        /* Barre accent décorative */
+        .header-accent-bar {
+            height: 3px;
+            background: linear-gradient(90deg, #c9f0e3 0%, #45e3b8 50%, rgba(255,255,255,0.15) 100%);
         }
 
         /* ═══════════════════════════════════════════════
            META BAR
            ═══════════════════════════════════════════════ */
         .meta-bar {
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 5px 14px;
+            background: #f0faf5;
+            border-bottom: 2px solid #c9e8de;
+            padding: 5px 16px;
             font-size: 7.5px;
-            color: #475569;
+            color: #0d5f4a;
+            display: flex;
+            gap: 20px;
         }
         .meta-label {
-            font-weight: bold;
-            color: #0f172a;
+            font-weight: 800;
+            color: #0d5f4a;
             margin-right: 4px;
         }
 
@@ -107,23 +135,25 @@
             font-size: 8px;
         }
         table.registre thead th {
-            background: #0f172a;
+            background: #16856b;
             color: #ffffff;
-            padding: 6px 8px;
+            padding: 7px 8px;
             text-align: left;
             font-size: 7.5px;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
-            font-weight: bold;
-            border-bottom: 2px solid #1e3a5f;
+            letter-spacing: 0.8px;
+            font-weight: 800;
+            border-bottom: 2px solid #0d5f4a;
+            white-space: nowrap;
         }
         table.registre tbody td {
             padding: 5px 8px;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2f0ec;
             vertical-align: top;
+            color: #1e293b;
         }
         table.registre tbody tr:nth-child(even) {
-            background: #f8fafc;
+            background: #f5faf8;
         }
         .row-critique { background: #fef2f2 !important; }
         .row-eleve { background: #fff7ed !important; }
@@ -177,23 +207,27 @@
         <div class="header-inner">
             <div class="header-logo">GEI</div>
             <div class="header-text">
-                <div class="header-platform">Plateforme GEI — Groupe d'Échange d'Informations</div>
+                <div class="header-platform">Groupe d'Échange d'Informations — Renseignement Opérationnel</div>
+                <div class="header-platform-name">Plateforme GEI</div>
                 <div class="header-title">REGISTRE CONSOLIDÉ D'ALERTES</div>
             </div>
             <div class="header-meta">
                 <div class="header-count">{{ alerts|length }}</div>
-                <div>alertes</div>
+                <div class="header-count-label">alerte{{ alerts|length > 1 ? 's' : '' }}</div>
+                <div class="header-date-meta">{{ date_impression|date('d/m/Y H:i') }}</div>
             </div>
         </div>
+        <div class="header-accent-bar"></div>
     </div>
 
     <!-- ═══════════════════════════════════════════════
          META BAR
          ═══════════════════════════════════════════════ -->
     <div class="meta-bar">
-        <span class="meta-label">Document:</span>Registre consolidé
-        <span style="margin-left: 16px;"><span class="meta-label">Imprimé:</span>{{ date_impression|date('d/m/Y H:i') }}</span>
-        <span style="margin-left: 16px;"><span class="meta-label">Classification:</span>Confidentiel</span>
+        <span><span class="meta-label">Document :</span>Registre consolidé</span>
+        <span><span class="meta-label">Imprimé :</span>{{ date_impression|date('d/m/Y H:i') }}</span>
+        <span><span class="meta-label">Classification :</span>Confidentiel</span>
+        <span><span class="meta-label">Alertes :</span>{{ alerts|length }}</span>
     </div>
 
     <!-- ═══════════════════════════════════════════════

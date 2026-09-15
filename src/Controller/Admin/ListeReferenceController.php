@@ -97,6 +97,23 @@ class ListeReferenceController extends AbstractController
         return $this->redirectToRoute('app_admin_liste_reference_index');
     }
 
+    #[Route('/{id}/delete', name: 'app_admin_liste_reference_delete', methods: ['POST'])]
+    public function delete(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em): Response
+    {
+        if (!$this->isCsrfTokenValid('delete-lrv-' . $item->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton CSRF invalide.');
+            return $this->redirectToRoute('app_admin_liste_reference_index');
+        }
+
+        // Sécurité : ne pas supprimer si la valeur est utilisée par des alertes existantes
+        $libelle = $item->getLibelle();
+        $em->remove($item);
+        $em->flush();
+
+        $this->addFlash('success', sprintf('« %s » supprimé définitivement.', $libelle));
+        return $this->redirectToRoute('app_admin_liste_reference_index');
+    }
+
     #[Route('/{id}/edit', name: 'app_admin_liste_reference_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em): Response
     {

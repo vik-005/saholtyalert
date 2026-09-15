@@ -1,0 +1,137 @@
+<USER_REQUEST>
+ROMPT EXPERT — COHÉRENCE UX GLOBALE, MENU, CARTOGRAPHIE & NAVIGATION FLUIDE
+### À donner tel quel à l'IA de développement (Claude Code / Cursor / Kiro) sur le dépôt Symfony
+**Rôle assigné : architecte logiciel et UX senior (50 ans d'expérience cumulée, analyse et développement de plateformes), garant du niveau de finition d'un produit commercial haut de gamme.**
+ 
+---
+ 
+## NIVEAU D'EXIGENCE ATTENDU
+ 
+Ce n'est plus un prototype : c'est un système destiné à être vendu et utilisé en production, à un niveau de finition comparable aux meilleures plateformes SaaS professionnelles. **Chaque point ci-dessous doit être traité avec ce niveau d'exigence — pas de correctif approximatif, pas de "ça marche à peu près".**
+ 
+---
+ 
+## PARTIE A — UNIFIER LE FORMULAIRE : NE GARDER QUE LA VERSION EN ÉTAPES
+ 
+- [ ] Identifier tous les formulaires d'alerte existants dans le code (ancien formulaire "en un bloc" et nouveau formulaire "par étapes" déjà créé).
+- [ ] **Supprimer entièrement l'ancien formulaire** (contrôleur, template, route) — ne laisser aucune route ni lien dans le menu qui y mène encore, même en accès caché ou détourné.
+- [ ] Le formulaire en étapes devient **l'unique point d'entrée** pour la création/édition d'une alerte, pour l'Agent comme pour le Manager lorsqu'il corrige une fiche (cf. correctif de rôle déjà établi : Agent remplit tout, Manager valide/rejette/corrige ponctuellement).
+- [ ] Vérifier que ce formulaire en étapes est bien designé sur l'ensemble de son parcours : même charte de couleurs, mêmes composants de champs (macros déjà spécifiées), barre de progression cohérente visuellement avec le reste du site, boutons "Suivant/Précédent" au design identique aux boutons standards du système (pas un style différent propre au formulaire).
+- [ ] Revérifier que la sauvegarde automatique entre étapes fonctionne réellement (test : remplir l'étape 1, fermer l'onglet, rouvrir → la donnée de l'étape 1 doit être toujours là).
+---
+ 
+## PARTIE B — COHÉRENCE DE LA CHARTE SUR TOUTES LES PAGES (couleurs de police en particulier)
+ 
+- [ ] Parcourir **chaque page** du système (pas seulement celles déjà citées dans les prompts précédents) et vérifier que le texte est toujours lisible : jamais de texte gris clair sur fond clair, jamais de texte foncé sur fond foncé en mode nuit, contraste suffisant partout (norme d'accessibilité : ratio de contraste minimum 4.5:1 pour le texte courant).
+- [ ] Vérifier particulièrement les zones à risque déjà identifiées par le passé (formulaires, page de transmission) mais aussi les zones non encore auditées : tableaux, badges, tooltips de graphique, texte à l'intérieur des cartes KPI, texte dans les modales de confirmation.
+- [ ] Une seule échelle de gris de texte doit être utilisée dans tout le système (texte principal, texte secondaire/atténué, texte désactivé) — jamais une couleur de texte improvisée au cas par cas sur une page en particulier.
+- [ ] Vérifier la cohérence en mode nuit **page par page**, pas seulement sur les pages principales déjà testées.
+---
+ 
+## PARTIE C — RÉORGANISATION DU MENU EN SOUS-MENUS
+ 
+- [ ] Analyser le menu actuel (sidebar) et identifier les entrées qui gagneraient à être regroupées sous un sous-menu dépliable, pour réduire l'encombrement visuel et faciliter la prise en main. Exemple de regroupement logique à évaluer :
+  - **Alertes** (sous-menu) → Registre, Formulaire nouvelle alerte, Alertes à valider (Manager), Urgence 72h
+  - **Statistiques** (sous-menu) → Tableau de bord KPI, Cartographie, Graphiques détaillés
+  - **Administration** (sous-menu, visible selon rôle) → Gestion des agents, Gestion des managers, Journal d'activité, Automatisations, Paramètres
+  - **Mon espace** (sous-menu, ou simple lien selon la profondeur voulue) → Notifications, Profil, Déconnexion
+- [ ] Un sous-menu se déplie/replie au clic, avec une icône chevron qui pivote, et **mémorise son état** (ouvert/fermé) d'une navigation à l'autre pour ne pas frustrer l'utilisateur qui doit rouvrir le même sous-menu à chaque clic.
+- [ ] Vérifier qu'aucune page utile du système n'est aujourd'hui **inaccessible** faute d'entrée de menu (reprendre la liste de toutes les routes existantes et vérifier que chacune est atteignable depuis le menu, sauf celles volontairement internes/techniques).
+- [ ] **Créer les pages manquantes identifiées** lors de cet audit plutôt que de laisser une entrée de menu pointer vers une page inexistante ou incomplète.
+- [ ] Le menu doit rester cohérent avec le correctif du bug d'état actif déjà traité (un seul élément actif à la fois, y compris à l'intérieur d'un sous-menu déplié).
+---
+ 
+## PARTIE D — NOTIFICATION À RÉCEPTION D'UNE NOUVELLE ALERTE (vérification)
+ 
+- [ ] Tester concrètement le scénario complet : un Agent soumet une alerte → le Manager concerné doit recevoir une notification **en temps réel** (cloche + badge, cf. système déjà spécifié), sans recharger sa page s'il est déjà connecté au moment de la soumission.
+- [ ] Vérifier que le contenu de la notification est exploitable immédiatement (code de l'alerte, marché, aperçu du résumé) et pas un simple "Nouvelle alerte" sans contexte.
+- [ ] Vérifier que le lien de la notification amène directement à la fiche concernée, dans son état de revue (écran de validation/rejet du Manager, cf. correctif de rôle).
+- [ ] Vérifier qu'aucun Manager hors périmètre (qui ne gère pas ce marché) ne reçoit cette notification par erreur.
+---
+ 
+## PARTIE E — DESIGN DU SYSTÈME DE TRAÇABILITÉ (journal d'activité)
+ 
+- [ ] Revoir l'écran du journal d'activité pour qu'il soit au même niveau de finition que le reste du système : tableau avec la même charte, icônes cohérentes par type d'action (connexion, création, modification, suppression, export...), badges de couleur pour distinguer visuellement les types d'action d'un coup d'œil (sans réutiliser les couleurs déjà réservées aux statuts d'alerte — utiliser une palette secondaire cohérente, ex. nuances de bleu/gris pour les actions neutres, orange réservé aux actions sensibles comme suppression/export).
+- [ ] Chaque ligne doit être cliquable pour afficher le détail complet de l'action (avant/après en cas de modification, pas seulement "modifié").
+- [ ] Vérifier la présence de la recherche/filtres déjà spécifiés sur cette page précisément (cf. Partie G du prompt précédent).
+---
+ 
+## PARTIE F — DIAGNOSTIC ET CORRECTION DE LA CARTOGRAPHIE (carte d'Afrique ne s'affiche pas) & DES ICÔNES MANQUANTES
+ 
+### F.1 Carte qui ne s'affiche pas
+- [ ] Vérifier dans la console navigateur (F12) l'erreur exacte au chargement de la page cartographie — ne pas deviner, lire l'erreur réelle.
+- [ ] Causes probables à vérifier dans l'ordre :
+  - Le conteneur HTML de la carte (`<div id="map">`) n'a pas de hauteur définie en CSS → Leaflet ne peut afficher une carte dans un conteneur à hauteur nulle, c'est la cause la plus fréquente de "carte invisible" (`#map { height: 500px; }` ou équivalent Tailwind `h-[500px]`, jamais une hauteur héritée à 0 par défaut).
+  - Le script Leaflet (JS + CSS) n'est pas chargé du tout, ou chargé après le script qui tente d'initialiser la carte (ordre des scripts dans le template).
+  - Le centrage initial de la carte utilise des coordonnées invalides ou absentes (vérifier que le centre par défaut sur l'Afrique de l'Ouest est bien codé, ex. latitude ~9, longitude ~2, zoom ~5).
+  - Erreur JS silencieuse dans le script d'initialisation qui empêche le rendu (vérifier qu'aucune exception n'est levée avant l'appel `L.map(...)`).
+  - Si Tailwind est en cause (purge, cf. bug déjà traité dans un prompt précédent) : vérifier que les classes utilisées pour styliser les contrôles Leaflet custom ne sont pas supprimées au build.
+- [ ] Une fois corrigée, vérifier l'affichage sur les trois largeurs (mobile/tablette/desktop) et en mode nuit (fond de carte sombre, cf. spécification déjà donnée).
+### F.2 Icônes "poubelle", "œil" et autres qui ne s'affichent pas
+- [ ] Reprendre le diagnostic déjà engagé sur les icônes (basculement vers Bootstrap Icons déjà recommandé dans un prompt précédent) et vérifier qu'il a bien été appliqué **partout**, y compris sur les icônes d'action des tableaux (voir/modifier/supprimer) qui semblent être un point non couvert par le correctif précédent.
+- [ ] Vérifier que la classe CSS exacte est correctement utilisée pour chaque icône manquante (`bi bi-trash` pour supprimer, `bi bi-eye` pour voir, `bi bi-pencil-square` pour modifier) — une faute de frappe dans le nom de la classe est une cause fréquente d'icône manquante silencieuse (pas d'erreur visible, juste un espace vide).
+- [ ] Vérifier que ces icônes ne sont pas générées par une concaténation dynamique de chaîne de caractères en Twig qui échapperait à la détection du build CSS (cf. cause déjà identifiée dans un prompt précédent sur la purge Tailwind).
+---
+ 
+## PARTIE G — AUDIT DE LA PAGE "JOURNAL D'ACTIVITÉ" CONTRE LES CRITÈRES DU SYSTÈME
+ 
+- [ ] Vérifier que cette page respecte bien tous les critères déjà définis dans les documents de spécification : traçabilité de toutes les actions sensibles (lecture, modification, export, transmission, connexion, suppression), périmètre de visibilité correct selon le rôle connecté (un Manager ne voit que le journal de son propre périmètre, jamais celui d'un autre Manager ou de marchés qu'il ne gère pas), non-modifiabilité des entrées (aucune action d'édition ne doit exister sur une ligne de journal, uniquement de la consultation).
+- [ ] Vérifier que le format d'affichage suit la même charte que le reste du système (cf. Partie E).
+---
+ 
+## PARTIE H — RECHERCHE DYNAMIQUE EN HAUT DE CHAQUE TABLEAU
+ 
+- [ ] Ajouter, sur **tous** les tableaux du système (Registre, Journal d'activité, Gestion des agents, Gestion des managers, Historique des imports), une barre de recherche en haut, qui filtre **en direct** pendant la frappe (sans nécessiter d'appuyer sur Entrée ni de recharger la page).
+- [ ] Implémentation recommandée : Stimulus controller qui déclenche une requête légère (debounce ~300ms pour ne pas surcharger le serveur à chaque frappe) et met à jour uniquement la portion tableau de la page (via Turbo Frame), pas un rechargement complet.
+- [ ] La recherche dynamique doit se combiner avec les filtres déjà en place (Partie G du prompt précédent), pas les remplacer ni entrer en conflit avec eux.
+- [ ] Vérifier le comportement sur mobile : la barre de recherche doit rester accessible et utilisable sans que le clavier virtuel ne cache le champ de résultat.
+---
+ 
+## PARTIE I — NAVIGATION SANS RECHARGEMENT COMPLET DE PAGE
+ 
+**Exigence explicite : empêcher le rechargement complet de la page lors d'une validation, d'un changement de statut, ou d'un clic dans le menu — le système doit se comporter comme une application moderne, fluide.**
+ 
+- [ ] Vérifier que **Turbo** (composant de l'écosystème Symfony UX déjà recommandé dans les spécifications techniques) est bien installé et actif sur l'ensemble du site — c'est la solution technique correcte pour ce besoin, sans avoir à réécrire le site en single-page application.
+- [ ] Vérifier que la navigation via le menu (clic sur une entrée de la sidebar) se fait bien via Turbo Drive (remplacement du contenu de la page sans rechargement complet du `<head>`/CSS/JS), pas via des liens `<a>` classiques qui provoquent un rechargement complet à chaque clic.
+- [ ] Vérifier que les actions de formulaire (validation Manager, changement de statut, soumission d'étape du formulaire en plusieurs étapes) utilisent bien Turbo Frames/Streams pour mettre à jour uniquement la portion de page concernée (ex. la notification de succès + le nouveau statut affiché), sans recharger l'intégralité du dashboard autour.
+- [ ] Vérifier qu'un indicateur de chargement léger (petite barre de progression en haut de page, cohérente avec la charte) s'affiche pendant une navigation Turbo, pour que l'utilisateur ait un retour visuel même sans rechargement complet.
+- [ ] Tester explicitement : cliquer sur plusieurs entrées de menu à la suite et confirmer qu'aucun "flash blanc" de rechargement complet n'apparaît, que l'état de la sidebar (scroll, sous-menu ouvert) est conservé d'une navigation à l'autre.
+---
+ 
+## PARTIE J — LÉGENDES DE LA CARTOGRAPHIE
+ 
+- [ ] Une fois la carte corrigée (Partie F), ajouter une **légende claire et permanente** (coin de la carte, pas un tooltip caché) expliquant :
+  - La signification des couleurs de marqueur (vert/orange/rouge = niveau de priorité dominant de la zone).
+  - La signification du badge chiffré (nombre d'alertes actives).
+  - Un rappel visuel discret du filtre actuellement appliqué à la carte (ex. "Période : 30 derniers jours — Statut : tous").
+- [ ] La légende doit être stylée selon la charte (fond carte cohérent, texte lisible en mode jour et nuit) et rester lisible sur mobile (repliable en un petit bouton "Légende" si elle prend trop de place sur petit écran, plutôt que de disparaître sans solution de repli).
+---
+ 
+## PARTIE K — LIVRABLE ATTENDU
+ 
+Pour chaque partie (A à J), fournir :
+1. **Cause racine identifiée** pour chaque bug (carte, icônes) — pas seulement la correction, mais l'explication précise de pourquoi ça ne marchait pas.
+2. **Fichiers modifiés/créés**, liste précise.
+3. Confirmation page par page que la charte de couleurs est cohérente (Partie B), pas une affirmation générale.
+4. Confirmation que Turbo fonctionne réellement sans rechargement complet, avec description du test effectué (Partie I).
+5. Capture ou description du menu réorganisé avec ses sous-menus (Partie C) et de la carte avec sa légende (Partie J).
+6. Liste des pages manquantes qui ont dû être créées, si applicable.
+**Rappel du niveau d'exigence** : ce rapport doit donner confiance qu'un client final ou un investisseur pourrait utiliser cette plateforme sans percevoir la moindre approximation de finition.
+ 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-08-27T01:58:42+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\x\Downloads\gei-platform\src\DataFixtures\AppFixtures.php (LANGUAGE_PHP)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\x\Downloads\gei-platform\templates\dashboard\corridors.html.twig (LANGUAGE_UNSPECIFIED)
+- c:\Users\x\Downloads\gei-platform\templates\dashboard\operationnel.html.twig (LANGUAGE_UNSPECIFIED)
+- c:\Users\x\Downloads\gei-platform\templates\partials\_sidebar.html.twig (LANGUAGE_UNSPECIFIED)
+- c:\Users\x\Downloads\gei-platform\src\Service\ExportService.php (LANGUAGE_PHP)
+- c:\Users\x\Downloads\gei-platform\src\Controller\Alert\ExportController.php (LANGUAGE_PHP)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

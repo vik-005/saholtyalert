@@ -242,6 +242,8 @@ body.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(239, 68, 68, 0.15);
 }
 
+.profile-logout-form { margin: 0; }
+
 .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:49}
 
 /* ─── Topbar ─────────────────────────────────────────────────────────────── */
@@ -498,6 +500,10 @@ body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
 
 .db-chart-area{position:relative;height:300px}
 .db-chart-area canvas{display:block;max-width:100%;height:100%!important}
+
+/* Les canvases gardent une surface stable et nette lors d'une capture ou d'un export. */
+.stats-card canvas{display:block;width:100%;max-width:100%}
+.stats-card-wide canvas{min-height:220px}
 
 /* Donut */
 .donut-wrap{display:flex;justify-content:center;align-items:center;position:relative;margin:8px 0 12px}
@@ -2060,6 +2066,8 @@ i.fa-brands, span.fa-brands, .fab {
 .sidebar-sublink:hover { color: #fff; background: rgba(255,255,255,.06); transform: translateX(2px); }
 .sidebar-sublink.active { color: #55e8c0; background: rgba(69,227,184,.08); font-weight: 600; }
 .sidebar-sublink.active::before { content:''; position:absolute; left:-10px; top:6px; bottom:6px; width:2px; background:#55e8c0; border-radius:0 2px 2px 0; }
+.sidebar-logout-form { margin: 0; }
+.sidebar-logout-button { width: 100%; border: 0; text-align: left; font-family: inherit; cursor: pointer; }
 
 .sidebar-submenu-toggle { text-align: left; }
 .sidebar-submenu-arrow { transition: transform .2s; }
@@ -2597,6 +2605,15 @@ html body .bi {
   gap: 14px;
   align-items: start;
 }
+.audit-filter-panel {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.audit-filter-panel::-webkit-scrollbar { width: 5px; }
+.audit-filter-panel::-webkit-scrollbar-track { background: transparent; }
+.audit-filter-panel::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 5px; }
 .audit-filter-field {
   display: flex;
   flex-direction: column;

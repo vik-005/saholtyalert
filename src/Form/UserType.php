@@ -23,11 +23,24 @@ class UserType extends AbstractType
     {
         /** @var User|null $currentUser */
         $currentUser = $options['current_user'];
-        $isManager = $currentUser !== null && $currentUser->getRole() === UserRoleEnum::PFT;
+        $isManager   = $currentUser !== null && $currentUser->getRole() === UserRoleEnum::PFT;
+        $isSuperAdmin = $currentUser !== null && $currentUser->getRole() === UserRoleEnum::SUPERADMIN;
 
-        $roleChoices = $isManager
-            ? [UserRoleEnum::EMETTEUR_TERRAIN->label() => UserRoleEnum::EMETTEUR_TERRAIN->value]
-            : UserRoleEnum::choices();
+        // Rôles assignables selon le créateur :
+        // - Manager (PFT) → uniquement Émetteur Terrain
+        // - SuperAdmin    → tous les rôles sauf SuperAdmin (un SUPERADMIN ne peut pas en créer un autre via UI)
+        // - Autres        → uniquement Émetteur Terrain par défaut (sécurité)
+        if ($isManager) {
+            $roleChoices = [UserRoleEnum::EMETTEUR_TERRAIN->label() => UserRoleEnum::EMETTEUR_TERRAIN->value];
+        } elseif ($isSuperAdmin) {
+            $roleChoices = array_filter(
+                UserRoleEnum::choices(),
+                fn($value) => $value !== UserRoleEnum::SUPERADMIN->value,
+                ARRAY_FILTER_USE_BOTH
+            );
+        } else {
+            $roleChoices = [UserRoleEnum::EMETTEUR_TERRAIN->label() => UserRoleEnum::EMETTEUR_TERRAIN->value];
+        }
 
         $builder
             ->add('prenom', TextType::class, [

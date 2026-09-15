@@ -32,6 +32,7 @@
                     <i class="bi-filetype-csv me-1.5 text-emerald-400"></i>CSV
                 </a>
                 <form method="post" action="{{ path('app_audit_export_excel') }}" class="d-inline">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('app_audit_export_excel') }}">
                     {% for key, value in app.request.query.all %}
                         {% if key != '_export' %}
                             {% if value is iterable %}
@@ -48,6 +49,7 @@
                     </button>
                 </form>
                 <form method="post" action="{{ path('app_audit_export_pdf') }}" class="d-inline">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('app_audit_export_pdf') }}">
                     {% for key, value in app.request.query.all %}
                         {% if key != '_export' %}
                             {% if value is iterable %}
@@ -68,7 +70,7 @@
     </div>
 
     {# ── Panneau de filtres ── #}
-    <div class="db-card mb-4">
+    <div class="db-card mb-4 audit-filter-panel">
         <div class="db-card-header">
             <p class="db-card-eyebrow">
                 <i class="bi bi-funnel me-1.5"></i>Critères de recherche
@@ -329,21 +331,25 @@
                     <div class="vue-toggle" role="group" aria-label="Mode d'affichage des résultats">
                         <button type="button"
                                 class="vue-btn {% if vue == 'tableau' %}vue-btn-active{% endif %}"
+                                data-vue="tableau"
                                 onclick="switchVue('tableau')">
                             <i class="bi bi-table me-1.5"></i>Tableau
                         </button>
                         <button type="button"
                                 class="vue-btn {% if vue == 'graphiques' %}vue-btn-active{% endif %}"
+                                data-vue="graphiques"
                                 onclick="switchVue('graphiques')">
                             <i class="bi bi-bar-chart me-1.5"></i>Graphiques
                         </button>
                         <button type="button"
                                 class="vue-btn {% if vue == 'carte' %}vue-btn-active{% endif %}"
+                                data-vue="carte"
                                 onclick="switchVue('carte')">
                             <i class="bi bi-map me-1.5"></i>Carte
                         </button>
                         <button type="button"
                                 class="vue-btn {% if vue == 'texte' %}vue-btn-active{% endif %}"
+                                data-vue="texte"
                                 onclick="switchVue('texte')">
                             <i class="bi bi-text-paragraph me-1.5"></i>Texte
                         </button>
@@ -442,73 +448,125 @@
             </div>
         </div>
 
-        {# ── VUE TABLEAU ── #}
+{# ── VUE TABLEAU ── #}
         <div id="vuetableau" class="{{ vue == 'tableau' ? '' : 'hidden' }} mb-4">
             {% if results|length > 0 %}
             <div class="db-card">
                 <div class="db-card-header">
                     <p class="db-card-eyebrow">
-<i class="bi-table me-1.5"></i>
+                        <i class="bi-table me-1.5"></i>
                         {{ total }} alerte{{ total != 1 ? 's' : '' }} trouvée{{ total != 1 ? 's' : '' }}
                     </p>
+                    <div class="db-card-actions">
+                        <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('pdf')">
+                            <i class="bi-filetype-pdf me-1 text-red-400"></i>PDF
+                        </button>
+                        <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('excel')">
+                            <i class="bi-filetype-xls me-1 text-emerald-400"></i>Excel
+                        </button>
+                    </div>
                 </div>
                 <div class="db-card-body p-0">
                     <div class="table-scroll">
-                        <table class="gei-table">
+                        <table class="gei-table audit-table">
                             <thead>
                                 <tr>
-                                    <th>Code GEI</th>
-                                    <th>Pays</th>
-                                    <th>Corridor</th>
-                                    <th>Date</th>
-                                    <th>Catégorie</th>
-                                    <th>Type</th>
-                                    <th>Priorité</th>
-                                    <th>Score</th>
-                                    <th>Statut</th>
-                                    <th>Urgence</th>
-                                    <th>Agent</th>
-                                    <th>Résumé</th>
+                                    <th class="col-code">Code GEI</th>
+                                    <th class="col-pays">Pays</th>
+                                    <th class="col-corridor">Corridor</th>
+                                    <th class="col-date">Date</th>
+                                    <th class="col-categorie">Catégorie</th>
+                                    <th class="col-type">Type</th>
+                                    <th class="col-priorite">Priorité</th>
+                                    <th class="col-score">Score</th>
+                                    <th class="col-statut">Statut</th>
+                                    <th class="col-urgence">Urgence</th>
+                                    <th class="col-agent">Agent</th>
+                                    <th class="col-resume">Résumé</th>
+                                    <th class="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                             {% for row in results %}
-                                <tr>
-                                    <td class="font-mono text-amber-400 font-bold whitespace-nowrap">
-                                        {{ row.codeGei ?? 'BROUILLON' }}
+                                {% set scoreVal = row.score ?? 0 %}
+                                <tr class="audit-row {% if scoreVal >= 18 %}audit-row-critique{% elseif scoreVal >= 14 %}audit-row-eleve{% elseif scoreVal >= 10 %}audit-row-modere{% else %}audit-row-faible{% endif %}">
+                                    <td class="col-code">
+                                        <span class="code-gei-badge">{{ row.codeGei ?? 'BROUILLON' }}</span>
                                     </td>
-                                    <td class="text-sm">{{ row.pays ?? '—' }}</td>
-                                    <td class="text-xs">{{ row.portCorridor ?? '—' }}</td>
-                                    <td class="text-xs text-slate-400 whitespace-nowrap">
-                                        {{ row.dateCreation ?? '—' }}
+                                    <td class="col-pays">
+                                        <span class="pays-cell">
+                                            <span class="pays-flag" title="{{ row.pays ?? '' }}">🌍</span>
+                                            <span class="pays-libelle">{{ row.pays ?? '—' }}</span>
+                                        </span>
                                     </td>
-                                    <td class="text-xs">{{ row.categorie ?? '—' }}</td>
-                                    <td class="text-xs">{{ row.typeAlerte ?? '—' }}</td>
-                                    <td class="whitespace-nowrap">
-                                        {% set prio = row.niveau_priorite ?? row.priorite ?? '' %}
+                                    <td class="col-corridor">
+                                        <span class="corridor-cell">
+                                            <i class="bi bi-signpost-bridge"></i>
+                                            <span>{{ row.portCorridor ?? '—' }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="col-date">
+                                        <span class="date-cell">
+                                            <i class="bi bi-calendar"></i>
+                                            <span>{{ row.dateCreation ?? '—' }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="col-categorie">
+                                        <span class="cat-badge">{{ row.categorie ?? '—' }}</span>
+                                    </td>
+                                    <td class="col-type">
+                                        <span class="type-badge">{{ row.typeAlerte ?? '—' }}</span>
+                                    </td>
+                                    <td class="col-priorite">
+                                        {% set prio = row.priorite ?? '' %}
                                         {% if prio %}
-                                            <span class="priority-badge priority-{{ prio }}">
-                                                {{ prio }}
-                                            </span>
+                                            <span class="priority-pill priority-{{ prio }}">{{ prio|capitalize }}</span>
+                                        {% else %}
+                                            <span class="text-slate-600">—</span>
                                         {% endif %}
                                     </td>
-                                    <td class="whitespace-nowrap">
-                                        {% if row.score %}
-                                            <span class="score-badge {% if row.score >= 18 %}score-critique{% elseif row.score >= 14 %}score-eleve{% elseif row.score >= 10 %}score-modere{% else %}score-faible{% endif %}">
-                                                {{ row.score }}
+                                    <td class="col-score">
+                                        {% if scoreVal %}
+                                            <span class="score-ring score-{{ scoreVal >= 18 ? 'critique' : (scoreVal >= 14 ? 'eleve' : (scoreVal >= 10 ? 'modere' : 'faible')) }}">
+                                                {{ scoreVal }}
                                             </span>
+                                        {% else %}
+                                            <span class="text-slate-600">—</span>
                                         {% endif %}
                                     </td>
-                                    <td>
+                                    <td class="col-statut">
                                         <span class="status-pill status-{{ row.statut }}">
                                             <span class="status-dot"></span>{{ row.statut|default('—') }}
                                         </span>
                                     </td>
-                                    <td class="text-xs">{{ row.urgence ?? '—' }}</td>
-                                    <td class="text-xs">{{ row.agent ?? '—' }}</td>
-                                    <td class="text-xs text-slate-400 max-w-xs truncate"
-                                        title="{{ row.resumeExecutif|default('') }}">
-                                        {{ (row.resumeExecutif ?? '—')|slice(0, 80) }}{% if (row.resumeExecutif ?? '')|length > 80 %}…{% endif %}
+                                    <td class="col-urgence">
+                                        {% set urg = row.urgence ?? '' %}
+                                        {% if urg %}
+                                            <span class="urgence-badge urgence-{{ urg }}">{{ urg|capitalize }}</span>
+                                        {% else %}
+                                            <span class="text-slate-600">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="col-agent">
+                                        <span class="agent-cell">
+                                            <span class="agent-avatar">{{ row.agent|slice(0,1)|default('?') }}</span>
+                                            <span class="agent-libelle">{{ row.agent ?? '—' }}</span>
+                                        </span>
+                                    </td>
+                                    <td class="col-resume">
+                                        <span class="resume-text"
+                                              title="{{ row.resumeExecutif|default('') }}">
+                                            {{ (row.resumeExecutif ?? '—')|slice(0, 100) }}{% if (row.resumeExecutif ?? '')|length > 100 %}…{% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="col-actions">
+                                        {% if row.id %}
+                                            <a href="{{ path('app_alert_show', {id: row.id}) }}"
+                                               class="action-btn action-view"
+                                               title="Voir l'alerte">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -711,20 +769,25 @@
 <script>
 // ── Bascule modes d'affichage ────────────────────────────────────────────────
 function switchVue(mode) {
-    const modes = ['texte', 'tableau', 'graphiques', 'carte'];
-    modes.forEach(m => {
+    // Change la section visible immédiatement — pas de rechargement
+    ['texte', 'tableau', 'graphiques', 'carte'].forEach(m => {
         const el = document.getElementById('vue' + m);
         if (el) el.classList.toggle('hidden', m !== mode);
     });
+
+    // Met à jour les boutons
     document.querySelectorAll('.vue-btn').forEach(b => b.classList.remove('vue-btn-active'));
-    const activeBtn = document.querySelector(`.vue-btn[onclick="switchVue('${mode}')"]`);
-    if (activeBtn) activeBtn.classList.add('vue-btn-active');
+    const btn = document.querySelector(`.vue-btn[data-vue="${mode}"]`);
+    if (btn) btn.classList.add('vue-btn-active');
+
+    // Met à jour le champ caché (pour la prochaine soumission Analyser)
     const vueInput = document.querySelector('input[name="vue"]');
     if (vueInput) vueInput.value = mode;
 
-    if (mode === 'carte') {
-        setTimeout(() => initAuditMap({{ (stats.donneesCartographie is defined ? stats.donneesCartographie : [])|json_encode|raw }}), 50);
-    }
+    // Met à jour l'URL sans rechargement (bookmarkable)
+    const url = new URL(window.location.href);
+    url.searchParams.set('vue', mode);
+    history.replaceState(null, '', url.toString());
 }
 
 // ── Raccourcis période ───────────────────────────────────────────────────────

@@ -164,7 +164,6 @@ class ScoreCalculatorService
             'niveau_icon'  => $niveau->icon(),
             'seuils'       => $this->getSeuils(),
             'detail'       => [
-                'score '=>
                 'fiabilite'              => $fScore,
                 'credibilite'            => $cScore,
                 'fiabilite_x_credibilite' => $fScore * $cScore,

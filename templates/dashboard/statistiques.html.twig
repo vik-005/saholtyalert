@@ -353,6 +353,7 @@ Chart.defaults.color       = C.text;
 Chart.defaults.borderColor = C.border;
 Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
 Chart.defaults.font.size   = 11;
+Chart.defaults.devicePixelRatio = Math.min(window.devicePixelRatio || 1, 3);
 
 const TOOLTIP = {
     backgroundColor: '#1e293b',

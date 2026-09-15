@@ -68,6 +68,22 @@ class UserController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // ── Garde serveur : création SUPERADMIN interdite via UI (défense en profondeur) ──
+            if ($user->getRole() === UserRoleEnum::SUPERADMIN
+                && $currentUser->getRole() !== UserRoleEnum::SUPERADMIN) {
+                throw $this->createAccessDeniedException('Vous ne pouvez pas créer un Super Administrateur.');
+            }
+            // Un SUPERADMIN ne peut pas en créer un autre via l'interface
+            if ($user->getRole() === UserRoleEnum::SUPERADMIN
+                && $currentUser->getRole() === UserRoleEnum::SUPERADMIN) {
+                $this->addFlash('error', 'La création d\'un Super Administrateur via l\'interface est désactivée. Utilisez la console Symfony.');
+                return $this->render('admin/user_form.html.twig', [
+                    'form'   => $form,
+                    'user'   => $user,
+                    'is_new' => true,
+                ]);
+            }
+
             // Sécurité stricte : si manager, forcer rôle Agent et marchés gérés
             if ($currentUser->getRole() === UserRoleEnum::PFT) {
                 $user->setRole(UserRoleEnum::EMETTEUR_TERRAIN);

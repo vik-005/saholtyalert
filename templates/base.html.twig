@@ -53,7 +53,9 @@
 </head>
 <body{% block body_attributes %} data-turbo-cache="false"{% endblock %}>
 
-{% if app.user %}
+{% set is2faPage = app.request.attributes.get('_route') starts with '2fa' %}
+
+{% if app.user and not is2faPage %}
     <div class="gei-shell">
         {# Sidebar #}
         {% include 'partials/_sidebar.html.twig' %}
@@ -95,6 +97,7 @@
     </div>
 
 {% else %}
+    {# Pas connecté OU page 2FA (token partiel) → layout auth #}
     <main class="auth-main">
         {% block body_login %}{% endblock %}
     </main>

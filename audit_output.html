@@ -1,0 +1,587 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — Plateforme GEI</title>
+    <meta name="description" content="Plateforme GEI de renseignement opérationnel, suivi des alertes et tableaux de bord stratégiques.">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+        <script>
+        window.tailwind = window.tailwind || {};
+        tailwind.config = {
+            corePlugins: { preflight: false },
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            '50': '#f0f4f9', '100': '#dfe7f1', '200': '#bfd3e3',
+                            '300': '#9fbace', '400': '#6e8fb3', '500': '#4a6fa5',
+                            '600': '#38568e', '700': '#2d4575', '800': '#1f3a61',
+                            '900': '#0f1729', '950': '#090e1a',
+                        },
+                    },
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+        <link rel="stylesheet" href="/assets/styles/app-IaqpqJz.css">
+
+    </head>
+<body data-turbo-cache="false">
+
+    <main class="auth-main">
+        <div class="auth-shell auth-shell-pro">
+
+        <aside class="auth-brand-panel">
+
+                <div class="auth-slide-wrap" id="authSlideWrap">
+                        <div class="auth-slide-item auth-slide-active"
+                 style="background-image:url('https://images.unsplash.com/photo-1557597774-9d475d030a6d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop')">
+            </div>
+            <div class="auth-slide-item"
+                 style="background-image:url('https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=900&q=80&auto=format&fit=crop')">
+            </div>
+        </div>
+
+                <div class="auth-slide-overlay"></div>
+
+                <a href="/login" class="auth-brand">
+            <span><i class="fa-solid fa-shield-halved"></i></span>GEI Platform
+        </a>
+
+        <div class="auth-brand-copy">
+            <p class="auth-brand-tag">Groupe d'échange d'informations</p>
+            <h2>Une information mieux qualifiée.<br>Une décision mieux protégée.</h2>
+            <p>Plateforme sécurisée de collecte, qualification et suivi des alertes opérationnelles.</p>
+        </div>
+
+        <ul class="auth-brand-points">
+            <li><i class="fa-solid fa-circle-check"></i>Accès contrôlé par rôle</li>
+            <li><i class="fa-solid fa-circle-check"></i>Traçabilité des opérations</li>
+            <li><i class="fa-solid fa-circle-check"></i>Suivi des urgences sous 72 h</li>
+        </ul>
+
+        <p class="auth-brand-footer"><i class="fa-solid fa-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
+
+                <div class="auth-slide-dots" id="authSlideDots">
+            <button class="auth-slide-dot auth-dot-active" data-slide="0" aria-label="Slide 1"></button>
+            <button class="auth-slide-dot" data-slide="1" aria-label="Slide 2"></button>
+            <button class="auth-slide-dot" data-slide="2" aria-label="Slide 3"></button>
+            <button class="auth-slide-dot" data-slide="3" aria-label="Slide 4"></button>
+        </div>
+
+    </aside>
+
+        <main class="auth-form-panel auth-form-panel-pro">
+        <div class="auth-mobile-brand">
+            <span><i class="fa-solid fa-shield-halved"></i></span> GEI Platform
+        </div>
+        <div class="auth-form-inner"><div class="auth-form-header">
+    <h1 class="auth-title">Connexion</h1>
+    <p class="auth-subtitle">
+        Pas encore de compte ?
+        <a href="/register" class="auth-link">Créer un accès</a>
+    </p>
+</div>
+
+
+<form method="post" action="/login" class="auth-fields" novalidate>
+
+        <div class="auth-field-wrap">
+        <label class="auth-label" for="username">
+            <i class="fa-regular fa-envelope me-1.5 opacity-60"></i>Adresse email
+        </label>
+        <div class="auth-input-wrap">
+            <input
+                type="email"
+                id="username"
+                name="_username"
+                value=""
+                placeholder="nom@gei.org"
+                class="auth-input"
+                autocomplete="email"
+                required
+            >
+        </div>
+    </div>
+
+        <div class="auth-field-wrap">
+        <div class="auth-label-row">
+            <label class="auth-label" for="password">
+                <i class="fa-solid fa-lock me-1.5 opacity-60"></i>Mot de passe
+            </label>
+                    </div>
+        <div class="auth-input-wrap auth-input-icon-right">
+            <input
+                type="password"
+                id="password"
+                name="_password"
+                placeholder="Votre mot de passe"
+                class="auth-input"
+                autocomplete="current-password"
+                required
+            >
+            <button type="button" class="auth-input-btn" id="togglePasswordBtn"
+                    onclick="togglePassword('password', 'togglePasswordBtn')" tabindex="-1">
+                <i class="fa-regular fa-eye"></i>
+            </button>
+        </div>
+    </div>
+
+        <div class="auth-checkbox-row">
+        <label class="auth-checkbox-label">
+            <input type="checkbox" name="_remember_me" class="auth-checkbox">
+            <span class="auth-checkbox-custom"></span>
+            <span>Se souvenir de moi</span>
+        </label>
+    </div>
+
+    <input type="hidden" name="_csrf_token" value="csrf-token">
+        <input type="hidden" name="_geo_lat" id="geoLat" value="">
+    <input type="hidden" name="_geo_lng" id="geoLng" value="">
+
+        <button type="submit" class="auth-submit-btn">
+        <i class="fa-solid fa-right-to-bracket me-2"></i>
+        Se connecter
+    </button>
+
+</form>
+
+<div class="auth-divider">
+    <span class="auth-divider-line"></span>
+    <span class="auth-divider-text">Accès sécurisé GEI</span>
+    <span class="auth-divider-line"></span>
+</div>
+
+<div class="auth-security-note">
+    <div class="auth-security-item">
+        <i class="fa-solid fa-shield-halved text-amber-400"></i>
+        <span>Connexion chiffrée TLS</span>
+    </div>
+    <div class="auth-security-item">
+        <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
+        <span>Session 8h maximum</span>
+    </div>
+    <div class="auth-security-item">
+        <i class="fa-solid fa-eye-slash text-amber-400"></i>
+        <span>Données confidentielles</span>
+    </div>
+</div>
+</div>
+        <p class="auth-footer-note">© 2026 · Plateforme GEI</p>
+    </main>
+
+</div>
+    </main>
+
+<div id="confirmModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div>
+                <p class="modal-eyebrow"><i class="bi bi-exclamation-triangle me-1.5"></i>Confirmation requise</p>
+                <h3 class="modal-title">Confirmer la suppression ?</h3>
+            </div>
+            <button class="modal-close-btn modal-close"><i class="bi bi-x"></i></button>
+        </div>
+        <p class="modal-body-text">Cette action est irréversible. L'élément sera définitivement supprimé.</p>
+        <form id="deleteConfirmForm" method="post" class="modal-actions">
+            <input type="hidden" name="_token" id="deleteTokenInput" value="">
+            <button type="button" class="btn-secondary modal-close">
+                                <i class="bi bi-ban me-1.5"></i>Annuler
+            </button>
+            <button type="submit" class="btn-danger">
+                                <i class="bi bi-trash me-1.5"></i>Supprimer
+            </button>
+        </form>
+    </div>
+</div>
+
+
+<link rel="stylesheet" href="/assets/styles/app-IaqpqJz.css">
+<script type="importmap" data-turbo-track="reload">
+{
+    "imports": {
+        "app": "/assets/app-CEPlkGg.js",
+        "/assets/styles/app.css": "data:application/javascript,",
+        "@hotwired/turbo": "/assets/vendor/@hotwired/turbo/turbo.index-J4AkTcK.js",
+        "@hotwired/stimulus": "/assets/vendor/@hotwired/stimulus/stimulus.index-ryewcoo.js",
+        "@symfony/stimulus-bundle": "/assets/@symfony/stimulus-bundle/loader-IOzBDLu.js",
+        "/assets/@symfony/stimulus-bundle/controllers.js": "/assets/@symfony/stimulus-bundle/controllers-qoRywO9.js",
+        "/assets/@symfony/ux-turbo/turbo_controller.js": "/assets/@symfony/ux-turbo/turbo_controller-bFCo5ub.js",
+        "/assets/controllers/hello_controller.js": "/assets/controllers/hello_controller-VYgvytJ.js",
+        "/assets/controllers/csrf_protection_controller.js": "/assets/controllers/csrf_protection_controller-6ynUAeX.js"
+    }
+}
+</script><script data-turbo-track="reload">
+if (!HTMLScriptElement.supports || !HTMLScriptElement.supports('importmap')) (function () {
+    const script = document.createElement('script');
+    script.src = 'https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js';
+    script.setAttribute('crossorigin', 'anonymous');
+    script.setAttribute('integrity', 'sha384-ie1x72Xck445i0j4SlNJ5W5iGeL3Dpa0zD48MZopgWsjNB/lt60SuG1iduZGNnJn');
+    script.setAttribute('data-turbo-track', 'reload');
+    document.head.appendChild(script);
+})();
+</script>
+<link rel="modulepreload" href="/assets/app-CEPlkGg.js">
+<link rel="modulepreload" href="/assets/vendor/@hotwired/turbo/turbo.index-J4AkTcK.js">
+<script type="module" data-turbo-track="reload">import 'app';</script>
+
+<script>
+/* ─── Sous-menus sidebar dépliables ─── */
+function toggleSubmenu(id) {
+    const menu  = document.getElementById(id);
+    const arrow = document.getElementById('arrow-' + id.replace('submenu-', ''));
+    if (!menu) return;
+    const isHidden = menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', !isHidden);
+    if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    localStorage.setItem('menu-' + id + '-open', isHidden ? '1' : '0');
+}
+
+// Restore submenu states on load
+document.addEventListener('DOMContentLoaded', () => {
+    ['submenu-alertes', 'submenu-statistiques', 'submenu-admin', 'submenu-espace'].forEach(id => {
+        const menu = document.getElementById(id);
+        const arrow = document.getElementById('arrow-' + id.replace('submenu-', ''));
+        if (menu) {
+            const isOpen = localStorage.getItem('menu-' + id + '-open');
+            if (isOpen !== null) {
+                const open = isOpen === '1';
+                menu.classList.toggle('hidden', !open);
+                if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+            }
+        }
+    });
+});
+
+/* ─── Sidebar toggle ─── */
+function toggleSidebar() {
+    const shell = document.querySelector('.gei-shell');
+    const overlay = document.getElementById('sidebarOverlay');
+    shell.classList.toggle('sidebar-collapsed');
+    overlay.classList.toggle('hidden');
+}
+function closeSidebar() {
+    document.querySelector('.gei-shell').classList.remove('sidebar-collapsed');
+    document.getElementById('sidebarOverlay').classList.add('hidden');
+}
+document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => {
+    document.querySelector('.gei-shell').classList.toggle('sidebar-mini');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const icon = btn.querySelector('i');
+    icon.classList.toggle('bi-chevron-double-left');
+    icon.classList.toggle('bi-chevron-double-right');
+});
+
+/* ─── Polling notifications (toutes les 30s — badge sans rechargement) ─── */
+let notifPollInterval;
+let _seenNotifIds = new Set();
+let _notifInitialized = false;
+async function pollNotifications() {
+    try {
+        const r = await fetch('/api/notifications/count', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!r.ok) return;
+        const data = await r.json();
+
+        // Badge topbar
+        const badge = document.getElementById('topbarNotifBadge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.style.display = 'grid';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // Badge sidebar
+        const sidebarBadge = document.getElementById('sidebarNotifBadge');
+        if (sidebarBadge) {
+            sidebarBadge.textContent = data.count > 0 ? data.count : '0';
+        }
+
+        // Marquer les notifications existantes comme vues (pas de toast)
+        if (!_notifInitialized && data.notifications) {
+            data.notifications.forEach(n => _seenNotifIds.add(n.id));
+            _notifInitialized = true;
+        }
+
+        // Toasts pour nouvelles notifications
+        if (data.notifications && data.notifications.length > 0) {
+            data.notifications.forEach(n => {
+                if (!_seenNotifIds.has(n.id)) {
+                    _seenNotifIds.add(n.id);
+                    showToast(n.contenu, n.type, n.alertId);
+                }
+            });
+        }
+
+        // Mettre à jour la liste sidebar
+        const sidebarList = document.getElementById('sidebarNotifList');
+        if (sidebarList && data.notifications && data.notifications.length > 0) {
+            sidebarList.innerHTML = data.notifications.slice(0, 2).map(n => {
+                const dot = n.type === 'urgence' ? 'notif-dot-red' : 'notif-dot-amber';
+                const text = n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 45) + '…' : '';
+                return `<div class="sidebar-notif-item">
+                    <span class="notif-dot ${dot}"></span>
+                    <span>${escapeHtml(text)}</span>
+                </div>`;
+            }).join('');
+        } else if (sidebarList) {
+            sidebarList.innerHTML = '<div class="sidebar-notif-item"><span class="text-slate-500 text-xs">Aucune notification</span></div>';
+        }
+
+        // Mettre à jour le panel dropdown topbar
+        if (data.notifications && window._notifPanelOpen !== true) {
+            const list = document.querySelector('.notif-list');
+            if (list && data.notifications.length > 0) {
+                list.innerHTML = data.notifications.map(n => {
+                    const iconClass = n.type === 'urgence' ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
+                    const icon = n.type === 'urgence' ? 'fa-triangle-exclamation' : n.type === 'tache' ? 'fa-clipboard-check' : 'fa-circle-check';
+                    const href = n.alertId ? `/notification/${n.id}/read` : '/notification/' + n.id + '/read';
+                    return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'}">
+                        <span class="notif-icon-wrap ${iconClass}"><i class="bi ${icon}"></i></span>
+                        <div class="notif-body">
+                            <p class="notif-title">${escapeHtml(n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—')}</p>
+                            <span class="notif-meta">${n.codeGei ? escapeHtml(n.codeGei) + ' · ' : ''}${escapeHtml(n.date)}</span>
+                        </div>
+                    </a>`;
+                }).join('');
+            }
+        }
+    } catch (e) { /* Silencieux — pas critique */ }
+}
+
+function showToast(contenu, type, alertId) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `gei-toast toast-${type || 'info'}`;
+    const icon = type === 'urgence' ? 'fa-triangle-exclamation' : type === 'tache' ? 'fa-clipboard-check' : type === 'escalade' ? 'fa-arrow-up-right-dots' : type === 'validation' ? 'fa-check-circle' : type === 'statut_change' ? 'fa-rotate' : 'fa-circle-info';
+    const href = alertId ? `/alert/${alertId}` : '/notifications';
+    toast.innerHTML = `
+        <a href="${href}" class="gei-toast-link">
+            <span class="gei-toast-icon"><i class="bi ${icon}"></i></span>
+            <span class="gei-toast-text">${escapeHtml(contenu)}</span>
+        </a>
+        <button class="gei-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 6000);
+}
+
+function escapeHtml(value) {
+    const element = document.createElement('span');
+    element.textContent = value;
+    return element.innerHTML;
+}
+
+// Premier appel immédiat + polling toutes les 30s
+document.addEventListener('DOMContentLoaded', () => {
+    pollNotifications();
+    notifPollInterval = setInterval(pollNotifications, 30000);
+});
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    panel.classList.toggle('hidden');
+    window._notifPanelOpen = !panel.classList.contains('hidden');
+}
+
+/* ─── Dark / Night mode ─── */
+(function() {
+    if (localStorage.getItem('gei-dark') === '1') {
+        document.body.classList.add('dark');
+    }
+})();
+document.addEventListener('DOMContentLoaded', function() {
+    const btn  = document.getElementById('darkModeBtn');
+    const icon = document.getElementById('darkModeIcon');
+    if (!btn) return;
+    function applyDark(on) {
+        document.body.classList.toggle('dark', on);
+        if (icon) {
+                    icon.className = on ? 'bi bi-sun' : 'bi bi-moon';
+        }
+        localStorage.setItem('gei-dark', on ? '1' : '0');
+        // Notifier les autres composants (ex: carte Leaflet)
+        document.dispatchEvent(new CustomEvent('dark-mode-changed', { detail: { dark: on } }));
+    }
+    // Init icon on page load
+    const isDark = document.body.classList.contains('dark');
+    if (icon) icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon';
+    btn.addEventListener('click', function() {
+        applyDark(!document.body.classList.contains('dark'));
+    });
+});
+
+/* ─── Modale confirm (générale) ─── */
+document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.getElementById('confirmModal').classList.add('hidden');
+    });
+});
+
+/* ─── Modale de rejet (spécifique à la qualification) ─── */
+document.addEventListener('DOMContentLoaded', () => {
+    const rejectBtns = document.querySelectorAll('.action-rejet');
+    const rejectModal = document.getElementById('rejectModal');
+    const rejectCommentaire = document.getElementById('rejectCommentaire');
+    const rejectForm = document.getElementById('rejectForm');
+    const rejectTokenInput = document.getElementById('rejectTokenInput');
+
+    // Initialiser le token CSRF
+    if (rejectTokenInput) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) rejectTokenInput.value = csrfToken;
+    }
+
+    rejectBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const alertId = btn.getAttribute('data-alert-id');
+            if (rejectForm) {
+                rejectForm.action = `/alert/${alertId}/qualify`;
+            }
+            if (rejectModal) rejectModal.classList.remove('hidden');
+            if (rejectCommentaire) rejectCommentaire.focus();
+        });
+    });
+
+    // Fermer le modal au clic sur le boutonAnnuler ou overlay
+    document.querySelectorAll('[data-modal="rejectModal"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (rejectModal) rejectModal.classList.add('hidden');
+        });
+    });
+
+    // Soumission du rejet
+    if (rejectForm) {
+        rejectForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const commentaire = rejectCommentaire?.value?.trim();
+            if (!commentaire) {
+                alert('Un commentaire est obligatoire pour rejeter la fiche.');
+                return;
+            }
+
+            const formData = new FormData(rejectForm);
+            formData.append('action_rejet', '1');
+            formData.append('commentaire_rejet', commentaire);
+
+            fetch(rejectForm.action, {
+                method: 'POST',
+                body: formData,
+            }).then(r => r.ok ? window.location.href = '/alert' : null);
+        });
+    }
+});
+</script>
+
+
+<script>
+/* ── Slideshow panneau gauche ── */
+(function() {
+    const slides = document.querySelectorAll('.auth-slide-item');
+    const dots   = document.querySelectorAll('.auth-slide-dots .auth-slide-dot');
+    if (!slides.length) return;
+
+    let current = 0;
+    let timer   = null;
+
+    function goTo(idx) {
+        slides[current].classList.remove('auth-slide-active');
+        dots[current]?.classList.remove('auth-dot-active');
+        current = (idx + slides.length) % slides.length;
+        slides[current].classList.add('auth-slide-active');
+        dots[current]?.classList.add('auth-dot-active');
+    }
+
+    function next() { goTo(current + 1); }
+
+    function startAuto() {
+        clearInterval(timer);
+        timer = setInterval(next, 5000);
+    }
+
+    // Clic sur les dots
+    dots.forEach(function(dot) {
+        dot.addEventListener('click', function() {
+            goTo(parseInt(dot.dataset.slide, 10));
+            startAuto(); // reset du timer
+        });
+    });
+
+    startAuto();
+})();
+
+/* ── Afficher/masquer mot de passe ── */
+function togglePassword(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const icon  = document.getElementById(btnId)?.querySelector('i');
+    if (!input || !icon) return;
+    const visible = input.type === 'password';
+    input.type = visible ? 'text' : 'password';
+    icon.classList.toggle('fa-eye',      !visible);
+    icon.classList.toggle('fa-eye-slash', visible);
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    if (!('geolocation' in navigator)) return;
+    const form  = document.querySelector('form[action*="login"]');
+    const latEl = document.getElementById('geoLat');
+    const lngEl = document.getElementById('geoLng');
+    if (!form || !latEl || !lngEl) return;
+
+    function capturePosition() {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                latEl.value = pos.coords.latitude.toFixed(6);
+                lngEl.value = pos.coords.longitude.toFixed(6);
+                document.cookie = 'geo_consent=granted; max-age=31536000; path=/; SameSite=Lax';
+            },
+            () => { document.cookie = 'geo_consent=denied; max-age=86400; path=/; SameSite=Lax'; },
+            { timeout: 5000, maximumAge: 60000 }
+        );
+    }
+
+    const consent = document.cookie.split('; ').find(r => r.startsWith('geo_consent='));
+    if (consent && consent.includes('granted')) {
+        capturePosition();
+    } else if (!consent) {
+        form.addEventListener('submit', capturePosition, { once: true });
+    }
+});
+</script>
+
+<div id="toastContainer" class="gei-toast-container"></div>
+
+
+<!-- START of Symfony Web Debug Toolbar --><div id="sfwdtd02bd2" class="sf-toolbar sf-toolbar-opened" role="region" aria-label="Symfony Web Debug Toolbar">    <div id="sfToolbarClearer-d02bd2" class="sf-toolbar-clearer"></div><div id="sfToolbarMainContent-d02bd2" class="sf-toolbarreset notranslate clear-fix" data-no-turbolink data-turbo="false">                                                    <div class="sf-toolbar-block sf-toolbar-block-request sf-toolbar-status-normal " >    <a href="http://127.0.0.1:8000/_profiler/d02bd2?panel=request">        <div class="sf-toolbar-icon">        <svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Symfony" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .9C5.8.9.9 5.8.9 12a11 11 0 1 0 22.2 0A11 11 0 0 0 12 .9zm6.5 6c-.6 0-.9-.3-.9-.8 0-.2 0-.4.2-.6l.2-.4c0-.3-.5-.4-.6-.4-1.8.1-2.3 2.5-2.7 4.4l-.2 1c1 .2 1.8 0 2.2-.3.6-.4-.2-.7-.1-1.2.1-.3.5-.5.7-.6.5 0 .7.5.7.9 0 .7-1 1.8-3 1.8l-.6-.1-.6 2.4c-.4 1.6-.8 3.8-2.4 5.7-1.4 1.7-2.9 1.9-3.5 1.9-1.2 0-1.9-.6-2-1.5 0-.8.7-1.3 1.2-1.3.6 0 1.1.5 1.1 1s-.2.6-.4.6c-.1.1-.3.2-.3.4 0 .1.1.3.4.3.5 0 .8-.3 1.1-.5 1.2-.9 1.6-2.7 2.2-5.7l.1-.7.7-3.2c-.8-.6-1.3-1.4-2.4-1.7-.6-.1-1.1.1-1.5.5-.4.5-.2 1.1.2 1.5l.7.6c.7.8 1.2 1.6 1 2.5-.3 1.5-2 2.6-4 1.9-1.8-.6-2-1.8-1.8-2.5.2-.6.6-.7 1.1-.6.5.2.6.7.6 1.2l-.1.3c-.2.1-.3.3-.3.4-.1.4.4.6.7.7.7.3 1.6-.2 1.8-.8a1 1 0 0 0-.4-1.1l-.7-.8c-.4-.4-1.1-1.4-.7-2.6.1-.5.4-.9.7-1.3a4 4 0 0 1 2.8-.6c1.2.4 1.8 1.1 2.6 1.8.5-1.2 1-2.4 1.8-3.5.9-.9 1.9-1.6 3.1-1.7 1.3.2 2.2.7 2.2 1.6 0 .4-.2 1.1-.9 1.1z"/></svg>        <span class="sf-toolbar-value sf-toolbar-ajax-request-counter">            Loading&hellip;        </span>    </div>    </a>        <div class="sf-toolbar-info">        <div class="sf-toolbar-info-piece">            <b>Loading the web debug toolbar&hellip;</b>        </div>        <div class="sf-toolbar-info-piece">            Attempt #<span id="sfLoadCounter-d02bd2"></span>        </div>        <div class="sf-toolbar-info-piece">            <b>                <button class="sf-cancel-button" type="button" id="sfLoadCancel-d02bd2" title="Cancel loading">Cancel</button>            </b>        </div>    </div></div>                                <button class="sf-toolbar-toggle-button" type="button" id="sfToolbarToggleButton-d02bd2" accesskey="D" aria-expanded="true" aria-controls="sfToolbarMainContent-d02bd2">        <i class="sf-toolbar-icon-opened" title="Close Toolbar"><svg xmlns="http://www.w3.org/2000/svg" data-icon-name="icon-tabler-x" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>    <line x1="18" y1="6" x2="6" y2="18"></line>    <line x1="6" y1="6" x2="18" y2="18"></line></svg></i>        <i class="sf-toolbar-icon-closed" title="Open Toolbar"><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Symfony" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .9C5.8.9.9 5.8.9 12a11 11 0 1 0 22.2 0A11 11 0 0 0 12 .9zm6.5 6c-.6 0-.9-.3-.9-.8 0-.2 0-.4.2-.6l.2-.4c0-.3-.5-.4-.6-.4-1.8.1-2.3 2.5-2.7 4.4l-.2 1c1 .2 1.8 0 2.2-.3.6-.4-.2-.7-.1-1.2.1-.3.5-.5.7-.6.5 0 .7.5.7.9 0 .7-1 1.8-3 1.8l-.6-.1-.6 2.4c-.4 1.6-.8 3.8-2.4 5.7-1.4 1.7-2.9 1.9-3.5 1.9-1.2 0-1.9-.6-2-1.5 0-.8.7-1.3 1.2-1.3.6 0 1.1.5 1.1 1s-.2.6-.4.6c-.1.1-.3.2-.3.4 0 .1.1.3.4.3.5 0 .8-.3 1.1-.5 1.2-.9 1.6-2.7 2.2-5.7l.1-.7.7-3.2c-.8-.6-1.3-1.4-2.4-1.7-.6-.1-1.1.1-1.5.5-.4.5-.2 1.1.2 1.5l.7.6c.7.8 1.2 1.6 1 2.5-.3 1.5-2 2.6-4 1.9-1.8-.6-2-1.8-1.8-2.5.2-.6.6-.7 1.1-.6.5.2.6.7.6 1.2l-.1.3c-.2.1-.3.3-.3.4-.1.4.4.6.7.7.7.3 1.6-.2 1.8-.8a1 1 0 0 0-.4-1.1l-.7-.8c-.4-.4-1.1-1.4-.7-2.6.1-.5.4-.9.7-1.3a4 4 0 0 1 2.8-.6c1.2.4 1.8 1.1 2.6 1.8.5-1.2 1-2.4 1.8-3.5.9-.9 1.9-1.6 3.1-1.7 1.3.2 2.2.7 2.2 1.6 0 .4-.2 1.1-.9 1.1z"/></svg></i>    </button></div></div><link rel="stylesheet" nonce="92ee95cb65fc892c1f492ebb5e83a41d" href="http://127.0.0.1:8000/_wdt/styles" /><script nonce="2ab0fabc6bdaa123170207b2258df3dc">/*<![CDATA[*/    if (typeof Sfjs === 'undefined' || typeof Sfjs.loadToolbar === 'undefined') {        Sfjs = (function() {            "use strict";            if ('classList' in document.documentElement) {                var hasClass = function (el, cssClass) { return el.classList.contains(cssClass); };                var removeClass = function(el, cssClass) { el.classList.remove(cssClass); };                var addClass = function(el, cssClass) { el.classList.add(cssClass); };                var toggleClass = function(el, cssClass) { el.classList.toggle(cssClass); };            } else {                var hasClass = function (el, cssClass) { return el.className.match(new RegExp('\\b' + cssClass + '\\b')); };                var removeClass = function(el, cssClass) { el.className = el.className.replace(new RegExp('\\b' + cssClass + '\\b'), ' '); };                var addClass = function(el, cssClass) { if (!hasClass(el, cssClass)) { el.className += " " + cssClass; } };                var toggleClass = function(el, cssClass) { hasClass(el, cssClass) ? removeClass(el, cssClass) : addClass(el, cssClass); };            }            var noop = function() {};            var profilerStorageKey = 'symfony/profiler/';            var addEventListener;            var el = document.createElement('div');            if (!('addEventListener' in el)) {                addEventListener = function (element, eventName, callback) {                    element.attachEvent('on' + eventName, callback);                };            } else {                addEventListener = function (element, eventName, callback) {                    element.addEventListener(eventName, callback, false);                };            }            var request = function(url, onSuccess, onError, payload, options, tries) {                url = new URL(url);                url.searchParams.set('XDEBUG_IGNORE', '1');                url = url.toString();                var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject('Microsoft.XMLHTTP');                options = options || {};                options.retry = options.retry || false;                tries = tries || 1;                /* this delays for 125, 375, 625, 875, and 1000, ... */                var delay = tries < 5 ? (tries - 0.5) * 250 : 1000;                xhr.open(options.method || 'GET', url, true);                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');                xhr.onreadystatechange = function(state) {                    if (4 !== xhr.readyState) {                        return null;                    }                    if (xhr.status == 404 && options.retry && !options.stop) {                        setTimeout(function() {                            if (options.stop) {                                return;                            }                            request(url, onSuccess, onError, payload, options, tries + 1);                        }, delay);                        return null;                    }                    if (200 === xhr.status) {                        (onSuccess || noop)(xhr);                    } else {                        (onError || noop)(xhr);                    }                };                if (options.onSend) {                    options.onSend(tries);                }                xhr.send(payload || '');            };            var getPreference = function(name) {                if (!window.localStorage) {                    return null;                }                return localStorage.getItem(profilerStorageKey + name);            };            var setPreference = function(name, value) {                if (!window.localStorage) {                    return null;                }                localStorage.setItem(profilerStorageKey + name, value);            };            var requestStack = [];            var extractHeaders = function(xhr, stackElement) {                /* Here we avoid to call xhr.getResponseHeader in order to */                /* prevent polluting the console with CORS security errors */                var allHeaders = xhr.getAllResponseHeaders();                var ret;                if (ret = allHeaders.match(/^x-debug-token:\s+(.*)$/im)) {                    stackElement.profile = ret[1];                }                if (ret = allHeaders.match(/^x-debug-token-link:\s+(.*)$/im)) {                    stackElement.profilerUrl = ret[1];                }                if (ret = allHeaders.match(/^Symfony-Debug-Toolbar-Replace:\s+(.*)$/im)) {                    stackElement.toolbarReplaceFinished = false;                    stackElement.toolbarReplace = '1' === ret[1];                }            };            var successStreak = 4;            var pendingRequests = 0;            var renderAjaxRequests = function() {                var requestCounter = document.querySelector('.sf-toolbar-ajax-request-counter');                if (!requestCounter) {                    return;                }                requestCounter.textContent = requestStack.length;                var infoSpan = document.querySelector(".sf-toolbar-ajax-info");                if (infoSpan) {                    infoSpan.textContent = requestStack.length + ' AJAX request' + (requestStack.length !== 1 ? 's' : '');                }                var ajaxToolbarPanel = document.querySelector('.sf-toolbar-block-ajax');                if (requestStack.length) {                    ajaxToolbarPanel.style.display = '';                } else {                    ajaxToolbarPanel.style.display = 'none';                }                if (pendingRequests > 0) {                    addClass(ajaxToolbarPanel, 'sf-ajax-request-loading');                } else if (successStreak < 4) {                    addClass(ajaxToolbarPanel, 'sf-toolbar-status-red');                    removeClass(ajaxToolbarPanel, 'sf-ajax-request-loading');                } else {                    removeClass(ajaxToolbarPanel, 'sf-ajax-request-loading');                    removeClass(ajaxToolbarPanel, 'sf-toolbar-status-red');                }            };            var startAjaxRequest = function(index) {                var tbody = document.querySelector('.sf-toolbar-ajax-request-list');                if (!tbody) {                    return;                }                var nbOfAjaxRequest = tbody.rows.length;                if (nbOfAjaxRequest >= 100) {                    tbody.deleteRow(0);                }                var request = requestStack[index];                pendingRequests++;                var row = document.createElement('tr');                request.DOMNode = row;                var requestNumberCell = document.createElement('td');                requestNumberCell.textContent = index + 1;                row.appendChild(requestNumberCell);                var profilerCell = document.createElement('td');                profilerCell.textContent = 'n/a';                row.appendChild(profilerCell);                var methodCell = document.createElement('td');                methodCell.textContent = request.method;                row.appendChild(methodCell);                var typeCell = document.createElement('td');                typeCell.textContent = request.type;                row.appendChild(typeCell);                var statusCodeCell = document.createElement('td');                var statusCode = document.createElement('span');                statusCode.textContent = 'n/a';                statusCodeCell.appendChild(statusCode);                row.appendChild(statusCodeCell);                var pathCell = document.createElement('td');                pathCell.className = 'sf-ajax-request-url';                if ('GET' === request.method) {                    var pathLink = document.createElement('a');                    pathLink.setAttribute('href', request.url);                    pathLink.textContent = request.url;                    pathCell.appendChild(pathLink);                } else {                    pathCell.textContent = request.url;                }                pathCell.setAttribute('title', request.url);                row.appendChild(pathCell);                var durationCell = document.createElement('td');                durationCell.className = 'sf-ajax-request-duration';                durationCell.textContent = 'n/a';                row.appendChild(durationCell);                request.liveDurationHandle = setInterval(function() {                    durationCell.textContent = (new Date() - request.start) + ' ms';                }, 100);                row.className = 'sf-ajax-request sf-ajax-request-loading';                tbody.insertBefore(row, null);                var toolbarInfo = document.querySelector('.sf-toolbar-block-ajax .sf-toolbar-info');                toolbarInfo.scrollTop = toolbarInfo.scrollHeight;                renderAjaxRequests();            };            var finishAjaxRequest = function(index) {                var request = requestStack[index];                clearInterval(request.liveDurationHandle);                if (!request.DOMNode) {                    return;                }                if (request.toolbarReplace && !request.toolbarReplaceFinished && request.profile) {                    /* Flag as complete because finishAjaxRequest can be called multiple times. */                    request.toolbarReplaceFinished = true;                    /* Search up through the DOM to find the toolbar's container ID. */                    for (var elem = request.DOMNode; elem && elem !== document; elem = elem.parentNode) {                        if (elem.id.match(/^sfwdt/)) {                            Sfjs.loadToolbar(elem.id.replace(/^sfwdt/, ''), request.profile);                            break;                        }                    }                }                pendingRequests--;                var row = request.DOMNode;                /* Unpack the children from the row */                var profilerCell = row.children[1];                var methodCell = row.children[2];                var statusCodeCell = row.children[4];                var statusCodeElem = statusCodeCell.children[0];                var durationCell = row.children[6];                if (request.error) {                    row.className = 'sf-ajax-request sf-ajax-request-error';                    methodCell.className = 'sf-ajax-request-error';                    successStreak = 0;                } else {                    row.className = 'sf-ajax-request sf-ajax-request-ok';                    successStreak++;                }                if (request.statusCode) {                    if (request.statusCode < 300) {                        statusCodeElem.setAttribute('class', 'sf-toolbar-status');                    } else if (request.statusCode < 400) {                        statusCodeElem.setAttribute('class', 'sf-toolbar-status sf-toolbar-status-yellow');                    } else {                        statusCodeElem.setAttribute('class', 'sf-toolbar-status sf-toolbar-status-red');                    }                    statusCodeElem.textContent = request.statusCode;                } else {                    statusCodeElem.setAttribute('class', 'sf-toolbar-status sf-toolbar-status-red');                }                if (request.duration) {                    durationCell.textContent = request.duration + ' ms';                }                if (request.profilerUrl) {                    profilerCell.textContent = '';                    var profilerLink = document.createElement('a');                    profilerLink.setAttribute('href', request.profilerUrl);                    profilerLink.textContent = request.profile;                    profilerCell.appendChild(profilerLink);                }                renderAjaxRequests();            };                        if (window.fetch && window.fetch.polyfill === undefined) {                var oldFetch = window.fetch;                window.fetch = function () {                    var promise = oldFetch.apply(this, arguments);                    var url = arguments[0];                    var params = arguments[1];                    var paramType = Object.prototype.toString.call(arguments[0]);                    if (paramType === '[object Request]') {                        url = arguments[0].url;                        params = {                            method: arguments[0].method,                            credentials: arguments[0].credentials,                            headers: arguments[0].headers,                            mode: arguments[0].mode,                            redirect: arguments[0].redirect                        };                    } else {                        url = String(url);                    }                    if (!url.match(new RegExp("^\/((index|app(_[\\w]+)?)\\.php\/)?_wdt"))) {                        var method = 'GET';                        if (params && params.method !== undefined) {                            method = params.method;                        }                        var stackElement = {                            error: false,                            url: url,                            method: method,                            type: 'fetch',                            start: new Date()                        };                        var idx = requestStack.push(stackElement) - 1;                        promise.then(function (r) {                            stackElement.duration = new Date() - stackElement.start;                            stackElement.error = r.status < 200 || r.status >= 400;                            stackElement.statusCode = r.status;                            stackElement.profile = r.headers.get('x-debug-token');                            stackElement.profilerUrl = r.headers.get('x-debug-token-link');                            stackElement.toolbarReplaceFinished = false;                            stackElement.toolbarReplace = '1' === r.headers.get('Symfony-Debug-Toolbar-Replace');                            finishAjaxRequest(idx);                        }, function (e){                            stackElement.error = true;                            finishAjaxRequest(idx);                        });                        startAjaxRequest(idx);                    }                    return promise;                };            }            if (window.XMLHttpRequest && XMLHttpRequest.prototype.addEventListener) {                var proxied = XMLHttpRequest.prototype.open;                XMLHttpRequest.prototype.open = function(method, url, async, user, pass) {                    var self = this;                    /* prevent logging AJAX calls to static and inline files, like templates */                    var path = url;                    if (url.slice(0, 1) === '/') {                        if (0 === url.indexOf('')) {                            path = url.slice(0);                        }                    }                    else if (0 === url.indexOf('http\u003A\/\/127.0.0.1\u003A8000')) {                        path = url.slice(21);                    }                    if (!path.match(new RegExp("^\/((index|app(_[\\w]+)?)\\.php\/)?_wdt"))) {                        var stackElement = {                            error: false,                            url: url,                            method: method,                            type: 'xhr',                            start: new Date()                        };                        var idx = requestStack.push(stackElement) - 1;                        this.addEventListener('readystatechange', function() {                            if (self.readyState == 4) {                                stackElement.duration = new Date() - stackElement.start;                                stackElement.error = self.status < 200 || self.status >= 400;                                stackElement.statusCode = self.status;                                extractHeaders(self, stackElement);                                finishAjaxRequest(idx);                            }                        }, false);                        startAjaxRequest(idx);                    }                    proxied.apply(this, Array.prototype.slice.call(arguments));                };            }                        return {                hasClass: hasClass,                removeClass: removeClass,                addClass: addClass,                toggleClass: toggleClass,                getPreference: getPreference,                setPreference: setPreference,                addEventListener: addEventListener,                request: request,                renderAjaxRequests: renderAjaxRequests,                getSfwdt: function(token) {                    return document.getElementById('sfwdt' + token);                },                load: function(selector, url, onSuccess, onError, options) {                    var el = document.getElementById(selector);                    if (el && el.getAttribute('data-sfurl') !== url) {                        request(                            url,                            function(xhr) {                                el.innerHTML = xhr.responseText;                                el.setAttribute('data-sfurl', url);                                removeClass(el, 'loading');                                var pending = pendingRequests;                                for (var i = 0; i < requestStack.length; i++) {                                    startAjaxRequest(i);                                    if (requestStack[i].duration || requestStack[i].error) {                                        finishAjaxRequest(i);                                    }                                }                                /* Revert the pending state in case there was a start called without a finish above. */                                pendingRequests = pending;                                (onSuccess || noop)(xhr, el);                            },                            function(xhr) { (onError || noop)(xhr, el); },                            '',                            options                        );                    }                    return this;                },                showToolbar: function(token) {                    var sfwdt = this.getSfwdt(token);                    if ('closed' === getPreference('toolbar/displayState')) {                        addClass(sfwdt, 'sf-toolbar-closed');                        removeClass(sfwdt, 'sf-toolbar-opened');                    } else {                        addClass(sfwdt, 'sf-toolbar-opened');                        removeClass(sfwdt, 'sf-toolbar-closed');                    }                },                hideToolbar: function(token) {                    var sfwdt = this.getSfwdt(token);                    addClass(sfwdt, 'sf-toolbar-closed');                    removeClass(sfwdt, 'sf-toolbar-opened');                },                initToolbar: function(token) {                    this.showToolbar(token);                    var toggleButton = document.querySelector(`#sfToolbarToggleButton-${token}`);                    addEventListener(toggleButton, 'click', function (event) {                        event.preventDefault();                        const newState = 'opened' === getPreference('toolbar/displayState') ? 'closed' : 'opened';                        setPreference('toolbar/displayState', newState);                        'opened' === newState ? Sfjs.showToolbar(token) : Sfjs.hideToolbar(token);                    });                },                loadToolbar: function(token, newToken) {                    var that = this;                    var triesCounter = document.getElementById('sfLoadCounter-' + token);                    var options = {                        retry: true,                        onSend: function (count) {                            if (count === 3) {                                that.initToolbar(token);                            }                            if (triesCounter) {                                triesCounter.textContent = count;                            }                        },                    };                    var cancelButton = document.getElementById('sfLoadCancel-' + token);                    if (cancelButton) {                        addEventListener(cancelButton, 'click', function (event) {                            event.preventDefault();                            options.stop = true;                            that.hideToolbar(token);                        });                    }                    newToken = (newToken || token);                    this.load(                        'sfwdt' + token,                        'http\u003A\/\/127.0.0.1\u003A8000\/_wdt\/xxxxxx'.replace(/xxxxxx/, newToken),                        function(xhr, el) {                            var toolbarContent = document.getElementById('sfToolbarMainContent-' + newToken);                            /* Do nothing in the edge case where the toolbar has already been replaced with a new one */                            if (!toolbarContent) {                                return;                            }                            /* Replace the ID, it has to match the new token */                            toolbarContent.parentElement.id = 'sfwdt' + newToken;                            /* Evaluate in global scope scripts embedded inside the toolbar */                            var i, scripts = [].slice.call(el.querySelectorAll('script'));                            for (i = 0; i < scripts.length; ++i) {                                if (scripts[i].firstChild) {                                    eval.call({}, scripts[i].firstChild.nodeValue);                                }                            }                            el.style.display = -1 !== xhr.responseText.indexOf('sf-toolbarreset') ? 'block' : 'none';                            if (el.style.display == 'none') {                                return;                            }                            that.initToolbar(newToken);                            /* Handle toolbar-info position */                            var toolbarBlocks = [].slice.call(el.querySelectorAll('.sf-toolbar-block'));                            for (i = 0; i < toolbarBlocks.length; ++i) {                                toolbarBlocks[i].onmouseover = function () {                                    var toolbarInfo = this.querySelectorAll('.sf-toolbar-info')[0];                                    var pageWidth = document.body.clientWidth;                                    var elementWidth = toolbarInfo.offsetWidth;                                    var leftValue = (elementWidth + this.offsetLeft) - pageWidth;                                    var rightValue = (elementWidth + (pageWidth - this.offsetLeft)) - pageWidth;                                    /* Reset right and left value, useful on window resize */                                    toolbarInfo.style.right = '';                                    toolbarInfo.style.left = '';                                    if (elementWidth > pageWidth) {                                        toolbarInfo.style.left = 0;                                    }                                    else if (leftValue > 0 && rightValue > 0) {                                        toolbarInfo.style.right = (rightValue * -1) + 'px';                                    } else if (leftValue < 0) {                                        toolbarInfo.style.left = 0;                                    } else {                                        toolbarInfo.style.right = '0px';                                    }                                };                            }                            renderAjaxRequests();                            addEventListener(document.querySelector('.sf-toolbar-ajax-clear'), 'click', function() {                                requestStack = [];                                renderAjaxRequests();                                successStreak = 4;                                document.querySelector('.sf-toolbar-ajax-request-list').innerHTML = '';                            });                            addEventListener(document.querySelector('.sf-toolbar-block-ajax'), 'mouseenter', function (event) {                                var elem = document.querySelector('.sf-toolbar-block-ajax .sf-toolbar-info');                                elem.scrollTop = elem.scrollHeight;                            });                            addEventListener(document.querySelector('.sf-toolbar-block-ajax > .sf-toolbar-icon'), 'click', function (event) {                                event.preventDefault();                                toggleClass(this.parentNode, 'hover');                            });                            var dumpInfo = document.querySelector('.sf-toolbar-block-dump .sf-toolbar-info');                            if (null !== dumpInfo) {                                addEventListener(dumpInfo, 'sfbeforedumpcollapse', function () {                                    dumpInfo.style.minHeight = dumpInfo.getBoundingClientRect().height+'px';                                });                                addEventListener(dumpInfo, 'mouseleave', function () {                                    dumpInfo.style.minHeight = '';                                });                            }                        },                        function(xhr) {                            if (xhr.status !== 0 && !options.stop) {                                var sfwdt = that.getSfwdt(token);                                sfwdt.innerHTML = '\                                <div class="sf-toolbarreset notranslate">\                                    <div class="sf-toolbar-icon"><svg width="26" height="28" xmlns="http://www.w3.org/2000/svg" version="1.1" x="0px" y="0px" viewBox="0 0 26 28" enable-background="new 0 0 26 28" xml:space="preserve"><path fill="#FFFFFF" d="M13 0C5.8 0 0 5.8 0 13c0 7.2 5.8 13 13 13c7.2 0 13-5.8 13-13C26 5.8 20.2 0 13 0z M20 7.5 c-0.6 0-1-0.3-1-0.9c0-0.2 0-0.4 0.2-0.6c0.1-0.3 0.2-0.3 0.2-0.4c0-0.3-0.5-0.4-0.7-0.4c-2 0.1-2.5 2.7-2.9 4.8l-0.2 1.1 c1.1 0.2 1.9 0 2.4-0.3c0.6-0.4-0.2-0.8-0.1-1.3C18 9.2 18.4 9 18.7 8.9c0.5 0 0.8 0.5 0.8 1c0 0.8-1.1 2-3.3 1.9 c-0.3 0-0.5 0-0.7-0.1L15 14.1c-0.4 1.7-0.9 4.1-2.6 6.2c-1.5 1.8-3.1 2.1-3.8 2.1c-1.3 0-2.1-0.6-2.2-1.6c0-0.9 0.8-1.4 1.3-1.4 c0.7 0 1.2 0.5 1.2 1.1c0 0.5-0.2 0.6-0.4 0.7c-0.1 0.1-0.3 0.2-0.3 0.4c0 0.1 0.1 0.3 0.4 0.3c0.5 0 0.9-0.3 1.2-0.5 c1.3-1 1.7-2.9 2.4-6.2l0.1-0.8c0.2-1.1 0.5-2.3 0.8-3.5c-0.9-0.7-1.4-1.5-2.6-1.8c-0.8-0.2-1.3 0-1.7 0.4C8.4 10 8.6 10.7 9 11.1 l0.7 0.7c0.8 0.9 1.3 1.7 1.1 2.7c-0.3 1.6-2.1 2.8-4.3 2.1c-1.9-0.6-2.2-1.9-2-2.7c0.2-0.6 0.7-0.8 1.2-0.6 c0.5 0.2 0.7 0.8 0.6 1.3c0 0.1 0 0.1-0.1 0.3C6 15 5.9 15.2 5.9 15.3c-0.1 0.4 0.4 0.7 0.8 0.8c0.8 0.3 1.7-0.2 1.9-0.9 c0.2-0.6-0.2-1.1-0.4-1.2l-0.8-0.9c-0.4-0.4-1.2-1.5-0.8-2.8c0.2-0.5 0.5-1 0.9-1.4c1-0.7 2-0.8 3-0.6c1.3 0.4 1.9 1.2 2.8 1.9 c0.5-1.3 1.1-2.6 2-3.8c0.9-1 2-1.7 3.3-1.8C20 4.8 21 5.4 21 6.3C21 6.7 20.8 7.5 20 7.5z"/></svg></div>\                                    An error occurred while loading the web debug toolbar. <a href="http\u003A\/\/127.0.0.1\u003A8000\/_profiler\/' + newToken + '">Open the web profiler.</a>\                                </div>\                            ';                                sfwdt.setAttribute('class', 'sf-toolbar sf-error-toolbar');                            }                        },                        options                    );                    return this;                },                toggle: function(selector, elOn, elOff) {                    var tmp = elOn.style.display,                        el = document.getElementById(selector);                    elOn.style.display = elOff.style.display;                    elOff.style.display = tmp;                    if (el) {                        el.style.display = 'none' === tmp ? 'none' : 'block';                    }                    return this;                },            };        })();    }    Sfjs.loadToolbar('d02bd2');/*]]>*/</script><!-- END of Symfony Web Debug Toolbar -->
+</body>
+</html>
+

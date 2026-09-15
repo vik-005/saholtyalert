@@ -44,7 +44,8 @@
                         {{ form_errors(form.file) }}
                     </div>
                     <p id="fileNameDisplay" class="import-file-name hidden"></p>
-                {{ form_end(form, {'render_rest': false}) }}
+                    {{ form_rest(form) }}
+                {{ form_end(form) }}
             </div>
 
             {# Info format #}

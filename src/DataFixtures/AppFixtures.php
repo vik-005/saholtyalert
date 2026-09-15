@@ -7,6 +7,7 @@ use App\Entity\ListeReferenceValeur;
 use App\Entity\Market;
 use App\Entity\RuleConfig;
 use App\Entity\User;
+use App\Entity\ZoneGeo;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
@@ -156,7 +157,41 @@ class AppFixtures extends Fixture
 
         $manager->flush();
 
+        // ── ÉTAPE 2b : ZoneGeo (coordonnées GPS des marchés — Leaflet) ─────────
+        // Chaque marché doit avoir une ZoneGeo pour apparaître sur la carte.
+        // Coordonnées : centres géographiques approximatifs des pays.
+        $zonesData = [
+            //  ISO    lat        lng       nom affiché
+            ['BEN',  9.3077,   2.3158,  'Bénin'],
+            ['TGO',  8.6195,   0.8248,  'Togo'],
+            ['GHA',  7.9465,  -1.0232,  'Ghana'],
+            ['CIV',  7.5400,  -5.5471,  'Côte d\'Ivoire'],
+            ['MLI', 17.5707,  -3.9962,  'Mali'],
+            ['NER', 17.6078,   8.0817,  'Niger'],
+            ['SEN', 14.4974,  -14.4524, 'Sénégal'],
+            ['GIN', 11.8074,  -15.1804, 'Guinée'],
+            ['AGO', -11.2027,  17.8739, 'Angola'],
+            ['CMR',  3.8480,   11.5021, 'Cameroun'],
+            ['COD', -4.0383,   21.7587, 'RDC'],
+            ['OTH',  0.0,       0.0,    'Autre Zone'],
+        ];
+
+        foreach ($zonesData as [$iso, $lat, $lng, $nom]) {
+            if (!isset($markets[$iso])) {
+                continue;
+            }
+            $z = new ZoneGeo();
+            $z->setMarket($markets[$iso]);
+            $z->setLatitude($lat);
+            $z->setLongitude($lng);
+            $z->setNom($nom);
+            $manager->persist($z);
+        }
+
+        $manager->flush(); // flush ZoneGeo
+
         // ── ÉTAPE 3 : Users ─────────────────────────────────────────────────────
+
         $usersData = [
             // email,                     pass,          prénom,          nom,           rôle,                         market
             ['admin@gei.org',         'Admin@2026!',  'Marc',          'KOUAME',       UserRoleEnum::SUPERADMIN,       null],
@@ -287,8 +322,7 @@ class AppFixtures extends Fixture
             $scoreCalculator->calculate($alert);
 
             $manager->persist($alert);
+            $manager->flush();
         }
-
-        $manager->flush();
     }
 }

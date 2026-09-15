@@ -28,6 +28,7 @@ class ImportController extends AbstractController
         $form->handleRequest($request);
 
         $result = null;
+        $dryRun = null;
 
         if ($form->isSubmitted() && $form->isValid()) {
             $file = $form->get('file')->getData();
@@ -35,7 +36,42 @@ class ImportController extends AbstractController
 
             if ($file && $user instanceof \App\Entity\User) {
                 try {
+                    // Analyse à blanc avant écriture : elle permet de préparer le diagnostic
+                    // des lignes incomplètes, puis l'import est lancé par le bouton visible.
+                    $dryRun = $importService->dryRun($file, $user);
+
                     $result = $importService->importExcel($file, $user);
+
+                    // Invalider le cache KPI immédiatement après import
+                    try {
+                        $cache->delete('kpi_alertes_soumises_' . md5(''));
+                        if (method_exists($cache, 'invalidateTags')) {
+                            $cache->invalidateTags(['kpi', 'alertes']);
+                        }
+                        if (method_exists($cache, 'clear')) {
+                            $cache->clear();
+                        }
+                    } catch (\Exception) {
+                    }
+
+                    if ($result['success_count'] > 0 || $result['update_count'] > 0) {
+                        $this->addFlash('success', sprintf(
+                            '%d alertes créées, %d mises à jour.',
+                            $result['success_count'],
+                            $result['update_count']
+                        ));
+                    }
+
+                    if (!empty($result['lignes_incompletes'])) {
+                        $this->addFlash('warning', sprintf(
+                            '%d ligne(s) avec champs manquants — à qualifier via le bouton "Qualifier".',
+                            count($result['lignes_incompletes'])
+                        ));
+                    }
+
+                    if ($result['error_count'] > 0) {
+                        $this->addFlash('danger', sprintf('%d ligne(s) en erreur.', $result['error_count']));
+                    }
                 } catch (\Exception $e) {
                     $result = [
                         'success_count'      => 0,
@@ -47,43 +83,17 @@ class ImportController extends AbstractController
                     ];
                     $this->addFlash('danger', 'Erreur lors de l\'import : ' . $e->getMessage());
                 }
-
-                // Invalider le cache KPI immédiatement après import
-                // (évite le délai de 5 min du TTL du KPIService)
-                try {
-                    $cache->delete('kpi_alertes_soumises_' . md5(''));
-                    // Invalidation par tags si le pool le supporte
-                    if (method_exists($cache, 'invalidateTags')) {
-                        $cache->invalidateTags(['kpi', 'alertes']);
-                    }
-                } catch (\Exception) {
-                    // Invalidation du cache non critique — continuer sans erreur
-                }
-
-                if ($result['success_count'] > 0 || $result['update_count'] > 0) {
-                    $this->addFlash('success', sprintf(
-                        '%d alertes créées, %d mises à jour.',
-                        $result['success_count'],
-                        $result['update_count']
-                    ));
-                }
-
-                if (!empty($result['lignes_incompletes'])) {
-                    $this->addFlash('warning', sprintf(
-                        '%d ligne(s) avec champs manquants — à qualifier via le bouton "Qualifier".',
-                        count($result['lignes_incompletes'])
-                    ));
-                }
-
-                if ($result['error_count'] > 0) {
-                    $this->addFlash('danger', sprintf('%d ligne(s) en erreur.', $result['error_count']));
-                }
+            }
+        } elseif ($form->isSubmitted()) {
+            foreach ($form->getErrors(true) as $error) {
+                $this->addFlash('danger', $error->getMessage());
             }
         }
 
         return $this->render('alert/import.html.twig', [
             'form'   => $form,
             'result' => $result,
+            'dryRun' => $dryRun,
         ]);
     }
 }

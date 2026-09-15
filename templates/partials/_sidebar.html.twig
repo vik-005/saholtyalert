@@ -1,6 +1,6 @@
 {# ─────────────────────────────────────────────────────────────────────────
    Sidebar GEI — layout inspiré COINEST, couleurs dark navy + amber GEI
-   Font Awesome 6 Free utilisé pour toutes les icônes
+   Bibliothèque d'icônes : Bootstrap Icons 1.11 (bi bi-*)
 ───────────────────────────────────────────────────────────────────────── #}
 <aside id="gei-sidebar" class="gei-sidebar flex flex-col flex-shrink-0" data-turbo-permanent>
 
@@ -24,108 +24,130 @@
         {# Active routes checks #}
         {% set route = app.request.attributes.get('_route') %}
         {% set query = app.request.query.all %}
-        
+
         {% set isAlertesActive = (route starts with 'app_alert' or route starts with 'app_wizard' or route == 'app_export_registre' or route == 'app_dashboard_urgence' or route starts with 'app_transmission') %}
         {% set isStatsActive = (route == 'app_dashboard_kpi' or route starts with 'app_carte' or route == 'app_dashboard_corridors' or route == 'app_dashboard_statistiques' or route starts with 'app_audit' or route == 'app_dashboard_general') %}
         {% set isAdminActive = (route starts with 'app_admin' or route == 'app_dashboard_superadmin') %}
-        {% set isEspaceActive = (route == 'app_notifications_list' or route == 'app_account_settings' or route starts with 'app_notification') %}
+        {% set isEspaceActive = (route == 'app_notifications_list' or route == 'app_account_settings' or route == 'app_2fa_settings' or route starts with 'app_notification') %}
 
-        {# ── Groupe 1 : Alertes ── #}
+        {# ════════════════════════════════════════════════════
+           Groupe 1 — Registre GEI
+        ════════════════════════════════════════════════════ #}
         <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isAlertesActive %}active{% endif %}"
                 onclick="toggleSubmenu('submenu-alertes')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
-            <span class="sidebar-link-icon"><i class="bi bi-shield-exclamation"></i></span>
-            <span class="sidebar-link-text">Alertes</span>
+            <span class="sidebar-link-icon"><i class="bi bi-journal-richtext"></i></span>
+            <span class="sidebar-link-text">Registre GEI</span>
             <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-alertes"
                style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isAlertesActive %}transform:rotate(180deg){% endif %}"></i>
         </button>
         <div id="submenu-alertes" class="sidebar-submenu {% if not isAlertesActive %}hidden{% endif %}">
+
             <a href="{{ path('app_alert_index') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_alert_index' and not query.statut|default('') and not query.advanced|default('') %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-journal-text me-1.5"></i>Registre GEI
+                <i class="bi bi-card-list me-1.5"></i>Registre des alertes
             </a>
+
             <a href="{{ path('app_wizard_new') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_wizard' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-plus-circle-fill me-1.5"></i>Nouvelle Fiche
+                <i class="bi bi-plus-circle-fill me-1.5"></i>Saisir une alerte
             </a>
+
             {% if is_granted('ROLE_PFT') %}
             <a href="{{ path('app_alert_index', {statut: 'a_valider_saholty'}) }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_alert_index' and query.statut|default('') == 'a_valider_saholty' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-check2-square me-1.5"></i>Alertes à valider
+                <i class="bi bi-clipboard2-check me-1.5"></i>En attente de validation
             </a>
             <a href="{{ path('app_transmission_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_transmission' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-send me-1.5"></i>Suivi des transmissions
+                <i class="bi bi-send-arrow-up me-1.5"></i>Transmissions & escalades
             </a>
             <a href="{{ path('app_dashboard_urgence') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_urgence' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-stopwatch me-1.5"></i>Urgence 72h
+                <i class="bi bi-alarm me-1.5"></i>Alertes urgentes (72h)
             </a>
             {% endif %}
+
             <a href="{{ path('app_alert_import') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_alert_import' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-file-earmark-arrow-up me-1.5"></i>Import Excel
+                <i class="bi bi-file-earmark-arrow-up me-1.5"></i>Importation Excel
             </a>
             <a href="{{ path('app_export_registre') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_export_registre' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-file-earmark-arrow-down me-1.5"></i>Export Registre
+                <i class="bi bi-file-earmark-arrow-down me-1.5"></i>Exporter le registre
             </a>
+
         </div>
 
-        {# ── Groupe 2 : Statistiques ── #}
+        {# ════════════════════════════════════════════════════
+           Groupe 2 — Tableaux de bord
+        ════════════════════════════════════════════════════ #}
         <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isStatsActive %}active{% endif %}"
                 onclick="toggleSubmenu('submenu-statistiques')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
             <span class="sidebar-link-icon"><i class="bi bi-bar-chart-line"></i></span>
-            <span class="sidebar-link-text">Analyses & Cartes</span>
+            <span class="sidebar-link-text">Tableaux de bord</span>
             <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-statistiques"
                style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isStatsActive %}transform:rotate(180deg){% endif %}"></i>
         </button>
         <div id="submenu-statistiques" class="sidebar-submenu {% if not isStatsActive %}hidden{% endif %}">
+
             {% if is_granted('ROLE_COMITE_AIT') %}
             <a href="{{ path('app_dashboard_kpi') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_kpi' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-graph-up-arrow me-1.5"></i>KPI Stratégiques
+                <i class="bi bi-graph-up-arrow me-1.5"></i>Indicateurs stratégiques
             </a>
             {% endif %}
+
             {% if is_granted('ROLE_PFT') %}
             <a href="{{ path('app_carte_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_carte' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-geo-alt me-1.5"></i>Carte alertes
+                <i class="bi bi-geo-alt-fill me-1.5"></i>Carte des alertes
             </a>
             {% endif %}
+
             <a href="{{ path('app_dashboard_corridors') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_corridors' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-map me-1.5"></i>Carte corridors
+                <i class="bi bi-map me-1.5"></i>Carte des corridors
             </a>
+
+            {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') or is_granted('ROLE_SECRETARIAT_GEI') %}
             <a href="{{ path('app_dashboard_statistiques') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_statistiques' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-pie-chart me-1.5"></i>Graphiques détaillés
+                <i class="bi bi-pie-chart-fill me-1.5"></i>Statistiques détaillées
             </a>
+            {% endif %}
+
             {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') %}
             <a href="{{ path('app_audit_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_audit' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-magnifying-glass me-1.5"></i>Audit multicritère
+                <i class="bi bi-search me-1.5"></i>Audit & recherche avancée
             </a>
             {% endif %}
+
+            {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') or is_granted('ROLE_COMITE_AIT') or is_granted('ROLE_SECRETARIAT_GEI') %}
             <a href="{{ path('app_dashboard_general') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_general' %}active{% endif %}"
                data-turbo="false">
                 <i class="bi bi-speedometer2 me-1.5"></i>Dashboard Général
             </a>
+            {% endif %}
+
         </div>
 
-        {# ── Groupe 3 : Administration ── #}
+        {# ════════════════════════════════════════════════════
+           Groupe 3 — Administration
+        ════════════════════════════════════════════════════ #}
         {% if is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_PFT') %}
         <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isAdminActive %}active{% endif %}"
                 onclick="toggleSubmenu('submenu-admin')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
@@ -135,76 +157,107 @@
                style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isAdminActive %}transform:rotate(180deg){% endif %}"></i>
         </button>
         <div id="submenu-admin" class="sidebar-submenu {% if not isAdminActive %}hidden{% endif %}">
+
             {% if is_granted('ROLE_SUPERADMIN') %}
             <a href="{{ path('app_dashboard_superadmin') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_superadmin' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-shield-lock me-1.5"></i>Console Admin
+                <i class="bi bi-speedometer me-1.5"></i>Tableau de bord admin
             </a>
             <a href="{{ path('app_admin_user_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_user' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-people me-1.5"></i>Gestion Utilisateurs
+                <i class="bi bi-people-fill me-1.5"></i>Gestion des utilisateurs
             </a>
             <a href="{{ path('app_admin_rule_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_rule' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-sliders2 me-1.5"></i>Règles scoring
+                <i class="bi bi-sliders2-vertical me-1.5"></i>Règles de scoring GEI
             </a>
             {% elseif is_granted('ROLE_PFT') %}
             <a href="{{ path('app_admin_user_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_user' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-people me-1.5"></i>Gestion des Agents
+                <i class="bi bi-person-badge me-1.5"></i>Mes agents
             </a>
             {% endif %}
+
             {% if is_granted('ROLE_PFT') %}
             <a href="{{ path('app_admin_activity_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_activity' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-clock-history me-1.5"></i>Journal d'activité
+                <i class="bi bi-journal-text me-1.5"></i>Journal d'activité
             </a>
             <a href="{{ path('app_admin_market_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_market' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-globe-africa me-1.5"></i>Pays & Marchés
+                <i class="bi bi-globe-africa me-1.5"></i>Pays & marchés
             </a>
             <a href="{{ path('app_admin_liste_reference_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_liste_reference' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-list-check me-1.5"></i>Listes de référence
+                <i class="bi bi-card-checklist me-1.5"></i>Référentiels
             </a>
             <a href="{{ path('app_admin_automations') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_admin_automations' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-robot me-1.5"></i>Automations
+                <i class="bi bi-lightning-charge-fill me-1.5"></i>Automatisations
             </a>
             {% endif %}
+
         </div>
         {% endif %}
 
-        {# ── Groupe 4 : Mon Espace ── #}
+        {# ════════════════════════════════════════════════════
+           Groupe 4 — Mon espace
+        ════════════════════════════════════════════════════ #}
         <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isEspaceActive %}active{% endif %}"
                 onclick="toggleSubmenu('submenu-espace')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
             <span class="sidebar-link-icon"><i class="bi bi-person-circle"></i></span>
-            <span class="sidebar-link-text">Mon Espace</span>
+            <span class="sidebar-link-text">Mon espace</span>
             <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-espace"
                style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isEspaceActive %}transform:rotate(180deg){% endif %}"></i>
         </button>
         <div id="submenu-espace" class="sidebar-submenu {% if not isEspaceActive %}hidden{% endif %}">
+
             <a href="{{ path('app_notifications_list') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_notifications_list' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-bell me-1.5"></i>Notifications
+                <i class="bi bi-bell-fill me-1.5"></i>Mes notifications
             </a>
+
+            {% if not is_granted('ROLE_PFT') and not is_granted('ROLE_SUPERADMIN') and not is_granted('ROLE_SAHOLTY') %}
+            {# Suivi de validation — agent terrain uniquement #}
+            <a href="{{ path('app_alert_index', {statut: 'validee'}) }}" rel="noopener"
+               class="sidebar-sublink {% if route == 'app_alert_index' and app.request.query.get('statut') == 'validee' %}active{% endif %}"
+               data-turbo="false">
+                <i class="bi bi-check-circle-fill me-1.5"></i>Fiches validées
+            </a>
+            <a href="{{ path('app_alert_index', {statut: 'rejetee'}) }}" rel="noopener"
+               class="sidebar-sublink {% if route == 'app_alert_index' and app.request.query.get('statut') == 'rejetee' %}active{% endif %}"
+               data-turbo="false">
+                <i class="bi bi-x-circle-fill me-1.5"></i>Fiches rejetées
+            </a>
+            <a href="{{ path('app_alert_index', {statut: 'a_completer'}) }}" rel="noopener"
+               class="sidebar-sublink {% if route == 'app_alert_index' and app.request.query.get('statut') == 'a_completer' %}active{% endif %}"
+               data-turbo="false">
+                <i class="bi bi-pencil-square me-1.5"></i>À compléter
+            </a>
+            {% endif %}
+
             <a href="{{ path('app_account_settings') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_account_settings' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-person-gear me-1.5"></i>Profil & Compte
+                <i class="bi bi-person-gear me-1.5"></i>Mon profil
             </a>
-            <a href="{{ path('app_logout') }}" class="sidebar-sublink" data-turbo="false">
-                <i class="bi bi-box-arrow-right me-1.5"></i>Déconnexion
+            <a href="{{ path('app_2fa_settings') }}" rel="noopener"
+               class="sidebar-sublink {% if route == 'app_2fa_settings' %}active{% endif %}"
+               data-turbo="false">
+                <i class="bi bi-shield-lock-fill me-1.5"></i>Authentification 2FA
             </a>
+            {# La déconnexion est uniquement dans _sidebar_user.html.twig (bas de sidebar)
+               pour éviter d'avoir deux formulaires POST /logout dans le même DOM #}
+
         </div>
 
     </nav>

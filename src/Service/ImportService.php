@@ -132,6 +132,163 @@ class ImportService
     ) {}
 
     /**
+     * Analyse un fichier Excel SANS écrire en base (dry-run).
+     * Permet au Manager de valider avant confirmation.
+     *
+     * @return array{
+     *   header_errors: string[],
+     *   colonnes_manquantes: string[],
+     *   lignes: array<int, array{line: int, id: string, statut: string, champs_manquants: string[], raison?: string}>,
+     *   compteur: array{valide: int, a_corriger: int, doublon: int, erreur: int},
+     *   total: int
+     * }
+     */
+    public function dryRun(UploadedFile $file, User $currentUser): array
+    {
+        $spreadsheet = IOFactory::load($file->getPathname());
+        $sheet       = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
+
+        // ── Étape 1 : Trouver la ligne d'en-tête ──
+        $headerRowNum = null;
+        foreach ($rows as $rowNum => $row) {
+            $rowText = mb_strtolower(implode(' ', array_filter($row, fn($v) => $v !== null && $v !== '')));
+            if (
+                str_contains($rowText, 'id gei') ||
+                (str_contains($rowText, 'résumé') && str_contains($rowText, 'zone')) ||
+                (str_contains($rowText, 'date') && str_contains($rowText, 'statut'))
+            ) {
+                $headerRowNum = $rowNum;
+                break;
+            }
+        }
+
+        if ($headerRowNum === null) {
+            $headerRowNum = array_key_first($rows);
+        }
+
+        $headerRow = $rows[$headerRowNum];
+        [$colMap, $headerErrors] = $this->detectColumns($headerRow);
+
+        if (!empty($headerErrors)) {
+            return [
+                'header_errors'       => $headerErrors,
+                'colonnes_manquantes' => [],
+                'lignes'              => [],
+                'compteur'            => ['valide' => 0, 'a_corriger' => 0, 'doublon' => 0, 'erreur' => 0],
+                'total'               => 0,
+            ];
+        }
+
+        // Collecter les colonnes manquantes
+        $colonnesManquantes = [];
+        $attendues = ['zone', 'date', 'port', 'urgence', 'impact', 'exploitabilite', 'statut', 'fiabilite', 'credibilite'];
+        foreach ($attendues as $champ) {
+            if (!isset($colMap[$champ])) {
+                $colonnesManquantes[] = $champ;
+            }
+        }
+
+        // ── Étape 2 : Analyse ligne par ligne (sans écriture) ──
+        $lignes = [];
+        $compteur = ['valide' => 0, 'a_corriger' => 0, 'doublon' => 0, 'erreur' => 0];
+
+        foreach ($rows as $rowNum => $row) {
+            if ($rowNum <= $headerRowNum) {
+                continue;
+            }
+
+            $codeGei = trim($row[$colMap['id_gei'] ?? ''] ?? '');
+            $resume  = trim($row[$colMap['resume'] ?? ''] ?? '');
+            $zone    = trim($row[$colMap['zone'] ?? ''] ?? '');
+
+            if (empty($codeGei) && empty($resume) && empty($zone)) {
+                continue;
+            }
+
+            $ligne = [
+                'line'             => $rowNum,
+                'id'               => $codeGei ?: "(ligne $rowNum)",
+                'statut'           => 'valide',
+                'champs_manquants' => [],
+            ];
+
+            try {
+                // Vérifier les doublons
+                if (!empty($codeGei)) {
+                    $existing = $this->alertRepository->findOneBy(['codeGei' => $codeGei]);
+                    if (null !== $existing) {
+                        $ligne['statut'] = 'doublon';
+                        $ligne['raison'] = 'Ce code GEI existe déjà en base. L\'import mettra à jour l\'alerte existante.';
+                        $compteur['doublon']++;
+                        $lignes[] = $ligne;
+                        continue;
+                    }
+                }
+
+                // Analyser les champs obligatoires
+                $champsManquants = [];
+                $get = static fn(string $field) => isset($colMap[$field]) ? trim($row[$colMap[$field]] ?? '') : '';
+
+                if (empty($get('resume'))) {
+                    $champsManquants[] = 'resumeExecutif';
+                }
+                $fiab = $this->matchEnumWithAliases(FiabiliteSource::class, $get('fiabilite'));
+                if (null === $fiab) {
+                    $champsManquants[] = 'fiabiliteSource';
+                }
+                $credVal = (int)$get('credibilite');
+                if ($credVal < 1 || $credVal > 4) {
+                    $champsManquants[] = 'credibiliteContenu';
+                }
+                $urg = $this->matchEnumWithAliases(AlertUrgence::class, $get('urgence'));
+                if (null === $urg) {
+                    $champsManquants[] = 'urgence';
+                }
+                $imp = $this->matchEnumWithAliases(AlertImpact::class, $get('impact'));
+                if (null === $imp) {
+                    $champsManquants[] = 'impact';
+                }
+                $exp = $this->matchEnumWithAliases(AlertExploitabilite::class, $get('exploitabilite'));
+                if (null === $exp) {
+                    $champsManquants[] = 'exploitabilite';
+                }
+                if (empty($get('date'))) {
+                    $champsManquants[] = 'dateCreation';
+                }
+                if (empty($zone)) {
+                    $champsManquants[] = 'zone';
+                }
+
+                $ligne['champs_manquants'] = $champsManquants;
+
+                if (!empty($champsManquants)) {
+                    $ligne['statut'] = 'a_corriger';
+                    $compteur['a_corriger']++;
+                } else {
+                    $compteur['valide']++;
+                }
+
+                $lignes[] = $ligne;
+
+            } catch (\Exception $e) {
+                $ligne['statut'] = 'erreur';
+                $ligne['raison'] = $e->getMessage();
+                $compteur['erreur']++;
+                $lignes[] = $ligne;
+            }
+        }
+
+        return [
+            'header_errors'       => [],
+            'colonnes_manquantes' => $colonnesManquantes,
+            'lignes'              => $lignes,
+            'compteur'            => $compteur,
+            'total'               => count($lignes),
+        ];
+    }
+
+    /**
      * Importe les alertes depuis un fichier Excel.
      * Retourne un rapport détaillé avec lignes_incompletes pour suivi Manager.
      *
@@ -352,22 +509,8 @@ class ImportService
             return [$colMap, $errors];
         }
 
-        // Avertissements sur colonnes attendues mais non trouvées (non bloquants)
-        $colonnesAttendues = ['zone', 'categorie', 'urgence', 'impact', 'exploitabilite', 'statut', 'fiabilite', 'credibilite'];
-        $colonnesManquantes = [];
-        foreach ($colonnesAttendues as $champ) {
-            if (!isset($colMap[$champ])) {
-                $colonnesManquantes[] = $champ;
-            }
-        }
-        if (!empty($colonnesManquantes)) {
-            // Non bloquant — les champs seront null et signalés en lignes incomplètes
-            $errors[] = 'Avertissement : colonnes non trouvées dans l\'en-tête (seront nulles à l\'import) : '
-                . implode(', ', $colonnesManquantes)
-                . '. L\'import continuera mais les lignes concernées seront marquées comme incomplètes.';
-        }
-
-        return [$colMap, $errors];    }
+        return [$colMap, $errors];
+    }
 
     /**
      * Remplit une alerte depuis une ligne Excel avec le colMap dynamique.
@@ -384,24 +527,25 @@ class ImportService
         // ── Date ────────────────────────────────────────────────────────────────
         $dateStr = $get('date');
         if (!empty($dateStr)) {
-            // Tester les formats les plus courants. Le fichier réel utilise m/d/Y (ex. 1/5/2026 = 5 janvier)
-            // mais aussi d/m/Y selon l'origine. On détecte par la cohérence du résultat.
             $date = null;
-            $formats = ['n/j/Y', 'd/m/Y', 'm/d/Y', 'Y-m-d', 'd/m/y', 'n/j/y'];
-            foreach ($formats as $fmt) {
-                $parsed = \DateTime::createFromFormat($fmt, $dateStr);
-                if ($parsed && $parsed->format($fmt) === $dateStr) {
-                    $date = $parsed;
-                    break;
-                }
+            // Prise en charge des dates numériques natives Excel (ex: 46000)
+            if (is_numeric($dateStr) && (float)$dateStr > 30000 && (float)$dateStr < 70000) {
+                try {
+                    $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float)$dateStr);
+                } catch (\Throwable) {}
             }
-            // Fallback : strtotime
-            if (!$date && strtotime($dateStr)) {
-                $date = new \DateTime($dateStr);
+
+            if (!$date) {
+                $date = $this->parseImportDate($dateStr);
             }
+
             if ($date) {
                 $alert->setDateCreation($date);
+            } else {
+                $manquants[] = 'dateCreation';
             }
+        } else {
+            $manquants[] = 'dateCreation';
         }
 
         // ── Port / Corridor ──────────────────────────────────────────────────────
@@ -521,6 +665,25 @@ class ImportService
         $alert->setCommentaires($get('commentaires') ?: null);
 
         return $manquants;
+    }
+
+    private function parseImportDate(string $dateStr): ?\DateTime
+    {
+        $formats = ['n/j/Y', 'd/m/Y', 'm/d/Y', 'Y-m-d', 'd/m/y', 'n/j/y', 'd.m.Y', 'Y/m/d'];
+        foreach ($formats as $format) {
+            $parsed = \DateTime::createFromFormat('!' . $format, $dateStr);
+            $errors = \DateTime::getLastErrors();
+            if ($parsed && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)) && $parsed->format($format) === $dateStr) {
+                return $parsed;
+            }
+        }
+
+        try {
+            $timestamp = strtotime($dateStr);
+            return false !== $timestamp ? (new \DateTime())->setTimestamp($timestamp) : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

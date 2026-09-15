@@ -10,135 +10,526 @@
     <div class="page-header-row">
         <div class="text-center" style="flex:1">
             <p class="page-eyebrow">
-                <i class="bi bi-people me-1.5 text-amber-400"></i>
+                <i class="bi bi-people me-1" style="color:var(--amber)"></i>
                 Administration · Utilisateurs
             </p>
             <h2 class="page-title">
                 {% if is_new %}Créer un utilisateur{% else %}Modifier le profil{% endif %}
             </h2>
             <p class="page-subtitle mx-auto" style="max-width:520px">
-                {% if is_new %}Définir les accès et permissions du nouveau membre{% else %}Informations de {{ user.nomComplet }}{% endif %}
+                {% if is_new %}
+                    Définir les accès et permissions du nouveau membre de la plateforme GEI
+                {% else %}
+                    Informations et paramètres d'accès de {{ user.nomComplet }}
+                {% endif %}
             </p>
         </div>
     </div>
 
-    {# ── Formulaire centré ── #}
-    <div style="max-width:640px;margin:0 auto;width:100%">
-        <div class="db-card">
-            <div class="db-card-body">
-                {{ form_start(form, {attr: {class: 'auth-fields', novalidate: 'novalidate'}}) }}
+    {# ── Contexte créateur : bannière informative ── #}
+    {% set currentRole = app.user.role.value ?? '' %}
+    {% if is_new %}
+        {% if currentRole == 'ROLE_PFT' %}
+        <div class="uf-context-banner uf-banner-manager">
+            <i class="bi bi-person-badge-fill"></i>
+            <div>
+                <strong>Création d'Agent</strong>
+                <span>En tant que Point Focal Technique, vous créez un Émetteur Terrain rattaché à vos marchés supervisés.</span>
+            </div>
+            <span class="uf-role-badge uf-role-agent">
+                <i class="bi bi-broadcast me-1"></i>Émetteur Terrain
+            </span>
+        </div>
+        {% elseif currentRole == 'ROLE_SUPERADMIN' %}
+        <div class="uf-context-banner uf-banner-admin">
+            <i class="bi bi-shield-lock-fill"></i>
+            <div>
+                <strong>Création de compte administratif</strong>
+                <span>En tant que Super Administrateur, vous pouvez créer tout type de compte avec accès complet.</span>
+            </div>
+            <span class="uf-role-badge uf-role-admin">
+                <i class="bi bi-shield-lock me-1"></i>Accès complet
+            </span>
+        </div>
+        {% endif %}
+    {% endif %}
 
-                    {# Prénom + Nom côte à côte #}
-                    <div class="form-grid-2">
+    {# ── Flash messages ── #}
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+        <div class="alert-flash alert-flash-{{ type }}">
+            <i class="bi bi-{{ type == 'success' ? 'check-circle' : 'exclamation-triangle' }}-fill me-2"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endfor %}
+
+    {# ── Layout 2 colonnes sur desktop ── #}
+    <div class="uf-layout">
+
+        {# ── Colonne principale : formulaire ── #}
+        <div class="uf-main-col">
+            <div class="db-card">
+                <div class="db-card-body">
+
+                    {{ form_start(form, {attr: {class: 'uf-form', novalidate: 'novalidate', id: 'userForm'}}) }}
+
+                    {# ── Section 1 : Identité ── #}
+                    <div class="uf-section">
+                        <div class="uf-section-header">
+                            <span class="uf-section-num">1</span>
+                            <div>
+                                <strong>Identité</strong>
+                                <small>Informations personnelles du membre</small>
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.prenom.vars.id }}">
+                                    <i class="bi bi-person me-1" style="color:var(--amber)"></i>Prénom <span class="uf-required">*</span>
+                                </label>
+                                {{ form_widget(form.prenom, {attr: {class: 'form-input', placeholder: 'Prénom', autocomplete: 'given-name'}}) }}
+                                {{ form_errors(form.prenom) }}
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.nom.vars.id }}">
+                                    <i class="bi bi-person me-1" style="color:var(--amber)"></i>Nom de famille <span class="uf-required">*</span>
+                                </label>
+                                {{ form_widget(form.nom, {attr: {class: 'form-input', placeholder: 'Nom de famille', autocomplete: 'family-name'}}) }}
+                                {{ form_errors(form.nom) }}
+                            </div>
+                        </div>
+
                         <div class="form-field">
-                            <label class="form-label text-center" for="{{ form.prenom.vars.id }}">
-                                <i class="bi bi-person me-1 text-amber-400"></i>Prénom
+                            <label class="form-label" for="{{ form.email.vars.id }}">
+                                <i class="bi bi-envelope me-1" style="color:var(--amber)"></i>Email professionnel <span class="uf-required">*</span>
                             </label>
-                            {{ form_widget(form.prenom, {attr: {class: 'form-input', placeholder: 'Prénom', autocomplete: 'given-name'}}) }}
+                            {{ form_widget(form.email, {attr: {class: 'form-input', placeholder: 'prenom.nom@gei.org', autocomplete: 'email'}}) }}
+                            {{ form_errors(form.email) }}
                         </div>
+
+                        <div class="form-grid-2">
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.telephone.vars.id }}">
+                                    <i class="bi bi-telephone me-1" style="color:var(--amber)"></i>Téléphone
+                                </label>
+                                {{ form_widget(form.telephone, {attr: {class: 'form-input', placeholder: '+229 XX XX XX XX'}}) }}
+                            </div>
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.fonction.vars.id }}">
+                                    <i class="bi bi-briefcase me-1" style="color:var(--amber)"></i>Fonction / Titre
+                                </label>
+                                {{ form_widget(form.fonction, {attr: {class: 'form-input', placeholder: 'Agent terrain, Analyste…'}}) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ── Section 2 : Rôle et accès ── #}
+                    <div class="uf-section">
+                        <div class="uf-section-header">
+                            <span class="uf-section-num">2</span>
+                            <div>
+                                <strong>Rôle et accès</strong>
+                                <small>Permissions attribuées dans la plateforme GEI</small>
+                            </div>
+                        </div>
+
+                        {% if currentRole == 'ROLE_PFT' %}
+                            {# Manager : rôle verrouillé, jamais modifiable #}
+                            <div class="uf-role-locked">
+                                <div class="uf-role-locked-header">
+                                    <i class="bi bi-lock-fill" style="color:var(--amber)"></i>
+                                    <div>
+                                        <strong>Rôle : Émetteur Terrain</strong>
+                                        <small>Le rôle est déterminé automatiquement selon votre qualité de PFT. Vous ne pouvez créer que des Agents terrain.</small>
+                                    </div>
+                                </div>
+                                <div class="uf-role-perms">
+                                    <span class="uf-perm"><i class="bi bi-check-circle-fill text-emerald-400"></i> Soumettre des alertes</span>
+                                    <span class="uf-perm"><i class="bi bi-check-circle-fill text-emerald-400"></i> Vision limitée à ses marchés</span>
+                                    <span class="uf-perm"><i class="bi bi-x-circle-fill" style="color:var(--muted)"></i> Aucune validation possible</span>
+                                    <span class="uf-perm"><i class="bi bi-x-circle-fill" style="color:var(--muted)"></i> Pas d'accès administratif</span>
+                                </div>
+                            </div>
+                            {# Champ rôle masqué (valeur forcée côté serveur) #}
+                            {{ form_widget(form.role, {attr: {class: 'form-input', style: 'display:none'}}) }}
+                        {% else %}
+                            {# SuperAdmin : sélecteur complet #}
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.role.vars.id }}">
+                                    <i class="bi bi-shield-lock me-1" style="color:var(--amber)"></i>Rôle applicatif GEI <span class="uf-required">*</span>
+                                </label>
+                                {{ form_widget(form.role, {attr: {class: 'form-input', id: 'roleSelect'}}) }}
+                                {{ form_errors(form.role) }}
+                                <div class="uf-role-desc" id="roleDescription">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <span id="roleDescText">Sélectionnez un rôle pour voir sa description.</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {# ── Section 3 : Marchés ── #}
+                    <div class="uf-section">
+                        <div class="uf-section-header">
+                            <span class="uf-section-num">3</span>
+                            <div>
+                                <strong>Périmètre géographique</strong>
+                                <small>Marchés accessibles par cet utilisateur</small>
+                            </div>
+                        </div>
+
+                        {% if currentRole == 'ROLE_PFT' %}
+                            {# Manager : uniquement les marchés dans son périmètre #}
+                            {% if form.agentMarkets is defined %}
+                            <div class="form-field">
+                                <label class="form-label">
+                                    <i class="bi bi-globe-africa me-1" style="color:var(--amber)"></i>Marchés assignés à l'Agent <span class="uf-required">*</span>
+                                </label>
+                                <p class="uf-help">Cochez un ou plusieurs marchés parmi ceux que vous supervisez. L'Agent ne soumettra des alertes que sur ces marchés.</p>
+                                <div class="uf-market-grid">
+                                    {% for choice in form.agentMarkets %}
+                                    <label class="uf-market-checkbox" for="{{ choice.vars.id }}">
+                                        {{ form_widget(choice) }}
+                                        <span class="uf-market-check-box">
+                                            <i class="bi bi-check-lg uf-check-icon"></i>
+                                        </span>
+                                        <span class="uf-market-label">
+                                            <i class="bi bi-geo-alt-fill me-1" style="font-size:10px;color:var(--amber)"></i>
+                                            {{ choice.vars.label }}
+                                        </span>
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                                {{ form_errors(form.agentMarkets) }}
+                            </div>
+                            {% endif %}
+
+                            {% if form.market is defined %}
+                            <div class="form-field" style="margin-top:14px">
+                                <label class="form-label" for="{{ form.market.vars.id }}">
+                                    <i class="bi bi-pin-map me-1" style="color:var(--amber)"></i>Marché principal (optionnel)
+                                </label>
+                                {{ form_widget(form.market, {attr: {class: 'form-input'}}) }}
+                                <small class="uf-help">Optionnel si l'Agent est assigné à plusieurs marchés ci-dessus.</small>
+                            </div>
+                            {% endif %}
+
+                        {% else %}
+                            {# SuperAdmin : accès complet #}
+                            {% if form.market is defined %}
+                            <div class="form-field">
+                                <label class="form-label" for="{{ form.market.vars.id }}">
+                                    <i class="bi bi-globe-africa me-1" style="color:var(--amber)"></i>Marché / Pays de rattachement
+                                </label>
+                                {{ form_widget(form.market, {attr: {class: 'form-input'}}) }}
+                                {{ form_errors(form.market) }}
+                                <small class="uf-help">Laisser vide pour les rôles régionaux/globaux (SAHOLTY, Comité AIT, Secrétariat).</small>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+
+                    {# ── Section 4 : Sécurité ── #}
+                    <div class="uf-section">
+                        <div class="uf-section-header">
+                            <span class="uf-section-num">4</span>
+                            <div>
+                                <strong>Sécurité du compte</strong>
+                                <small>{{ is_new ? 'Mot de passe initial — sera demandé à la première connexion' : 'Laisser vide pour conserver le mot de passe actuel' }}</small>
+                            </div>
+                        </div>
+
                         <div class="form-field">
-                            <label class="form-label text-center" for="{{ form.nom.vars.id }}">
-                                <i class="bi bi-person me-1 text-amber-400"></i>Nom
+                            <label class="form-label" for="{{ form.plainPassword.vars.id }}">
+                                <i class="bi bi-lock me-1" style="color:var(--amber)"></i>
+                                Mot de passe{% if is_new %} <span class="uf-required">*</span>{% endif %}
                             </label>
-                            {{ form_widget(form.nom, {attr: {class: 'form-input', placeholder: 'Nom de famille', autocomplete: 'family-name'}}) }}
+                            <div style="position:relative">
+                                {{ form_widget(form.plainPassword, {attr: {
+                                    class: 'form-input',
+                                    placeholder: is_new ? '12 caractères min., maj., min., chiffre…' : 'Laisser vide pour conserver',
+                                    autocomplete: 'new-password',
+                                    style: 'padding-right:48px',
+                                    id: 'passwordInput',
+                                    oninput: 'updatePasswordStrength(this.value)'
+                                }}) }}
+                                <button type="button" class="auth-input-btn" onclick="togglePassword('passwordInput', this)" tabindex="-1">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {{ form_errors(form.plainPassword) }}
+
+                            {# Indicateur de force #}
+                            <div class="uf-strength-bar" id="strengthBar">
+                                <div class="uf-strength-fill" id="strengthFill"></div>
+                            </div>
+                            <div class="uf-strength-checklist" id="strengthChecklist">
+                                <span id="chk-len" class="uf-chk"><i class="bi bi-circle"></i> 12 caractères minimum</span>
+                                <span id="chk-upper" class="uf-chk"><i class="bi bi-circle"></i> Une majuscule</span>
+                                <span id="chk-lower" class="uf-chk"><i class="bi bi-circle"></i> Une minuscule</span>
+                                <span id="chk-digit" class="uf-chk"><i class="bi bi-circle"></i> Un chiffre</span>
+                            </div>
                         </div>
-                    </div>
 
-                    {# Email #}
-                    <div class="form-field">
-                        <label class="form-label text-center" for="{{ form.email.vars.id }}">
-                            <i class="bi bi-envelope me-1 text-amber-400"></i>Adresse email professionnelle
-                        </label>
-                        {{ form_widget(form.email, {attr: {class: 'form-input', placeholder: 'nom@gei.org', autocomplete: 'email'}}) }}
-                    </div>
-
-                    {# Fonction #}
-                    <div class="form-field">
-                        <label class="form-label text-center" for="{{ form.fonction.vars.id }}">
-                            <i class="bi bi-briefcase me-1 text-amber-400"></i>Fonction / Titre
-                        </label>
-                        {{ form_widget(form.fonction, {attr: {class: 'form-input', placeholder: 'Agent terrain, PFT, Analyste…', autocomplete: 'off'}}) }}
-                    </div>
-
-                    {# Rôle + Marché côte à côte #}
-                    <div class="form-grid-2">
-                        <div class="form-field">
-                            <label class="form-label text-center" for="{{ form.role.vars.id }}">
-                                <i class="bi bi-shield-lock me-1 text-amber-400"></i>Rôle applicatif GEI
+                        <div class="form-field" style="padding:8px 0">
+                            <label class="uf-toggle-label">
+                                {{ form_widget(form.actif, {attr: {class: 'uf-toggle-input', id: 'actifToggle'}}) }}
+                                <span class="uf-toggle-track">
+                                    <span class="uf-toggle-thumb"></span>
+                                </span>
+                                <span class="uf-toggle-text">
+                                    Compte actif — autoriser la connexion immédiate
+                                </span>
                             </label>
-                            {{ form_widget(form.role, {attr: {class: 'form-input', style: 'appearance:none;cursor-pointer'}}) }}
-                        </div>
-                        <div class="form-field">
-                            <label class="form-label text-center" for="{{ form.market.vars.id }}">
-                                <i class="bi bi-globe-africa me-1 text-amber-400"></i>Marché / Pays
-                            </label>
-                            {{ form_widget(form.market, {attr: {class: 'form-input', style: 'appearance:none;cursor-pointer'}}) }}
                         </div>
                     </div>
 
-                    {# Mot de passe #}
-                    <div class="form-field">
-                        <label class="form-label text-center" for="{{ form.plainPassword.vars.id }}">
-                            <i class="bi bi-lock me-1 text-amber-400"></i>Mot de passe
-                        </label>
-                        <div style="position:relative">
-                            {{ form_widget(form.plainPassword, {attr: {class: 'form-input', placeholder: is_new ? '12 caractères minimum' : 'Laisser vide pour conserver', autocomplete: 'new-password', style: 'padding-right:44px'}}) }}
-                            <button type="button" class="auth-input-btn" onclick="togglePassword('{{ form.plainPassword.vars.id }}', this)" tabindex="-1" style="right:12px">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    {# Compte actif #}
-                    <div class="form-field" style="padding:6px 0">
-                        <label class="auth-checkbox-label">
-                            {{ form_widget(form.actif, {attr: {class: 'auth-checkbox'}}) }}
-                            <span class="auth-checkbox-custom"></span>
-                            <span style="color:var(--dim);font-size:12px">Compte utilisateur actif — autoriser la connexion immédiate</span>
-                        </label>
-                    </div>
-
-                    <input type="hidden" name="_token" value="{{ csrf_token('user_form') }}">
-
-                    {# Bouton principal #}
-                    <div class="d-flex justify-content-center mt-3">
-                        <button type="submit" class="db-btn db-btn-amber" style="min-width:220px;justify-content:center">
-                            <i class="bi bi-check-lg me-2"></i>
-                            {% if is_new %}Créer le compte{% else %}Enregistrer{% endif %}
+                    {# ── Boutons d'action ── #}
+                    <div class="uf-actions">
+                        <a href="{{ path('app_admin_user_index') }}" class="db-btn db-btn-ghost">
+                            <i class="bi bi-arrow-left me-2"></i>Annuler
+                        </a>
+                        <button type="submit" class="db-btn db-btn-amber" id="submitBtn">
+                            <i class="bi bi-{{ is_new ? 'person-plus' : 'check-lg' }} me-2"></i>
+                            {{ is_new ? 'Créer le compte' : 'Enregistrer' }}
                         </button>
                     </div>
 
-                {{ form_end(form) }}
+                    {{ form_end(form) }}
+                </div>
             </div>
         </div>
 
-        {# ── Info sécurité ── #}
-        <div class="db-card mt-4">
-            <div class="db-card-body text-center py-3">
-                <div class="d-flex flex-wrap gap-3 justify-content-center">
-                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
-                        <i class="bi bi-shield-check text-emerald-400"></i> Connexion chiffrée TLS
-                    </span>
-                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
-                        <i class="bi bi-clock-history text-amber-400"></i> Session 8h maximum
-                    </span>
-                    <span class="d-inline-flex align-items-center gap-2 text-xs" style="color:var(--muted)">
-                        <i class="bi bi-shield-lock text-blue-400"></i> Données confidentielles
-                    </span>
+        {# ── Colonne latérale : aide contextuelle ── #}
+        <div class="uf-side-col">
+
+            {# Carte : Rôles GEI #}
+            <div class="db-card uf-help-card">
+                <div class="db-card-body">
+                    <p class="uf-help-title">
+                        <i class="bi bi-info-circle-fill me-2" style="color:var(--amber)"></i>
+                        Hiérarchie des rôles GEI
+                    </p>
+                    <div class="uf-role-hierarchy">
+                        <div class="uf-role-item uf-role-superadmin">
+                            <i class="bi bi-shield-fill-check"></i>
+                            <div>
+                                <strong>Super Administrateur</strong>
+                                <small>Gestion complète · Configuration système</small>
+                            </div>
+                        </div>
+                        <div class="uf-role-item uf-role-saholty">
+                            <i class="bi bi-eye-fill"></i>
+                            <div>
+                                <strong>Analyste SAHOLTY</strong>
+                                <small>Analyse régionale · Validation transmission</small>
+                            </div>
+                        </div>
+                        <div class="uf-role-item uf-role-pft">
+                            <i class="bi bi-person-badge-fill"></i>
+                            <div>
+                                <strong>Point Focal Technique (PFT)</strong>
+                                <small>Qualification · Coordination marché</small>
+                            </div>
+                        </div>
+                        <div class="uf-role-item uf-role-secretariat">
+                            <i class="bi bi-journal-text"></i>
+                            <div>
+                                <strong>Secrétariat GEI</strong>
+                                <small>Registre · Mise à jour données</small>
+                            </div>
+                        </div>
+                        <div class="uf-role-item uf-role-emetteur">
+                            <i class="bi bi-broadcast"></i>
+                            <div>
+                                <strong>Émetteur Terrain</strong>
+                                <small>Création alertes · Vision marché limité</small>
+                            </div>
+                        </div>
+                        <div class="uf-role-item uf-role-comite">
+                            <i class="bi bi-bar-chart-fill"></i>
+                            <div>
+                                <strong>Comité AIT</strong>
+                                <small>Vue KPI/stratégique · Escalades critiques</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# Carte : Règles de sécurité #}
+            <div class="db-card uf-help-card mt-3">
+                <div class="db-card-body">
+                    <p class="uf-help-title">
+                        <i class="bi bi-lock-fill me-2" style="color:var(--amber)"></i>
+                        Politique de mot de passe
+                    </p>
+                    <ul class="uf-rules-list">
+                        <li><i class="bi bi-check-circle-fill text-emerald-400"></i> 12 caractères minimum</li>
+                        <li><i class="bi bi-check-circle-fill text-emerald-400"></i> Au moins une majuscule (A–Z)</li>
+                        <li><i class="bi bi-check-circle-fill text-emerald-400"></i> Au moins une minuscule (a–z)</li>
+                        <li><i class="bi bi-check-circle-fill text-emerald-400"></i> Au moins un chiffre (0–9)</li>
+                        <li><i class="bi bi-info-circle text-amber-400"></i> Différent de l'email et du nom</li>
+                    </ul>
+                </div>
+            </div>
+
+            {# Carte : Sécurité plateforme #}
+            <div class="db-card uf-help-card mt-3">
+                <div class="db-card-body">
+                    <div class="d-flex flex-column gap-2">
+                        <span class="d-flex align-items-center gap-2" style="font-size:11px;color:var(--muted)">
+                            <i class="bi bi-shield-check" style="color:var(--emerald)"></i> Connexion chiffrée TLS
+                        </span>
+                        <span class="d-flex align-items-center gap-2" style="font-size:11px;color:var(--muted)">
+                            <i class="bi bi-clock-history" style="color:var(--amber)"></i> Session 8h maximum
+                        </span>
+                        <span class="d-flex align-items-center gap-2" style="font-size:11px;color:var(--muted)">
+                            <i class="bi bi-qr-code" style="color:var(--blue-400,#60a5fa)"></i> 2FA TOTP disponible
+                        </span>
+                        <span class="d-flex align-items-center gap-2" style="font-size:11px;color:var(--muted)">
+                            <i class="bi bi-journal-check" style="color:var(--violet,#a78bfa)"></i> Journal d'activité complet
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
 </div>
+
+{% endblock %}
+
+{# ── Styles spécifiques user_form ── #}
+{% block stylesheets %}
+{{ parent() }}
+<style>
+/* ── Layout ── */
+.uf-layout { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+@media(max-width:900px){ .uf-layout{ grid-template-columns:1fr; } .uf-side-col{ display:none; } }
+
+/* ── Bannière contextuelle ── */
+.uf-context-banner {
+    display:flex; align-items:center; gap:14px; padding:14px 18px;
+    border-radius:12px; margin-bottom:18px; font-size:13px;
+    border:1px solid; backdrop-filter:blur(4px);
+}
+.uf-context-banner i:first-child { font-size:22px; flex-shrink:0; }
+.uf-context-banner > div { flex:1; display:flex; flex-direction:column; gap:2px; }
+.uf-context-banner strong { color:var(--text); font-size:13px; }
+.uf-context-banner span { color:var(--dim); font-size:11px; }
+.uf-banner-manager { background:rgba(245,158,11,.06); border-color:rgba(245,158,11,.25); }
+.uf-banner-manager i:first-child { color:var(--amber); }
+.uf-banner-admin   { background:rgba(239,68,68,.06);  border-color:rgba(239,68,68,.25); }
+.uf-banner-admin i:first-child { color:#f87171; }
+
+/* ── Badge rôle ── */
+.uf-role-badge { display:inline-flex; align-items:center; font-size:10px; font-weight:700;
+    padding:4px 10px; border-radius:20px; white-space:nowrap; letter-spacing:.4px; text-transform:uppercase; }
+.uf-role-agent { background:rgba(245,158,11,.15); color:var(--amber); border:1px solid rgba(245,158,11,.3); }
+.uf-role-admin { background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.3); }
+
+/* ── Flash ── */
+.alert-flash { display:flex; align-items:center; padding:12px 16px; border-radius:10px;
+    font-size:13px; margin-bottom:14px; border:1px solid; }
+.alert-flash-success { background:rgba(16,185,129,.08); border-color:rgba(16,185,129,.3); color:#6ee7b7; }
+.alert-flash-error   { background:rgba(239,68,68,.08);  border-color:rgba(239,68,68,.3);  color:#fca5a5; }
+
+/* ── Sections ── */
+.uf-section { border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:16px; }
+.uf-section-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.uf-section-num { width:26px; height:26px; border-radius:50%; background:rgba(245,158,11,.15);
+    color:var(--amber); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.uf-section-header strong { color:var(--text); font-size:13px; font-weight:700; display:block; }
+.uf-section-header small  { color:var(--muted); font-size:11px; }
+.uf-required { color:#f87171; margin-left:2px; }
+.uf-help { color:var(--muted); font-size:11px; margin-bottom:10px; }
+
+/* ── Rôle verrouillé ── */
+.uf-role-locked { background:rgba(245,158,11,.04); border:1px solid rgba(245,158,11,.2);
+    border-radius:10px; padding:14px; }
+.uf-role-locked-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+.uf-role-locked-header i { color:var(--amber); font-size:16px; margin-top:2px; flex-shrink:0; }
+.uf-role-locked-header strong { color:var(--text); font-size:13px; display:block; margin-bottom:3px; }
+.uf-role-locked-header small { color:var(--dim); font-size:11px; }
+.uf-role-perms { display:flex; flex-wrap:wrap; gap:8px; }
+.uf-perm { font-size:11px; color:var(--dim); display:flex; align-items:center; gap:5px; }
+
+/* ── Sélecteur rôle avec description ── */
+.uf-role-desc { margin-top:8px; padding:9px 12px; background:rgba(255,255,255,.03);
+    border:1px solid var(--border); border-radius:8px; font-size:11px; color:var(--muted);
+    display:flex; align-items:flex-start; gap:6px; min-height:36px; }
+
+/* ── Marchés multi-sélection ── */
+.uf-market-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+.uf-market-checkbox { display:flex; align-items:center; gap:8px; cursor:pointer;
+    padding:9px 12px; border:1px solid var(--border); border-radius:9px;
+    transition:all .2s; background:transparent; user-select:none; }
+.uf-market-checkbox:hover { border-color:rgba(245,158,11,.4); background:rgba(245,158,11,.04); }
+.uf-market-checkbox input[type=checkbox] { display:none; }
+.uf-market-check-box { width:16px; height:16px; border:1.5px solid var(--border);
+    border-radius:5px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition:all .2s; }
+.uf-check-icon { display:none; color:white; font-size:10px; font-weight:900; }
+.uf-market-checkbox input:checked ~ .uf-market-check-box { background:var(--amber); border-color:var(--amber); }
+.uf-market-checkbox input:checked ~ .uf-market-check-box .uf-check-icon { display:block; }
+.uf-market-checkbox input:checked ~ .uf-market-label { color:var(--amber); }
+.uf-market-label { font-size:12px; color:var(--dim); font-weight:500; transition:color .2s; }
+
+/* ── Indicateur de force ── */
+.uf-strength-bar { height:3px; background:var(--border); border-radius:2px; margin-top:8px; overflow:hidden; }
+.uf-strength-fill { height:100%; width:0; border-radius:2px; transition:width .4s,background .4s; }
+.uf-strength-checklist { display:flex; flex-wrap:wrap; gap:6px 16px; margin-top:8px; }
+.uf-chk { font-size:10px; color:var(--muted); display:inline-flex; align-items:center; gap:4px; transition:color .2s; }
+.uf-chk.ok { color:#6ee7b7; }
+.uf-chk.ok i { display:none; }
+.uf-chk.ok::before { content:'✓'; color:#6ee7b7; font-weight:700; }
+
+/* ── Toggle switch ── */
+.uf-toggle-label { display:flex; align-items:center; gap:10px; cursor:pointer; }
+.uf-toggle-input { display:none; }
+.uf-toggle-track { width:40px; height:22px; border-radius:11px; background:var(--border);
+    position:relative; transition:background .25s; flex-shrink:0; }
+.uf-toggle-thumb { position:absolute; top:3px; left:3px; width:16px; height:16px;
+    border-radius:50%; background:white; transition:transform .25s; }
+.uf-toggle-input:checked ~ .uf-toggle-track { background:var(--amber); }
+.uf-toggle-input:checked ~ .uf-toggle-track .uf-toggle-thumb { transform:translateX(18px); }
+.uf-toggle-text { font-size:12px; color:var(--dim); }
+
+/* ── Actions ── */
+.uf-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:6px; padding-top:16px;
+    border-top:1px solid var(--border); }
+
+/* ── Colonne aide ── */
+.uf-help-card .db-card-body { padding:14px 16px; }
+.uf-help-title { font-size:12px; font-weight:700; color:var(--text); margin:0 0 12px;
+    display:flex; align-items:center; }
+.uf-role-hierarchy { display:flex; flex-direction:column; gap:8px; }
+.uf-role-item { display:flex; align-items:flex-start; gap:9px; padding:8px 10px;
+    border-radius:8px; border:1px solid var(--border); }
+.uf-role-item i { font-size:14px; margin-top:1px; flex-shrink:0; }
+.uf-role-item strong { font-size:11px; color:var(--text); display:block; }
+.uf-role-item small  { font-size:10px; color:var(--muted); }
+.uf-role-superadmin i { color:#f87171; }
+.uf-role-saholty    i { color:#c084fc; }
+.uf-role-pft        i { color:var(--amber); }
+.uf-role-secretariat i { color:#60a5fa; }
+.uf-role-emetteur   i { color:#6ee7b7; }
+.uf-role-comite     i { color:#a78bfa; }
+.uf-rules-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+.uf-rules-list li { font-size:11px; color:var(--dim); display:flex; align-items:center; gap:7px; }
+</style>
 {% endblock %}
 
 {% block javascripts %}
 {{ parent() }}
 <script>
+/* ── Toggle mot de passe ── */
 function togglePassword(inputId, btn) {
     const input = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
+    const icon  = btn.querySelector('i');
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.replace('bi-eye', 'bi-eye-slash');
@@ -147,5 +538,55 @@ function togglePassword(inputId, btn) {
         icon.classList.replace('bi-eye-slash', 'bi-eye');
     }
 }
+
+/* ── Indicateur de force du mot de passe ── */
+function updatePasswordStrength(val) {
+    const checks = {
+        len:   val.length >= 12,
+        upper: /[A-Z]/.test(val),
+        lower: /[a-z]/.test(val),
+        digit: /\d/.test(val),
+    };
+    const score = Object.values(checks).filter(Boolean).length;
+    const fill  = document.getElementById('strengthFill');
+    const colors = ['#f87171','#f87171','#fbbf24','#34d399','#10b981'];
+    if(fill){ fill.style.width = (score/4*100)+'%'; fill.style.background = colors[score]; }
+
+    ['len','upper','lower','digit'].forEach(k => {
+        const el = document.getElementById('chk-'+k);
+        if(!el) return;
+        if(checks[k]){ el.classList.add('ok'); el.innerHTML = '✓ ' + el.textContent.trim(); }
+        else { el.classList.remove('ok'); }
+    });
+}
+
+/* ── Description de rôle dynamique ── */
+const roleDescriptions = {
+    'ROLE_SUPERADMIN':      'Gestion complète des utilisateurs, rôles et configuration système. Accès total.',
+    'ROLE_SECRETARIAT_GEI': 'Enregistrement et mise à jour du registre. Pas de pouvoir de décision.',
+    'ROLE_SAHOLTY':         'Analyse régionale, validation des transmissions externes, vue multi-pays.',
+    'ROLE_PFT':             'Qualification, validation et coordination au niveau marché. Peut créer des Agents.',
+    'ROLE_EMETTEUR_TERRAIN':'Création d\'alertes uniquement. Vision limitée à son propre marché assigné.',
+    'ROLE_COMITE_AIT':      'Vue KPI/stratégique, escalades critiques uniquement. Pas de saisie.',
+};
+const roleSelect = document.getElementById('roleSelect');
+const roleDescText = document.getElementById('roleDescText');
+if(roleSelect && roleDescText){
+    roleSelect.addEventListener('change', function(){
+        roleDescText.textContent = roleDescriptions[this.value] ?? 'Sélectionnez un rôle pour voir sa description.';
+    });
+    if(roleSelect.value) roleDescText.textContent = roleDescriptions[roleSelect.value] ?? '';
+}
+
+/* ── Confirmation suppression ── */
+document.querySelectorAll('.delete-trigger').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const url   = btn.dataset.deleteUrl;
+        const token = btn.dataset.deleteToken;
+        const form  = document.getElementById('deleteConfirmForm');
+        const inp   = document.getElementById('deleteTokenInput');
+        if(form && url){ form.action = url; if(inp) inp.value = token ?? ''; document.getElementById('confirmModal')?.classList.remove('hidden'); }
+    });
+});
 </script>
 {% endblock %}

@@ -13,7 +13,10 @@
             <span class="profile-role">{{ app.user.role.label() }}</span>
         </div>
     </a>
-    <a href="{{ path('app_logout') }}" class="profile-logout" title="Déconnexion de la session" data-turbo="false">
-        <i class="bi bi-box-arrow-right"></i>
-    </a>
+    <form method="post" action="{{ path('app_logout') }}" class="profile-logout-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+        <button type="submit" class="profile-logout" title="Déconnexion de la session" aria-label="Déconnexion">
+            <i class="bi bi-box-arrow-right"></i>
+        </button>
+    </form>
 </div>
