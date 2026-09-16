@@ -4,9 +4,7 @@ namespace App\Controller\Alert;
 
 use App\Entity\AccessLog;
 use App\Entity\Alert;
-use App\Form\AlertType;
 use App\Repository\AlertRepository;
-use App\Service\AlertCodeGeneratorService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,11 +30,16 @@ class AlertController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $marketFilter = $request->query->get('market');
+        if (is_array($marketFilter)) {
+            $marketFilter = reset($marketFilter);
+        }
+
         $filters = [
             'statut'         => $request->query->get('statut'),
             'niveauPriorite' => $request->query->get('priorite'),
             'typeAlerte'     => $request->query->get('typeAlerte'),
-            'market'         => is_array($request->query->get('market')) ? reset($request->query->get('market')) : $request->query->get('market'),
+            'market'         => $marketFilter,
             'search'         => $request->query->get('search'),
             'categorie'      => $request->query->get('categorie'),
             'urgence'        => $request->query->get('urgence'),
@@ -49,7 +52,13 @@ class AlertController extends AbstractController
             'manager'        => $request->query->get('manager'), // Partie B
         ];
 
-        $alerts = $alertRepository->findForUser($user, $filters);
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 25;
+        $allMatchingAlerts = $alertRepository->findForUser($user, $filters);
+        $total = count($allMatchingAlerts);
+        $totalPages = max(1, (int) ceil($total / $limit));
+        $page = min($page, $totalPages);
+        $alerts = $alertRepository->findForUser($user, $filters, $page, $limit);
 
         // Peuplement des selects Agent/Manager pour les filtres (Partie B)
         $agentsForFilter   = $alertRepository->findAgentsForFilter($user);
@@ -58,7 +67,9 @@ class AlertController extends AbstractController
         return $this->render('alert/index.html.twig', [
             'alerts'           => $alerts,
             'filters'          => $filters,
-            'total'            => count($alerts),
+            'total'            => $total,
+            'page'             => $page,
+            'totalPages'       => $totalPages,
             'agentsForFilter'  => $agentsForFilter,
             'managersForFilter' => $managersForFilter,
         ]);

@@ -32,6 +32,17 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
  */
 class ImportService
 {
+    private const ROWS_PER_BATCH = 100;
+    private const REQUIRED_COLUMNS = [
+        'id_gei', 'date', 'emetteur', 'zone', 'port', 'categorie', 'resume',
+        'type_source', 'anonymisation', 'fiabilite', 'credibilite', 'urgence',
+        'impact', 'exploitabilite', 'statut', 'transmission', 'actions', 'pieces',
+        'reference', 'sensibilite', 'derniere_maj', 'responsable', 'commentaires',
+    ];
+
+    /** @var array<string, Market> Marchés créés mais pas encore flushés */
+    private array $pendingMarkets = [];
+
     /**
      * Fragments d'intitulés attendus pour la détection dynamique des colonnes.
      * La recherche est insensible à la casse et partielle (str_contains).
@@ -145,30 +156,7 @@ class ImportService
      */
     public function dryRun(UploadedFile $file, User $currentUser): array
     {
-        $spreadsheet = IOFactory::load($file->getPathname());
-        $sheet       = $spreadsheet->getActiveSheet();
-        $rows = $sheet->toArray(null, true, true, true);
-
-        // ── Étape 1 : Trouver la ligne d'en-tête ──
-        $headerRowNum = null;
-        foreach ($rows as $rowNum => $row) {
-            $rowText = mb_strtolower(implode(' ', array_filter($row, fn($v) => $v !== null && $v !== '')));
-            if (
-                str_contains($rowText, 'id gei') ||
-                (str_contains($rowText, 'résumé') && str_contains($rowText, 'zone')) ||
-                (str_contains($rowText, 'date') && str_contains($rowText, 'statut'))
-            ) {
-                $headerRowNum = $rowNum;
-                break;
-            }
-        }
-
-        if ($headerRowNum === null) {
-            $headerRowNum = array_key_first($rows);
-        }
-
-        $headerRow = $rows[$headerRowNum];
-        [$colMap, $headerErrors] = $this->detectColumns($headerRow);
+        [$colMap, $headerErrors] = $this->readHeader($file->getPathname());
 
         if (!empty($headerErrors)) {
             return [
@@ -180,23 +168,11 @@ class ImportService
             ];
         }
 
-        // Collecter les colonnes manquantes
-        $colonnesManquantes = [];
-        $attendues = ['zone', 'date', 'port', 'urgence', 'impact', 'exploitabilite', 'statut', 'fiabilite', 'credibilite'];
-        foreach ($attendues as $champ) {
-            if (!isset($colMap[$champ])) {
-                $colonnesManquantes[] = $champ;
-            }
-        }
-
         // ── Étape 2 : Analyse ligne par ligne (sans écriture) ──
         $lignes = [];
         $compteur = ['valide' => 0, 'a_corriger' => 0, 'doublon' => 0, 'erreur' => 0];
 
-        foreach ($rows as $rowNum => $row) {
-            if ($rowNum <= $headerRowNum) {
-                continue;
-            }
+        foreach ($this->readRowsInChunks($file->getPathname(), $colMap) as [$rowNum, $row]) {
 
             $codeGei = trim($row[$colMap['id_gei'] ?? ''] ?? '');
             $resume  = trim($row[$colMap['resume'] ?? ''] ?? '');
@@ -281,7 +257,7 @@ class ImportService
 
         return [
             'header_errors'       => [],
-            'colonnes_manquantes' => $colonnesManquantes,
+            'colonnes_manquantes' => [],
             'lignes'              => $lignes,
             'compteur'            => $compteur,
             'total'               => count($lignes),
@@ -303,59 +279,37 @@ class ImportService
      */
     public function importExcel(UploadedFile $file, User $currentUser): array
     {
-        $spreadsheet = IOFactory::load($file->getPathname());
-        $sheet       = $spreadsheet->getActiveSheet();
-        // toArray retourne un tableau 1-indexed (ligne 1 = première ligne du fichier)
-        $rows = $sheet->toArray(null, true, true, true);
+        return $this->importPath($file->getPathname(), $currentUser);
+    }
 
-        $batchId           = uniqid('import_', true);
+    /**
+     * Importe un chemin déjà stocké, ce qui permet au worker Messenger de ne
+     * jamais reconstruire un classeur temporaire par ligne.
+     */
+    public function importPath(string $path, User $currentUser, ?string $batchId = null): array
+    {
+        [$colMap, $headerErrors] = $this->readHeader($path);
+        $batchId ??= uniqid('import_', true);
+
+        if (!empty($headerErrors)) {
+            return [
+                'success_count' => 0,
+                'update_count' => 0,
+                'error_count' => count($headerErrors),
+                'errors' => $headerErrors,
+                'lignes_incompletes' => [],
+                'batch_id' => $batchId,
+            ];
+        }
+
         $successCount      = 0;
         $updateCount       = 0;
         $errorCount        = 0;
         $errors            = [];
         $lignesIncompletes = [];
+        $seenCodes         = [];
 
-        // ── Étape 1 : Trouver la ligne d'en-tête ────────────────────────────────
-        // Cherche la première ligne qui contient les mots-clés d'en-tête.
-        // Gère les fichiers avec ou sans ligne de titre.
-        $headerRowNum = null;
-        foreach ($rows as $rowNum => $row) {
-            $rowText = mb_strtolower(implode(' ', array_filter($row, fn($v) => $v !== null && $v !== '')));
-            if (
-                str_contains($rowText, 'id gei') ||
-                (str_contains($rowText, 'résumé') && str_contains($rowText, 'zone')) ||
-                (str_contains($rowText, 'date') && str_contains($rowText, 'statut'))
-            ) {
-                $headerRowNum = $rowNum;
-                break;
-            }
-        }
-
-        if ($headerRowNum === null) {
-            // Aucun en-tête reconnu — prendre la ligne 1 par défaut
-            $headerRowNum = array_key_first($rows);
-        }
-
-        $headerRow = $rows[$headerRowNum];
-        [$colMap, $headerErrors] = $this->detectColumns($headerRow);
-
-        if (!empty($headerErrors)) {
-            return [
-                'success_count'     => 0,
-                'update_count'      => 0,
-                'error_count'       => count($headerErrors),
-                'errors'            => $headerErrors,
-                'lignes_incompletes'=> [],
-                'batch_id'          => $batchId,
-            ];
-        }
-
-        // ── Étape 2 : Traitement des lignes de données ──────────────────────────
-        // On commence APRÈS la ligne d'en-tête
-        foreach ($rows as $rowNum => $row) {
-            if ($rowNum <= $headerRowNum) {
-                continue; // ignorer l'en-tête et les lignes avant
-            }
+        foreach ($this->readRowsInChunks($path, $colMap) as [$rowNum, $row]) {
 
             // Ligne vide → ignorer
             $codeGei = trim($row[$colMap['id_gei'] ?? ''] ?? '');
@@ -371,8 +325,16 @@ class ImportService
 
                 // ── Doublon sur codeGei → mise à jour ─────────────────────────
                 if (!empty($codeGei)) {
+                    if (isset($seenCodes[$codeGei])) {
+                        $errorCount++;
+                        $errors[] = sprintf('Ligne %d (%s) : code GEI répété dans le fichier (déjà présent ligne %d).', $rowNum, $codeGei, $seenCodes[$codeGei]);
+                        continue;
+                    }
+                    $seenCodes[$codeGei] = $rowNum;
                     $existing = $this->alertRepository->findOneBy(['codeGei' => $codeGei]);
                     if (null !== $existing) {
+                        $existing->setOrigine('import_excel');
+                        $existing->setImportBatchId($batchId);
                         $manquants = $this->fillAlertFromRow($existing, $row, $colMap, $currentUser);
                         $this->scoreCalculator->calculate($existing);
                         if (!empty($manquants)) {
@@ -404,6 +366,12 @@ class ImportService
 
                 $champsManquants = $this->fillAlertFromRow($alert, $row, $colMap, $currentUser);
 
+                if (in_array('dateCreation', $champsManquants, true)) {
+                    $errorCount++;
+                    $errors[] = sprintf('Ligne %d (%s) : date absente ou invalide.', $rowNum, $codeGei ?: 'sans ID');
+                    continue;
+                }
+
                 // Préserver l'ID GEI existant ou en générer un
                 if (!empty($codeGei)) {
                     $alert->setCodeGei($codeGei);
@@ -428,18 +396,42 @@ class ImportService
                     ];
                 }
 
-                // Flush par batch de 50 — SANS em->clear() pour ne pas détacher les Markets créés
-                if ($successCount % 50 === 0) {
-                    $this->em->flush();
+                // Flush par lot : une erreur de contrainte est remontée avec son contexte.
+                if (($successCount + $updateCount) % self::ROWS_PER_BATCH === 0) {
+                    try {
+                        $this->em->flush();
+                        $this->em->clear();
+                        $this->pendingMarkets = [];
+                        if (null !== $currentUser->getId()) {
+                            $currentUser = $this->userRepository->find($currentUser->getId()) ?? $currentUser;
+                        }
+                    } catch (\Throwable $e) {
+                        throw new \RuntimeException(sprintf(
+                            'Échec de validation du lot autour de la ligne %d : %s',
+                            $rowNum,
+                            $e->getMessage()
+                        ), 0, $e);
+                    }
                 }
 
             } catch (\Exception $e) {
+                if (!$this->em->isOpen()) {
+                    throw $e;
+                }
                 $errorCount++;
                 $errors[] = sprintf('Ligne %d (%s) : %s', $rowNum, $codeGei ?: 'sans ID', $e->getMessage());
             }
         }
 
-        $this->em->flush();
+        if (!$this->em->isOpen()) {
+            throw new \RuntimeException('Doctrine a fermé l’EntityManager avant le dernier lot. Consultez la cause SQL précédente.', 0);
+        }
+
+        try {
+            $this->em->flush();
+        } catch (\Throwable $e) {
+            throw new \RuntimeException('Échec de validation du dernier lot : ' . $e->getMessage(), 0, $e);
+        }
 
         // Résoudre les IDs après flush final
         foreach ($lignesIncompletes as &$li) {
@@ -457,6 +449,70 @@ class ImportService
             'lignes_incompletes' => $lignesIncompletes,
             'batch_id'           => $batchId,
         ];
+    }
+
+    public function countDataRows(string $path): int
+    {
+        return max(0, $this->getHighestRow($path) - 1);
+    }
+
+    /** @return array{0: array<string, string>, 1: string[]} */
+    private function readHeader(string $path): array
+    {
+        if (!is_file($path)) {
+            return [[], ['Le fichier importé est introuvable.']];
+        }
+
+        try {
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $reader->setReadFilter(new class implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter {
+                public function readCell($columnAddress, $row, $worksheetName = ''): bool
+                {
+                    return $row === 1;
+                }
+            });
+            $sheet = $reader->load($path)->getActiveSheet();
+            [$colMap, $errors] = $this->detectColumns($sheet->toArray(null, true, true, true)[1] ?? null);
+            return [$colMap, $errors];
+        } catch (\Throwable $e) {
+            return [[], ['Le fichier Excel est illisible : ' . $e->getMessage()]];
+        }
+    }
+
+    /** @return iterable<array{0:int, 1:array}> */
+    private function readRowsInChunks(string $path, array $colMap): iterable
+    {
+        $highestRow = $this->getHighestRow($path);
+        for ($start = 2; $start <= $highestRow; $start += self::ROWS_PER_BATCH) {
+            $end = min($highestRow, $start + self::ROWS_PER_BATCH - 1);
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $reader->setReadFilter(new class($start, $end) implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter {
+                public function __construct(private int $start, private int $end) {}
+
+                public function readCell($columnAddress, $row, $worksheetName = ''): bool
+                {
+                    return $row >= $this->start && $row <= $this->end;
+                }
+            });
+            $spreadsheet = $reader->load($path);
+            foreach ($spreadsheet->getActiveSheet()->toArray(null, true, true, true) as $rowNum => $row) {
+                if ($rowNum >= $start && $rowNum <= $end) {
+                    yield [$rowNum, $row];
+                }
+            }
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet, $reader);
+        }
+    }
+
+    private function getHighestRow(string $path): int
+    {
+        $reader = IOFactory::createReader('Xlsx');
+        $reader->setReadDataOnly(true);
+        $info = $reader->listWorksheetInfo($path);
+        return (int) ($info[0]['totalRows'] ?? 1);
     }
 
     /**
@@ -499,14 +555,12 @@ class ImportService
             }
         }
 
-        // Seul le résumé est vraiment obligatoire — les autres seront null si absents
         $errors = [];
 
-        // Validation structurelle minimale : au moins ID GEI ou Résumé doit être trouvé
-        if (!isset($colMap['resume']) && !isset($colMap['id_gei'])) {
-            $errors[] = 'Structure non reconnue : impossible de trouver les colonnes "ID GEI" ou "Résumé" dans l\'en-tête. '
-                . 'Vérifiez que la ligne d\'en-tête est présente dans le fichier (colonnes attendues : ID GEI, Date, Zone, Résumé court…).';
-            return [$colMap, $errors];
+        foreach (self::REQUIRED_COLUMNS as $field) {
+            if (!isset($colMap[$field])) {
+                $errors[] = sprintf('Colonne obligatoire manquante ou mal nommée : "%s".', $field);
+            }
         }
 
         return [$colMap, $errors];
@@ -698,6 +752,9 @@ class ImportService
 
         $iso3 = AlertCodeGeneratorService::paysToIso3($zoneNom);
         if ($iso3) {
+            if (isset($this->pendingMarkets[$iso3])) {
+                return $this->pendingMarkets[$iso3];
+            }
             $m = $this->marketRepository->findOneBy(['codeIso3' => $iso3]);
             if ($m) return $m;
         }
@@ -714,9 +771,13 @@ class ImportService
         // Création automatique d'un market placeholder
         $newMarket = new Market();
         $rawIso = $iso3 ?? strtoupper(mb_substr(preg_replace('/[^a-zA-Z]/', '', $zoneNom), 0, 3));
+        if (isset($this->pendingMarkets[$rawIso ?: 'NDF'])) {
+            return $this->pendingMarkets[$rawIso ?: 'NDF'];
+        }
         $newMarket->setCodeIso3($rawIso ?: 'NDF');
         $newMarket->setNom(explode('/', $zoneNom)[0]);
         $this->em->persist($newMarket);
+        $this->pendingMarkets[$rawIso ?: 'NDF'] = $newMarket;
         return $newMarket;
     }
 

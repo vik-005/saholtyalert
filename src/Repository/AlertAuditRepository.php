@@ -44,115 +44,125 @@ class AlertAuditRepository
         return $this->cache->get($key, function (ItemInterface $item) use ($dto, $user) {
             $item->expiresAfter(self::TTL);
 
-            [$baseSql, $baseParams, $baseTypes] = $this->buildBaseSql($dto, $user);
+            // Sous-requête allégée pour les agrégations :
+            // On ne sélectionne que les colonnes réellement nécessaires aux GROUP BY / calculs.
+            // La sous-requête complète (40 colonnes) n'est utilisée que pour findPaginated().
+            // Cela évite que MariaDB matérialise 40 colonnes × N lignes × 9 fois.
+            [$baseSql, $baseParams, $baseTypes] = $this->buildBaseSql($dto, $user,
+                'a.id,
+                 a.market_id,
+                 a.emetteur_id,
+                 a.statut,
+                 a.urgence,
+                 a.categorie,
+                 a.type_source,
+                 a.exploitabilite,
+                 a.transmission,
+                 a.niveau_priorite                              AS niveauPriorite,
+                 COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS priorite,
+                 a.score_gei                                    AS scoreGei,
+                 COALESCE(a.score_surcharge, a.score_gei)       AS score,
+                 a.score_surcharge                              AS scoreSurcharge,
+                 a.date_creation                                AS dateCreation'
+            );
 
-            // Total + score moyen + critiques + taux transmission
+            // ── Résumé global ─────────────────────────────────────────────────
             $summarySql = "SELECT
-                COUNT(*) as total,
-                ROUND(AVG(COALESCE(base.scoreSurcharge, base.scoreGei)), 1) as score_moyen,
-                SUM(CASE WHEN COALESCE(base.scoreSurcharge, base.scoreGei) >= 18 THEN 1 ELSE 0 END) as critiques,
-                ROUND(SUM(CASE WHEN base.transmission = 'oui' THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) as taux_transmission
-            FROM ({$baseSql}) as base";
-
+                COUNT(*)  AS total,
+                ROUND(AVG(base.score), 1) AS score_moyen,
+                SUM(CASE WHEN base.score >= 18 THEN 1 ELSE 0 END) AS critiques,
+                ROUND(SUM(CASE WHEN base.transmission = 'oui' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) * 100, 1) AS taux_transmission
+            FROM ({$baseSql}) AS base";
             $summary = $this->conn->fetchAssociative($summarySql, $baseParams, $baseTypes);
 
-            // Par marché
+            // ── Par marché ────────────────────────────────────────────────────
             $parMarche = $this->conn->fetchAllAssociative(
-                "SELECT m.nom, m.code_iso3, COUNT(*) as nb, ROUND(AVG(COALESCE(base.scoreSurcharge, base.scoreGei)), 1) as score_moyen
-                 FROM ({$baseSql}) as base
+                "SELECT m.nom, m.code_iso3, COUNT(*) AS nb, ROUND(AVG(base.score), 1) AS score_moyen
+                 FROM ({$baseSql}) AS base
                  JOIN market m ON m.id = base.market_id
                  GROUP BY m.id, m.nom, m.code_iso3
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par statut
+            // ── Par statut ────────────────────────────────────────────────────
             $parStatut = $this->conn->fetchAllAssociative(
-                "SELECT statut, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
-                 GROUP BY statut
+                "SELECT base.statut AS statut, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
+                 GROUP BY base.statut
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par niveau priorité (avec FIELD pour ordre correct)
+            // ── Par niveau de priorité ────────────────────────────────────────
             $parNiveauPriorite = $this->conn->fetchAllAssociative(
-                "SELECT niveauPriorite, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
-                 GROUP BY niveauPriorite
-                 ORDER BY FIELD(niveauPriorite, 'critique', 'eleve', 'modere', 'faible') DESC",
-                $baseParams,
-                $baseTypes
+                "SELECT base.niveauPriorite, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
+                 GROUP BY base.niveauPriorite
+                 ORDER BY FIELD(base.niveauPriorite, 'critique', 'eleve', 'modere', 'faible') DESC",
+                $baseParams, $baseTypes
             );
 
-            // Par catégorie
+            // ── Par catégorie ─────────────────────────────────────────────────
             $parCategorie = $this->conn->fetchAllAssociative(
-                "SELECT categorie, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
-                 GROUP BY categorie
+                "SELECT base.categorie AS categorie, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
+                 GROUP BY base.categorie
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par mois (évolution)
+            // ── Par mois (évolution) ──────────────────────────────────────────
             $parMois = $this->conn->fetchAllAssociative(
-                "SELECT DATE_FORMAT(dateCreation, '%Y-%m') as mois, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
+                "SELECT DATE_FORMAT(base.dateCreation, '%Y-%m') AS mois, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
                  GROUP BY mois
                  ORDER BY mois ASC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par agent (émetteur)
+            // ── Par agent (émetteur) ──────────────────────────────────────────
             $parAgent = $this->conn->fetchAllAssociative(
-                "SELECT CONCAT(u.prenom, ' ', u.nom) as agent, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
+                "SELECT CONCAT(u.prenom, ' ', u.nom) AS agent, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
                  JOIN `user` u ON u.id = base.emetteur_id
                  GROUP BY u.id, agent
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par urgence
+            // ── Par urgence ───────────────────────────────────────────────────
             $parUrgence = $this->conn->fetchAllAssociative(
-                "SELECT urgence, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
-                 GROUP BY urgence
+                "SELECT base.urgence AS urgence, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
+                 GROUP BY base.urgence
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Par exploitabilité
+            // ── Par exploitabilité ────────────────────────────────────────────
             $parExploitabilite = $this->conn->fetchAllAssociative(
-                "SELECT exploitabilite, COUNT(*) as nb
-                 FROM ({$baseSql}) as base
-                 GROUP BY exploitabilite
+                "SELECT base.exploitabilite AS exploitabilite, COUNT(*) AS nb
+                 FROM ({$baseSql}) AS base
+                 GROUP BY base.exploitabilite
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
-            // Données cartographie (marchés avec alertes)
+            // ── Cartographie (marchés avec coordonnées) ───────────────────────
             $donneesCartographie = $this->conn->fetchAllAssociative(
-                "SELECT m.id as market_id, m.nom, m.code_iso3, z.latitude, z.longitude,
-                        COUNT(*) as nb,
+                "SELECT m.id AS market_id, m.nom, m.code_iso3, z.latitude, z.longitude,
+                        COUNT(*) AS nb,
                         SUBSTRING_INDEX(
                             GROUP_CONCAT(base.niveauPriorite ORDER BY FIELD(base.niveauPriorite, 'critique', 'eleve', 'modere', 'faible') ASC),
                             ',', 1
-                        ) as max_priorite
-                 FROM ({$baseSql}) as base
+                        ) AS max_priorite
+                 FROM ({$baseSql}) AS base
                  JOIN market m ON m.id = base.market_id
                  LEFT JOIN zone_geo z ON z.market_id = m.id
                  GROUP BY m.id, m.nom, m.code_iso3, z.latitude, z.longitude
                  ORDER BY nb DESC",
-                $baseParams,
-                $baseTypes
+                $baseParams, $baseTypes
             );
 
             return [

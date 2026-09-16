@@ -72,8 +72,13 @@ class GeneralDashboardController extends AbstractController
         // --- Récupération des alertes avec QueryBuilder ---
         $qb = $filterService->buildCompleteQueryBuilder($filterDto, $user);
         $alerts = $qb->getQuery()->getResult();
-        $totalAlerts = count($alerts);
+        $totalAlerts = $filterService->countAlerts($filterDto, $user);
         $totalPages = max(1, (int) ceil($totalAlerts / $filterDto->limit));
+        if ($filterDto->page > $totalPages) {
+            $filterDto->page = $totalPages;
+            $qb = $filterService->buildCompleteQueryBuilder($filterDto, $user);
+            $alerts = $qb->getQuery()->getResult();
+        }
 
         // --- KPIs enrichis (pour compatibilité templates) ---
         $kpis = array_merge($kpis, [

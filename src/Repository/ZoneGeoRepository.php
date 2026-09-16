@@ -88,6 +88,19 @@ class ZoneGeoRepository extends ServiceEntityRepository
 
         $whereClauses = ['m.actif = 1'];
 
+        if (!empty($filters['allowedMarkets'])) {
+            $allowedIds = array_values(array_filter(array_map('intval', $filters['allowedMarkets'])));
+            if ($allowedIds) {
+                $placeholders = [];
+                foreach ($allowedIds as $i => $id) {
+                    $key = 'allowed_market_' . $i;
+                    $params[$key] = $id;
+                    $placeholders[] = ':' . $key;
+                }
+                $whereClauses[] = 'm.id IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
         $marketFilter = $filters['markets'] ?? $filters['marche'] ?? [];
         if (!empty($marketFilter) && is_array($marketFilter)) {
             $marketIds = array_values(array_filter(array_map('intval', $marketFilter)));
@@ -106,10 +119,22 @@ class ZoneGeoRepository extends ServiceEntityRepository
 
         $sql = "
             SELECT
-                z.id,
-                z.latitude,
-                z.longitude,
-                z.nom,
+                COALESCE(z.id, m.id) AS id,
+                COALESCE(z.latitude, CASE m.code_iso3
+                    WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195
+                    WHEN 'GHA' THEN 7.9465 WHEN 'BFA' THEN 12.2383
+                    WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
+                    WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400
+                    WHEN 'GIN' THEN 9.9456 WHEN 'NGA' THEN 9.0820
+                    ELSE 8.0000 END) AS latitude,
+                COALESCE(z.longitude, CASE m.code_iso3
+                    WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248
+                    WHEN 'GHA' THEN -1.0232 WHEN 'BFA' THEN -1.5616
+                    WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
+                    WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471
+                    WHEN 'GIN' THEN -9.6966 WHEN 'NGA' THEN 8.6753
+                    ELSE 2.0000 END) AS longitude,
+                COALESCE(z.nom, m.nom) AS nom,
                 z.polygon_wkt AS polygonWkt,
                 m.id AS marketId,
                 m.code_iso3 AS codeIso3,
@@ -118,8 +143,8 @@ class ZoneGeoRepository extends ServiceEntityRepository
                     GROUP_CONCAT(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) ORDER BY FIELD(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite), 'critique', 'eleve', 'modere', 'faible') ASC),
                     ',', 1
                 ) AS maxPriority
-            FROM zone_geo z
-            INNER JOIN market m ON z.market_id = m.id
+            FROM market m
+            LEFT JOIN zone_geo z ON z.market_id = m.id
             {$joinAlertSql}
             {$whereSql}
             GROUP BY z.id, m.id, m.code_iso3

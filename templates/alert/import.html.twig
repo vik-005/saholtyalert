@@ -12,10 +12,13 @@
             <p class="page-eyebrow"><i class="bi-file-upload me-1.5 text-emerald-400"></i>Import en masse</p>
             <h2 class="page-title">Importer le Registre GEI</h2>
             <p class="page-subtitle">
-                Déposez le fichier Excel du registre GEI (Annexe B).
-                Le système détecte automatiquement les colonnes, importe les fiches, calcule les scores
+                Déposez le fichier Excel du registre GEI (Annexe B), notamment celui téléchargé avec le bouton Excel du registre.
+                Le système reprend exactement le format exporté, importe les fiches, calcule les scores
                 et signale les lignes incomplètes pour complétion par le Manager.
             </p>
+            <a href="{{ path('app_alert_import_template') }}" class="db-btn db-btn-ghost">
+                <i class="bi-download me-1.5"></i>Télécharger le gabarit officiel
+            </a>
         </div>
         <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">
             <i class="bi-arrow-left me-1.5"></i>Retour
@@ -54,7 +57,7 @@
                     <i class="bi-table text-emerald-400"></i>
                     <div>
                         <p class="import-info-label">Colonnes détectées auto</p>
-                        <p class="import-info-val">23 colonnes Annexe B</p>
+                        <p class="import-info-val">30 colonnes, identiques à l’export Excel</p>
                     </div>
                 </div>
                 <div class="import-info-item">
@@ -82,13 +85,35 @@
 
             {# Bouton #}
             <button type="submit" form="importForm" class="import-submit-btn" id="importSubmitBtn">
-                <i class="bi-upload me-2"></i>Lancer l'importation
+                <i class="bi-search me-2"></i>Analyser le fichier
             </button>
         </div>
+
+        {% if dryRun %}
+        <div class="import-result-card">
+            <div class="import-section-header"><i class="bi-clipboard-check text-emerald-400"></i><span>Analyse à blanc</span></div>
+            {% if dryRun.header_errors|length > 0 %}
+                <div class="import-errors-list">
+                    {% for error in dryRun.header_errors %}<div class="import-error-item"><i class="bi-x text-red-400"></i><span>{{ error }}</span></div>{% endfor %}
+                </div>
+            {% else %}
+                <p>{{ dryRun.total }} ligne(s) détectée(s) : {{ dryRun.compteur.valide }} valide(s), {{ dryRun.compteur.a_corriger }} à corriger, {{ dryRun.compteur.doublon }} doublon(s), {{ dryRun.compteur.erreur }} erreur(s).</p>
+                <form method="post">
+                    <input type="hidden" name="confirm" value="1">
+                    <input type="hidden" name="_confirm_token" value="{{ csrf_token('import_excel_confirm') }}">
+                    <button type="submit" class="import-submit-btn"><i class="bi-check2-circle me-2"></i>Confirmer et importer</button>
+                </form>
+            {% endif %}
+        </div>
+        {% endif %}
 
         {# ── Résultat de l'import ── #}
         {% if result %}
         <div class="import-result-card">
+
+            {% if result.queued|default(false) %}
+            <div class="import-success-banner"><i class="bi-hourglass-split text-amber-400 fa-lg"></i><div><p class="font-700 text-white">Import lancé en arrière-plan</p><p class="text-xs text-slate-400 mt-1">{{ result.total }} lignes seront traitées. Batch : <code>{{ result.batch_id }}</code></p></div></div>
+            {% else %}
 
             {# KPI #}
             <div class="import-kpi-row">
@@ -210,6 +235,7 @@
             </div>
             {% endif %}
 
+            {% endif %}
         </div>
         {% endif %}
 

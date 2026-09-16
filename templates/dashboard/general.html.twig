@@ -404,6 +404,12 @@
                         <td class="text-right whitespace-nowrap">
                             <div class="table-actions">
                                 <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="tbl-btn tbl-btn-ghost" title="Voir"><i class="bi bi-eye"></i></a>
+                                {% if is_granted('ALERT_DECIDE', alert) %}
+                                <form method="post" action="{{ path('app_alert_delete', {id: alert.id}) }}" style="display:inline" onsubmit="return confirm('Archiver cette alerte ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete') }}">
+                                    <button type="submit" class="tbl-btn tbl-btn-danger" title="Supprimer"><i class="bi bi-trash3"></i></button>
+                                </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

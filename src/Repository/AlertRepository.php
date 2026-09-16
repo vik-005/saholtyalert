@@ -389,6 +389,21 @@ class AlertRepository extends ServiceEntityRepository
         if (!empty($filters['priorite'])) {
             $qb->andWhere('COALESCE(a.niveauPrioriteSurcharge, a.niveauPriorite) = :prio')->setParameter('prio', $filters['priorite']);
         }
+        if (!empty($filters['urgence'])) {
+            $qb->andWhere('a.urgence = :catUrgence')->setParameter('catUrgence', $filters['urgence']);
+        }
+        if (!empty($filters['typeAlerte'])) {
+            $qb->andWhere('a.typeAlerte = :catTypeAlerte')->setParameter('catTypeAlerte', $filters['typeAlerte']);
+        }
+        if (!empty($filters['scoreMin'])) {
+            $qb->andWhere('COALESCE(a.scoreSurcharge, a.scoreGei) >= :catScoreMin')->setParameter('catScoreMin', (int) $filters['scoreMin']);
+        }
+        if (!empty($filters['scoreMax'])) {
+            $qb->andWhere('COALESCE(a.scoreSurcharge, a.scoreGei) <= :catScoreMax')->setParameter('catScoreMax', (int) $filters['scoreMax']);
+        }
+        if (!empty($filters['origine'])) {
+            $qb->andWhere('a.origine = :catOrigine')->setParameter('catOrigine', $filters['origine']);
+        }
         if (!empty($filters['dateDebut'])) {
             $qb->andWhere('a.dateCreation >= :debut')
                ->setParameter('debut', new \DateTime($filters['dateDebut'] . ' 00:00:00'));
@@ -432,6 +447,21 @@ class AlertRepository extends ServiceEntityRepository
         }
         if (!empty($filters['priorite'])) {
             $qb->andWhere('COALESCE(a.niveauPrioriteSurcharge, a.niveauPriorite) = :prio')->setParameter('prio', $filters['priorite']);
+        }
+        if (!empty($filters['urgence'])) {
+            $qb->andWhere('a.urgence = :corrUrgence')->setParameter('corrUrgence', $filters['urgence']);
+        }
+        if (!empty($filters['typeAlerte'])) {
+            $qb->andWhere('a.typeAlerte = :corrTypeAlerte')->setParameter('corrTypeAlerte', $filters['typeAlerte']);
+        }
+        if (!empty($filters['scoreMin'])) {
+            $qb->andWhere('COALESCE(a.scoreSurcharge, a.scoreGei) >= :corrScoreMin')->setParameter('corrScoreMin', (int) $filters['scoreMin']);
+        }
+        if (!empty($filters['scoreMax'])) {
+            $qb->andWhere('COALESCE(a.scoreSurcharge, a.scoreGei) <= :corrScoreMax')->setParameter('corrScoreMax', (int) $filters['scoreMax']);
+        }
+        if (!empty($filters['origine'])) {
+            $qb->andWhere('a.origine = :corrOrigine')->setParameter('corrOrigine', $filters['origine']);
         }
         if (!empty($filters['dateDebut'])) {
             $qb->andWhere('a.dateCreation >= :debut')

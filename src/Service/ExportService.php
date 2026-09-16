@@ -6,7 +6,6 @@ use App\Entity\Alert;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Font;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -27,7 +26,7 @@ class ExportService
     // Colonnes 26-29 : traçabilité nominative et horodatages (Parties B & D — prompt expert final)
     // operateur_acteur : POSITION À CONFIRMER — non documentée dans le registre source (Annexe B).
     // À placer selon validation métier ultérieure. NE PAS INVENTER d'ordre officiel.
-    private const COLUMNS = [
+    public const COLUMNS = [
         'ID GEI',                            // A
         'Date',                              // B
         'Émetteur (fonction/pays)',           // C

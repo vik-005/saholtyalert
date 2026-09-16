@@ -353,6 +353,15 @@
             </tbody>
         </table>
     </div>
+        {% if totalPages > 1 %}
+        <div class="db-card-footer" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);">
+            <span style="font-size:11px;color:var(--muted);">Page {{ page }} / {{ totalPages }} — {{ total }} alerte{{ total > 1 ? 's' : '' }}</span>
+            <div style="display:flex;gap:6px;">
+                {% if page > 1 %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page - 1})) }}" class="db-btn db-btn-ghost db-btn-sm"><i class="bi bi-chevron-left"></i> Précédent</a>{% endif %}
+                {% if page < totalPages %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page + 1})) }}" class="db-btn db-btn-amber db-btn-sm">Suivant <i class="bi bi-chevron-right"></i></a>{% endif %}
+            </div>
+        </div>
+        {% endif %}
 
     {# Footer tableau #}
     {% if alerts|length > 0 %}

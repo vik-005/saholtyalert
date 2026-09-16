@@ -97,6 +97,7 @@ class CarteController extends AbstractController
         Request          $request,
         ZoneGeoRepository $zoneGeoRepo,
         AlertRepository  $alertRepo,
+        MarketRepository $marketRepo,
     ): JsonResponse {
         $user = $this->getUser();
         if (!$user instanceof \App\Entity\User) {
@@ -129,6 +130,14 @@ class CarteController extends AbstractController
             'dateDebut'  => $request->query->get('dateDebut'),
             'dateFin'    => $request->query->get('dateFin'),
         ];
+
+        $allowedMarkets = $user->getRole() === \App\Enum\UserRoleEnum::PFT
+            ? $user->getAllManagedMarkets()
+            : $marketRepo->findActifs();
+        $filters['allowedMarkets'] = array_map(
+            static fn(Market $market): int => (int) $market->getId(),
+            $allowedMarkets
+        );
 
         // Zones avec coordonnées
         $zones = $zoneGeoRepo->findWithAlertCountFiltered($filters);

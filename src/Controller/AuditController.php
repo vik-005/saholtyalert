@@ -55,6 +55,10 @@ class AuditController extends AbstractController
         $total   = 0;
 
         if ($hasSearch) {
+            // Augmenter la limite d'exécution pour les recherches analytiques lourdes
+            // (agrégations multi-critères sur grande table)
+            set_time_limit(120);
+
             // Export CSV avant rendu HTML
             if ($request->query->get('_export') === 'csv') {
                 return $this->exportCsv($dto, $auditService, $user);
@@ -196,6 +200,7 @@ class AuditController extends AbstractController
         }
 
         $dto = AuditFilterDTO::fromRequest($request);
+        set_time_limit(180); // Export Excel — peut être long sur grande volumétrie
         $result = $auditService->getResults($dto, $user);
         $stats = $auditService->getChartData($dto, $user);
 
@@ -217,6 +222,7 @@ class AuditController extends AbstractController
         }
 
         $dto = AuditFilterDTO::fromRequest($request);
+        set_time_limit(180); // Export PDF — rendu lourd
         $result = $auditService->getResults($dto, $user);
         $stats = $auditService->getChartData($dto, $user);
 

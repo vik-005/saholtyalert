@@ -220,4 +220,14 @@ class AlertFilterService
         $qb = $this->buildQueryBuilder($dto, $user);
         return $this->applyPaginationAndOrder($qb, $dto);
     }
+
+    public function countAlerts(AlertFilterDTO $dto, User $user): int
+    {
+        $qb = $this->buildQueryBuilder($dto, $user);
+        $qb->select('COUNT(DISTINCT a.id)')
+            ->andWhere('a.deletedAt IS NULL')
+            ->resetDQLPart('orderBy');
+
+        return (int) $qb->getQuery()->getSingleScalarResult();
+    }
 }
