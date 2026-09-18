@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Alert;
+use App\Entity\AlertMarket;
 use App\Entity\AlertComment;
 use App\Entity\ListeReferenceValeur;
 use App\Enum\AlertExploitabilite;
@@ -321,6 +322,14 @@ class WizardController extends AbstractController
                 }
             }
 
+            $allowedMarketIds = array_map(
+                static fn(\App\Entity\Market $market): int => (int) $market->getId(),
+                $user->getAllAgentMarkets()
+            );
+            if ($allowedMarketIds !== [] && !in_array((int) $alert->getMarket()?->getId(), $allowedMarketIds, true)) {
+                throw $this->createAccessDeniedException('Le marché principal ne fait pas partie de votre périmètre.');
+            }
+
             // Calculer le score (calculé côté serveur avant persistance — jamais de confiance sur JS)
             $this->scoreCalculator->calculate($alert);
 
@@ -333,6 +342,10 @@ class WizardController extends AbstractController
             }
 
             $em->persist($alert);
+
+            // Le marché principal porte l'identifiant GEI ; les autres marchés
+            // décrivent le parcours et sont conservés dans alert_market.
+            $this->syncAlertMarkets($alert, $mergedData, $em, $user);
 
             // Historique qualification (snapshot complet des critères)
             $history = $this->scoreCalculator->createHistoryEntry($alert, $user->getNomComplet());
@@ -608,6 +621,50 @@ class WizardController extends AbstractController
         // Crédibilité (int)
         if (!empty($alertData['credibiliteContenu'])) {
             $alert->setCredibiliteContenu((int) $alertData['credibiliteContenu']);
+        }
+    }
+
+    private function syncAlertMarkets(Alert $alert, array $data, EntityManagerInterface $em, \App\Entity\User $user): void
+    {
+        $alertData = isset($data['alert']) && is_array($data['alert']) ? $data['alert'] : [];
+        foreach ($data as $key => $value) {
+            if (str_starts_with($key, 'alert[') && str_ends_with($key, ']')) {
+                $field = substr($key, 6, -1);
+                if (!array_key_exists($field, $alertData)) {
+                    $alertData[$field] = $value;
+                }
+            }
+        }
+
+        $selectedIds = array_values(array_unique(array_filter(array_map('intval', (array) ($alertData['parcoursMarkets'] ?? [])))));
+        $principalId = $alert->getMarket()?->getId();
+        $allowedIds = array_map(static fn($market): int => (int) $market->getId(), $user->getAllAgentMarkets());
+        if ($allowedIds !== []) {
+            $selectedIds = array_values(array_intersect($selectedIds, $allowedIds));
+        }
+        if ($principalId !== null) {
+            $selectedIds = array_values(array_diff($selectedIds, [$principalId]));
+        }
+
+        foreach ($alert->getAlertMarkets() as $link) {
+            $em->remove($link);
+        }
+        $alert->getAlertMarkets()->clear();
+
+        if ($principalId !== null) {
+            $principal = new AlertMarket();
+            $principal->setAlert($alert)->setMarket($alert->getMarket())->setRole('principal')->setOrdre(0);
+            $em->persist($principal);
+        }
+
+        foreach ($selectedIds as $ordre => $marketId) {
+            $market = $em->find(\App\Entity\Market::class, $marketId);
+            if (!$market || $market->getId() === $principalId) {
+                continue;
+            }
+            $link = new AlertMarket();
+            $link->setAlert($alert)->setMarket($market)->setRole('associe')->setOrdre($ordre + 1);
+            $em->persist($link);
         }
     }
 }

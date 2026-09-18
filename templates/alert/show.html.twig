@@ -168,6 +168,37 @@
     </div>
     {% endif %}
 
+    {# ── PARCOURS MULTI-MARCHÉS — visible lors du partage d'écran ── #}
+    {% set parcoursLinks = alert.alertMarkets|filter(link => link.role == 'associe') %}
+    {% if parcoursLinks|length > 0 %}
+    <div class="show-section show-route-section mt-3">
+        <div class="show-route-heading">
+            <div>
+                <h3 class="show-section-title mb-1">
+                    <i class="bi bi-signpost-2 me-1.5 text-emerald-400"></i>Parcours de l'alerte
+                </h3>
+                <p class="show-route-help">Marché principal et pays associés, dans l'ordre du trajet.</p>
+            </div>
+            <span class="status-pill status-pill-route">{{ parcoursLinks|length + 1 }} marchés</span>
+        </div>
+        <div class="show-route-track" aria-label="Parcours {{ alert.market.nom }}">
+            <div class="show-route-node show-route-node-main">
+                <span class="show-route-dot"></span>
+                <strong>{{ alert.market.nom }}</strong>
+                <small>Principal · {{ alert.market.codeIso3 }}</small>
+            </div>
+            {% for link in parcoursLinks %}
+                <span class="show-route-line" aria-hidden="true"></span>
+                <div class="show-route-node">
+                    <span class="show-route-dot"></span>
+                    <strong>{{ link.market.nom }}</strong>
+                    <small>Étape {{ loop.index }} · {{ link.market.codeIso3 }}</small>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     {% if alert.qualificationHistories|length > 0 %}
     <div class="show-section mt-3">
         <h3 class="show-section-title">
@@ -386,6 +417,18 @@
 .show-flag-red   { background:rgba(239,68,68,.1);  color:#f87171;    border:1px solid rgba(239,68,68,.2); }
 .show-meta { font-size:11.5px; color:var(--text-muted); }
 .show-actions { display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+.show-route-section { border-left: 3px solid #34d399; }
+.show-route-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.show-route-help { color:var(--text-muted); font-size:11.5px; margin:0; }
+.status-pill-route { color:#34d399; border-color:rgba(52,211,153,.3); background:rgba(52,211,153,.08); white-space:nowrap; }
+.show-route-track { display:flex; align-items:stretch; gap:0; margin-top:18px; overflow-x:auto; padding:4px 2px 8px; }
+.show-route-node { min-width:150px; display:flex; flex-direction:column; gap:3px; color:var(--text); }
+.show-route-node small { color:var(--text-muted); font-size:10px; }
+.show-route-node-main strong { color:#fbbf24; }
+.show-route-dot { width:14px; height:14px; border-radius:50%; background:#34d399; border:3px solid var(--navy-900); box-shadow:0 0 0 2px #34d399; margin-bottom:8px; }
+.show-route-node-main .show-route-dot { background:#fbbf24; box-shadow:0 0 0 2px #fbbf24; }
+.show-route-line { min-width:48px; height:0; border-top:2px dashed rgba(52,211,153,.7); margin:6px 10px 0; }
+@media(max-width:700px) { .show-route-heading { flex-direction:column; } .show-route-node { min-width:125px; } }
 
 .workflow-banner {
     display:flex; align-items:center; gap:14px;

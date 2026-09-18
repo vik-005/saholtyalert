@@ -12,6 +12,7 @@ use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
 use App\Enum\Sensibilite;
 use App\Enum\TransmissionStatut;
+use App\Enum\TypeLocalisation;
 use App\Repository\AlertRepository;
 use App\Repository\MarketRepository;
 use App\Repository\UserRepository;
@@ -141,6 +142,36 @@ class ImportService
         private readonly ScoreCalculatorService    $scoreCalculator,
         private readonly AlertCodeGeneratorService $codeGenerator,
     ) {}
+
+    public static function detectTypeLocalisation(string $value): ?TypeLocalisation
+    {
+        $normalized = mb_strtolower(trim($value));
+        $normalized = strtr($normalized, [
+            'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'î' => 'i', 'ï' => 'i', 'ô' => 'o', 'ö' => 'o',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ç' => 'c',
+        ]);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (preg_match('/\b(aeroport|airport|aerodrome|terminal\s+passagers?)\b/u', $normalized)) {
+            return TypeLocalisation::AEROPORT;
+        }
+
+        if (preg_match('/\b(port|quai|terminal\s+portuaire|portuaire|harbour|harbor)\b/u', $normalized)) {
+            return TypeLocalisation::PORT;
+        }
+
+        if (preg_match('/\b(corridor|axe|route|itineraire|frontiere|transit)\b/u', $normalized)
+            || preg_match('/\s(?:-|–|—|\/|vers)\s/u', $normalized)) {
+            return TypeLocalisation::CORRIDOR;
+        }
+
+        return null;
+    }
 
     /**
      * Analyse un fichier Excel SANS écrire en base (dry-run).
@@ -603,7 +634,9 @@ class ImportService
         }
 
         // ── Port / Corridor ──────────────────────────────────────────────────────
-        $alert->setPortCorridor($get('port') ?: null);
+        $portCorridor = $get('port') ?: null;
+        $alert->setPortCorridor($portCorridor);
+        $alert->setTypeLocalisation(null !== $portCorridor ? self::detectTypeLocalisation($portCorridor) : null);
 
         // ── Catégorie ────────────────────────────────────────────────────────────
         $catRaw = trim($get('categorie'));

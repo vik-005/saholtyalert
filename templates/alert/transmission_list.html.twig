@@ -11,7 +11,7 @@
         <div>
             <p class="page-eyebrow">
                 <i class="bi bi-send me-1.5 text-blue-400"></i>
-                Coordination externe & partenaires · Espace Manager
+                Coordination externe & partenaires · Espace Manager / Administrateur
             </p>
             <h2 class="page-title">Suivi des transmissions</h2>
             <p class="page-subtitle">
@@ -84,7 +84,7 @@
                         <th style="padding:12px 16px;text-align:left">Statut transmission</th>
                         <th style="padding:12px 16px;text-align:left">Date transmission</th>
                         <th style="padding:12px 16px;text-align:left">Transmis par</th>
-                        <th style="padding:12px 16px;text-align:right">Action</th>
+                        <th class="transmission-action-heading" style="padding:12px 16px;text-align:right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -164,30 +164,32 @@
                         </td>
 
                         {# Actions #}
-                        <td style="padding:14px 16px;text-align:right;white-space:nowrap">
-                            <div style="display:inline-flex;gap:6px;align-items:center">
-                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="db-btn db-btn-sm db-btn-ghost" title="Consulter la fiche alerte">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                {% if not t.isCloture %}
-                                <form method="post" action="{{ path('app_transmission_cloturer', {id: t.id}) }}" style="display:inline"
-                                      onsubmit="return confirm('Confirmez-vous la clôture du suivi pour cette transmission ?');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('cloturer-transmission-' ~ t.id) }}">
-                                    <button type="submit" class="db-btn db-btn-sm db-btn-validate-step" title="Marquer cette transmission comme clôturée" id="btn-cloturer-{{ t.id }}">
-                                        <i class="bi bi-check2-circle me-1"></i>Clôturer
-                                    </button>
-                                </form>
-                                {% else %}
-                                {# Action Rouvrir (pour les transmissions clôturées) #}
-                                <form method="post" action="{{ path('app_transmission_rouvrir', {id: t.id}) }}" style="display:inline"
-                                      onsubmit="return confirm('Réouvrir cette transmission ? Elle repassera au statut \'En cours de résolution\'.');">
-                                    <input type="hidden" name="_token" value="{{ csrf_token('rouvrir-transmission-' ~ t.id) }}">
-                                    <button type="submit" class="db-btn db-btn-sm db-btn-ghost" title="Réouvrir cette transmission" id="btn-rouvrir-{{ t.id }}">
-                                        <i class="bi bi-arrow-counterclockwise me-1"></i>Réouvrir
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
+                        <td class="transmission-action-cell" style="padding:14px 16px;text-align:right;white-space:nowrap">
+                            <details class="transmission-actions">
+                                <summary class="transmission-actions-toggle" title="Afficher les actions">
+                                    <i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Afficher les actions</span>
+                                </summary>
+                                <div id="transmission-actions-{{ t.id }}" class="transmission-actions-menu">
+                                    <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="db-btn db-btn-sm db-btn-ghost" title="Consulter la fiche alerte">
+                                        <i class="bi bi-eye me-1"></i>Consulter
+                                    </a>
+                                    {% if not t.isCloture %}
+                                    <form method="post" action="{{ path('app_transmission_cloturer', {id: t.id}) }}" onsubmit="return confirm('Confirmez-vous la clôture du suivi pour cette transmission ?');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('cloturer-transmission-' ~ t.id) }}">
+                                        <button type="submit" class="db-btn db-btn-sm db-btn-validate-step" title="Marquer cette transmission comme clôturée" id="btn-cloturer-{{ t.id }}">
+                                            <i class="bi bi-check2-circle me-1"></i>Clôturer
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="post" action="{{ path('app_transmission_rouvrir', {id: t.id}) }}" onsubmit="return confirm('Rouvrir cette transmission ? Elle repassera au statut \'En cours de résolution\'.');">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('rouvrir-transmission-' ~ t.id) }}">
+                                        <button type="submit" class="db-btn db-btn-sm db-btn-ghost" title="Rouvrir cette transmission" id="btn-rouvrir-{{ t.id }}">
+                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Rouvrir
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </details>
                         </td>
                     </tr>
                     {% endfor %}
@@ -223,4 +225,17 @@
     </div>{# fin data-controller="table-filter" #}
 
 </div>
+<style>
+.transmission-action-cell { width: 1%; }
+.transmission-actions { position: relative; display: inline-flex; align-items: center; justify-content: flex-end; margin-left: auto; }
+.transmission-actions summary { list-style: none; }
+.transmission-actions summary::-webkit-details-marker { display: none; }
+.transmission-actions-toggle { width: 30px; height: 30px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--card2); color: var(--text); cursor: pointer; }
+.transmission-actions-toggle:hover, .transmission-actions[open] .transmission-actions-toggle { background: var(--amber); color: #000; border-color: var(--amber); }
+.transmission-actions-menu { position: absolute; z-index: 5; top: calc(100% + 6px); right: 0; display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); box-shadow: 0 8px 20px rgba(15, 23, 42, .16); }
+.transmission-actions-menu form { margin: 0; }
+@media (max-width: 900px) {
+    .transmission-actions-menu { flex-direction: column; align-items: stretch; }
+}
+</style>
 {% endblock %}

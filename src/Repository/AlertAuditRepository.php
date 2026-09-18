@@ -270,7 +270,13 @@ class AlertAuditRepository
             $managedMarkets = $user->getAllManagedMarkets();
             if (!empty($managedMarkets)) {
                 $managedIds = array_map('intval', array_map(fn($m) => $m->getId(), $managedMarkets));
-                $sql .= $this->buildInClause('a.market_id', 'managedMarketIds', $managedIds, $params);
+                $sql .= ' AND (a.market_id IN (' . implode(', ', array_map(static fn($id) => ':managedMarketIds_' . $id, $managedIds)) . ')'
+                    . ' OR EXISTS (SELECT 1 FROM alert_market am_scope WHERE am_scope.alert_id = a.id AND am_scope.market_id IN ('
+                    . implode(', ', array_map(static fn($id) => ':managedMarketIds_' . $id, $managedIds)) . '))';
+                foreach ($managedIds as $id) {
+                    $params['managedMarketIds_' . $id] = $id;
+                }
+                $sql .= ')';
             }
         }
         // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → pas de filtre scope
@@ -288,7 +294,12 @@ class AlertAuditRepository
         // ── Filtres multi-sélection (expansion manuelle IN pour compatibilité PDO) ──
         if (!empty($dto->markets)) {
             $ids = array_map('intval', $dto->markets);
-            $sql .= $this->buildInClause('a.market_id', 'marketIds', $ids, $params);
+            $placeholders = implode(', ', array_map(static fn($id) => ':marketIds_' . $id, $ids));
+            $sql .= ' AND (a.market_id IN (' . $placeholders . ') OR EXISTS ('
+                . 'SELECT 1 FROM alert_market am_filter WHERE am_filter.alert_id = a.id AND am_filter.market_id IN (' . $placeholders . ')))';
+            foreach ($ids as $id) {
+                $params['marketIds_' . $id] = $id;
+            }
         }
         if (!empty($dto->corridors)) {
             $sql .= $this->buildInClause('a.port_corridor', 'corridors', $dto->corridors, $params);

@@ -12,6 +12,7 @@ use App\Repository\AlertRepository;
 use App\Repository\ListeReferenceValeurRepository;
 use App\Repository\MarketRepository;
 use App\Repository\ZoneGeoRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -213,5 +214,81 @@ class CarteController extends AbstractController
             'resumeExecutif' => mb_substr($a->getResumeExecutif() ?? '', 0, 120),
             'portCorridor'   => $a->getPortCorridor() ?? '—',
         ], $alerts));
+    }
+
+    /**
+     * API — itinéraires des alertes multi-marchés pour la couche cartographique.
+     * Les compteurs de la carte restent basés sur le marché principal ; cette
+     * route sert uniquement à visualiser les parcours associés.
+     */
+    #[Route('/api/parcours', name: 'app_carte_parcours_api', methods: ['GET'])]
+    public function apiParcours(
+        Request $request,
+        EntityManagerInterface $em,
+        MarketRepository $marketRepo,
+    ): JsonResponse {
+        $user = $this->getUser();
+        if (!$user instanceof \App\Entity\User) {
+            return new JsonResponse([], 403);
+        }
+
+        $selectedRaw = $request->query->all('marche');
+        if (empty($selectedRaw)) {
+            $selectedRaw = $request->query->all('markets');
+        }
+        $selectedIds = array_values(array_filter(array_map('intval', (array) $selectedRaw)));
+        $allowedMarkets = $user->getRole() === \App\Enum\UserRoleEnum::PFT
+            ? $user->getAllManagedMarkets()
+            : $marketRepo->findActifs();
+        $allowedIds = array_map(static fn(Market $market): int => (int) $market->getId(), $allowedMarkets);
+        $mainIds = $selectedIds !== [] ? array_values(array_intersect($selectedIds, $allowedIds)) : $allowedIds;
+
+        if ($mainIds === []) {
+            return new JsonResponse([]);
+        }
+
+        $placeholders = implode(',', array_fill(0, count($mainIds), '?'));
+        $rows = $em->getConnection()->fetchAllAssociative(
+            "SELECT a.id,
+                    principal.nom AS principal, principal.code_iso3 AS principal_iso3,
+                    COALESCE(principal_zone.latitude, CASE principal.code_iso3
+                        WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195 WHEN 'GHA' THEN 7.9465
+                        WHEN 'BFA' THEN 12.2383 WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
+                        WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400 ELSE 8.0000 END) AS principal_lat,
+                    COALESCE(principal_zone.longitude, CASE principal.code_iso3
+                        WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248 WHEN 'GHA' THEN -1.0232
+                        WHEN 'BFA' THEN -1.5616 WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
+                        WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 ELSE 2.0000 END) AS principal_lng,
+                    am.ordre, associe.nom AS associe, associe.code_iso3 AS associe_iso3,
+                    associe_zone.latitude AS associe_lat, associe_zone.longitude AS associe_lng
+             FROM alert a
+             JOIN market principal ON principal.id = a.market_id
+             LEFT JOIN zone_geo principal_zone ON principal_zone.market_id = principal.id
+             JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
+             JOIN market associe ON associe.id = am.market_id
+             LEFT JOIN zone_geo associe_zone ON associe_zone.market_id = associe.id
+             WHERE a.deleted_at IS NULL AND a.market_id IN ({$placeholders})
+             ORDER BY a.id, am.ordre",
+            $mainIds
+        );
+
+        $routes = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['id'];
+            if (!isset($routes[$id])) {
+                $routes[$id] = [
+                    'id' => $id,
+                    'principal' => $row['principal'],
+                    'points' => [[(float) $row['principal_lat'], (float) $row['principal_lng']]],
+                    'markets' => [$row['principal']],
+                ];
+            }
+            if ($row['associe_lat'] !== null && $row['associe_lng'] !== null) {
+                $routes[$id]['points'][] = [(float) $row['associe_lat'], (float) $row['associe_lng']];
+                $routes[$id]['markets'][] = $row['associe'];
+            }
+        }
+
+        return new JsonResponse(array_values($routes));
     }
 }

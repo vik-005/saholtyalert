@@ -31,6 +31,20 @@ class StatistiquesService
         return $this->em->getConnection();
     }
 
+    /** Total des alertes du périmètre courant, utilisé pour vérifier les KPI affichés. */
+    public function getTotalAlertes(string $debut, string $fin, array $marketIds = []): int
+    {
+        $where = $this->whereClause($marketIds);
+        $row = $this->conn()->fetchOne(
+            "SELECT COUNT(a.id)
+             FROM alert a
+             WHERE a.date_creation BETWEEN :debut AND :fin {$where}",
+            ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+        );
+
+        return (int) $row;
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // A.1 — STATISTIQUES PAR PAYS
     // ─────────────────────────────────────────────────────────────────────────
@@ -58,12 +72,62 @@ class StatistiquesService
             return $this->conn()->fetchAllAssociative(
                 "SELECT m.nom AS pays, m.code_iso3 AS iso3, COUNT(a.id) AS nb
                  FROM alert a
-                 JOIN market m ON m.id = a.market_id
+                      JOIN market m ON m.id = a.market_id
                  WHERE a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
                  GROUP BY m.id, m.nom, m.code_iso3
                  ORDER BY nb DESC",
                 $params
             );
+        });
+    }
+
+    /**
+     * Analyse des parcours sans modifier les statistiques du marché principal.
+     * Une alerte est comptée une seule fois dans les KPI principaux, puis ici
+     * les alertes ayant au moins un marché associé sont regroupées par trajet.
+     */
+    public function getParcoursStats(string $debut, string $fin, array $marketIds = []): array
+    {
+        $key = 'stat_parcours_' . md5($debut . $fin . implode(',', $marketIds));
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds): array {
+            $item->expiresAfter(self::TTL);
+            $where = $this->whereClause($marketIds);
+            $rows = $this->conn()->fetchAllAssociative(
+                "SELECT a.id, principal.nom AS principal,
+                        GROUP_CONCAT(associe.nom ORDER BY am.ordre SEPARATOR ' → ') AS etapes
+                 FROM alert a
+                 JOIN market principal ON principal.id = a.market_id
+                 JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
+                 JOIN market associe ON associe.id = am.market_id
+                 WHERE a.date_creation BETWEEN :debut AND :fin {$where}
+                 GROUP BY a.id, principal.nom
+                 ORDER BY a.id",
+                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+            );
+
+            $routes = [];
+            foreach ($rows as $row) {
+                $route = $row['principal'] . ' → ' . $row['etapes'];
+                $routes[$route] = ($routes[$route] ?? 0) + 1;
+            }
+            arsort($routes);
+
+            $total = (int) $this->conn()->fetchOne(
+                "SELECT COUNT(a.id) FROM alert a
+                 WHERE a.date_creation BETWEEN :debut AND :fin {$where}",
+                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+            );
+
+            return [
+                'total_alertes' => $total,
+                'avec_parcours' => count($rows),
+                'sans_parcours' => max(0, $total - count($rows)),
+                'routes' => array_map(
+                    static fn(string $trajet, int $nb): array => ['trajet' => $trajet, 'nb' => $nb],
+                    array_keys($routes),
+                    array_values($routes)
+                ),
+            ];
         });
     }
 

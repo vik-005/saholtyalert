@@ -489,6 +489,10 @@ body.dark .kpi-trend-down { background: rgba(239, 68, 68, 0.15); color: #f87171;
 .db-chart-legend{display:flex;gap:14px;margin-bottom:12px;align-items:center}
 .chart-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--dim)}
 .chart-legend-dot{width:9px;height:9px;border-radius:3px}
+.db-live-indicator{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid rgba(22,133,107,.22);border-radius:999px;background:rgba(22,133,107,.07);color:var(--green);font-size:10px;font-weight:700;white-space:nowrap}
+.db-live-indicator span{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(22,133,107,.12);animation:pulse-anim 1.8s infinite}
+.db-chart-total{margin-left:auto;color:var(--muted);font-size:10px}
+.db-chart-total strong{color:var(--text);font-size:12px}
 .chart-legend-amber .chart-legend-dot{background:#16856b}
 .chart-legend-blue .chart-legend-dot{background:#3b82f6}
 .chart-legend-emerald .chart-legend-dot{background:#3b82f6} /* Alias de rétrocompatibilité */
@@ -498,8 +502,24 @@ body.dark .chart-legend-amber .chart-legend-dot{background:#34d399}
 body.dark .chart-legend-blue .chart-legend-dot{background:#60a5fa}
 body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
 
-.db-chart-area{position:relative;height:300px}
+.db-chart-area{position:relative;height:300px;padding:4px 0 0}
 .db-chart-area canvas{display:block;max-width:100%;height:100%!important}
+
+.db-advanced-filters{margin:0 0 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.db-advanced-filters summary{display:flex;align-items:center;gap:8px;padding:11px 13px;cursor:pointer;list-style:none;color:var(--text);font-size:11px;font-weight:800}
+.db-advanced-filters summary::-webkit-details-marker{display:none}
+.db-advanced-filters summary>i:first-child{color:var(--amber)}
+.db-advanced-filters summary small{margin-left:2px;color:var(--muted);font-weight:600}
+.db-filter-chevron{margin-left:auto;color:var(--muted);transition:transform .15s}
+.db-advanced-filters[open] .db-filter-chevron{transform:rotate(180deg)}
+.db-advanced-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0 13px 13px;border-top:1px solid var(--border)}
+.db-filter-field{display:flex;flex-direction:column;gap:5px;padding-top:11px;color:var(--muted);font-size:10px;font-weight:700}
+.db-filter-field-wide{grid-column:span 2}
+.db-filter-field input,.db-filter-field select{width:100%;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 8px;font:inherit;font-weight:500;outline:none}
+.db-filter-field input:focus,.db-filter-field select:focus{border-color:var(--amber)}
+.db-filter-check{display:flex;align-items:center;gap:7px;padding-top:29px;color:var(--dim);font-size:10px;font-weight:700}
+.db-filter-check input{accent-color:var(--amber)}
+.db-advanced-actions{display:flex;align-items:end;gap:6px;padding-top:25px}
 
 /* Les canvases gardent une surface stable et nette lors d'une capture ou d'un export. */
 .stats-card canvas{display:block;width:100%;max-width:100%}
@@ -773,6 +793,9 @@ body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
 .meta-val{color:#fff;font-weight:600}
 .detail-actions-note{padding-top:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--dim);font-style:italic}
 
+@media (max-width:900px){.db-advanced-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.db-filter-field-wide{grid-column:span 2}}
+@media (max-width:560px){.db-advanced-grid{grid-template-columns:1fr}.db-filter-field-wide{grid-column:auto}.db-filter-check,.db-advanced-actions{padding-top:11px}.db-advanced-actions{align-items:center}.detail-grid{grid-template-columns:1fr}.db-chart-area{height:240px}}
+
 /* Right col cards */
 .db-score-card,.db-countries-card,.db-activities-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
 .score-display{display:flex;align-items:baseline;gap:4px;margin:10px 0 8px}
@@ -1005,6 +1028,8 @@ body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
 
 /* ─── Stats page ─────────────────────────────────────────────────────────── */
 .stats-filter-bar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stats-scope-note{margin:8px 0 14px;padding:9px 12px;border-left:3px solid var(--amber);background:var(--card2);color:var(--dim);font-size:11px;line-height:1.5}
+.stats-scope-note strong{color:var(--text);font-size:13px}
 .stats-filter-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex:1}
 .stats-filter-group{display:flex;align-items:center;gap:6px;font-size:11.5px}
 .stats-filter-label{color:var(--muted);font-weight:600;white-space:nowrap}

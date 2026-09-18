@@ -5,6 +5,7 @@ namespace App\Controller\Alert;
 use App\Entity\AccessLog;
 use App\Entity\Alert;
 use App\Repository\AlertRepository;
+use App\Repository\MarketRepository;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,7 +24,7 @@ class AlertController extends AbstractController
     ) {}
 
     #[Route('/', name: 'app_alert_index', methods: ['GET'])]
-    public function index(Request $request, AlertRepository $alertRepository): Response
+    public function index(Request $request, AlertRepository $alertRepository, MarketRepository $marketRepository): Response
     {
         $user = $this->getUser();
         if (!$user instanceof \App\Entity\User) {
@@ -48,6 +49,7 @@ class AlertController extends AbstractController
             'origine'        => $request->query->get('origine'),
             'dateDebut'      => $request->query->get('dateDebut'),
             'dateFin'        => $request->query->get('dateFin'),
+            'anneeOperationnelle' => $request->query->get('anneeOperationnelle'),
             'agent'          => $request->query->get('agent'),   // Partie B
             'manager'        => $request->query->get('manager'), // Partie B
         ];
@@ -72,6 +74,7 @@ class AlertController extends AbstractController
             'totalPages'       => $totalPages,
             'agentsForFilter'  => $agentsForFilter,
             'managersForFilter' => $managersForFilter,
+            'marketsForFilter' => $marketRepository->findBy([], ['nom' => 'ASC']),
         ]);
     }
 

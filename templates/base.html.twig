@@ -188,6 +188,10 @@ async function pollNotifications() {
         const r = await fetch('/api/notifications/count', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
+        if (r.status === 401 || r.redirected || !r.headers.get('content-type')?.includes('application/json')) {
+            clearInterval(notifPollInterval);
+            return;
+        }
         if (!r.ok) return;
         const data = await r.json();
 

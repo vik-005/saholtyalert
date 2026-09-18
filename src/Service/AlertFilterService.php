@@ -77,7 +77,8 @@ class AlertFilterService
 
         // Marché (entity)
         if ($dto->getMarket()) {
-            $qb->andWhere($alias . '.market = :market')
+            $qb->leftJoin($alias . '.alertMarkets', 'am')
+               ->andWhere('am.market = :market OR ' . $alias . '.market = :market')
                ->setParameter('market', $dto->getMarket());
         }
 
@@ -172,7 +173,8 @@ class AlertFilterService
             // MANAGER : alertes de ses marchés gérés
             $managedMarkets = $user->getAllManagedMarkets();
             if (!empty($managedMarkets)) {
-                $qb->andWhere($alias . '.market IN (:managedMarkets)')
+                     $qb->leftJoin($alias . '.alertMarkets', 'amRole')
+                         ->andWhere($alias . '.market IN (:managedMarkets) OR amRole.market IN (:managedMarkets)')
                    ->setParameter('managedMarkets', $managedMarkets);
             } else {
                 // Aucun marché géré → aucune alerte visible

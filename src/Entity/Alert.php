@@ -2,7 +2,7 @@
 
 namespace App\Entity;
 
-    use App\Enum\AlertExploitabilite;
+use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
@@ -38,6 +38,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\HasLifecycleCallbacks]
 class Alert
 {
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: 'integer')]
@@ -252,6 +253,9 @@ class Alert
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTime $deletedAt = null;
 
+    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertMarket::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $alertMarkets;
+
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertActor::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $acteurs;
 
@@ -278,6 +282,7 @@ class Alert
 
     public function __construct()
     {
+        $this->alertMarkets = new ArrayCollection();
         $this->acteurs = new ArrayCollection();
         $this->pieceJointes = new ArrayCollection();
         $this->qualificationHistories = new ArrayCollection();
@@ -340,14 +345,83 @@ class Alert
         return $this;
     }
 
+    public function getAlertMarkets(): Collection
+    {
+        return $this->alertMarkets;
+    }
+
+    public function addMarketAssociation(Market $market, string $role = 'associe', ?int $ordre = null): AlertMarket
+    {
+        foreach ($this->alertMarkets as $association) {
+            $existingMarket = $association->getMarket();
+            if ($existingMarket === null) {
+                continue;
+            }
+
+            if (($existingMarket->getId() !== null && $market->getId() !== null && $existingMarket->getId() === $market->getId())
+                || $existingMarket === $market) {
+                return $association;
+            }
+        }
+
+        $association = new AlertMarket();
+        $association->setAlert($this);
+        $association->setMarket($market);
+        $association->setRole($role);
+        $association->setOrdre($ordre);
+        $this->alertMarkets->add($association);
+
+        if ($role === 'principal' || $this->market === null) {
+            $this->market = $market;
+        }
+
+        return $association;
+    }
+
+    public function getPrincipalMarket(): ?Market
+    {
+        foreach ($this->alertMarkets as $association) {
+            if ($association->getRole() === 'principal') {
+                return $association->getMarket();
+            }
+        }
+
+        return $this->market;
+    }
+
     public function getMarket(): ?Market
     {
-        return $this->market;
+        return $this->market ?? $this->getPrincipalMarket();
     }
 
     public function setMarket(?Market $market): static
     {
         $this->market = $market;
+
+        if ($market !== null) {
+            $exists = false;
+            foreach ($this->alertMarkets as $association) {
+                $existingMarket = $association->getMarket();
+                if ($existingMarket === null) {
+                    continue;
+                }
+
+                if (($existingMarket->getId() !== null && $market->getId() !== null && $existingMarket->getId() === $market->getId())
+                    || $existingMarket === $market) {
+                    $exists = true;
+                    if ($association->getRole() !== 'principal') {
+                        $association->setRole('principal');
+                        $association->setOrdre(1);
+                    }
+                    break;
+                }
+            }
+
+            if (!$exists) {
+                $this->addMarketAssociation($market, 'principal', 1);
+            }
+        }
+
         return $this;
     }
 

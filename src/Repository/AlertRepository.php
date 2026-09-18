@@ -22,6 +22,7 @@ class AlertRepository extends ServiceEntityRepository
     public function findForUser(User $user, array $filters = [], int $page = 1, int $limit = 0): array
     {
         $qb = $this->createQueryBuilder('a')
+            ->distinct()
             ->leftJoin('a.market', 'm')
             ->leftJoin('a.emetteur', 'e')
             ->leftJoin('a.validatedBy', 'vb')
@@ -36,7 +37,8 @@ class AlertRepository extends ServiceEntityRepository
             // MANAGER : alertes de ses marchés gérés
             $managedMarkets = $user->getAllManagedMarkets();
             if (!empty($managedMarkets)) {
-                $qb->andWhere('a.market IN (:managedMarkets)')
+                $qb->leftJoin('a.alertMarkets', 'amRole')
+                   ->andWhere('a.market IN (:managedMarkets) OR amRole.market IN (:managedMarkets)')
                    ->setParameter('managedMarkets', $managedMarkets);
             }
         }
@@ -59,13 +61,9 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['market'])) {
-            if ($filters['market'] instanceof Market) {
-                $qb->andWhere('a.market = :filterMarket')
-                   ->setParameter('filterMarket', $filters['market']);
-            } else {
-                $qb->andWhere('IDENTITY(a.market) = :filterMarket')
-                   ->setParameter('filterMarket', (int) $filters['market']);
-            }
+            $qb->leftJoin('a.alertMarkets', 'am')
+               ->andWhere('am.market = :filterMarket OR a.market = :filterMarket')
+               ->setParameter('filterMarket', $filters['market'] instanceof Market ? $filters['market'] : $this->getEntityManager()->getReference(Market::class, (int) $filters['market']));
         }
 
         if (!empty($filters['categorie'])) {
@@ -79,8 +77,17 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         if (!empty($filters['search'])) {
-            $qb->andWhere('a.codeGei LIKE :search OR a.resumeExecutif LIKE :search OR a.portCorridor LIKE :search')
-               ->setParameter('search', '%' . $filters['search'] . '%');
+            $qb->leftJoin('a.alertMarkets', 'ams')
+               ->leftJoin('ams.market', 'ms')
+               ->andWhere($this->normalizedSearchExpression('a.codeGei') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('a.resumeExecutif') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('a.portCorridor') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('a.categorie') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('m.nom') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('m.codeIso3') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('ms.nom') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('ms.codeIso3') . ' LIKE :search')
+               ->setParameter('search', '%' . $this->normalizeSearch((string) $filters['search']) . '%');
         }
 
         // Filtres étendus (Partie G)
@@ -107,6 +114,13 @@ class AlertRepository extends ServiceEntityRepository
         if (!empty($filters['dateFin'])) {
             $qb->andWhere('a.dateCreation <= :dateFin')
                ->setParameter('dateFin', new \DateTime($filters['dateFin'] . ' 23:59:59'));
+        }
+
+        if (!empty($filters['anneeOperationnelle']) && ctype_digit((string) $filters['anneeOperationnelle'])) {
+            $year = (int) $filters['anneeOperationnelle'];
+            $qb->andWhere('a.dateCreation >= :yearStart AND a.dateCreation < :yearEnd')
+               ->setParameter('yearStart', new \DateTime(sprintf('%d-01-01 00:00:00', $year)))
+               ->setParameter('yearEnd', new \DateTime(sprintf('%d-01-01 00:00:00', $year + 1)));
         }
 
         // Urgence 72h uniquement (bascule Partie G.1)
@@ -152,6 +166,22 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         return $qb->getQuery()->getResult();
+    }
+
+    private function normalizeSearch(string $value): string
+    {
+        return mb_strtolower(strtr(trim($value), [
+            'À' => 'A', 'Â' => 'A', 'Ä' => 'A', 'à' => 'a', 'â' => 'a', 'ä' => 'a',
+            'É' => 'E', 'È' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+            'Î' => 'I', 'Ï' => 'I', 'î' => 'i', 'ï' => 'i', 'Ô' => 'O', 'Ö' => 'O', 'ô' => 'o', 'ö' => 'o',
+            'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U', 'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'Ç' => 'C', 'ç' => 'c',
+        ]));
+    }
+
+    private function normalizedSearchExpression(string $field): string
+    {
+        return 'LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('
+            . $field . ", 'à', 'a'), 'â', 'a'), 'ä', 'a'), 'é', 'e'), 'è', 'e'), 'ê', 'e'), 'ë', 'e'), 'ç', 'c'), 'ô', 'o'))";
     }
 
     public function findForExport(?string $pays = null, ?string $statut = null, ?\DateTimeInterface $from = null, ?\DateTimeInterface $to = null): array

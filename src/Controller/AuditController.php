@@ -14,6 +14,7 @@ use App\Repository\MarketRepository;
 use App\Repository\UserRepository;
 use App\Service\AuditService;
 use App\Service\AuditExcelExportService;
+use App\Service\AuditPdfExportService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

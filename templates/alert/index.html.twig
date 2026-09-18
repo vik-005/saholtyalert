@@ -51,9 +51,14 @@
 ══════════════════════════════════════ #}
 <div class="reg-filters-bar">
     {# Barre de recherche rapide #}
-    <div class="reg-search-wrap">
+    <form method="get" class="reg-search-wrap" id="registreSearchForm">
+        {% for key, val in filters %}
+            {% if key != 'search' and val is not null and val != '' %}
+                <input type="hidden" name="{{ key }}" value="{{ val }}">
+            {% endif %}
+        {% endfor %}
         <i class="bi bi-search reg-search-icon"></i>
-        <input id="registreSearch" type="text"
+        <input id="registreSearch" name="search" type="search"
                placeholder="Code GEI, pays, catégorie, résumé…"
                class="reg-search-input"
                value="{{ filters.search ?? '' }}"
@@ -61,16 +66,54 @@
         <button id="regSearchClear" class="reg-search-clear hidden" onclick="clearSearch()" type="button">
             <i class="bi bi-x"></i>
         </button>
-    </div>
+        <button type="submit" class="reg-search-submit" title="Rechercher" aria-label="Rechercher">
+            <i class="bi bi-arrow-right"></i>
+        </button>
+    </form>
 
     {# Filtres agents / managers #}
-    {% if agentsForFilter|default([])|length > 0 or managersForFilter|default([])|length > 0 %}
+    {% if agentsForFilter|default([])|length > 0 or managersForFilter|default([])|length > 0 or marketsForFilter|default([])|length > 0 %}
     <form method="get" class="reg-inline-filters" id="registreFilterForm">
         {% for key, val in filters %}
-            {% if key != 'agent' and key != 'manager' and val is not null and val != '' %}
+            {% if key not in ['agent', 'manager', 'market', 'categorie', 'typeAlerte', 'dateDebut', 'dateFin', 'anneeOperationnelle'] and val is not null and val != '' %}
                 <input type="hidden" name="{{ key }}" value="{{ val }}">
             {% endif %}
         {% endfor %}
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-globe2 me-1"></i>Marché</label>
+            <select name="market" class="reg-select" onchange="document.getElementById('registreFilterForm').submit()">
+                <option value="">Tous</option>
+                {% for market in marketsForFilter|default([]) %}
+                    <option value="{{ market.id }}" {% if filters.market|default(null) == market.id %}selected{% endif %}>
+                        {{ market.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-calendar3 me-1"></i>Année opérationnelle</label>
+            <input type="number" name="anneeOperationnelle" class="reg-select" min="2000" max="2100"
+                   value="{{ filters.anneeOperationnelle|default('') }}" placeholder="AAAA">
+        </div>
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-calendar-range me-1"></i>Période</label>
+            <span class="reg-filter-dates">
+                <input type="date" name="dateDebut" class="reg-select" value="{{ filters.dateDebut|default('') }}" aria-label="Date de début">
+                <input type="date" name="dateFin" class="reg-select" value="{{ filters.dateFin|default('') }}" aria-label="Date de fin">
+            </span>
+        </div>
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-tags me-1"></i>Catégorie</label>
+            <input type="search" name="categorie" class="reg-select" value="{{ filters.categorie|default('') }}" placeholder="Catégorie">
+        </div>
+        <div class="reg-filter-item">
+            <label class="reg-filter-label"><i class="bi bi-diagram-3 me-1"></i>Type</label>
+            <select name="typeAlerte" class="reg-select">
+                <option value="">Tous</option>
+                <option value="operationnelle" {% if filters.typeAlerte|default('') == 'operationnelle' %}selected{% endif %}>Opérationnelle</option>
+                <option value="strategique" {% if filters.typeAlerte|default('') == 'strategique' %}selected{% endif %}>Stratégique</option>
+            </select>
+        </div>
         {% if agentsForFilter|default([])|length > 0 %}
         <div class="reg-filter-item">
             <label class="reg-filter-label"><i class="bi bi-person me-1"></i>Agent</label>
@@ -97,7 +140,8 @@
             </select>
         </div>
         {% endif %}
-        {% if filters.agent or filters.manager %}
+        <button type="submit" class="reg-filter-submit"><i class="bi bi-funnel me-1"></i>Filtrer</button>
+        {% if filters.agent or filters.manager or filters.market or filters.categorie or filters.typeAlerte or filters.dateDebut or filters.dateFin or filters.anneeOperationnelle %}
         <a href="{{ path('app_alert_index') }}" class="reg-reset-btn">
             <i class="bi bi-x-circle me-1"></i>Réinitialiser
         </a>
@@ -112,7 +156,7 @@
             'statut': 'Statut', 'niveauPriorite': 'Priorité', 'market': 'Marché',
             'search': 'Recherche', 'categorie': 'Catégorie', 'urgence': 'Urgence',
             'scoreMin': 'Score min', 'scoreMax': 'Score max', 'origine': 'Origine',
-            'dateDebut': 'Depuis', 'dateFin': "Jusqu'au", 'agent': 'Agent', 'manager': 'Manager',
+            'dateDebut': 'Depuis', 'dateFin': "Jusqu'au", 'anneeOperationnelle': 'Année', 'agent': 'Agent', 'manager': 'Manager',
         },
         values_labels: {
             'statut': { 'nouveau': 'Nouveau', 'en_cours': 'En cours', 'transmis': 'Transmis',
@@ -409,16 +453,20 @@ function filterRegistreTable(q) {
     const clearBtn = document.getElementById('regSearchClear');
     if (clearBtn) clearBtn.classList.toggle('hidden', !q);
     _regTimer = setTimeout(() => {
-        const term = q.toLowerCase().trim();
+        const term = normalizeRegistreText(q);
         document.querySelectorAll('.reg-row').forEach(row => {
-            const text = [row.dataset.code, row.dataset.zone, row.dataset.cat,
-                          row.dataset.resume, row.dataset.operateur].join(' ');
+            const text = normalizeRegistreText([row.dataset.code, row.dataset.zone, row.dataset.cat,
+                          row.dataset.resume, row.dataset.operateur].join(' '));
             const match = !term || text.includes(term);
             row.style.display = match ? '' : 'none';
             const detail = document.getElementById('reg-detail-' + row.dataset.id);
             if (detail && !match) detail.classList.add('hidden');
         });
     }, 200);
+}
+
+function normalizeRegistreText(value) {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
 function clearSearch() {

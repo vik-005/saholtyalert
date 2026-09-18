@@ -383,7 +383,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
 
     public function getTotpAuthenticationConfiguration(): TotpConfigurationInterface|null
     {
-        if ($this->totpSecret === null) {
+        if (!$this->totpEnabled || $this->totpSecret === null) {
             return null;
         }
 

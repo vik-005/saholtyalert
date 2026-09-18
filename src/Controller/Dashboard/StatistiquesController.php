@@ -30,7 +30,8 @@ class StatistiquesController extends AbstractController
         }
 
         // --- Filtres globalisés avec AlertFilterDTO ---
-        $debut = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
+        // Afficher par défaut l'exercice récent complet ; les raccourcis permettent ensuite de réduire la période.
+        $debut = $request->query->get('debut', (new \DateTime('-365 days'))->format('Y-m-d'));
         $fin   = $request->query->get('fin', (new \DateTime())->format('Y-m-d'));
 
         // Fix: utiliser query->all() pour éviter "non-scalar value" avec markets[]
@@ -65,6 +66,8 @@ class StatistiquesController extends AbstractController
             'fin'            => $fin,
             'selected_markets' => $marketIds,
             'all_markets'    => $allMarkets,
+            'total_alertes_periode' => $stats->getTotalAlertes($debut, $fin, $marketIds),
+            'parcours_stats'     => $stats->getParcoursStats($debut, $fin, $marketIds),
 
             // A.1 — Par pays
             'volume_par_pays'    => $stats->getVolumeParPays($debut, $fin, $marketIds),
@@ -97,7 +100,7 @@ class StatistiquesController extends AbstractController
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
         }
-        $debut     = $request->query->get('debut', (new \DateTime('-30 days'))->format('Y-m-d'));
+        $debut     = $request->query->get('debut', (new \DateTime('-365 days'))->format('Y-m-d'));
         $fin       = $request->query->get('fin',   (new \DateTime())->format('Y-m-d'));
         $allQ2       = $request->query->all();
         $marketsRaw2 = $allQ2['markets'] ?? null;
@@ -115,6 +118,7 @@ class StatistiquesController extends AbstractController
 
         return $this->json([
             'volume_par_pays'       => $stats->getVolumeParPays($debut, $fin, $marketIds),
+            'parcours_stats'        => $stats->getParcoursStats($debut, $fin, $marketIds),
             'score_moyen_pays'      => $stats->getScoreMoyenParPays($debut, $fin, $marketIds),
             'statuts_par_pays'      => $stats->getStatutsParPays($debut, $fin, $marketIds),
             'tx_transmission'       => $stats->getTauxTransmissionParPays($debut, $fin, $marketIds),

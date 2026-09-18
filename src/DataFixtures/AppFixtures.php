@@ -195,6 +195,7 @@ class AppFixtures extends Fixture
         $usersData = [
             // email,                     pass,          prénom,          nom,           rôle,                         market
             ['admin@gei.org',         'Admin@2026!',  'Marc',          'KOUAME',       UserRoleEnum::SUPERADMIN,       null],
+            ['morayo.saizonou@gei.org','G7!mQ2#vL9@rSaiz2026', 'Morayo', 'Saizonou', UserRoleEnum::SUPERADMIN, null],
             ['admin2@gei.org',        'Admin@2026!',  'Sarah',         'KOFFI',        UserRoleEnum::SUPERADMIN,       null],
             ['secretariat@gei.org',   'Secr@2026!',   'Paul',          'HOUNGBO',      UserRoleEnum::SECRETARIAT_GEI,  null],
             ['secretariat2@gei.org',  'Secr@2026!',   'Claire',        'MENSAH',       UserRoleEnum::SECRETARIAT_GEI,  null],

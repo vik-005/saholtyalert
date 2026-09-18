@@ -40,6 +40,18 @@
                 <p class="form-help">Origine géographique ou commerciale de l'information.</p>
             </div>
 
+            <div class="form-field">
+                <label class="form-label" for="w_parcours_markets">Marchés du parcours</label>
+                <select name="alert[parcoursMarkets][]" id="w_parcours_markets" class="form-select" multiple size="4">
+                    {% set parcours = draftData['alert[parcoursMarkets]']|default([]) %}
+                    {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
+                    {% for market in markets %}
+                        <option value="{{ market.id }}" {% if market.id in parcours %}selected{% endif %}>{{ market.nom }}</option>
+                    {% endfor %}
+                </select>
+                <p class="form-help">Optionnel : ajoutez les pays traversés. Le marché émetteur reste le marché principal de l'identifiant GEI.</p>
+            </div>
+
             {# Champ 3 — Port / Corridor / Aéroport (radio) #}
             <div class="form-field">
                 <label class="form-label">

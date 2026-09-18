@@ -43,9 +43,12 @@ class OperationnelController extends AbstractController
         $filterDto->search = $request->query->get('search');
         $filterDto->categorie = $request->query->get('categorie');
         $filterDto->urgence = $request->query->get('urgence');
+        $filterDto->scoreMin = $request->query->get('scoreMin') !== null && $request->query->get('scoreMin') !== '' ? (int) $request->query->get('scoreMin') : null;
+        $filterDto->scoreMax = $request->query->get('scoreMax') !== null && $request->query->get('scoreMax') !== '' ? (int) $request->query->get('scoreMax') : null;
         $filterDto->origine = $request->query->get('origine');
         $filterDto->dateDebut = $request->query->get('dateDebut');
         $filterDto->dateFin = $request->query->get('dateFin');
+        $filterDto->urgence72h = $request->query->getBoolean('urgence72h');
         $filterDto->agent = $request->query->get('agent') ? (int) $request->query->get('agent') : null;
         $filterDto->manager = $request->query->get('manager') ? (int) $request->query->get('manager') : null;
         $filterDto->tri = $request->query->get('tri');
@@ -58,6 +61,8 @@ class OperationnelController extends AbstractController
         $alerts = $qb->getQuery()->getResult();
         $activeCases = $urgenceRepo->findActiveCases();
         $markets = $marketRepository->findBy(['actif' => true]);
+        $agents = $alertRepository->findAgentsForFilter($user);
+        $managers = $alertRepository->findManagersForFilter($user);
 
         // --- KPI enrichis (centralisés, sans duplication rôle) ---
         $kpisBase = $alertRepository->getKpiStats($user);
@@ -80,6 +85,8 @@ class OperationnelController extends AbstractController
             'kpis'         => $kpis,
             'active_cases' => $activeCases,
             'markets'      => $markets,
+            'agents'       => $agents,
+            'managers'     => $managers,
             'filters'      => (array) $filterDto,
             'chartLabels'  => $chartData['labels'],
             'chartNouvelles'  => $chartData['nouvelles'],

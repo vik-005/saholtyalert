@@ -81,11 +81,7 @@
                     <p class="db-card-title">Activité du Registre GEI</p>
                 </div>
                 <div class="db-card-actions">
-                    <select class="db-select" id="chartPeriodSelect" onchange="updateChartPeriod(this.value)">
-                        <option value="7">7 derniers jours</option>
-                        <option value="30" selected>30 derniers jours</option>
-                        <option value="90">3 mois</option>
-                    </select>
+                    <span class="db-live-indicator"><span></span>Données live · 30 jours</span>
                 </div>
             </div>
             <div class="db-chart-legend">
@@ -95,6 +91,7 @@
                 <span class="chart-legend-item chart-legend-blue">
                     <span class="chart-legend-dot"></span>Transmises
                 </span>
+                <span class="db-chart-total"><strong>{{ kpis.total }}</strong> alertes suivies</span>
             </div>
             <div class="db-chart-area">
                 <canvas id="alertEvolutionChart" height="90"></canvas>
@@ -222,6 +219,46 @@
                 </div>
             </div>
 
+            <details class="db-advanced-filters" {% if filters.statut or filters.niveauPriorite or filters.categorie or filters.urgence or filters.scoreMin is not null or filters.scoreMax is not null or filters.origine or filters.dateDebut or filters.dateFin or filters.urgence72h or filters.agent or filters.manager or filters.tri %}open{% endif %}>
+                <summary><i class="bi bi-sliders2-vertical"></i><span>Filtres avancés</span><small>15 critères</small><i class="bi bi-chevron-down db-filter-chevron"></i></summary>
+                <form method="get" class="db-advanced-grid">
+                    <label class="db-filter-field db-filter-field-wide">Recherche
+                        <input type="search" name="search" value="{{ filters.search|default('') }}" placeholder="Code, pays, corridor, résumé…">
+                    </label>
+                    <label class="db-filter-field">Marché
+                        <select name="market"><option value="">Tous</option>{% for market in markets %}<option value="{{ market.id }}" {% if filters.market == market.id %}selected{% endif %}>{{ market.nom }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Statut
+                        <select name="statut"><option value="">Tous</option>{% for value, label in {'nouveau':'Nouveau','en_cours':'En cours','transmis':'Transmis','validee':'Validée','a_completer':'À compléter','cloturee':'Clôturée'} %}<option value="{{ value }}" {% if filters.statut == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Priorité
+                        <select name="priorite"><option value="">Toutes</option>{% for value, label in {'critique':'Critique','eleve':'Élevée','modere':'Modérée','faible':'Faible'} %}<option value="{{ value }}" {% if filters.niveauPriorite == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Catégorie<input type="search" name="categorie" value="{{ filters.categorie|default('') }}" placeholder="Catégorie"></label>
+                    <label class="db-filter-field">Urgence
+                        <select name="urgence"><option value="">Toutes</option>{% for value, label in {'immediate':'Immédiate','24h':'24 heures','72h':'72 heures'} %}<option value="{{ value }}" {% if filters.urgence == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Origine
+                        <select name="origine"><option value="">Toutes</option><option value="saisie_agent" {% if filters.origine == 'saisie_agent' %}selected{% endif %}>Saisie agent</option><option value="import_excel" {% if filters.origine == 'import_excel' %}selected{% endif %}>Import Excel</option></select>
+                    </label>
+                    <label class="db-filter-field">Date début<input type="date" name="dateDebut" value="{{ filters.dateDebut|default('') }}"></label>
+                    <label class="db-filter-field">Date fin<input type="date" name="dateFin" value="{{ filters.dateFin|default('') }}"></label>
+                    <label class="db-filter-field">Score minimum<input type="number" name="scoreMin" min="0" max="25" value="{{ filters.scoreMin|default('') }}" placeholder="0"></label>
+                    <label class="db-filter-field">Score maximum<input type="number" name="scoreMax" min="0" max="25" value="{{ filters.scoreMax|default('') }}" placeholder="25"></label>
+                    <label class="db-filter-field">Agent
+                        <select name="agent"><option value="">Tous</option>{% for agent in agents|default([]) %}<option value="{{ agent.id }}" {% if filters.agent == agent.id %}selected{% endif %}>{{ agent.nomComplet }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Manager
+                        <select name="manager"><option value="">Tous</option>{% for manager in managers|default([]) %}<option value="{{ manager.id }}" {% if filters.manager == manager.id %}selected{% endif %}>{{ manager.nomComplet }}</option>{% endfor %}</select>
+                    </label>
+                    <label class="db-filter-field">Tri
+                        <select name="tri"><option value="">Plus récents</option><option value="scoreGei" {% if filters.tri == 'scoreGei' %}selected{% endif %}>Score GEI</option><option value="niveauPriorite" {% if filters.tri == 'niveauPriorite' %}selected{% endif %}>Priorité</option><option value="market" {% if filters.tri == 'market' %}selected{% endif %}>Marché</option></select>
+                    </label>
+                    <label class="db-filter-check"><input type="checkbox" name="urgence72h" value="1" {% if filters.urgence72h %}checked{% endif %}> Urgence 72h uniquement</label>
+                    <div class="db-advanced-actions"><button type="submit" class="db-btn db-btn-amber"><i class="bi bi-funnel"></i> Appliquer</button><a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">Réinitialiser</a></div>
+                </form>
+            </details>
+
             {# Urgence 72h actives #}
             {% if active_cases|length > 0 %}
             <div class="urgence-banner">
@@ -266,7 +303,7 @@
 
                         <tr class="db-tr {{ rowClass }}" id="row-{{ alert.id }}">
                             <td>
-                                <button onclick="toggleRow({{ alert.id }})" class="row-expand-btn" id="expbtn-{{ alert.id }}" title="Détails">
+                                <button type="button" data-toggle-row="{{ alert.id }}" class="row-expand-btn" id="expbtn-{{ alert.id }}" title="Afficher les détails" aria-expanded="false">
                                     <i class="bi bi-plus" id="expicon-{{ alert.id }}"></i>
                                 </button>
                             </td>
@@ -646,7 +683,7 @@ const evolutionChart = new Chart(evolutionCtx, {
                 backgroundColor: gradientTeal,
                 borderWidth:     2,
                 pointBackgroundColor: '#16856b',
-                pointBorderColor:     'var(--card, #fff)',
+                pointBorderColor:     '#ffffff',
                 pointBorderWidth:     2,
                 pointRadius:     3.5,
                 pointHoverRadius: 6,
@@ -660,7 +697,7 @@ const evolutionChart = new Chart(evolutionCtx, {
                 backgroundColor: gradientBlue,
                 borderWidth:     2,
                 pointBackgroundColor: '#3b82f6',
-                pointBorderColor:     'var(--card, #fff)',
+                pointBorderColor:     '#ffffff',
                 pointBorderWidth:     2,
                 pointRadius:     3.5,
                 pointHoverRadius: 6,
@@ -671,7 +708,7 @@ const evolutionChart = new Chart(evolutionCtx, {
     },
     options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
             legend: { display: false },
@@ -693,7 +730,15 @@ const evolutionChart = new Chart(evolutionCtx, {
         scales: {
             x: {
                 grid: { color: 'rgba(148,163,184,0.04)', drawBorder: false },
-                ticks: { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
+                ticks: {
+                    color: '#7da090',
+                    autoSkip: true,
+                    maxTicksLimit: 8,
+                    maxRotation: 0,
+                    minRotation: 0,
+                    padding: 8,
+                    font: { size: 10, family: 'Inter, sans-serif' }
+                },
                 border: { display: false }
             },
             y: {
@@ -765,28 +810,14 @@ new Chart(donutCtx, {
     }
 });
 
-/* ─── Mise à jour de la période (démo) ─── */
-function updateChartPeriod(days) {
-    const labels7  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const labels30 = Array.from({length: 30}, (_, i) => `J-${30 - i}`);
-    const labels90 = Array.from({length: 12}, (_, i) => `S${i + 1}`);
-
-    const labels = days == 7 ? labels7 : days == 30 ? labels30 : labels90;
-    const len = labels.length;
-
-    evolutionChart.data.labels = labels;
-    evolutionChart.data.datasets[0].data = Array.from({length: len}, () => Math.floor(Math.random() * 12) + 1);
-    evolutionChart.data.datasets[1].data = Array.from({length: len}, () => Math.floor(Math.random() * 5));
-    evolutionChart.update('active');
-}
-
 /* ─── Toggle ligne détails ─── */
 function toggleRow(id) {
     const row  = document.getElementById('detail-' + id);
     const icon = document.getElementById('expicon-' + id);
     const btn  = document.getElementById('expbtn-' + id);
 
-    if (row.classList.contains('hidden')) {
+    const isOpening = row.classList.contains('hidden');
+    if (isOpening) {
         row.classList.remove('hidden');
         icon.classList.replace('bi bi-plus', 'bi bi-dash');
         btn.classList.add('expand-active');
@@ -795,7 +826,43 @@ function toggleRow(id) {
         icon.classList.replace('bi bi-dash', 'bi bi-plus');
         btn.classList.remove('expand-active');
     }
+    syncRowToggleState(row, icon, btn);
 }
+
+function syncRowToggleState(row, icon, btn) {
+    const expanded = !row.classList.contains('hidden');
+    btn.setAttribute('aria-expanded', String(expanded));
+    btn.classList.toggle('expand-active', expanded);
+    icon.classList.toggle('bi-plus', !expanded);
+    icon.classList.toggle('bi-dash', expanded);
+}
+
+document.querySelectorAll('[data-toggle-row]').forEach((button) => {
+    button.addEventListener('click', (event) => {
+        if (event.__geiRowHandled) return;
+        event.__geiRowHandled = true;
+        const now = Date.now();
+        if (button.dataset.lastToggleAt && now - Number(button.dataset.lastToggleAt) < 250) return;
+        button.dataset.lastToggleAt = String(now);
+        toggleRow(button.dataset.toggleRow);
+        window.setTimeout(() => {
+            const row = document.getElementById('detail-' + button.dataset.toggleRow);
+            const icon = document.getElementById('expicon-' + button.dataset.toggleRow);
+            if (row && icon) syncRowToggleState(row, icon, button);
+        }, 0);
+    });
+});
+
+document.querySelectorAll('.db-detail-row').forEach((row) => {
+    const id = row.id.replace('detail-', '');
+    const button = document.getElementById('expbtn-' + id);
+    const icon = document.getElementById('expicon-' + id);
+    if (!button || !icon) return;
+    new MutationObserver(() => syncRowToggleState(row, icon, button)).observe(row, {
+        attributes: true,
+        attributeFilter: ['class']
+    });
+});
 
 }); // END DOMContentLoaded
 </script>
