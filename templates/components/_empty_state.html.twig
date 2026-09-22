@@ -1,16 +1,8 @@
 {#
-  Composant état vide esthétique — Partie F.2
-  Usage :
-    {% include 'components/_empty_state.html.twig' with {
-        icon: 'bi-folder2-open',       {# optionnel, défaut bi-folder2-open #}
-        title: 'Aucune alerte',        {# requis #}
-        subtitle: 'Modifiez vos...',   {# optionnel #}
-        reset_url: path('app_alert_index'), {# optionnel : URL du bouton réinitialiser #}
-        reset_label: 'Réinitialiser',  {# optionnel, défaut 'Réinitialiser les filtres' #}
-        has_active_filters: true,      {# booléen — n'affiche le bouton reset que si pertinent #}
-    } %}
-
-  Règle design : PAS de rouge — un état vide n'est pas une erreur.
+    Composant état vide esthétique — Partie F.2
+    Usage : include avec icon, title, subtitle, reset_url, reset_label et
+    has_active_filters. Les paramètres sont optionnels sauf title.
+    Règle design : pas de rouge, un état vide n'est pas une erreur.
 #}
 <div class="empty-state" role="status" aria-live="polite">
     <div class="empty-state-icon">
