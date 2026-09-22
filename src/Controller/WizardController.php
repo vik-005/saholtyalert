@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Entity\Alert;
-use App\Entity\AlertMarket;
 use App\Entity\AlertComment;
 use App\Entity\ListeReferenceValeur;
 use App\Enum\AlertExploitabilite;
@@ -18,6 +17,7 @@ use App\Repository\MarketRepository;
 use App\Service\AlertCodeGeneratorService;
 use App\Service\ScoreCalculatorService;
 use App\Service\NotificationService;
+use Symfony\Component\Intl\Countries;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -129,7 +129,7 @@ class WizardController extends AbstractController
         } else {
             $markets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
         }
-        $parcoursMarkets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
+        $parcoursCountries = Countries::getNames('fr');
 
         $sharedVars = [
             'alert'         => $alert,
@@ -137,7 +137,7 @@ class WizardController extends AbstractController
             'currentStep'   => $currentStep,
             'totalSteps'    => 6,
             'markets'       => $markets,
-            'parcoursMarkets' => $parcoursMarkets,
+            'parcoursCountries' => $parcoursCountries,
             'categories'    => $this->listeReferenceRepository->findActivesByType('categorie'),
             'typeAlertes'   => TypeAlerte::cases(),
             'typeSources'   => $this->listeReferenceRepository->findActivesByType('type_source'),
@@ -646,36 +646,14 @@ class WizardController extends AbstractController
             }
         }
 
-        $selectedIds = array_values(array_unique(array_filter(array_map('intval', (array) ($alertData['parcoursMarkets'] ?? [])))));
-        $principalId = $alert->getMarket()?->getId();
-        $activeMarketIds = array_map(
-            static fn($market): int => (int) $market->getId(),
-            $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC'])
-        );
-        $selectedIds = array_values(array_intersect($selectedIds, $activeMarketIds));
-        if ($principalId !== null) {
-            $selectedIds = array_values(array_diff($selectedIds, [$principalId]));
-        }
+        $selectedCountries = array_values(array_unique(array_filter(array_map(
+            static fn ($code): string => strtoupper(trim((string) $code)),
+            (array) ($alertData['parcoursCountries'] ?? [])
+        ))));
+        $selectedCountries = array_values(array_intersect($selectedCountries, array_keys(Countries::getNames('fr'))));
+        $alert->setParcoursCountries($selectedCountries);
 
-        foreach ($alert->getAlertMarkets() as $link) {
-            $em->remove($link);
-        }
-        $alert->getAlertMarkets()->clear();
-
-        if ($principalId !== null) {
-            $principal = new AlertMarket();
-            $principal->setAlert($alert)->setMarket($alert->getMarket())->setRole('principal')->setOrdre(0);
-            $em->persist($principal);
-        }
-
-        foreach ($selectedIds as $ordre => $marketId) {
-            $market = $em->find(\App\Entity\Market::class, $marketId);
-            if (!$market || $market->getId() === $principalId) {
-                continue;
-            }
-            $link = new AlertMarket();
-            $link->setAlert($alert)->setMarket($market)->setRole('associe')->setOrdre($ordre + 1);
-            $em->persist($link);
-        }
+        // Les anciennes associations alert_market sont conservées pour ne pas
+        // modifier les statistiques et filtres historiques.
     }
 }

@@ -45,11 +45,11 @@
                 <input type="search" id="w_parcours_markets_search" class="form-input mb-2"
                        placeholder="Rechercher un pays..." autocomplete="off"
                        aria-label="Rechercher un pays dans les marchés du parcours">
-                <select name="alert[parcoursMarkets][]" id="w_parcours_markets" class="form-select" multiple size="8">
-                    {% set parcours = draftData['alert[parcoursMarkets]']|default([]) %}
+                <select name="alert[parcoursCountries][]" id="w_parcours_markets" class="form-select" multiple size="8">
+                    {% set parcours = draftData['alert[parcoursCountries]']|default([]) %}
                     {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
-                    {% for market in parcoursMarkets %}
-                        <option value="{{ market.id }}" {% if market.id in parcours %}selected{% endif %}>{{ market.nom }}</option>
+                    {% for countryCode, countryName in parcoursCountries %}
+                        <option value="{{ countryCode }}" {% if countryCode in parcours %}selected{% endif %}>{{ countryName }}</option>
                     {% endfor %}
                 </select>
                 <p class="form-help">Optionnel : ajoutez les pays traversés. Le marché émetteur reste le marché principal de l'identifiant GEI.</p>

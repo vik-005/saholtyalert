@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Intl\Countries;
 
 #[Route('/alert')]
 #[IsGranted('ROLE_USER')]
@@ -95,6 +96,7 @@ class AlertController extends AbstractController
 
         return $this->render('alert/show.html.twig', [
             'alert' => $alert,
+            'countryNames' => Countries::getNames('fr'),
         ]);
     }
 

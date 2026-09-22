@@ -256,6 +256,9 @@ class Alert
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertMarket::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $alertMarkets;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $parcoursCountries = null;
+
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertActor::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $acteurs;
 
@@ -348,6 +351,21 @@ class Alert
     public function getAlertMarkets(): Collection
     {
         return $this->alertMarkets;
+    }
+    
+    public function getParcoursCountries(): array
+    {
+        return $this->parcoursCountries ?? [];
+    }
+
+    public function setParcoursCountries(array $parcoursCountries): static
+    {
+        $this->parcoursCountries = array_values(array_unique(array_filter(
+            array_map(static fn ($code): string => strtoupper(trim((string) $code)), $parcoursCountries),
+            static fn (string $code): bool => $code !== ''
+        )));
+
+        return $this;
     }
 
     public function addMarketAssociation(Market $market, string $role = 'associe', ?int $ordre = null): AlertMarket

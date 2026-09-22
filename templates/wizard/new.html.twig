@@ -49,7 +49,7 @@
     {# ── Contenu de l'étape courante #}
     <div id="wizardStepContent">
         {% if currentStep == 1 %}
-            {% include 'wizard/step1.html.twig' with {alert: alert, draftData: draftData, markets: markets, parcoursMarkets: parcoursMarkets} %}
+            {% include 'wizard/step1.html.twig' with {alert: alert, draftData: draftData, markets: markets, parcoursCountries: parcoursCountries} %}
         {% elseif currentStep == 2 %}
             {% include 'wizard/step2.html.twig' with {alert: alert, draftData: draftData} %}
         {% elseif currentStep == 3 %}

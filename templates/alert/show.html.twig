@@ -171,9 +171,9 @@
     </div>
     {% endif %}
 
-    {# ── PARCOURS MULTI-MARCHÉS — visible lors du partage d'écran ── #}
-    {% set parcoursLinks = alert.alertMarkets|filter(link => link.role == 'associe') %}
-    {% if parcoursLinks|length > 0 %}
+    {# ── PARCOURS DES PAYS — indépendant des marchés GEI ── #}
+    {% set parcoursCountries = alert.parcoursCountries|default([]) %}
+    {% if parcoursCountries|length > 0 %}
     <div class="show-section show-route-section mt-3">
         <div class="show-route-heading">
             <div>
@@ -182,7 +182,7 @@
                 </h3>
                 <p class="show-route-help">Marché principal et pays associés, dans l'ordre du trajet.</p>
             </div>
-            <span class="status-pill status-pill-route">{{ parcoursLinks|length + 1 }} marchés</span>
+            <span class="status-pill status-pill-route">{{ parcoursCountries|length }} pays</span>
         </div>
         <div class="show-route-track" aria-label="Parcours {{ alert.market.nom }}">
             <div class="show-route-node show-route-node-main">
@@ -190,12 +190,12 @@
                 <strong>{{ alert.market.nom }}</strong>
                 <small>Principal · {{ alert.market.codeIso3 }}</small>
             </div>
-            {% for link in parcoursLinks %}
+            {% for countryCode in parcoursCountries %}
                 <span class="show-route-line" aria-hidden="true"></span>
                 <div class="show-route-node">
                     <span class="show-route-dot"></span>
-                    <strong>{{ link.market.nom }}</strong>
-                    <small>Étape {{ loop.index }} · {{ link.market.codeIso3 }}</small>
+                    <strong>{{ countryNames[countryCode]|default(countryCode) }}</strong>
+                    <small>Étape {{ loop.index }} · {{ countryCode }}</small>
                 </div>
             {% endfor %}
         </div>
