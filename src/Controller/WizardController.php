@@ -120,7 +120,15 @@ class WizardController extends AbstractController
             }
         }
 
-        $markets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
+        $agentMarkets = $user->getAllAgentMarkets();
+        if ($agentMarkets !== []) {
+            $markets = $this->marketRepository->findBy([
+                'id' => array_map(static fn ($market) => $market->getId(), $agentMarkets),
+                'actif' => true,
+            ], ['nom' => 'ASC']);
+        } else {
+            $markets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
+        }
 
         $sharedVars = [
             'alert'         => $alert,

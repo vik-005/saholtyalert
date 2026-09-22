@@ -59,7 +59,6 @@ if (dropdown && dropdownButton) {
 const modal = document.getElementById('confirmModal');
 const deleteForm = document.getElementById('deleteConfirmForm');
 const deleteTokenInput = document.getElementById('deleteTokenInput');
-const deleteButtons = document.querySelectorAll('[data-delete-url]');
 const modalCloseButtons = document.querySelectorAll('.modal-close');
 
 if (modal && deleteForm && deleteTokenInput) {
@@ -68,15 +67,18 @@ if (modal && deleteForm && deleteTokenInput) {
         modal.classList.remove('flex');
     };
 
-    deleteButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            const url = button.dataset.deleteUrl;
-            const token = button.dataset.deleteToken || '';
-            deleteForm.setAttribute('action', url);
-            deleteTokenInput.value = token;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        });
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-delete-url]');
+        if (!button) return;
+
+        event.preventDefault();
+        const url = button.dataset.deleteUrl;
+        if (!url) return;
+
+        deleteForm.setAttribute('action', url);
+        deleteTokenInput.value = button.dataset.deleteToken || '';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     });
 
     modalCloseButtons.forEach((button) => {
