@@ -42,10 +42,13 @@
 
             <div class="form-field">
                 <label class="form-label" for="w_parcours_markets">Marchés du parcours</label>
-                <select name="alert[parcoursMarkets][]" id="w_parcours_markets" class="form-select" multiple size="4">
+                <input type="search" id="w_parcours_markets_search" class="form-input mb-2"
+                       placeholder="Rechercher un pays..." autocomplete="off"
+                       aria-label="Rechercher un pays dans les marchés du parcours">
+                <select name="alert[parcoursMarkets][]" id="w_parcours_markets" class="form-select" multiple size="8">
                     {% set parcours = draftData['alert[parcoursMarkets]']|default([]) %}
                     {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
-                    {% for market in markets %}
+                    {% for market in parcoursMarkets %}
                         <option value="{{ market.id }}" {% if market.id in parcours %}selected{% endif %}>{{ market.nom }}</option>
                     {% endfor %}
                 </select>
@@ -113,6 +116,8 @@ const helpEl  = document.getElementById('help_corridor');
 const inputEl = document.getElementById('w_corridor');
 const radios  = document.querySelectorAll('input[name="alert[typeLocalisation]"]');
 const options = document.querySelectorAll('.radio-option');
+const parcoursSearch = document.getElementById('w_parcours_markets_search');
+const parcoursSelect = document.getElementById('w_parcours_markets');
 
 function updateLabel() {
     const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
@@ -162,4 +167,11 @@ radios.forEach(r => {
 });
 updateLabel();
 updateActiveClass();
+
+parcoursSearch?.addEventListener('input', () => {
+    const search = parcoursSearch.value.trim().toLocaleLowerCase();
+    Array.from(parcoursSelect?.options ?? []).forEach(option => {
+        option.hidden = search !== '' && !option.text.toLocaleLowerCase().includes(search);
+    });
+});
 </script>

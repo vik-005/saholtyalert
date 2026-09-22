@@ -129,6 +129,7 @@ class WizardController extends AbstractController
         } else {
             $markets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
         }
+        $parcoursMarkets = $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC']);
 
         $sharedVars = [
             'alert'         => $alert,
@@ -136,6 +137,7 @@ class WizardController extends AbstractController
             'currentStep'   => $currentStep,
             'totalSteps'    => 6,
             'markets'       => $markets,
+            'parcoursMarkets' => $parcoursMarkets,
             'categories'    => $this->listeReferenceRepository->findActivesByType('categorie'),
             'typeAlertes'   => TypeAlerte::cases(),
             'typeSources'   => $this->listeReferenceRepository->findActivesByType('type_source'),
@@ -646,10 +648,11 @@ class WizardController extends AbstractController
 
         $selectedIds = array_values(array_unique(array_filter(array_map('intval', (array) ($alertData['parcoursMarkets'] ?? [])))));
         $principalId = $alert->getMarket()?->getId();
-        $allowedIds = array_map(static fn($market): int => (int) $market->getId(), $user->getAllAgentMarkets());
-        if ($allowedIds !== []) {
-            $selectedIds = array_values(array_intersect($selectedIds, $allowedIds));
-        }
+        $activeMarketIds = array_map(
+            static fn($market): int => (int) $market->getId(),
+            $this->marketRepository->findBy(['actif' => true], ['nom' => 'ASC'])
+        );
+        $selectedIds = array_values(array_intersect($selectedIds, $activeMarketIds));
         if ($principalId !== null) {
             $selectedIds = array_values(array_diff($selectedIds, [$principalId]));
         }

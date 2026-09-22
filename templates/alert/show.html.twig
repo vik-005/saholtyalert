@@ -79,9 +79,12 @@
                 </a>
             {% endif %}
             {% if is_granted('ALERT_DECIDE', alert) %}
-                <button type="button" class="db-btn db-btn-danger delete-trigger" data-delete-url="{{ path('app_alert_delete', {id: alert.id}) }}" data-delete-token="{{ csrf_token('delete')|e('html_attr') }}">
-                    <i class="bi-trash me-1.5"></i>Supprimer
-                </button>
+                <form method="post" action="{{ path('app_alert_delete', {id: alert.id}) }}" class="inline-delete-form" onsubmit="return window.confirm('Confirmer la suppression de cette alerte ?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete') }}">
+                    <button type="submit" class="db-btn db-btn-danger delete-trigger" data-delete-url="{{ path('app_alert_delete', {id: alert.id}) }}" data-delete-token="{{ csrf_token('delete')|e('html_attr') }}">
+                        <i class="bi-trash me-1.5"></i>Supprimer
+                    </button>
+                </form>
             {% endif %}
             <a href="{{ path('app_alert_pdf', {id: alert.id}) }}" class="db-btn db-btn-ghost">
                 <i class="bi-file-pdf me-1.5 text-red-400"></i>PDF
