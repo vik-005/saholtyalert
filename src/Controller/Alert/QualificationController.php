@@ -47,9 +47,14 @@ class QualificationController extends AbstractController
         /** @var User|null $currentUser */
         $currentUser = $this->getUser();
 
+        if ($alert->getStatut() !== AlertStatut::A_VALIDER_SAHOLTY) {
+            throw $this->createAccessDeniedException(
+                'Seule une alerte en attente de validation Manager peut être qualifiée.'
+            );
+        }
+
         // canDecide = true → le Manager voit l'écran de décision (lecture seule + actions Manager)
-        $canDecide = $alert->getStatut() === AlertStatut::A_VALIDER_SAHOLTY
-            && $this->isGranted(AlertVoter::DECIDE, $alert);
+        $canDecide = $this->isGranted(AlertVoter::DECIDE, $alert);
 
         if (!$canDecide) {
             throw $this->createAccessDeniedException('Cette alerte ne peut pas être décidée à cette étape.');

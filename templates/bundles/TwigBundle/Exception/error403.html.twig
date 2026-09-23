@@ -209,6 +209,17 @@
             line-height: 1.8;
         }
 
+        .err-message {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(249, 115, 22, 0.18);
+            background: rgba(15, 23, 42, 0.72);
+            color: var(--soft);
+            font-size: 0.86rem;
+            line-height: 1.7;
+        }
+
         .err-actions {
             display: flex;
             flex-wrap: wrap;
@@ -304,7 +315,10 @@
             <div class="err-label">Sécurité</div>
             <div class="err-code">403</div>
             <h1>Accès refusé</h1>
-            <p class="err-sub">Vous n’avez pas les droits nécessaires pour accéder à cette ressource. Si ce message semble incorrect, contactez votre administrateur ou revenez au tableau de bord.</p>
+            {% set defaultMessage = 'Vous n’avez pas les droits nécessaires pour accéder à cette ressource.' %}
+            {% set message = exception is defined and exception.message is defined and exception.message ? exception.message : defaultMessage %}
+            <p class="err-sub">{{ message }}</p>
+            <p class="err-message">Cette action n’est autorisée que pour une alerte dont le statut est en attente de validation Manager.</p>
 
             <div class="err-actions">
                 <a href="/" class="err-btn"><i class="bi bi-house-door-fill"></i>&nbsp;Tableau de bord</a>
