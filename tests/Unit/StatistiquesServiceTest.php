@@ -109,6 +109,18 @@ class StatistiquesServiceTest extends TestCase
         $this->service->getVolumeParPays('2026-02-01', '2026-02-28', [1]);
     }
 
+    public function testGetVolumeParPaysExclutLesAlertesSupprimees(): void
+    {
+        $this->conn->expects($this->once())
+            ->method('fetchAllAssociative')
+            ->will($this->returnCallback(function ($sql) {
+                $this->assertStringContainsString('a.deleted_at IS NULL', $sql);
+                return [];
+            }));
+
+        $this->service->getVolumeParPays('2026-01-01', '2026-01-31', [1]);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // 2. getScoreMoyenParPays
     // ─────────────────────────────────────────────────────────────────────────

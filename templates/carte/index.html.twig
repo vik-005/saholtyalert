@@ -16,10 +16,21 @@
     margin: -20px;
 }
 @media(max-width: 900px) {
-    .carte-shell { grid-template-columns: 1fr; grid-template-rows: auto 300px 1fr; }
-    .carte-side  { order: 3; height: 40vh; overflow-y: auto; }
+    .carte-shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 72px); height: auto; }
+    .carte-side  { order: 2; height: auto; max-height: 42vh; overflow-y: auto; border-right: 0; border-top: 1px solid var(--border); }
+    #map { min-height: 380px; height: 46vh; }
 }
-
+@media(max-width: 560px) {
+    .carte-shell { gap: 0; }
+    .carte-side  { max-height: 46vh; }
+    .carte-filters { padding: 10px 12px; }
+    .carte-results { padding-top: 6px; }
+    .pays-card { padding: 9px 12px; }
+    .pays-card-nom { font-size: 12px; }
+    .pays-card-iso { font-size: 9px; }
+    .pays-badge-count { width: 30px; height: 30px; font-size: 11px; }
+    .carte-legend { left: 8px; right: 8px; bottom: 10px; min-width: auto; }
+}
 /* ── Panneau gauche ── */
 .carte-side {
     background: #ffffff;
@@ -65,21 +76,23 @@
     cursor: pointer;
     transition: transform .15s, box-shadow .15s;
     line-height: 1;
+    border: 2px solid rgba(255,255,255,.9);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
 }
-.z-marker:hover { transform: scale(1.2); box-shadow: 0 6px 20px rgba(0,0,0,.35) !important; }
+.z-marker:hover { transform: scale(1.12); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22) !important; }
 
-/* Couleur de fond = Priorité dominante */
-.z-marker.critique { background: #ef4444 !important; }
-.z-marker.eleve    { background: #f97316 !important; }
-.z-marker.modere   { background: #f59e0b !important; }
-.z-marker.faible   { background: #22c55e !important; }
-.z-marker.zero     { background: #94a3b8 !important; }
+/* Couleur de fond = Priorité dominante, plus premium et moins néon */
+.z-marker.critique { background: linear-gradient(135deg, #ef4444, #b91c1c) !important; }
+.z-marker.eleve    { background: linear-gradient(135deg, #f97316, #c2410c) !important; }
+.z-marker.modere   { background: linear-gradient(135deg, #f59e0b, #b45309) !important; }
+.z-marker.faible   { background: linear-gradient(135deg, #22c55e, #15803d) !important; }
+.z-marker.zero     { background: linear-gradient(135deg, #94a3b8, #64748b) !important; }
 
-/* Bordure & halo = Intensité du volume (dégradé orange) */
-.z-marker.vol-faible   { border: 3px solid #F9A825; box-shadow: 0 2px 8px rgba(249,168,37,.45); }
-.z-marker.vol-modere   { border: 4px solid #F57C00; box-shadow: 0 3px 12px rgba(245,124,0,.5); }
-.z-marker.vol-eleve    { border: 5px solid #EF6C00; box-shadow: 0 4px 16px rgba(239,108,0,.55); }
-.z-marker.vol-critique { border: 6px solid #E65100; box-shadow: 0 5px 20px rgba(230,81,0,.65); }
+/* Bordure & halo = Intensité du volume (plus sobre) */
+.z-marker.vol-faible   { border-width: 2px; box-shadow: 0 3px 10px rgba(34,197,94,.28); }
+.z-marker.vol-modere   { border-width: 3px; box-shadow: 0 4px 12px rgba(245,158,11,.28); }
+.z-marker.vol-eleve    { border-width: 4px; box-shadow: 0 5px 16px rgba(249,115,22,.32); }
+.z-marker.vol-critique { border-width: 5px; box-shadow: 0 6px 18px rgba(239,68,68,.35); }
 
 /* ── Popup Leaflet — style GEI clair ── */
 .leaflet-popup-content-wrapper {

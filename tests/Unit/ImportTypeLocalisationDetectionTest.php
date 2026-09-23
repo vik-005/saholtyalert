@@ -16,4 +16,13 @@ class ImportTypeLocalisationDetectionTest extends TestCase
         self::assertSame(TypeLocalisation::PORT, ImportService::detectTypeLocalisation('Quai de Tema'));
         self::assertNull(ImportService::detectTypeLocalisation(''));
     }
+
+    public function testSqlFallbackConditionIncludesPortPatterns(): void
+    {
+        $sql = ImportService::sqlTypeLocalisationFallbackCondition('port');
+
+        self::assertStringContainsString('a.type_localisation = :typeLoc', $sql);
+        self::assertStringContainsString('port|quai|terminal\\s+portuaire|portuaire|harbour|harbor', $sql);
+        self::assertStringContainsString('REPLACE(LOWER(a.port_corridor)', $sql);
+    }
 }

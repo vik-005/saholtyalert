@@ -6,6 +6,7 @@ use App\Entity\AccessLog;
 use App\Entity\Alert;
 use App\Repository\AlertRepository;
 use App\Repository\MarketRepository;
+use App\Service\StatistiquesService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -151,7 +152,7 @@ class AlertController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'app_alert_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function delete(Request $request, Alert $alert, EntityManagerInterface $em): Response
+    public function delete(Request $request, Alert $alert, EntityManagerInterface $em, StatistiquesService $statistiquesService): Response
     {
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
@@ -177,6 +178,7 @@ class AlertController extends AbstractController
         $this->logAction($alert, AccessLog::ACTION_SUPPRESSION, $details, $em);
 
         $em->flush(); // Un seul flush pour soft-delete + log
+        $statistiquesService->invalidateAll();
 
         $this->addFlash('info', sprintf('Alerte %s archivée (soft-delete).', $codeGei));
 

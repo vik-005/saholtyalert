@@ -18,8 +18,8 @@
                 <label class="form-label" for="w_date">
                     Date de réception <span class="text-red-400">*</span>
                 </label>
-                <input type="date" name="alert[dateCreation]" id="w_date" class="form-input" required
-                       value="{{ draftData and draftData['alert[dateCreation]'] is defined ? draftData['alert[dateCreation]'] : '' }}">
+                  <input type="date" name="alert[dateCreation]" id="w_date" class="form-input" required
+                      value="{{ draftData['alert[dateCreation]']|default(alert.dateCreation|date('Y-m-d')) }}">
                 <p class="form-help">Date à laquelle l'information a été reçue ou créée.</p>
             </div>
 
@@ -32,7 +32,7 @@
                     <option value="">Sélectionnez un pays / marché</option>
                     {% for market in markets %}
                         <option value="{{ market.id }}"
-                            {% if draftData and (draftData['alert[market]'] ?? null) == market.id %}selected{% endif %}>
+                            {% if (draftData['alert[market]']|default(alert.market ? alert.market.id : null)) == market.id %}selected{% endif %}>
                             {{ market.nom }}
                         </option>
                     {% endfor %}
@@ -42,11 +42,24 @@
 
             <div class="form-field">
                 <label class="form-label" for="w_parcours_markets">Marchés du parcours</label>
-                <input type="search" id="w_parcours_markets_search" class="form-input mb-2"
-                       placeholder="Rechercher un pays..." autocomplete="off"
-                       aria-label="Rechercher un pays dans les marchés du parcours">
-                <select name="alert[parcoursCountries][]" id="w_parcours_markets" class="form-select" multiple size="8">
-                    {% set parcours = draftData['alert[parcoursCountries]']|default([]) %}
+                <div class="country-picker" id="countryPicker">
+                    <div class="country-picker-selected" id="countryPickerSelected" aria-live="polite"></div>
+                    <input type="search" id="w_parcours_markets_search" class="form-input"
+                           placeholder="Rechercher et ajouter un pays..." autocomplete="off"
+                           aria-label="Rechercher un pays dans les marchés du parcours"
+                           aria-controls="countryPickerOptions">
+                    <div class="country-picker-options" id="countryPickerOptions" role="listbox"
+                         aria-label="Pays disponibles">
+                        {% for countryCode, countryName in parcoursCountries %}
+                            <button type="button" class="country-picker-option"
+                                    data-country-code="{{ countryCode }}"
+                                    data-country-name="{{ countryName }}"
+                                    role="option">{{ countryName }}</button>
+                        {% endfor %}
+                    </div>
+                </div>
+                <select name="alert[parcoursCountries][]" id="w_parcours_markets" class="country-picker-native" multiple tabindex="-1">
+                    {% set parcours = draftData['alert[parcoursCountries]']|default(alert.parcoursCountries|default([])) %}
                     {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
                     {% for countryCode, countryName in parcoursCountries %}
                         <option value="{{ countryCode }}" {% if countryCode in parcours %}selected{% endif %}>{{ countryName }}</option>
@@ -62,20 +75,20 @@
                 </label>
                 <div class="radio-group">
                     <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'port' %}radio-option-active{% endif %}">
-                        <input type="radio" name="alert[typeLocalisation]" value="port"
-                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'port' %}checked{% endif %} required>
+                           <input type="radio" name="alert[typeLocalisation]" value="port"
+                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'port' %}checked{% endif %} required>
                         <i class="bi-anchor me-1"></i>
                         <span class="radio-option-label">Port</span>
                     </label>
                     <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'corridor' %}radio-option-active{% endif %}">
-                        <input type="radio" name="alert[typeLocalisation]" value="corridor"
-                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'corridor' %}checked{% endif %}>
+                           <input type="radio" name="alert[typeLocalisation]" value="corridor"
+                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'corridor' %}checked{% endif %}>
                         <i class="bi-signpost-figure me-1"></i>
                         <span class="radio-option-label">Corridor</span>
                     </label>
                     <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'aeroport' %}radio-option-active{% endif %}">
-                        <input type="radio" name="alert[typeLocalisation]" value="aeroport"
-                               {% if (draftData['alert[typeLocalisation]'] ?? '') == 'aeroport' %}checked{% endif %}>
+                           <input type="radio" name="alert[typeLocalisation]" value="aeroport"
+                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'aeroport' %}checked{% endif %}>
                         <i class="bi-airplane me-1"></i>
                         <span class="radio-option-label">Aéroport</span>
                     </label>
@@ -91,7 +104,7 @@
                 <input type="text" name="alert[portCorridor]" id="w_corridor"
                        class="form-input" required
                        placeholder=""
-                       value="{{ draftData and draftData['alert[portCorridor]'] is defined ? draftData['alert[portCorridor]'] : '' }}">
+                       value="{{ draftData['alert[portCorridor]']|default(alert.portCorridor|default('')) }}">
                 <p class="form-help" id="help_corridor">Nom du port, corridor ou aéroport concerné.</p>
             </div>
 
@@ -118,6 +131,9 @@ const radios  = document.querySelectorAll('input[name="alert[typeLocalisation]"]
 const options = document.querySelectorAll('.radio-option');
 const parcoursSearch = document.getElementById('w_parcours_markets_search');
 const parcoursSelect = document.getElementById('w_parcours_markets');
+const countryPicker = document.getElementById('countryPicker');
+const countryPickerSelected = document.getElementById('countryPickerSelected');
+const countryPickerOptions = document.getElementById('countryPickerOptions');
 
 function updateLabel() {
     const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
@@ -168,10 +184,76 @@ radios.forEach(r => {
 updateLabel();
 updateActiveClass();
 
-parcoursSearch?.addEventListener('input', () => {
-    const search = parcoursSearch.value.trim().toLocaleLowerCase();
-    Array.from(parcoursSelect?.options ?? []).forEach(option => {
-        option.hidden = search !== '' && !option.text.toLocaleLowerCase().includes(search);
+function selectedCountryCodes() {
+    return new Set(Array.from(parcoursSelect?.selectedOptions ?? []).map(option => option.value));
+}
+
+function renderCountryPicker() {
+    if (!parcoursSelect || !countryPickerSelected || !countryPickerOptions) return;
+    const selected = selectedCountryCodes();
+    countryPickerSelected.innerHTML = '';
+    Array.from(parcoursSelect.selectedOptions).forEach(option => {
+        const tag = document.createElement('span');
+        tag.className = 'country-picker-tag';
+        tag.textContent = option.textContent.trim();
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'country-picker-remove';
+        remove.setAttribute('aria-label', `Retirer ${option.textContent.trim()}`);
+        remove.textContent = '×';
+        remove.addEventListener('click', () => {
+            option.selected = false;
+            renderCountryPicker();
+            parcoursSearch?.focus();
+        });
+        tag.appendChild(remove);
+        countryPickerSelected.appendChild(tag);
+    });
+    Array.from(countryPickerOptions.querySelectorAll('.country-picker-option')).forEach(button => {
+        const isSelected = selected.has(button.dataset.countryCode);
+        button.hidden = isSelected;
+        button.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+}
+
+function filterCountryPicker() {
+    const search = parcoursSearch?.value.trim().toLocaleLowerCase() ?? '';
+    const selected = selectedCountryCodes();
+    Array.from(countryPickerOptions?.querySelectorAll('.country-picker-option') ?? []).forEach(button => {
+        const matches = button.dataset.countryName.toLocaleLowerCase().includes(search);
+        button.hidden = selected.has(button.dataset.countryCode) || !matches;
+    });
+}
+
+countryPickerOptions?.querySelectorAll('.country-picker-option').forEach(button => {
+    button.addEventListener('click', () => {
+        const option = Array.from(parcoursSelect.options).find(item => item.value === button.dataset.countryCode);
+        if (option) option.selected = true;
+        parcoursSearch.value = '';
+        renderCountryPicker();
+        filterCountryPicker();
+        parcoursSearch.focus();
     });
 });
+
+parcoursSearch?.addEventListener('input', filterCountryPicker);
+parcoursSearch?.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        parcoursSearch.value = '';
+        filterCountryPicker();
+    }
+    if (event.key === 'Backspace' && parcoursSearch.value === '' && parcoursSelect.selectedOptions.length > 0) {
+        parcoursSelect.selectedOptions[parcoursSelect.selectedOptions.length - 1].selected = false;
+        renderCountryPicker();
+    }
+});
+
+document.addEventListener('click', event => {
+    if (countryPicker && !countryPicker.contains(event.target)) {
+        parcoursSearch?.blur();
+    }
+});
+
+renderCountryPicker();
+filterCountryPicker();
 </script>

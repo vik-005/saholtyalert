@@ -133,6 +133,7 @@ class WizardController extends AbstractController
 
         $sharedVars = [
             'alert'         => $alert,
+            'is_editing'    => (bool) $editingId,
             'draftData'     => $draftData ?? [],
             'currentStep'   => $currentStep,
             'totalSteps'    => 6,

@@ -661,18 +661,21 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
 // ─── 8. Top corridors (bâtons horizontaux) ────────────────────────────────
 (function() {
     const ctx = document.getElementById('chartTopCorridors')?.getContext('2d');
-    if (!ctx || !DATA.corridors.length) return;
+    if (!ctx || !Array.isArray(DATA.corridors) || !DATA.corridors.length) return;
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: DATA.corridors.map(d => d.corridor.length > 30 ? d.corridor.slice(0,30)+'…' : d.corridor),
+            labels: DATA.corridors.map(d => {
+                const label = String(d.corridor ?? 'Inconnu');
+                return label.length > 30 ? label.slice(0,30)+'…' : label;
+            }),
             datasets: [{ label:'Alertes', data: DATA.corridors.map(d => d.nb),
                 backgroundColor: C.blue + 'CC', borderColor: C.blue, borderWidth: 1, borderRadius: 5 }]
         },
         options: {
             indexAxis: 'y', responsive: true,
             plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
-                callbacks: { title: ctx => DATA.corridors[ctx[0].dataIndex]?.corridor || ctx[0].label }
+                callbacks: { title: ctx => String(DATA.corridors[ctx[0].dataIndex]?.corridor ?? ctx[0].label) }
             }},
             scales: {
                 x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
@@ -685,18 +688,21 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
 // ─── 8b. Top opérateurs (bâtons horizontaux) ───────────────────────────────
 (function() {
     const ctx = document.getElementById('chartTopOperateurs')?.getContext('2d');
-    if (!ctx || !DATA.operateurs.length) return;
+    if (!ctx || !Array.isArray(DATA.operateurs) || !DATA.operateurs.length) return;
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: DATA.operateurs.map(d => d.operateurs.length > 30 ? d.operateurs.slice(0,30)+'…' : d.operateurs),
+            labels: DATA.operateurs.map(d => {
+                const label = String(d.operateurs ?? d.operateur ?? 'Inconnu');
+                return label.length > 30 ? label.slice(0,30)+'…' : label;
+            }),
             datasets: [{ label:'Alertes', data: DATA.operateurs.map(d => d.nb),
                 backgroundColor: C.amber + 'CC', borderColor: C.amber, borderWidth: 1, borderRadius: 5 }]
         },
         options: {
             indexAxis: 'y', responsive: true,
             plugins: { legend: { display: false }, tooltip: { ...TOOLTIP,
-                callbacks: { title: ctx => DATA.operateurs[ctx[0].dataIndex]?.operateurs || ctx[0].label }
+                callbacks: { title: ctx => String(DATA.operateurs[ctx[0].dataIndex]?.operateurs ?? DATA.operateurs[ctx[0].dataIndex]?.operateur ?? ctx[0].label) }
             }},
             scales: {
                 x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
@@ -888,20 +894,25 @@ document.addEventListener('turbo:load', initStatsCharts);
     aspect-ratio: 1;
     border-radius: 8px;
     display: grid; place-items: center;
-    opacity: 0.35;
+    opacity: 1;
     transition: opacity .2s;
     position: relative;
     min-height: 44px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
 .heatmap-cell-active { opacity: 1; }
-.heatmap-cell-critique { background: rgba(239,68,68,0.25); border: 1px solid rgba(239,68,68,0.35); }
-.heatmap-cell-eleve    { background: rgba(251,146,60,0.25); border: 1px solid rgba(251,146,60,0.35); }
-.heatmap-cell-modere   { background: rgba(251,191,36,0.2);  border: 1px solid rgba(251,191,36,0.3); }
-.heatmap-cell-faible   { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.2); }
+.heatmap-cell-critique { background: rgba(239,68,68,0.42); border: 1px solid rgba(239,68,68,0.58); }
+.heatmap-cell-eleve    { background: rgba(251,146,60,0.4); border: 1px solid rgba(251,146,60,0.5); }
+.heatmap-cell-modere   { background: rgba(251,191,36,0.34); border: 1px solid rgba(251,191,36,0.44); }
+.heatmap-cell-faible   { background: rgba(52,211,153,0.28); border: 1px solid rgba(52,211,153,0.34); }
 .heatmap-nb {
-    font-size: 15px; font-weight: 800; color: #fff;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    font-size: 15px; font-weight: 900; color: #0f172a;
+    text-shadow: none;
 }
+.heatmap-cell-critique .heatmap-nb { color: #fff; }
+.heatmap-cell-eleve .heatmap-nb { color: #1f2937; }
+.heatmap-cell-modere .heatmap-nb { color: #111827; }
+.heatmap-cell-faible .heatmap-nb { color: #052e2b; }
 .heatmap-legend-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .heatmap-leg { font-size: 9.5px; font-weight: 600; padding: 3px 8px; border-radius: 99px; }
 

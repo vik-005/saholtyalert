@@ -173,6 +173,24 @@ class ImportService
         return null;
     }
 
+    public static function sqlTypeLocalisationFallbackCondition(string $type): string
+    {
+        $normalizedType = strtolower(trim($type));
+        $patterns = [
+            'aeroport' => '(aeroport|airport|aerodrome|terminal\\s+passagers?)',
+            'port' => '(port|quai|terminal\\s+portuaire|portuaire|harbour|harbor)',
+            'corridor' => '(corridor|axe|route|itineraire|frontiere|transit)',
+        ];
+
+        if (!isset($patterns[$normalizedType])) {
+            return 'a.type_localisation = :typeLoc';
+        }
+
+        $pattern = $patterns[$normalizedType];
+
+        return "(a.type_localisation = :typeLoc OR (a.type_localisation IS NULL AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z]){$pattern}([^a-z]|$)'))";
+    }
+
     /**
      * Analyse un fichier Excel SANS écrire en base (dry-run).
      * Permet au Manager de valider avant confirmation.

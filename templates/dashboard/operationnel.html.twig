@@ -659,7 +659,10 @@ Chart.defaults.font.size      = 11;
 
 /* ─── 1) Graphique évolution (line chart) ─── */
 /* ─── 1) Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
-const evolutionCtx = document.getElementById('alertEvolutionChart').getContext('2d');
+const evolutionCanvas = document.getElementById('alertEvolutionChart');
+if (!evolutionCanvas || typeof Chart === 'undefined') return;
+Chart.getChart(evolutionCanvas)?.destroy();
+const evolutionCtx = evolutionCanvas.getContext('2d');
 
 /* Nouvelles alertes : Teal primaire (#16856b) */
 const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 200);
@@ -752,7 +755,10 @@ const evolutionChart = new Chart(evolutionCtx, {
 });
 
 /* ─── 2) Donut priorités ─── */
-const donutCtx = document.getElementById('priorityDonutChart').getContext('2d');
+const donutCanvas = document.getElementById('priorityDonutChart');
+if (!donutCanvas) return;
+Chart.getChart(donutCanvas)?.destroy();
+const donutCtx = donutCanvas.getContext('2d');
 const donutData = [
     chartData.priorites.critique,
     chartData.priorites.eleve,

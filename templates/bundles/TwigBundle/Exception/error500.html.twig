@@ -5,34 +5,324 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Erreur serveur — GEI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'Inter',sans-serif;background:#090e1a;color:#94a3b8;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-        .err-box{max-width:440px;width:100%}
-        .err-code{font-size:88px;font-weight:900;line-height:1;color:#1e293b;letter-spacing:-4px;margin-bottom:8px}
-        .err-icon{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);font-size:26px;color:#f87171;margin-bottom:20px}
-        .err-title{font-size:20px;font-weight:700;color:#f1f5f9;margin-bottom:10px}
-        .err-sub{font-size:13px;line-height:1.7;color:#64748b;margin-bottom:28px}
-        .err-notice{font-size:11px;color:#334155;margin-bottom:24px;padding:10px 14px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;line-height:1.6}
-        .err-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);border-radius:8px;color:#fbbf24;font-size:13px;font-weight:600;text-decoration:none;transition:opacity .15s}
-        .err-btn:hover{opacity:.8}
-        .err-sep{margin:0 10px;color:#334155}
-        .err-link{color:#64748b;font-size:12px;text-decoration:none}
-        .err-link:hover{color:#94a3b8}
+        :root {
+            --bg: #07131d;
+            --bg-strong: #0d1b2a;
+            --panel: rgba(12, 20, 31, 0.82);
+            --panel-border: rgba(148, 163, 184, 0.16);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --soft: #cbd5e1;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.15);
+            --accent-strong: #7dd3fc;
+            --shadow: rgba(7, 13, 19, 0.5);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 25%),
+                radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.08), transparent 32%),
+                linear-gradient(135deg, var(--bg) 0%, var(--bg-strong) 100%);
+            color: var(--text);
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            padding: 28px;
+            overflow: hidden;
+        }
+
+        .scene {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(18px);
+            opacity: 0.42;
+            animation: drift 18s ease-in-out infinite alternate;
+        }
+
+        .orb--one {
+            width: 320px;
+            height: 320px;
+            background: rgba(56, 189, 248, 0.12);
+            top: 10%;
+            left: 10%;
+        }
+
+        .orb--two {
+            width: 380px;
+            height: 380px;
+            background: rgba(168, 85, 247, 0.08);
+            right: 10%;
+            bottom: 8%;
+            animation-delay: 2s;
+        }
+
+        @keyframes drift {
+            0% { transform: translate3d(0, 0, 0) scale(1); }
+            100% { transform: translate3d(22px, -18px, 0) scale(1.08); }
+        }
+
+        .err-shell {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+            align-items: center;
+            width: min(760px, 100%);
+            min-height: 430px;
+            padding: 28px 30px;
+            border: 1px solid var(--panel-border);
+            border-radius: 28px;
+            background: rgba(11, 18, 30, 0.72);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 30px 90px var(--shadow);
+        }
+
+        .err-visual {
+            position: relative;
+            display: grid;
+            place-items: center;
+            min-height: 230px;
+        }
+
+        .err-glow {
+            position: absolute;
+            width: 165px;
+            height: 165px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.30) 0%, rgba(56, 189, 248, 0.08) 32%, transparent 76%);
+            filter: blur(10px);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.96); opacity: 0.8; }
+            50% { transform: scale(1.06); opacity: 1; }
+        }
+
+        .err-icon-wrap {
+            position: relative;
+            display: grid;
+            place-items: center;
+            width: 120px;
+            height: 120px;
+            border-radius: 28px;
+            border: 1px solid rgba(125, 211, 252, 0.35);
+            background: linear-gradient(145deg, rgba(56, 189, 248, 0.12), rgba(56, 189, 248, 0.03));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 22px 40px rgba(56, 189, 248, 0.10);
+            animation: float 5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .err-icon {
+            font-size: 3rem;
+            color: var(--accent-strong);
+            line-height: 1;
+        }
+
+        .err-badge {
+            position: absolute;
+            left: 50%;
+            bottom: 16px;
+            transform: translateX(-50%);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--soft);
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .err-badge::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-strong);
+            box-shadow: 0 0 0 6px rgba(125, 211, 252, 0.12);
+        }
+
+        .err-content {
+            display: grid;
+            gap: 14px;
+            padding-left: 14px;
+        }
+
+        .err-label {
+            color: var(--accent-strong);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .err-code {
+            margin: 0;
+            font-size: clamp(4rem, 8vw, 6rem);
+            line-height: 0.88;
+            letter-spacing: -0.08em;
+            font-weight: 900;
+            color: rgba(226, 232, 240, 0.18);
+            text-shadow: 0 0 18px rgba(56, 189, 248, 0.06);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            line-height: 1.1;
+            letter-spacing: -0.05em;
+            color: var(--text);
+        }
+
+        .err-sub {
+            margin: 0;
+            max-width: 48ch;
+            color: var(--muted);
+            font-size: 0.98rem;
+            line-height: 1.8;
+        }
+
+        .err-notice {
+            margin: 0;
+            padding: 14px 16px;
+            border: 1px solid rgba(125, 211, 252, 0.18);
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.7);
+            color: var(--soft);
+            font-size: 0.86rem;
+            line-height: 1.7;
+        }
+
+        .err-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .err-btn,
+        .err-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+        }
+
+        .err-btn {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(125, 211, 252, 0.06));
+            border: 1px solid rgba(125, 211, 252, 0.32);
+            color: var(--accent-strong);
+            box-shadow: 0 12px 30px rgba(56, 189, 248, 0.10);
+        }
+
+        .err-link {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            color: var(--soft);
+        }
+
+        .err-btn:hover,
+        .err-link:hover {
+            transform: translateY(-1px);
+            opacity: 0.97;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 18px;
+            }
+
+            .err-shell {
+                grid-template-columns: 1fr;
+                gap: 18px;
+                min-height: auto;
+                padding: 24px 20px 22px;
+                border-radius: 22px;
+            }
+
+            .err-visual {
+                min-height: 160px;
+            }
+
+            .err-icon-wrap {
+                width: 96px;
+                height: 96px;
+            }
+
+            .err-icon {
+                font-size: 2.4rem;
+            }
+
+            .err-content {
+                padding-left: 0;
+                text-align: center;
+            }
+
+            .err-actions {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="err-box">
-        <div class="err-code">500</div>
-        <div class="err-icon"><i class="bi bi-exclamation-triangle"></i></div>
-        <h1 class="err-title">Erreur interne du serveur</h1>
-        <p class="err-sub">Une erreur inattendue s'est produite. Notre équipe en a été informée automatiquement.</p>
-        <p class="err-notice">Aucune donnée de votre saisie n'a été perdue si vous veniez de remplir un formulaire. Retournez en arrière et réessayez.</p>
-        <a href="/" class="err-btn"><i class="bi bi-house-fill"></i>Tableau de bord</a>
-        <span class="err-sep">·</span>
-        <a href="javascript:history.back()" class="err-link">← Retour</a>
+    <div class="scene" aria-hidden="true">
+        <div class="orb orb--one"></div>
+        <div class="orb orb--two"></div>
     </div>
+
+    <main class="err-shell" role="alert" aria-live="polite">
+        <div class="err-visual">
+            <div class="err-glow"></div>
+            <div class="err-icon-wrap">
+                <i class="err-icon bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div class="err-badge">GEI Platform</div>
+        </div>
+
+        <div class="err-content">
+            <div class="err-label">Système</div>
+            <div class="err-code">500</div>
+            <h1>Erreur interne du serveur</h1>
+            <p class="err-sub">Une erreur inattendue s’est produite pendant le traitement de la demande. Notre équipe a été automatiquement informée et travaille sur la correction.</p>
+            <p class="err-notice">Si vous veniez de soumettre un formulaire, vous pouvez simplement revenir en arrière et réessayer. Aucune donnée n’a été perdue.</p>
+
+            <div class="err-actions">
+                <a href="/" class="err-btn"><i class="bi bi-house-door-fill"></i>&nbsp;Tableau de bord</a>
+                <a href="javascript:history.back()" class="err-link"><i class="bi bi-arrow-left"></i>&nbsp;Retour</a>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

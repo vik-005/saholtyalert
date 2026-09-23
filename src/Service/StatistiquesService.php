@@ -65,7 +65,7 @@ class StatistiquesService
             $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
 
             if ($typeLocalisation) {
-                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $typeWhere = 'AND ' . ImportService::sqlTypeLocalisationFallbackCondition($typeLocalisation);
                 $params['typeLoc'] = $typeLocalisation;
             }
 
@@ -293,12 +293,22 @@ class StatistiquesService
             $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
 
             return $this->conn()->fetchAllAssociative(
-                "SELECT COALESCE(a.operateur_acteur, 'Non renseigné') AS operateurs, COUNT(a.id) AS nb
-                 FROM alert a
-                 WHERE a.operateur_acteur IS NOT NULL
-                   AND a.operateur_acteur != ''
-                   AND a.date_creation BETWEEN :debut AND :fin {$where}
-                 GROUP BY a.operateur_acteur
+                                "SELECT operateurs, COUNT(*) AS nb
+                                 FROM (
+                                        SELECT a.id AS alert_id, TRIM(a.operateur_acteur) AS operateurs
+                                        FROM alert a
+                                        WHERE a.operateur_acteur IS NOT NULL
+                                            AND TRIM(a.operateur_acteur) != ''
+                                            AND a.deleted_at IS NULL
+                                            AND a.date_creation BETWEEN :debut AND :fin {$where}
+                                        UNION
+                                        SELECT aa.alert_id, TRIM(aa.nom_ou_raison_sociale) AS operateurs
+                                        FROM alert_actor aa
+                                        JOIN alert a ON a.id = aa.alert_id AND a.deleted_at IS NULL
+                                        WHERE TRIM(aa.nom_ou_raison_sociale) != ''
+                                            AND a.date_creation BETWEEN :debut AND :fin {$where}
+                                 ) sources_operateurs
+                                 GROUP BY operateurs
                  ORDER BY nb DESC
                  LIMIT {$limit}",
                 $params
@@ -340,7 +350,7 @@ class StatistiquesService
             $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
 
             if ($typeLocalisation) {
-                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $typeWhere = 'AND ' . ImportService::sqlTypeLocalisationFallbackCondition($typeLocalisation);
                 $params['typeLoc'] = $typeLocalisation;
             }
 
@@ -373,16 +383,27 @@ class StatistiquesService
             $params = ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59'];
 
             if ($typeLocalisation) {
-                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $typeWhere = 'AND ' . ImportService::sqlTypeLocalisationFallbackCondition($typeLocalisation);
                 $params['typeLoc'] = $typeLocalisation;
             }
 
+            $typeExpression = "CASE
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(aeroport|airport|aerodrome|terminal\\s+passagers?)([^a-z]|$)' THEN 'aeroport'
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(port|quai|terminal\\s+portuaire|portuaire|harbour|harbor)([^a-z]|$)' THEN 'port'
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(corridor|axe|route|itineraire|frontiere|transit)([^a-z]|$)' THEN 'corridor'
+                ELSE COALESCE(a.type_localisation, 'corridor')
+            END";
+
             return $this->conn()->fetchAllAssociative(
-                "SELECT a.type_localisation AS type, COUNT(a.id) AS nb
+                "SELECT {$typeExpression} AS type, COUNT(a.id) AS nb
                  FROM alert a
-                 WHERE a.type_localisation IS NOT NULL
+                 WHERE a.port_corridor IS NOT NULL
+                   AND a.port_corridor != ''
                    AND a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
-                 GROUP BY a.type_localisation
+                 GROUP BY {$typeExpression}
                  ORDER BY nb DESC",
                 $params
             );
@@ -558,16 +579,26 @@ class StatistiquesService
             $typeWhere = '';
 
             if ($dto->typeLoc) {
-                $typeWhere = 'AND a.type_localisation = :typeLoc';
+                $typeWhere = 'AND ' . ImportService::sqlTypeLocalisationFallbackCondition($dto->typeLoc);
                 $params['typeLoc'] = $dto->typeLoc;
             }
+
+            $typeExpression = "CASE
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(aeroport|airport|aerodrome|terminal\\s+passagers?)([^a-z]|$)' THEN 'aeroport'
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(port|quai|terminal\\s+portuaire|portuaire|harbour|harbor)([^a-z]|$)' THEN 'port'
+                WHEN a.type_localisation IS NULL
+                     AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(corridor|axe|route|itineraire|frontiere|transit)([^a-z]|$)' THEN 'corridor'
+                ELSE COALESCE(a.type_localisation, 'corridor')
+            END";
 
             // ── 1. Top localisations avec part relative ───────────────────────
             // Exclusion native des entrées vides (Spec A.2 : HAVING COUNT > 0)
             $rawTop = $this->conn()->fetchAllAssociative(
                 "SELECT
                     a.port_corridor                           AS corridor,
-                    COALESCE(a.type_localisation, 'corridor') AS type,
+                    {$typeExpression}                             AS type,
                     m.nom                                     AS pays,
                     m.code_iso3                               AS iso3,
                     COUNT(a.id)                               AS nb
@@ -577,7 +608,7 @@ class StatistiquesService
                    AND a.port_corridor != ''
                    AND a.date_creation BETWEEN :debut AND :fin
                    {$where} {$typeWhere}
-                 GROUP BY a.port_corridor, a.type_localisation, m.nom, m.code_iso3
+                 GROUP BY a.port_corridor, {$typeExpression}, m.nom, m.code_iso3
                  HAVING COUNT(a.id) > 0
                  ORDER BY nb DESC",
                 $params
@@ -613,14 +644,14 @@ class StatistiquesService
             // ── 3. Répartition par type (toujours sur les marchés sélectionnés) ──
             $paramsGlobal = ['debut' => $dto->dateDebut . ' 00:00:00', 'fin' => $dto->dateFin . ' 23:59:59'];
             $locTypeStats = $this->conn()->fetchAllAssociative(
-                "SELECT COALESCE(a.type_localisation, 'corridor') AS type,
+                "SELECT {$typeExpression} AS type,
                         COUNT(a.id) AS nb
                  FROM alert a
                  WHERE a.port_corridor IS NOT NULL
                    AND a.port_corridor != ''
                    AND a.date_creation BETWEEN :debut AND :fin
                    {$where}
-                 GROUP BY a.type_localisation
+                 GROUP BY {$typeExpression}
                  HAVING COUNT(a.id) > 0
                  ORDER BY nb DESC",
                 $paramsGlobal
@@ -628,14 +659,14 @@ class StatistiquesService
 
             // ── 4. KPIs ──────────────────────────────────────────────────────
             $kpiRows = $this->conn()->fetchAllAssociative(
-                "SELECT COALESCE(a.type_localisation, 'corridor') AS type,
+                "SELECT {$typeExpression} AS type,
                         COUNT(a.id) AS nb
                  FROM alert a
                  WHERE a.port_corridor IS NOT NULL
                    AND a.port_corridor != ''
                    AND a.date_creation BETWEEN :debut AND :fin
                    {$where} {$typeWhere}
-                 GROUP BY a.type_localisation
+                 GROUP BY {$typeExpression}
                  HAVING COUNT(a.id) > 0",
                 $params
             );
@@ -669,9 +700,13 @@ class StatistiquesService
 
     private function whereClause(array $marketIds): string
     {
-        if (empty($marketIds)) return '';
+        $base = 'AND a.deleted_at IS NULL';
+        if (empty($marketIds)) {
+            return $base;
+        }
+
         $ids = implode(',', array_map('intval', $marketIds));
-        return "AND a.market_id IN ({$ids})";
+        return "{$base} AND a.market_id IN ({$ids})";
     }
 }
 

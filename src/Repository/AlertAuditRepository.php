@@ -226,10 +226,18 @@ class AlertAuditRepository
 
         return array_column(
             $this->conn->fetchAllAssociative(
-                "SELECT DISTINCT a.operateur_acteur as operateur, COUNT(*) as nb
-                 FROM alert a
-                 {$where}
-                 GROUP BY a.operateur_acteur
+                "SELECT operateur, COUNT(*) AS nb
+                 FROM (
+                    SELECT a.id AS alert_id, TRIM(a.operateur_acteur) AS operateur
+                    FROM alert a
+                    {$where}
+                    UNION
+                    SELECT aa.alert_id, TRIM(aa.nom_ou_raison_sociale) AS operateur
+                    FROM alert_actor aa
+                    JOIN alert a ON a.id = aa.alert_id
+                    {$where}
+                 ) sources_operateurs
+                 GROUP BY operateur
                  ORDER BY nb DESC
                  LIMIT 20",
                 $params

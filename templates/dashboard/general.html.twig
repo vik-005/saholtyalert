@@ -464,7 +464,10 @@ Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
 Chart.defaults.font.size      = 11;
 
 /* ─── Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
-const evolutionCtx = document.getElementById('alertEvolutionChart').getContext('2d');
+const evolutionCanvas = document.getElementById('alertEvolutionChart');
+if (!evolutionCanvas || typeof Chart === 'undefined') return;
+Chart.getChart(evolutionCanvas)?.destroy();
+const evolutionCtx = evolutionCanvas.getContext('2d');
 
 /* Nouvelles alertes : Teal primaire (#16856b) */
 const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 300);
