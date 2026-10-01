@@ -265,22 +265,22 @@ class Alert
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertAttachment::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $pieceJointes;
 
-    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertQualificationHistory::class, cascade: ['persist'], orphanRemoval: false)]
+    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertQualificationHistory::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['calculeLe' => 'DESC'])]
     private Collection $qualificationHistories;
 
-    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertStatusHistory::class, cascade: ['persist'])]
+    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertStatusHistory::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['changedAt' => 'DESC'])]
     private Collection $statusHistories;
 
-    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertTransmission::class, cascade: ['persist'])]
+    #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertTransmission::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $transmissions;
 
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertComment::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['createdAt' => 'DESC'])]
     private Collection $commentairesHistorises;
 
-    #[ORM\OneToOne(mappedBy: 'alert', targetEntity: Urgence72hCase::class, cascade: ['persist'])]
+    #[ORM\OneToOne(mappedBy: 'alert', targetEntity: Urgence72hCase::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private ?Urgence72hCase $urgence72hCase = null;
 
     public function __construct()

@@ -73,6 +73,16 @@ class ImportService
         'derniere_maj'    => ['dernière', 'derniere', 'maj'],
         'responsable'     => ['responsable suivi', 'responsable'],
         'commentaires'    => ['commentaires', 'commentaire'],
+        'operateur'       => ['opérateur / acteur', 'opérateur', 'operateur / acteur', 'operateur', 'acteur'],
+        'marque'          => ['marque'],
+        'elements_factuels'=> ['éléments factuels', 'elements factuels', 'faits', 'description / quantité', 'description / quantite'],
+        'hypotheses'      => ['hypothèses analytiques', 'hypotheses analytiques', 'hypothèses', 'hypotheses', 'modus operandi'],
+        'type_localisation'=> ['type de localisation', 'type localisation', 'localisation type'],
+        'type_alerte'     => ["type d'alerte", "type d alerte", "type alerte"],
+        'recommandation'  => ['recommandation', 'recommandations'],
+        'historique_source'=> ['historique de la source', 'historique source'],
+        'decision_gei'    => ['décision gei', 'decision gei', 'décision', 'decision'],
+        'parcours'        => ['parcours pays', 'parcours', 'pays parcours', 'parcours des pays'],
     ];
 
     /**
@@ -768,6 +778,84 @@ class ImportService
 
         // ── Commentaires ──────────────────────────────────────────────────────────
         $alert->setCommentaires($get('commentaires') ?: null);
+
+        // ── Opérateur / Acteur ───────────────────────────────────────────────────
+        $operateur = $get('operateur');
+        if (!empty($operateur)) {
+            $alert->setOperateurActeur($operateur);
+        }
+
+        // ── Marque ───────────────────────────────────────────────────────────────
+        $marque = $get('marque');
+        if (!empty($marque)) {
+            $alert->setMarque($marque);
+        }
+
+        // ── Éléments factuels ────────────────────────────────────────────────────
+        $elementsFactuels = $get('elements_factuels');
+        if (!empty($elementsFactuels)) {
+            $alert->setElementsFactuels($elementsFactuels);
+        }
+
+        // ── Hypothèses analytiques ───────────────────────────────────────────────
+        $hypotheses = $get('hypotheses');
+        if (!empty($hypotheses)) {
+            $alert->setHypothesesAnalytiques($hypotheses);
+        }
+
+        // ── Type de localisation (si colonne explicite fournie) ──────────────────
+        $typeLocRaw = mb_strtolower(trim($get('type_localisation')));
+        if (!empty($typeLocRaw)) {
+            $typeLoc = match(true) {
+                str_contains($typeLocRaw, 'port')     => TypeLocalisation::PORT,
+                str_contains($typeLocRaw, 'corridor') => TypeLocalisation::CORRIDOR,
+                str_contains($typeLocRaw, 'aero')     => TypeLocalisation::AEROPORT,
+                default                               => null,
+            };
+            if ($typeLoc !== null) {
+                $alert->setTypeLocalisation($typeLoc);
+            }
+        }
+
+        // ── Type d'alerte (Opérationnelle / Stratégique) ──────────────────────────
+        $typeAlerteRaw = mb_strtolower(trim($get('type_alerte')));
+        if (!empty($typeAlerteRaw)) {
+            $typeAlerte = match(true) {
+                str_contains($typeAlerteRaw, 'strat') => \App\Enum\TypeAlerte::STRATEGIQUE,
+                default                               => \App\Enum\TypeAlerte::OPERATIONNELLE,
+            };
+            $alert->setTypeAlerte($typeAlerte);
+        }
+
+        // ── Recommandation ────────────────────────────────────────────────────────
+        $recRaw = $get('recommandation');
+        if (!empty($recRaw)) {
+            $rec = $this->matchEnumWithAliases(\App\Enum\Recommandation::class, $recRaw);
+            if ($rec) {
+                $alert->setRecommandation($rec);
+            }
+        }
+
+        // ── Historique de la source ──────────────────────────────────────────────
+        $histSource = $get('historique_source');
+        if (!empty($histSource)) {
+            $alert->setHistoriqueSource($histSource);
+        }
+
+        // ── Décision GEI ──────────────────────────────────────────────────────────
+        $decGei = $get('decision_gei');
+        if (!empty($decGei)) {
+            $alert->setDecisionGei($decGei);
+        }
+
+        // ── Parcours pays ────────────────────────────────────────────────────────
+        $parcoursRaw = $get('parcours');
+        if (!empty($parcoursRaw)) {
+            $parts = array_filter(array_map('trim', explode(',', $parcoursRaw)));
+            if (!empty($parts)) {
+                $alert->setParcoursCountries(array_values($parts));
+            }
+        }
 
         return $manquants;
     }

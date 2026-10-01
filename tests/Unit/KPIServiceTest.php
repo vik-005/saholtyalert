@@ -49,10 +49,6 @@ class KPIServiceTest extends TestCase
         $fin = new \DateTime('2026-01-31');
         $marches = [1, 2, 3];
 
-        // Mock du cache
-        $item = $this->createMock(ItemInterface::class);
-        $item->method('expiresAfter')->willReturn(null);
-
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn([
@@ -122,29 +118,6 @@ class KPIServiceTest extends TestCase
         $debut = new \DateTime('2026-01-01');
         $fin = new \DateTime('2026-01-31');
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $this->em->expects($this->any())
-            ->method('createQueryBuilder')
-            ->willReturn($qb);
-
-        $qb->method('select')
-            ->willReturnSelf();
-        $qb->method('from')
-            ->willReturnSelf();
-        $qb->method('where')
-            ->willReturnSelf();
-        $qb->method('andWhere')
-            ->willReturnSelf();
-        $qb->method('groupBy')
-            ->willReturnSelf();
-        $qb->method('setParameter')
-            ->willReturnSelf();
-        $qb->method('getQuery')
-            ->willReturnSelf();
-        $qb->method('getSingleScalarResult')
-            ->willReturnOnConsecutiveCalls(60, 80); // transmises, total
-
-        $item = $this->createMock(ItemInterface::class);
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn(['value' => 75.0, 'count' => 60, 'total' => 80]);
@@ -164,10 +137,6 @@ class KPIServiceTest extends TestCase
         $debut = new \DateTime('2026-01-01');
         $fin = new \DateTime('2026-01-31');
 
-        $this->em->expects($this->once())
-            ->method('createQueryBuilder')
-            ->willReturnSelf();
-
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn(['value' => 17.5]);
@@ -185,13 +154,6 @@ class KPIServiceTest extends TestCase
     {
         $debut = new \DateTime('2026-01-01');
         $fin = new \DateTime('2026-01-31');
-
-        $conn = $this->createMock(\Doctrine\DBAL\Connection::class);
-        $this->em->method('getConnection')->willReturn($conn);
-
-        $conn->expects($this->exactly(2))
-            ->method('fetchAllAssociative')
-            ->willReturn([['jour' => '2026-01-01', 'nb' => 5]]);
 
         $this->cache->expects($this->once())
             ->method('get')
@@ -213,10 +175,6 @@ class KPIServiceTest extends TestCase
     public function testGetRepartitionPriorite(): void
     {
         $marches = [1, 2];
-
-        $this->em->expects($this->once())
-            ->method('createQueryBuilder')
-            ->willReturnSelf();
 
         $this->cache->expects($this->once())
             ->method('get')
@@ -241,10 +199,6 @@ class KPIServiceTest extends TestCase
     {
         $limit = 8;
 
-        $this->em->expects($this->once())
-            ->method('createQueryBuilder')
-            ->willReturnSelf();
-
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn([]);
@@ -260,10 +214,6 @@ class KPIServiceTest extends TestCase
 
     public function testGetCasUrgence72hActifs(): void
     {
-        $this->em->expects($this->once())
-            ->method('createQueryBuilder')
-            ->willReturnSelf();
-
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn([]);
@@ -276,10 +226,6 @@ class KPIServiceTest extends TestCase
     public function testGetCasUrgence72hAvecMarches(): void
     {
         $marches = [1, 2];
-
-        $this->em->expects($this->once())
-            ->method('createQueryBuilder')
-            ->willReturnSelf();
 
         $this->cache->expects($this->once())
             ->method('get')
@@ -296,10 +242,6 @@ class KPIServiceTest extends TestCase
 
     public function testGetActiviteRecente(): void
     {
-        $this->em->expects($this->once())
-            ->method('getConnection')
-            ->willReturnSelf();
-
         $this->cache->expects($this->once())
             ->method('get')
             ->willReturn([]);

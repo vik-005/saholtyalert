@@ -3173,45 +3173,147 @@ html body .bi {
     z-index: 10;
 }
 
-/* ── Wizard — Radio group ── */
+/* ── Wizard — Radio group (Hyper-Pro) ── */
 .radio-group {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    width: 100%;
 }
 .radio-option {
-    flex: 1;
-    min-width: 120px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 20px;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    background: #0f172a;
+    cursor: pointer;
+    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 600;
+    color: var(--text-muted);
+    user-select: none;
+}
+.radio-option:hover {
+    border-color: #f59e0b;
+    background: #1e293b;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.radio-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    pointer-events: none;
+}
+.radio-disc {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #64748b;
+    background: #090e1a;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border: 2px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--navy-900);
-    cursor: pointer;
-    transition: all .2s;
-    font-weight: 600;
-    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: all .2s ease;
 }
-.radio-option:hover {
-    border-color: var(--amber);
-    color: #fff;
+.radio-disc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #f59e0b;
+    transform: scale(0);
+    transition: transform .2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-.radio-option-active {
-    border-color: var(--amber);
-    background: var(--amber-dim);
-    color: var(--amber);
-}
-.radio-option input[type="radio"] {
+.radio-selected-pill {
     display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: #f59e0b;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    flex-shrink: 0;
+}
+.radio-option:has(input[type="radio"]:checked),
+.radio-option-active {
+    border-color: #f59e0b !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    color: #fbbf24 !important;
+    box-shadow: 0 0 0 2px #f59e0b, 0 8px 24px rgba(245, 158, 11, 0.25) !important;
+}
+.radio-option:has(input[type="radio"]:checked) .radio-disc,
+.radio-option-active .radio-disc {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
+}
+.radio-option:has(input[type="radio"]:checked) .radio-disc-dot,
+.radio-option-active .radio-disc-dot {
+    transform: scale(1) !important;
+}
+.radio-option:has(input[type="radio"]:checked) .radio-selected-pill,
+.radio-option-active .radio-selected-pill {
+    display: inline-flex !important;
+}
+.radio-option:has(input[type="radio"]:checked) .radio-option-title,
+.radio-option-active .radio-option-title {
+    color: #fbbf24 !important;
+}
+.radio-option:has(input[type="radio"]:checked) .radio-check-icon,
+.radio-option-active .radio-check-icon {
+    display: inline-block !important;
+}
+.radio-check-icon {
+    display: none;
+    color: var(--amber);
+    font-size: 1.1rem;
+}
+
+/* Thème vert (pour Anonymisation = Oui) */
+.radio-option-emerald:has(input[type="radio"]:checked),
+.radio-option-emerald.radio-option-active {
+    border-color: #10b981 !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+    color: #34d399 !important;
+    box-shadow: 0 0 0 2px #10b981, 0 8px 24px rgba(16, 185, 129, 0.25) !important;
+}
+.radio-option-emerald:has(input[type="radio"]:checked) .radio-disc,
+.radio-option-emerald.radio-option-active .radio-disc {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.6) !important;
+}
+.radio-option-emerald:has(input[type="radio"]:checked) .radio-disc-dot,
+.radio-option-emerald.radio-option-active .radio-disc-dot {
+    background: #10b981 !important;
+    transform: scale(1) !important;
+}
+.radio-option-emerald:has(input[type="radio"]:checked) .radio-selected-pill,
+.radio-option-emerald.radio-option-active .radio-selected-pill {
+    display: inline-flex !important;
+    background: #10b981 !important;
+    color: #064e3b !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+}
+.radio-option-emerald:has(input[type="radio"]:checked) .radio-option-title,
+.radio-option-emerald.radio-option-active .radio-option-title {
+    color: #34d399 !important;
 }
 
 @media (max-width: 640px) {
     .wps-label { display: none; }
     .wizard-progress-steps::before { display: none; }
-    .radio-group { flex-direction: column; }
+    .radio-group { grid-template-columns: 1fr; }
 }
 
 /* ── Wizard — Qualification score display ── */

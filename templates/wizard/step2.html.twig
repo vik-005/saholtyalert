@@ -36,6 +36,18 @@
                 <p class="form-help">Faits bruts uniquement — descriptions, quantités observées. Ne pas mélanger avec les hypothèses.</p>
             </div>
 
+            {# Champ 6b — Hypothèses analytiques & Modus operandi #}
+            <div class="form-field">
+                <label class="form-label" for="w_hypotheses">
+                    Hypothèses analytiques & Modus operandi
+                    <span class="text-xs text-slate-400 font-normal ms-2">(Optionnel — distinct des faits)</span>
+                </label>
+                <textarea name="alert[hypothesesAnalytiques]" id="w_hypotheses"
+                          class="form-textarea" rows="4"
+                          placeholder="Hypothèses sur les réseaux logistiques, modus operandi, destinations présumées, complicités éventuelles…">{{ draftData and draftData['alert[hypothesesAnalytiques]'] is defined ? draftData['alert[hypothesesAnalytiques]'] : (alert.hypothesesAnalytiques ?? '') }}</textarea>
+                <p class="form-help">Analyse prospective et déductions d'enquête. Ne jamais y consigner de faits matériels bruts non séparés.</p>
+            </div>
+
             {# Champ 7 — Marque #}
             <div class="form-field">
                 <label class="form-label" for="w_marque">Marque</label>

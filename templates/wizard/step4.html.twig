@@ -31,22 +31,49 @@
             </div>
 
             {# Champ 12 — Niveau d'anonymisation (Oui / Non) #}
+            {% set currentAnon = draftData['alert[anonymisation]']|default(draftData['anonymisation']|default(alert.anonymisation|default('')))|lower %}
             <div class="form-field">
                 <label class="form-label">
                     Niveau d'anonymisation <span class="text-red-400">*</span>
                 </label>
-                <div class="radio-group">
-                    <label class="radio-option {% if (draftData['alert[anonymisation]'] ?? '') == 'oui' %}radio-option-active{% endif %}">
+                <div class="radio-group" id="anonymisationGroup">
+                    <label class="radio-option radio-option-emerald {% if currentAnon == 'oui' %}radio-option-active{% endif %}" data-val="oui">
                         <input type="radio" name="alert[anonymisation]" value="oui"
-                               {% if (draftData['alert[anonymisation]'] ?? '') == 'oui' %}checked{% endif %} required>
-                        <i class="bi bi-shield-check me-1"></i>
-                        <span class="radio-option-label">Oui</span>
+                               {% if currentAnon == 'oui' %}checked{% endif %} required>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex-shrink-0">
+                                    <i class="bi bi-shield-check text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="radio-option-title text-sm font-bold text-white">Oui (Source protégée)</div>
+                                    <div class="text-xs text-slate-400 font-normal">Identité caviardée dans toute diffusion</div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill">
+                            <i class="bi bi-check-lg"></i>Sélectionné
+                        </span>
                     </label>
-                    <label class="radio-option {% if (draftData['alert[anonymisation]'] ?? '') == 'non' %}radio-option-active{% endif %}">
+                    <label class="radio-option {% if currentAnon == 'non' %}radio-option-active{% endif %}" data-val="non">
                         <input type="radio" name="alert[anonymisation]" value="non"
-                               {% if (draftData['alert[anonymisation]'] ?? '') == 'non' %}checked{% endif %}>
-                        <i class="bi bi-shield-x me-1"></i>
-                        <span class="radio-option-label">Non</span>
+                               {% if currentAnon == 'non' %}checked{% endif %}>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-500/10 border border-slate-500/20 text-slate-300 flex-shrink-0">
+                                    <i class="bi bi-shield-slash text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="radio-option-title text-sm font-bold text-white">Non (Source ouverte / officielle)</div>
+                                    <div class="text-xs text-slate-400 font-normal">Renseignement issu d'un canal public ou officiel</div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill">
+                            <i class="bi bi-check-lg"></i>Sélectionné
+                        </span>
                     </label>
                 </div>
                 <p class="form-help">La source doit-elle être protégée (anonymisée) dans les communications ?</p>
@@ -66,3 +93,38 @@
     </div>
 
 </form>
+
+<script>
+(function() {
+    function syncAnonymisation() {
+        const group = document.getElementById('anonymisationGroup');
+        if (!group) return;
+        group.querySelectorAll('.radio-option').forEach(function(card) {
+            const input = card.querySelector('input[type="radio"]');
+            if (input && input.checked) {
+                card.classList.add('radio-option-active');
+            } else {
+                card.classList.remove('radio-option-active');
+            }
+        });
+    }
+
+    document.querySelectorAll('#anonymisationGroup .radio-option').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            const input = card.querySelector('input[type="radio"]');
+            if (input && !input.checked) {
+                input.checked = true;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            syncAnonymisation();
+        });
+    });
+
+    document.querySelectorAll('#anonymisationGroup input[type="radio"]').forEach(function(input) {
+        input.addEventListener('change', syncAnonymisation);
+    });
+
+    // Synchronisation immédiate au chargement
+    syncAnonymisation();
+})();
+</script>

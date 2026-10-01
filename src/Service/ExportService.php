@@ -57,6 +57,15 @@ class ExportService
         'Date de validation',                 // AB — horodatage validation (Partie D)
         'Délai traitement (h)',               // AC — délai soumission→validation (Partie D)
         'Opérateur / Acteur',                 // AD — ajout plateforme (champ 30)
+        'Marque',                             // AE — Marque du produit
+        'Éléments factuels',                  // AF — Description détaillée des faits
+        'Hypothèses analytiques',             // AG — Prospective d'enquête (Annexe A §5)
+        'Type de localisation',               // AH — Port / Corridor / Aéroport
+        'Type d\'alerte',                     // AI — Opérationnelle / Stratégique
+        'Recommandation',                     // AJ — Recommandation opérationnelle
+        'Historique de la source',            // AK — Historique comportemental
+        'Décision GEI',                       // AL — Décision formelle du Manager
+        'Parcours pays',                      // AM — Pays traversés
     ];
 
     /**
@@ -142,6 +151,15 @@ class ExportService
                     ? (string) $alert->getDelaiTraitementHeures()
                     : '',                                                          // AC — Délai traitement h (Partie D)
                 (string)($alert->getOperateurActeur() ?? ''),                     // AD — Opérateur / Acteur
+                (string)($alert->getMarque() ?? ''),                              // AE — Marque
+                (string)($alert->getElementsFactuels() ?? ''),                     // AF — Éléments factuels
+                (string)($alert->getHypothesesAnalytiques() ?? ''),                // AG — Hypothèses analytiques
+                (string)($alert->getTypeLocalisation()?->label() ?? ''),          // AH — Type de localisation
+                (string)($alert->getTypeAlerte()?->label() ?? ''),                // AI — Type d'alerte
+                (string)($alert->getRecommandation()?->label() ?? ''),            // AJ — Recommandation
+                (string)($alert->getHistoriqueSource() ?? ''),                    // AK — Historique source
+                (string)($alert->getDecisionGei() ?? ''),                         // AL — Décision GEI
+                implode(', ', $alert->getParcoursCountries() ?? []),              // AM — Parcours pays
             ];
 
             foreach ($row as $colIdx => $value) {

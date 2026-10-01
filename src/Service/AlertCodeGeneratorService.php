@@ -95,6 +95,7 @@ class AlertCodeGeneratorService
             SELECT COALESCE(MAX(CAST(SUBSTRING(code_gei, -3) AS UNSIGNED)), 0) AS max_seq
             FROM alert
             WHERE code_gei LIKE :pattern
+              AND (deleted_at IS NULL)
             FOR UPDATE
         ';
 
@@ -107,6 +108,18 @@ class AlertCodeGeneratorService
         $this->lastSequence[$key] = $nextSeq;
 
         return $nextSeq;
+    }
+
+    /**
+     * Réinitialise le cache des séquences (notamment après la suppression d'une alerte).
+     */
+    public function resetSequenceCache(?string $key = null): void
+    {
+        if ($key !== null) {
+            unset($this->lastSequence[$key]);
+        } else {
+            $this->lastSequence = [];
+        }
     }
 
     /**

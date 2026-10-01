@@ -40,6 +40,8 @@ class AlertRepository extends ServiceEntityRepository
                 $qb->leftJoin('a.alertMarkets', 'amRole')
                    ->andWhere('a.market IN (:managedMarkets) OR amRole.market IN (:managedMarkets)')
                    ->setParameter('managedMarkets', $managedMarkets);
+            } else {
+                $qb->andWhere('1 = 0');
             }
         }
         // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → toutes les alertes (pas de filtre)

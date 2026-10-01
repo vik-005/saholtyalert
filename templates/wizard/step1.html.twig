@@ -69,28 +69,53 @@
             </div>
 
             {# Champ 3 — Port / Corridor / Aéroport (radio) #}
+            {% set currentTypeLoc = draftData['alert[typeLocalisation]']|default(draftData['typeLocalisation']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '')) %}
             <div class="form-field">
                 <label class="form-label">
                     Type de localisation <span class="text-red-400">*</span>
                 </label>
-                <div class="radio-group">
-                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'port' %}radio-option-active{% endif %}">
-                           <input type="radio" name="alert[typeLocalisation]" value="port"
-                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'port' %}checked{% endif %} required>
-                        <i class="bi-anchor me-1"></i>
-                        <span class="radio-option-label">Port</span>
+                <div class="radio-group" id="typeLocalisationGroup">
+                    <label class="radio-option {% if currentTypeLoc == 'port' %}radio-option-active{% endif %}" data-val="port">
+                        <input type="radio" name="alert[typeLocalisation]" value="port"
+                               {% if currentTypeLoc == 'port' %}checked{% endif %} required>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
+                                    <i class="bi-anchor text-lg"></i>
+                                </div>
+                                <span class="radio-option-title text-sm font-bold text-white">Port</span>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
-                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'corridor' %}radio-option-active{% endif %}">
-                           <input type="radio" name="alert[typeLocalisation]" value="corridor"
-                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'corridor' %}checked{% endif %}>
-                        <i class="bi-signpost-figure me-1"></i>
-                        <span class="radio-option-label">Corridor</span>
+                    <label class="radio-option {% if currentTypeLoc == 'corridor' %}radio-option-active{% endif %}" data-val="corridor">
+                        <input type="radio" name="alert[typeLocalisation]" value="corridor"
+                               {% if currentTypeLoc == 'corridor' %}checked{% endif %}>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
+                                    <i class="bi-signpost-figure text-lg"></i>
+                                </div>
+                                <span class="radio-option-title text-sm font-bold text-white">Corridor</span>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
-                    <label class="radio-option {% if (draftData['alert[typeLocalisation]'] ?? '') == 'aeroport' %}radio-option-active{% endif %}">
-                           <input type="radio" name="alert[typeLocalisation]" value="aeroport"
-                               {% if draftData['alert[typeLocalisation]']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '') == 'aeroport' %}checked{% endif %}>
-                        <i class="bi-airplane me-1"></i>
-                        <span class="radio-option-label">Aéroport</span>
+                    <label class="radio-option {% if currentTypeLoc == 'aeroport' %}radio-option-active{% endif %}" data-val="aeroport">
+                        <input type="radio" name="alert[typeLocalisation]" value="aeroport"
+                               {% if currentTypeLoc == 'aeroport' %}checked{% endif %}>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
+                                    <i class="bi-airplane text-lg"></i>
+                                </div>
+                                <span class="radio-option-title text-sm font-bold text-white">Aéroport</span>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
                 </div>
                 <p class="form-help">Choisissez s'il s'agit d'un port, d'un corridor de transit ou d'un aéroport.</p>
@@ -174,6 +199,18 @@ function updateActiveClass() {
         if (parent) parent.classList.add('radio-option-active');
     }
 }
+
+options.forEach(card => {
+    card.addEventListener('click', () => {
+        const input = card.querySelector('input[type="radio"]');
+        if (input && !input.checked) {
+            input.checked = true;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        updateActiveClass();
+        updateLabel();
+    });
+});
 
 radios.forEach(r => {
     r.addEventListener('change', () => {

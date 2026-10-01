@@ -10,6 +10,7 @@ use App\Enum\UserRoleEnum;
 use App\Repository\AlertRepository;
 use App\Service\AlertFilterService;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -31,6 +32,12 @@ class AlertFilterServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->em = $this->createMock(EntityManagerInterface::class);
+        $this->em->method('getExpressionBuilder')->willReturn(new Expr());
+        $this->em->method('createQueryBuilder')
+            ->willReturnCallback(function (): QueryBuilder {
+                return new QueryBuilder($this->em);
+            });
+
         $this->service = new AlertFilterService($this->em);
     }
 
@@ -46,8 +53,7 @@ class AlertFilterServiceTest extends TestCase
         $qb = $this->service->buildQueryBuilder($dto, $user);
 
         $this->assertInstanceOf(QueryBuilder::class, $qb);
-        $query = $qb->getQuery();
-        $dql = $query->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('FROM App\Entity\Alert a', $dql);
         $this->assertStringContainsString('LEFT JOIN a.market m', $dql);
@@ -61,8 +67,7 @@ class AlertFilterServiceTest extends TestCase
 
         $qb = $this->service->buildQueryBuilder($dto, $user, 'a', true);
 
-        $query = $qb->getQuery();
-        $dql = $query->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('SELECT DISTINCT', $dql);
     }
@@ -77,7 +82,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setStatut('validee');
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.statut = :statut', $dql);
         $this->assertEquals('validee', $qb->getParameter('statut')->getValue());
@@ -89,7 +94,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setNiveauPriorite('critique');
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.niveauPriorite = :priorite', $dql);
     }
@@ -97,13 +102,13 @@ class AlertFilterServiceTest extends TestCase
     public function testFiltreMarket(): void
     {
         $market = new Market();
-        $market->setId(5);
+        $this->setEntityId($market, 5);
 
         $dto = new AlertFilterDTO();
         $dto->setMarket(5);
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.market = :market', $dql);
     }
@@ -114,7 +119,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setSearch('controle');
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('LIKE :search', $dql);
         $this->assertStringContainsString('%controle%', $qb->getParameter('search')->getValue());
@@ -126,7 +131,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setDateDebut('2026-01-15');
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.dateCreation >= :dateDebut', $dql);
     }
@@ -137,7 +142,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setDateFin('2026-01-31');
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.dateCreation <= :dateFin', $dql);
     }
@@ -148,7 +153,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setUrgence72h(true);
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.urgence = :urg72h', $dql);
     }
@@ -159,7 +164,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setScoreMin(15);
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('>= :scoreMin', $dql);
     }
@@ -170,7 +175,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setScoreMax(20);
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('<= :scoreMax', $dql);
     }
@@ -189,7 +194,7 @@ class AlertFilterServiceTest extends TestCase
         $dto->setMarket(5);
 
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.statut = :statut', $dql);
         $this->assertStringContainsString('a.niveauPriorite = :priorite', $dql);
@@ -203,24 +208,23 @@ class AlertFilterServiceTest extends TestCase
 
     public function testRoleEmetteurTerrain(): void
     {
-        $user = $this->createMockUser(UserRoleEnum::EMETTEUR_TERRAIN);
-        $user->setId(42);
+        $user = $this->createMockUser(UserRoleEnum::EMETTEUR_TERRAIN, 42);
 
         $dto = new AlertFilterDTO();
 
         $qb = $this->service->buildQueryBuilder($dto, $user);
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.emetteur = :currentUser', $dql);
-        $this->assertEquals(42, $qb->getParameter('currentUser')->getValue());
+        $this->assertSame($user, $qb->getParameter('currentUser')->getValue());
     }
 
     public function testRolePFT(): void
     {
         $market1 = new Market();
-        $market1->setId(1);
+        $this->setEntityId($market1, 1);
         $market2 = new Market();
-        $market2->setId(2);
+        $this->setEntityId($market2, 2);
 
         $user = $this->createMockUser(UserRoleEnum::PFT);
         $user->addMarket($market1);
@@ -229,7 +233,7 @@ class AlertFilterServiceTest extends TestCase
         $dto = new AlertFilterDTO();
 
         $qb = $this->service->buildQueryBuilder($dto, $user);
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         $this->assertStringContainsString('a.market IN (:managedMarkets)', $dql);
     }
@@ -241,7 +245,7 @@ class AlertFilterServiceTest extends TestCase
         $dto = new AlertFilterDTO();
 
         $qb = $this->service->buildQueryBuilder($dto, $user);
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         // Aucun marché géré → aucune alerte visible
         $this->assertStringContainsString('1 = 0', $dql);
@@ -253,7 +257,7 @@ class AlertFilterServiceTest extends TestCase
         $dto = new AlertFilterDTO();
 
         $qb = $this->service->buildQueryBuilder($dto, $user);
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
 
         // Pas de restriction
         $this->assertStringNotContainsString('currentUser', $dql);
@@ -284,7 +288,7 @@ class AlertFilterServiceTest extends TestCase
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
         $qb = $this->service->applyPaginationAndOrder($qb, $dto);
 
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
         $this->assertStringContainsString('a.dateCreation DESC', $dql);
     }
 
@@ -297,7 +301,7 @@ class AlertFilterServiceTest extends TestCase
         $qb = $this->service->buildQueryBuilder($dto, $this->createMockUser(UserRoleEnum::SUPERADMIN));
         $qb = $this->service->applyPaginationAndOrder($qb, $dto);
 
-        $dql = $qb->getQuery()->getDQL();
+        $dql = $qb->getDQL();
         $this->assertStringContainsString('a.scoreGei ASC', $dql);
     }
 
@@ -308,11 +312,18 @@ class AlertFilterServiceTest extends TestCase
     private function createMockUser(UserRoleEnum $role, int $id = 1): User
     {
         $user = new User();
-        (new \ReflectionProperty(User::class, 'id'))->setValue($user, $id);
+        $this->setEntityId($user, $id);
         $user->setEmail("user{$id}@test.com");
         $user->setPrenom('Test');
         $user->setNom('User');
         $user->setRole($role);
         return $user;
+    }
+
+    private function setEntityId(object $entity, int $id): void
+    {
+        $property = new \ReflectionProperty($entity::class, 'id');
+        $property->setAccessible(true);
+        $property->setValue($entity, $id);
     }
 }

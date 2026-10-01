@@ -206,6 +206,18 @@
 
                     {{ form_start(form, {'attr': {'class': 'qualify-form', 'id': 'qualificationForm'}}) }}
 
+                    {# Hypothèses analytiques (Annexe A §5) — affinables par le Manager #}
+                    <div class="qualify-field mb-4">
+                        {{ form_label(form.hypothesesAnalytiques, 'Hypothèses analytiques & prospective (Annexe A §5)', {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.hypothesesAnalytiques, {'attr': {
+                            'class': 'form-textarea',
+                            'rows': 3,
+                            'placeholder': 'Ajuster ou enrichir les hypothèses d\'investigation (réseaux, modus operandi, destinations)…'
+                        }}) }}
+                        {{ form_errors(form.hypothesesAnalytiques) }}
+                        <p class="text-xs text-slate-500 mt-1">Distinct des faits. Vous pouvez compléter ou affiner l'hypothèse soumise avant validation.</p>
+                    </div>
+
                     {# Commentaire de suivi Manager — actionnable (Partie A) #}
                     <div class="qualify-field mb-4">
                         {{ form_label(form.commentaires, 'Commentaire de suivi Manager', {'label_attr': {'class': 'qualify-label'}}) }}
@@ -344,6 +356,18 @@
                             {{ form_widget(form.exploitabilite, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_exploitabilite'}}) }}
                             {{ form_errors(form.exploitabilite) }}
                         </div>
+                    </div>
+                </div>
+
+                <div class="qualify-section">
+                    <p class="qualify-section-label">
+                        <span class="form-section-num">4b</span>Hypothèses analytiques &amp; prospective
+                    </p>
+                    <div class="qualify-field">
+                        {{ form_label(form.hypothesesAnalytiques, null, {'label_attr': {'class': 'qualify-label'}}) }}
+                        {{ form_widget(form.hypothesesAnalytiques, {'attr': {'class': 'form-textarea', 'rows': 3, 'placeholder': 'Hypothèses sur les réseaux, modus operandi, destinations probables…'}}) }}
+                        {{ form_errors(form.hypothesesAnalytiques) }}
+                        <p class="text-xs text-slate-500 mt-1">Annexe A §5 : distinct des faits matériels bruts.</p>
                     </div>
                 </div>
 

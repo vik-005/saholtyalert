@@ -2,16 +2,15 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Fiche d'Alerte {{ alert.codeGei }}</title>
+    <title>Fiche d'Alerte {{ alert.codeGei ?? 'BROUILLON' }}</title>
     <style>
         @page {
-            margin: 0;
+            margin: 12mm 10mm 15mm 10mm;
             @bottom-center {
-                content: "{{ platform_name }} — {{ platform_full }} | Document non contrôlé — Imprimé le {{ date_impression|date('d/m/Y H:i') }} | Page " counter(page) " / " counter(pages);
+                content: "{{ platform_name }} — {{ platform_full }} | Fiche d'Alerte {{ alert.codeGei ?? 'BROUILLON' }} | Imprimé le {{ date_impression|date('d/m/Y H:i') }} | Page " counter(page) " / " counter(pages);
                 font-family: Helvetica, Arial, sans-serif;
                 font-size: 7.5px;
                 color: #64748b;
-                padding-bottom: 8mm;
             }
         }
 
@@ -19,166 +18,151 @@
 
         body {
             font-family: Helvetica, Arial, sans-serif;
-            font-size: 9.5px;
+            font-size: 9px;
             color: #1e293b;
-            line-height: 1.6;
+            line-height: 1.5;
             margin: 0;
             padding: 0;
         }
 
         /* ═══════════════════════════════════════════════
-           HEADER OFFICIEL — Bandeau vert institutionnel GEI
+           HEADER OFFICIEL — Table compatible Dompdf
            ═══════════════════════════════════════════════ */
-        .doc-header {
-            background: linear-gradient(135deg, #0d5f4a 0%, #16856b 60%, #1ca882 100%);
+        .doc-header-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #0d5f4a;
             color: #ffffff;
-            padding: 0;
-            position: relative;
+            margin-bottom: 0;
         }
-        .header-inner {
-            display: flex;
-            align-items: center;
-            padding: 14px 20px;
-            gap: 16px;
+        .doc-header-table td {
+            vertical-align: middle;
+            padding: 10px 14px;
         }
-        .header-logo {
-            width: 48px;
-            height: 48px;
-            background: rgba(255,255,255,0.15);
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
+        .header-logo-box {
+            width: 44px;
+            height: 44px;
+            background: #16856b;
+            border: 2px solid #5eead4;
+            border-radius: 6px;
+            text-align: center;
+            line-height: 44px;
+            font-size: 18px;
             font-weight: 900;
             color: #ffffff;
-            flex-shrink: 0;
-            letter-spacing: -1px;
-        }
-        .header-text {
-            flex: 1;
         }
         .header-platform {
-            font-size: 7.5px;
+            font-size: 7px;
             text-transform: uppercase;
-            letter-spacing: 2.5px;
-            color: rgba(255,255,255,0.75);
-            margin-bottom: 3px;
-            font-weight: 600;
-        }
-        .header-platform-name {
-            font-size: 12px;
-            font-weight: 800;
-            color: #ffffff;
-            letter-spacing: 0.5px;
+            letter-spacing: 2px;
+            color: #a7f3d0;
             margin-bottom: 2px;
+            font-weight: 700;
         }
         .header-title {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 900;
             margin: 0;
-            letter-spacing: 1px;
             color: #ffffff;
+            letter-spacing: 0.5px;
         }
         .header-subtitle {
-            font-size: 9px;
-            color: rgba(255,255,255,0.65);
-            margin-top: 3px;
+            font-size: 8.5px;
+            color: #e2e8f0;
+            margin-top: 2px;
         }
         .header-meta {
             text-align: right;
-            flex-shrink: 0;
         }
         .header-ref {
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 900;
-            letter-spacing: 1.5px;
-            color: #c9f0e3;
+            color: #a7f3d0;
+            letter-spacing: 1px;
         }
         .header-date {
             font-size: 8px;
-            color: rgba(255,255,255,0.65);
-            margin-top: 3px;
+            color: #e2e8f0;
+            margin-top: 2px;
         }
         .header-classification {
             display: inline-block;
-            background: rgba(0,0,0,0.25);
-            color: #fff;
+            background: #064e3b;
+            color: #fef08a;
             font-size: 7px;
             font-weight: 800;
-            padding: 3px 10px;
+            padding: 2px 8px;
             border-radius: 3px;
-            letter-spacing: 2px;
-            margin-top: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+            border: 1px solid #10b981;
         }
-        /* Ligne de séparation décorative sous le header */
+
         .header-accent-bar {
             height: 3px;
-            background: linear-gradient(90deg, #c9f0e3 0%, #45e3b8 50%, rgba(255,255,255,0.2) 100%);
+            background-color: #34d399;
+            margin-bottom: 8px;
         }
 
         /* ═══════════════════════════════════════════════
-           BARRE DE MÉTADONNÉES
+           BARRE DE MÉTADONNÉES — Table
            ═══════════════════════════════════════════════ */
-        .meta-bar {
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 6px 18px;
-            display: flex;
-            gap: 0;
+        .meta-bar-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            margin-bottom: 10px;
+        }
+        .meta-bar-table td {
+            padding: 5px 10px;
             font-size: 8px;
-            color: #475569;
+            color: #334155;
+            border-right: 1px solid #cbd5e1;
+            vertical-align: middle;
         }
-        .meta-item {
-            padding: 0 14px;
-            border-right: 1px solid #e2e8f0;
+        .meta-bar-table td:last-child {
+            border-right: none;
         }
-        .meta-item:last-child { border-right: none; }
         .meta-label {
-            font-weight: bold;
+            font-weight: 800;
             color: #0f172a;
             margin-right: 4px;
+            text-transform: uppercase;
         }
 
         /* ═══════════════════════════════════════════════
-           CONTENU PRINCIPAL
+           KPI STRIP — Table à 4 colonnes
            ═══════════════════════════════════════════════ */
-        .doc-body {
-            padding: 16px 18px;
+        .kpi-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
         }
-
-        /* ═══════════════════════════════════════════════
-           KPI STRIP — Barre horizontale des indicateurs clés
-           ═══════════════════════════════════════════════ */
-        .kpi-strip {
-            display: flex;
-            gap: 0;
-            margin-bottom: 16px;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .kpi-cell {
-            flex: 1;
-            padding: 10px 14px;
-            border-right: 1px solid #e2e8f0;
+        .kpi-table td {
+            width: 25%;
+            padding: 8px 10px;
             text-align: center;
+            border-right: 1px solid #cbd5e1;
+            vertical-align: middle;
         }
-        .kpi-cell:last-child { border-right: none; }
+        .kpi-table td:last-child {
+            border-right: none;
+        }
         .kpi-label {
             font-size: 7px;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: #64748b;
-            margin-bottom: 4px;
-            font-weight: 600;
+            margin-bottom: 3px;
+            font-weight: 700;
         }
         .kpi-value {
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 900;
             color: #0f172a;
         }
         .kpi-value.critique { color: #dc2626; }
@@ -188,46 +172,46 @@
         .kpi-sub {
             font-size: 7px;
             color: #94a3b8;
-            margin-top: 2px;
+            margin-top: 1px;
         }
 
         /* ═══════════════════════════════════════════════
-           SECTIONS — Cartes avec en-tête vert GEI
+           SECTIONS MÉTIER (Annexe A)
            ═══════════════════════════════════════════════ */
         .section {
-            margin-bottom: 12px;
-            border: 1px solid #d1e8e0;
-            border-radius: 4px;
-            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            page-break-inside: avoid;
         }
         .section-header {
             background: #16856b;
             color: #ffffff;
-            padding: 7px 12px;
-            font-size: 9px;
+            padding: 5px 8px;
+            font-size: 8.5px;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            letter-spacing: 0.8px;
         }
         .section-num {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-            border-radius: 3px;
-            font-size: 9px;
+            display: inline-block;
+            background: #ffffff;
+            color: #16856b;
+            font-size: 8px;
             font-weight: 900;
+            width: 14px;
+            height: 14px;
+            line-height: 14px;
+            text-align: center;
+            border-radius: 2px;
+            margin-right: 6px;
         }
         .section-body {
-            padding: 10px 12px;
+            padding: 7px 9px;
             background: #ffffff;
-            font-size: 9.5px;
+            font-size: 8.5px;
+            line-height: 1.5;
+            color: #1e293b;
         }
         .section-body.empty {
             color: #94a3b8;
@@ -235,262 +219,440 @@
         }
 
         /* ═══════════════════════════════════════════════
-           GRILLES — Tableaux de données
+           TABLEAUX DE DONNÉES GRILLES
            ═══════════════════════════════════════════════ */
-        .grid {
+        .grid-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9.5px;
+            font-size: 8.5px;
         }
-        .grid td, .grid th {
+        .grid-table td, .grid-table th {
             border: 1px solid #e2e8f0;
-            padding: 5px 10px;
+            padding: 4px 7px;
             text-align: left;
             vertical-align: top;
         }
-        .grid th {
-            background: #e8f5f0;
+        .grid-table th {
+            background: #f8fafc;
             font-weight: 700;
-            width: 28%;
             color: #0d5f4a;
-            font-size: 8px;
+            font-size: 7.5px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
-            border-color: #c9e8de;
+            letter-spacing: 0.5px;
+            width: 22%;
         }
-        .grid td { color: #1e293b; }
+        .grid-table td {
+            color: #1e293b;
+        }
 
         /* ═══════════════════════════════════════════════
-           BADGES — Indicateurs visuels de priorité
+           BADGES
            ═══════════════════════════════════════════════ */
         .badge {
             display: inline-block;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: bold;
-            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-weight: 800;
+            font-size: 7.5px;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.5px;
         }
         .badge-critique { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .badge-eleve { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
-        .badge-modere { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .badge-faible { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-eleve    { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+        .badge-modere   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-faible   { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
 
-        /* ═══════════════════════════════════════════════
-           PIED DE PAGE — Zone tampon pour @page
-           ═══════════════════════════════════════════════ */
-        .footer-spacer { height: 18px; }
+        .flag-box {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 2px;
+            font-size: 7.5px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        .flag-active { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+        .flag-inactive { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
 
     <!-- ═══════════════════════════════════════════════
-         HEADER OFFICIEL
+         HEADER OFFICIEL — Table compatible Dompdf
          ═══════════════════════════════════════════════ -->
-    <div class="doc-header">
-        <div class="header-inner">
-            <div class="header-logo">GEI</div>
-            <div class="header-text">
+    <table class="doc-header-table">
+        <tr>
+            <td style="width: 55px;">
+                <div class="header-logo-box">GEI</div>
+            </td>
+            <td>
                 <div class="header-platform">{{ platform_full }}</div>
-                <div class="header-platform-name">{{ platform_name }}</div>
-                <div class="header-title">FICHE D'ALERTE</div>
-                <div class="header-subtitle">{{ dispositif }} — Renseignement Opérationnel</div>
-            </div>
-            <div class="header-meta">
+                <div class="header-title">FICHE D'ALERTE STANDARD</div>
+                <div class="header-subtitle">Annexe A — Dispositif Régional de Renseignement Opérationnel</div>
+            </td>
+            <td class="header-meta" style="width: 200px;">
                 <div class="header-ref">{{ alert.codeGei ?? 'BROUILLON' }}</div>
-                <div class="header-date">{{ alert.dateCreation|date('d/m/Y') }}</div>
+                <div class="header-date">Émise le : {{ alert.dateCreation|date('d/m/Y') }}</div>
                 {% if alert.market %}
-                <div class="header-date">{{ alert.market.nom }} ({{ alert.market.codeIso3 }})</div>
+                    <div class="header-date">Marché : {{ alert.market.nom }} ({{ alert.market.codeIso3 }})</div>
                 {% endif %}
-                <div class="header-classification">CONFIDENTIEL</div>
-            </div>
-        </div>
-        <div class="header-accent-bar"></div>
-    </div>
+                <div class="header-classification">
+                    {{ alert.sensibilite ? alert.sensibilite.label()|upper : 'CONFIDENTIEL' }}
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div class="header-accent-bar"></div>
 
     <!-- ═══════════════════════════════════════════════
          BARRE DE MÉTADONNÉES
          ═══════════════════════════════════════════════ -->
-    <div class="meta-bar">
-        <div class="meta-item">
-            <span class="meta-label">Réf:</span>{{ document_ref }}
-        </div>
-        <div class="meta-item">
-            <span class="meta-label">Imprimé:</span>{{ date_impression|date('d/m/Y H:i') }}
-        </div>
-        <div class="meta-item">
-            <span class="meta-label">Classification:</span>Confidentiel
-        </div>
-    </div>
+    <table class="meta-bar-table">
+        <tr>
+            <td><span class="meta-label">Réf. Doc :</span> {{ document_ref }}</td>
+            <td><span class="meta-label">Date Impression :</span> {{ date_impression|date('d/m/Y H:i') }}</td>
+            <td><span class="meta-label">Émetteur :</span> {{ alert.emetteur ? alert.emetteur.nomComplet : (alert.emetteurTexte ?: 'Non spécifié') }}</td>
+            <td><span class="meta-label">Sensibilité :</span> {{ alert.sensibilite ? alert.sensibilite.label() : 'Restreinte' }}</td>
+            <td><span class="meta-label">Statut :</span> {{ alert.statut ? alert.statut.label() : 'Nouveau' }}</td>
+        </tr>
+    </table>
 
     <!-- ═══════════════════════════════════════════════
-         CONTENU PRINCIPAL
+         KPI STRIP
          ═══════════════════════════════════════════════ -->
-    <div class="doc-body">
-
-        <!-- KPI Strip -->
-        <div class="kpi-strip">
-            <div class="kpi-cell">
-                <div class="kpi-label">Score GEI</div>
+    <table class="kpi-table">
+        <tr>
+            <td>
+                <div class="kpi-label">Score GEI (Annexe C)</div>
                 <div class="kpi-value {% if alert.effectiveScore >= 18 %}critique{% elseif alert.effectiveScore >= 14 %}eleve{% elseif alert.effectiveScore >= 10 %}modere{% else %}faible{% endif %}">
-                    {{ alert.effectiveScore ?? '—' }}<span style="font-size:9px;color:#94a3b8;">/25</span>
+                    {{ alert.effectiveScore ?? '—' }}<span style="font-size:8px;color:#94a3b8;">/25</span>
                 </div>
-                <div class="kpi-sub">Annexe C</div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">Priorité</div>
-                <div class="kpi-value" style="font-size: 12px;">
+                <div class="kpi-sub">
+                    {% if alert.scoreSurcharge %}
+                        (Surcharge Manager : {{ alert.scoreSurcharge }}/25)
+                    {% else %}
+                        Calcul automatique système
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                <div class="kpi-label">Niveau de Priorité</div>
+                <div class="kpi-value" style="font-size: 11px;">
                     {% set p = alert.effectiveNiveauPriorite %}
                     {% if p %}
                         <span class="badge badge-{{ p.value }}">{{ p.label() }}</span>
                     {% else %}<span style="color:#94a3b8;">—</span>{% endif %}
                 </div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">Statut</div>
-                <div class="kpi-value" style="font-size: 12px;">{{ alert.statut ? alert.statut.label() : '—' }}</div>
-            </div>
-            <div class="kpi-cell">
-                <div class="kpi-label">Catégorie</div>
-                <div class="kpi-value" style="font-size: 12px;">{{ alert.categorie ?: '—' }}</div>
-            </div>
-        </div>
+                <div class="kpi-sub">
+                    {% if alert.niveauPrioriteSurcharge %}
+                        Surcharge : {{ alert.niveauPrioriteSurcharge.label() }}
+                    {% else %}
+                        Dérivé du score
+                    {% endif %}
+                </div>
+            </td>
+            <td>
+                <div class="kpi-label">Statut Workflow</div>
+                <div class="kpi-value" style="font-size: 11px; color: #0d5f4a;">
+                    {{ alert.statut ? alert.statut.label() : '—' }}
+                </div>
+                <div class="kpi-sub">Transmission : {{ alert.transmission ? alert.transmission.label() : 'Non' }}</div>
+            </td>
+            <td>
+                <div class="kpi-label">Niveau d'Urgence</div>
+                <div class="kpi-value" style="font-size: 11px;">
+                    {{ alert.urgence ? alert.urgence.label() : '—' }}
+                </div>
+                <div class="kpi-sub">Impact : {{ alert.impact ? alert.impact.label() : '—' }}</div>
+            </td>
+        </tr>
+    </table>
 
-        <!-- Section 1 : Identification -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">1</span>
-                Identification & Localisation
-            </div>
-            <table class="grid">
-                <tr>
-                    <th>Zone / Pays</th>
-                    <td>{{ alert.market.nom }} ({{ alert.market.codeIso3 }})</td>
-                    <th>Port / Corridor</th>
-                    <td>{{ alert.portCorridor ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Catégorie</th>
-                    <td>{{ alert.categorie ?: '-' }}</td>
-                    <th>Type d'Alerte</th>
-                    <td>{{ alert.typeAlerte ? alert.typeAlerte.label() : '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Type de Source</th>
-                    <td>{{ alert.typeSource ?: '-' }}</td>
-                    <th>Anonymisation</th>
-                    <td>{{ alert.anonymisation ?: '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Fiabilité Source</th>
-                    <td>
-                        {% if alert.fiabiliteSource %}
-                            <span style="font-weight: bold; color: #0f172a;">{{ alert.fiabiliteSource.value }}</span> — {{ alert.fiabiliteSource.label() }}
-                        {% else %}-{% endif %}
-                    </td>
-                    <th>Crédibilité</th>
-                    <td>{{ alert.credibiliteContenu ? alert.credibiliteContenu ~ '/4' : '-' }}</td>
-                </tr>
-            </table>
+    <!-- ═══════════════════════════════════════════════
+         SECTION 1 : IDENTIFICATION & LOCALISATION (Annexe A §1)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">1</span>
+            Identification, Origine &amp; Localisation
         </div>
-
-        <!-- Section 2 : Qualification -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">2</span>
-                Qualification GEI — Annexe C
-            </div>
-            <table class="grid">
-                <tr>
-                    <th>Urgence</th>
-                    <td>{{ alert.urgence ? alert.urgence.label() : '-' }}</td>
-                    <th>Impact</th>
-                    <td>{{ alert.impact ? alert.impact.label() : '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Exploitabilité</th>
-                    <td>{{ alert.exploitabilite ? alert.exploitabilite.label() : '-' }}</td>
-                    <th>Recommandation</th>
-                    <td>{{ alert.recommandation ? alert.recommandation.label() : '-' }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Section 3 : Résumé -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">3</span>
-                Résumé Exécutif
-            </div>
-            <div class="section-body {{ alert.resumeExecutif ? '' : 'empty' }}">
-                {{ alert.resumeExecutif ?: 'Aucun résumé exécutif renseigné.' }}
-            </div>
-        </div>
-
-        <!-- Section 4 : Éléments factuels -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">4</span>
-                Éléments Factuels
-            </div>
-            <div class="section-body {{ alert.elementsFactuels ? '' : 'empty' }}">
-                {{ alert.elementsFactuels ?: 'Aucun élément factuel renseigné.' }}
-            </div>
-        </div>
-
-        <!-- Section 5 : Hypothèses -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">5</span>
-                Hypothèses Analytiques & Prospective
-            </div>
-            <div class="section-body {{ alert.hypothesesAnalytiques ? '' : 'empty' }}">
-                {{ alert.hypothesesAnalytiques ?: 'Aucune hypothèse analytique renseignée.' }}
-            </div>
-        </div>
-
-        <!-- Section 6 : Actions -->
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">6</span>
-                Actions en Cours & Responsable
-            </div>
-            <table class="grid">
-                <tr>
-                    <th style="width: 22%;">Actions en cours</th>
-                    <td>{{ alert.actionsEnCours ?: '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Responsable suivi</th>
-                    <td>{{ alert.responsableSuivi ? alert.responsableSuivi.nomComplet : '-' }}</td>
-                </tr>
-                <tr>
-                    <th>Commentaires</th>
-                    <td>{{ alert.commentaires ?: '-' }}</td>
-                </tr>
-            </table>
-        </div>
-
-        <!-- Section 7 : Transmission -->
-        {% if alert.transmission and alert.transmission.value != 'non' %}
-        <div class="section">
-            <div class="section-header">
-                <span class="section-num">7</span>
-                Transmission & Diffusion
-            </div>
-            <table class="grid">
-                <tr>
-                    <th style="width: 22%;">Statut transmission</th>
-                    <td>{{ alert.transmission.label() }}</td>
-                </tr>
-            </table>
-        </div>
-        {% endif %}
-
+        <table class="grid-table">
+            <tr>
+                <th>Zone / Marché émetteur</th>
+                <td>{{ alert.market ? alert.market.nom ~ ' (' ~ alert.market.codeIso3 ~ ')' : '-' }}</td>
+                <th>Type de localisation</th>
+                <td>{{ alert.typeLocalisation ? alert.typeLocalisation.label() : '-' }}</td>
+            </tr>
+            <tr>
+                <th>Port / Corridor / Aéroport</th>
+                <td>{{ alert.portCorridor ?: '-' }}</td>
+                <th>Parcours / Transit</th>
+                <td>
+                    {% if alert.parcoursCountries and alert.parcoursCountries is iterable and alert.parcoursCountries|length > 0 %}
+                        {{ alert.parcoursCountries|join(' → ') }}
+                    {% elseif alert.alertMarkets and alert.alertMarkets|length > 0 %}
+                        {% for am in alert.alertMarkets %}{{ am.market.nom }}{% if not loop.last %} → {% endif %}{% endfor %}
+                    {% else %}
+                        Marché national émetteur
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Catégorie</th>
+                <td>{{ alert.categorie ?: '-' }}</td>
+                <th>Type d'Alerte</th>
+                <td>{{ alert.typeAlerte ? alert.typeAlerte.label() : '-' }}</td>
+            </tr>
+            <tr>
+                <th>Marque du produit</th>
+                <td><strong style="color: #0f172a;">{{ alert.marque ?: 'Non précisée' }}</strong></td>
+                <th>Opérateur / Acteur identifié</th>
+                <td>
+                    {% if alert.operateurActeur %}
+                        <strong>{{ alert.operateurActeur }}</strong>
+                    {% elseif alert.acteurs and alert.acteurs|length > 0 %}
+                        {% for a in alert.acteurs %}{{ a.nomOuRaisonSociale }} ({{ a.role }}){% if not loop.last %}, {% endif %}{% endfor %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Émetteur opérationnel</th>
+                <td>
+                    {{ alert.emetteur ? alert.emetteur.nomComplet : (alert.emetteurTexte ?: '-') }}
+                    {% if alert.emetteur and alert.emetteur.email %}
+                        <span style="color:#64748b; font-size:7.5px;">({{ alert.emetteur.email }})</span>
+                    {% endif %}
+                </td>
+                <th>Origine de la saisie</th>
+                <td>{{ alert.origine == 'import_excel' ? 'Import Registre Excel' : 'Saisie directe Agent' }}</td>
+            </tr>
+        </table>
     </div>
 
-    <div class="footer-spacer"></div>
+    <!-- ═══════════════════════════════════════════════
+         SECTION 2 : RÉSUMÉ EXÉCUTIF (Annexe A §2)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">2</span>
+            Résumé Exécutif (Synthèse concise)
+        </div>
+        <div class="section-body {{ alert.resumeExecutif ? '' : 'empty' }}">
+            {{ alert.resumeExecutif ? alert.resumeExecutif|nl2br : 'Aucun résumé exécutif renseigné.' }}
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 3 : SOURCE & HISTORIQUE (Annexe A §3)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">3</span>
+            Source &amp; Historique Comportemental
+        </div>
+        <table class="grid-table">
+            <tr>
+                <th>Type de source</th>
+                <td>{{ alert.typeSource ?: '-' }}</td>
+                <th>Anonymisation requise</th>
+                <td>
+                    {% if alert.anonymisation and alert.anonymisation|lower == 'oui' %}
+                        <span style="color: #b91c1c; font-weight: bold;">OUI — Source protégée</span>
+                    {% else %}
+                        {{ alert.anonymisation ?: 'Non' }}
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Fiabilité de la source</th>
+                <td>
+                    {% if alert.fiabiliteSource %}
+                        <strong>{{ alert.fiabiliteSource.value }}</strong> — {{ alert.fiabiliteSource.label() }} (Score : {{ alert.fiabiliteSource.score() }})
+                    {% else %}-{% endif %}
+                </td>
+                <th>Crédibilité du contenu</th>
+                <td>{{ alert.credibiliteContenu ? alert.credibiliteContenu ~ '/4' : '-' }}</td>
+            </tr>
+            <tr>
+                <th>Historique comportemental</th>
+                <td colspan="3">
+                    {{ alert.historiqueSource ? alert.historiqueSource|nl2br : 'Aucun historique comportemental particulier consigné sur cette source.' }}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 4 : ÉLÉMENTS FACTUELS & PIÈCES (Annexe A §4)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">4</span>
+            Éléments Factuels &amp; Justificatifs Disponibles
+        </div>
+        <div class="section-body {{ alert.elementsFactuels ? '' : 'empty' }}">
+            {{ alert.elementsFactuels ? alert.elementsFactuels|nl2br : 'Aucun élément factuel détaillé consigné.' }}
+        </div>
+        <table class="grid-table" style="border-top: 1px solid #cbd5e1;">
+            <tr>
+                <th>Réf. Documentaire / Conteneur</th>
+                <td><strong>{{ alert.referenceDocumentaire ?: 'Non précisée' }}</strong></td>
+                <th>Pièces disponibles</th>
+                <td>
+                    {% if alert.piecesDisponibles %}
+                        <span style="color: #059669; font-weight: bold;">OUI</span>
+                        {% if alert.piecesType %} (Types : {{ alert.piecesType }}){% endif %}
+                    {% else %}
+                        Non
+                    {% endif %}
+                </td>
+            </tr>
+            {% if alert.pieceJointes and alert.pieceJointes|length > 0 %}
+            <tr>
+                <th>Documents annexés en plateforme</th>
+                <td colspan="3">
+                    {% for piece in alert.pieceJointes %}
+                        • {{ piece.nomOriginal ?? piece.fichierChemin }} ({{ piece.type ?? 'Document' }}){% if not loop.last %} | {% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 5 : HYPOTHÈSES ANALYTIQUES & PROSPECTIVE (Annexe A §5)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">5</span>
+            Hypothèses Analytiques &amp; Prospective d'Enquête
+        </div>
+        <div class="section-body {{ alert.hypothesesAnalytiques ? '' : 'empty' }}">
+            {{ alert.hypothesesAnalytiques ? alert.hypothesesAnalytiques|nl2br : 'Aucune hypothèse analytique renseignée.' }}
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 6 : QUALIFICATION GEI (Annexe C)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">6</span>
+            Matrice de Qualification GEI (Annexe C)
+        </div>
+        <table class="grid-table">
+            <tr>
+                <th>Urgence opérationnelle</th>
+                <td>{{ alert.urgence ? alert.urgence.label() : '-' }}</td>
+                <th>Impact potentiel</th>
+                <td>{{ alert.impact ? alert.impact.label() : '-' }}</td>
+            </tr>
+            <tr>
+                <th>Exploitabilité</th>
+                <td>{{ alert.exploitabilite ? alert.exploitabilite.label() : '-' }}</td>
+                <th>Recommandation</th>
+                <td><strong style="color: #0d5f4a;">{{ alert.recommandation ? alert.recommandation.label() : '-' }}</strong></td>
+            </tr>
+            <tr>
+                <th>Score brut calculé</th>
+                <td>{{ alert.scoreGei !== null ? alert.scoreGei ~ '/25' : '-' }} (Priorité : {{ alert.niveauPriorite ? alert.niveauPriorite.label() : '-' }})</td>
+                <th>Score effectif retenu</th>
+                <td>
+                    <strong style="font-size: 10px; color: #0f172a;">{{ alert.effectiveScore ?? '-' }}/25</strong>
+                    {% if alert.effectiveNiveauPriorite %}
+                        — <span class="badge badge-{{ alert.effectiveNiveauPriorite.value }}">{{ alert.effectiveNiveauPriorite.label() }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% if alert.scoreSurcharge %}
+            <tr>
+                <th>Surcharge Manuelle Manager</th>
+                <td colspan="3" style="background:#fffbeb;">
+                    <strong>Score surchargé : {{ alert.scoreSurcharge }}/25</strong>
+                    {% if alert.surchargePar %} par {{ alert.surchargePar.nomComplet }}{% endif %}
+                    <br>
+                    <strong>Justification :</strong> {{ alert.justificationSurcharge ? alert.justificationSurcharge|nl2br : 'Non motivée' }}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 7 : ACTIONS EN COURS & SUIVI (Annexe A §6)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">7</span>
+            Actions en Cours, Responsable &amp; Suivi
+        </div>
+        <table class="grid-table">
+            <tr>
+                <th>Actions en cours / à engager</th>
+                <td colspan="3">{{ alert.actionsEnCours ? alert.actionsEnCours|nl2br : 'Aucune action immédiate enregistrée.' }}</td>
+            </tr>
+            <tr>
+                <th>Responsable du suivi désigné</th>
+                <td>{{ alert.responsableSuivi ? alert.responsableSuivi.nomComplet : 'Non désigné' }}</td>
+                <th>Transmission externe</th>
+                <td>{{ alert.transmission ? alert.transmission.label() : 'Non' }}</td>
+            </tr>
+            {% if alert.commentaires %}
+            <tr>
+                <th>Commentaires &amp; Observations</th>
+                <td colspan="3">{{ alert.commentaires|nl2br }}</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         SECTION 8 : DÉCISION GEI, DIFFUSION & TRAÇABILITÉ (Annexe A §7 & §8)
+         ═══════════════════════════════════════════════ -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-num">8</span>
+            Décision GEI, Diffusion &amp; Traçabilité
+        </div>
+        <table class="grid-table">
+            <tr>
+                <th>Décision formelle GEI</th>
+                <td colspan="3">
+                    {{ alert.decisionGei ? alert.decisionGei|nl2br : 'En attente de formalisation par le Chef d\'Opérations.' }}
+                </td>
+            </tr>
+            <tr>
+                <th>Mesures d'escalade actives</th>
+                <td colspan="3">
+                    <span class="flag-box {{ alert.surveillanceRenforcee ? 'flag-active' : 'flag-inactive' }}">
+                        Surveillance renforcée : {{ alert.surveillanceRenforcee ? 'ACTIVE' : 'Non' }}
+                    </span>
+                    <span class="flag-box {{ alert.transmissionPrioritaire ? 'flag-active' : 'flag-inactive' }}">
+                        Transmission prioritaire : {{ alert.transmissionPrioritaire ? 'ACTIVE' : 'Non' }}
+                    </span>
+                    {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
+                        <span class="flag-box flag-active">URGENCE 72H EN COURS</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Validation / Décision prise par</th>
+                <td>{{ alert.validatedBy ? alert.validatedBy.nomComplet : (alert.statut.value == 'valide' ? 'Manager habilité' : 'En attente') }}</td>
+                <th>Date d'homologation</th>
+                <td>{{ alert.dateValidation ? alert.dateValidation|date('d/m/Y H:i') : '-' }}</td>
+            </tr>
+            {% if alert.commentaireRejet %}
+            <tr>
+                <th>Motif de rejet</th>
+                <td colspan="3" style="color: #991b1b; background: #fef2f2;">
+                    {{ alert.commentaireRejet|nl2br }}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
 
 </body>
 </html>

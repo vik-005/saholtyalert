@@ -101,6 +101,18 @@ class QualificationType extends AbstractType
                 'attr'         => ['class' => 'form-select js-score-trigger'],
             ])
 
+            // ── SECTION 5b — Hypothèses analytiques (Annexe A §5) ──────────────────
+            ->add('hypothesesAnalytiques', TextareaType::class, [
+                'label'    => 'Hypothèses analytiques & prospective',
+                'required' => false,
+                'attr'     => [
+                    'class'       => 'form-textarea',
+                    'rows'        => 3,
+                    'placeholder' => 'Hypothèses sur les réseaux, modus operandi, destinations probables…',
+                ],
+                'help' => 'Annexe A §5 : distinct des faits matériels. Le Manager peut affiner ou compléter les hypothèses.',
+            ])
+
             // ── SECTION 6 — Recommandation & action ────────────────────────────────
             ->add('recommandation', EnumType::class, [
                 'class'        => Recommandation::class,

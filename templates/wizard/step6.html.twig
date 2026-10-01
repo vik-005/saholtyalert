@@ -64,6 +64,8 @@
                     <dd>{{ alert.referenceDocumentaire ?: '—' }}</dd>
                     <dt>Description / Quantité</dt>
                     <dd class="text-slate-300">{{ alert.elementsFactuels ? alert.elementsFactuels|slice(0,200) ~ (alert.elementsFactuels|length > 200 ? '…' : '') : '—' }}</dd>
+                    <dt>Hypothèses analytiques</dt>
+                    <dd class="text-slate-300">{{ alert.hypothesesAnalytiques ? alert.hypothesesAnalytiques|slice(0,200) ~ (alert.hypothesesAnalytiques|length > 200 ? '…' : '') : '—' }}</dd>
                     <dt>Marque</dt>
                     <dd>{{ alert.marque ?: '—' }}</dd>
                     <dt>Opérateur / Acteur</dt>

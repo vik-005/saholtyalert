@@ -152,8 +152,13 @@ class AlertController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'app_alert_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function delete(Request $request, Alert $alert, EntityManagerInterface $em, StatistiquesService $statistiquesService): Response
-    {
+    public function delete(
+        Request $request,
+        Alert $alert,
+        EntityManagerInterface $em,
+        StatistiquesService $statistiquesService,
+        \App\Service\AlertCodeGeneratorService $codeGenerator
+    ): Response {
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         if (!$this->isCsrfTokenValid('delete', $request->request->get('_token'))) {
@@ -165,22 +170,45 @@ class AlertController extends AbstractController
         $user    = $this->getUser();
         $motif   = $request->request->get('motif_suppression', 'Aucun motif précisé');
 
-        // Soft-delete
-        $alert->setDeletedAt(new \DateTime());
+        // Détacher les logs d'accès existants pour préserver l'audit sans bloquer la FK
+        $em->createQuery('UPDATE App\Entity\AccessLog l SET l.alert = NULL WHERE l.alert = :alert')
+           ->setParameter('alert', $alert)
+           ->execute();
 
-        // Persist log avant le flush global
-        $details = sprintf(
-            'Suppression (soft) de %s par %s — Motif : %s',
+        // Supprimer les notifications liées
+        $em->createQuery('DELETE FROM App\Entity\Notification n WHERE n.alert = :alert')
+           ->setParameter('alert', $alert)
+           ->execute();
+
+        // Détacher les incidents de sécurité éventuels
+        $em->createQuery('UPDATE App\Entity\IncidentSecurity i SET i.alert = NULL WHERE i.alert = :alert')
+           ->setParameter('alert', $alert)
+           ->execute();
+
+        // Log d'audit de la suppression
+        $log = new AccessLog();
+        $log->setUser($user instanceof \App\Entity\User ? $user : null);
+        $log->setAction(AccessLog::ACTION_SUPPRESSION);
+        $log->setIpAdresse($request->getClientIp());
+        $log->setUserAgent($request->headers->get('User-Agent'));
+        $log->setResultat('success');
+        $log->setDetails(sprintf(
+            'Suppression complète de %s par %s — Motif : %s',
             $codeGei,
             $user instanceof \App\Entity\User ? $user->getNomComplet() : 'inconnu',
             $motif
-        );
-        $this->logAction($alert, AccessLog::ACTION_SUPPRESSION, $details, $em);
+        ));
+        $em->persist($log);
 
-        $em->flush(); // Un seul flush pour soft-delete + log
+        // Suppression en cascade via Doctrine (suivis, historiques, transmissions, commentaires, urgence 72h)
+        $em->remove($alert);
+        $em->flush();
+
+        // Réinitialiser le cache des numéros de séquence pour permettre la réattribution immédiate
+        $codeGenerator->resetSequenceCache();
         $statistiquesService->invalidateAll();
 
-        $this->addFlash('info', sprintf('Alerte %s archivée (soft-delete).', $codeGei));
+        $this->addFlash('success', sprintf('Alerte %s et l\'ensemble de son suivi ont été supprimés avec succès.', $codeGei));
 
         return $this->redirectToRoute('app_alert_index');
     }

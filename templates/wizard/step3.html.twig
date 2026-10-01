@@ -31,25 +31,52 @@
             </div>
 
             {# Champ 10 — Type d'alerte (radio) #}
+            {% set currentTypeAlerte = draftData['alert[typeAlerte]']|default(draftData['typeAlerte']|default(alert.typeAlerte ? alert.typeAlerte.value : '')) %}
             <div class="form-field">
                 <label class="form-label">
                     Type d'alerte <span class="text-red-400">*</span>
                 </label>
-                <div class="radio-group">
-                    <label class="radio-option {% if (draftData['alert[typeAlerte]'] ?? '') == 'operationnelle' %}radio-option-active{% endif %}">
+                <div class="radio-group" id="typeAlerteGroup">
+                    <label class="radio-option {% if currentTypeAlerte == 'operationnelle' %}radio-option-active{% endif %}" data-val="operationnelle">
                         <input type="radio" name="alert[typeAlerte]" value="operationnelle"
-                               {% if (draftData['alert[typeAlerte]'] ?? '') == 'operationnelle' %}checked{% endif %} required>
-                        <i class="bi-lightning-charge me-1"></i>
-                        <span class="radio-option-label">Opérationnelle</span>
+                               {% if currentTypeAlerte == 'operationnelle' %}checked{% endif %} required>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
+                                    <i class="bi-lightning-charge text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="radio-option-title text-sm font-bold text-white">Opérationnelle</div>
+                                    <div class="text-xs text-slate-400 font-normal">Action immédiate, saisie terrain, interception</div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill">
+                            <i class="bi bi-check-lg"></i>Sélectionné
+                        </span>
                     </label>
-                    <label class="radio-option {% if (draftData['alert[typeAlerte]'] ?? '') == 'strategique' %}radio-option-active{% endif %}">
+                    <label class="radio-option {% if currentTypeAlerte == 'strategique' %}radio-option-active{% endif %}" data-val="strategique">
                         <input type="radio" name="alert[typeAlerte]" value="strategique"
-                               {% if (draftData['alert[typeAlerte]'] ?? '') == 'strategique' %}checked{% endif %}>
-                        <i class="bi-diagram-3 me-1"></i>
-                        <span class="radio-option-label">Stratégique</span>
+                               {% if currentTypeAlerte == 'strategique' %}checked{% endif %}>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex-shrink-0">
+                                    <i class="bi-diagram-3 text-xl"></i>
+                                </div>
+                                <div>
+                                    <div class="radio-option-title text-sm font-bold text-white">Stratégique</div>
+                                    <div class="text-xs text-slate-400 font-normal">Tendance, schéma de fraude, analyse de fond</div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="radio-selected-pill">
+                            <i class="bi bi-check-lg"></i>Sélectionné
+                        </span>
                     </label>
                 </div>
-                <p class="form-help">Opérationnelle = action immédiate · Stratégique = tendance/analyse de fond.</p>
+                <p class="form-help">Sélectionnez la finalité opérationnelle de cette alerte.</p>
             </div>
 
         </div>
@@ -66,3 +93,38 @@
     </div>
 
 </form>
+
+<script>
+(function() {
+    function syncTypeAlerte() {
+        const group = document.getElementById('typeAlerteGroup');
+        if (!group) return;
+        group.querySelectorAll('.radio-option').forEach(function(card) {
+            const input = card.querySelector('input[type="radio"]');
+            if (input && input.checked) {
+                card.classList.add('radio-option-active');
+            } else {
+                card.classList.remove('radio-option-active');
+            }
+        });
+    }
+
+    document.querySelectorAll('#typeAlerteGroup .radio-option').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            const input = card.querySelector('input[type="radio"]');
+            if (input && !input.checked) {
+                input.checked = true;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            syncTypeAlerte();
+        });
+    });
+
+    document.querySelectorAll('#typeAlerteGroup input[type="radio"]').forEach(function(input) {
+        input.addEventListener('change', syncTypeAlerte);
+    });
+
+    // Synchronisation immédiate au chargement
+    syncTypeAlerte();
+})();
+</script>

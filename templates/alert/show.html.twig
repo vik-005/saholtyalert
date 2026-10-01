@@ -237,7 +237,7 @@
                     <span class="show-section-num">2</span>
                     Résumé Exécutif
                 </h3>
-                <p class="show-text">{{ alert.resumeExecutif }}</p>
+                <p class="show-text">{{ alert.resumeExecutif ? alert.resumeExecutif|nl2br : '—' }}</p>
             </div>
 
             <div class="show-section">
@@ -245,7 +245,7 @@
                     <span class="show-section-num show-section-num-amber">4</span>
                     Éléments Factuels
                 </h3>
-                <p class="show-text">{{ alert.elementsFactuels ?: '—' }}</p>
+                <p class="show-text">{{ alert.elementsFactuels ? alert.elementsFactuels|nl2br : '—' }}</p>
             </div>
 
             <div class="show-section">
@@ -253,7 +253,7 @@
                     <span class="show-section-num">5</span>
                     Hypothèses Analytiques
                 </h3>
-                <p class="show-text">{{ alert.hypothesesAnalytiques ?: '—' }}</p>
+                <p class="show-text">{{ alert.hypothesesAnalytiques ? alert.hypothesesAnalytiques|nl2br : '—' }}</p>
             </div>
 
             {% if alert.recommandation or alert.actionsEnCours %}
