@@ -1,4 +1,5 @@
-import './styles/app.css';
+// CSS is loaded via <link> tag in base.html.twig — not imported here to avoid
+// a Windows path-separator bug in AssetMapper's JavaScriptImportPathCompiler.
 import * as Turbo from '@hotwired/turbo';
 
 // Désactiver Turbo Drive — il interceptait les redirects 302 (accès refusé → login)

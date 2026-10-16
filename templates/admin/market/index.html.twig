@@ -19,7 +19,7 @@
             </p>
             <h2 class="page-title">Pays & Marchés</h2>
             <p class="page-subtitle">
-                Les pays <strong class="text-white">actifs</strong> s'affichent dans tous les formulaires, filtres
+                Les pays <strong class="font-bold text-emerald-700">actifs</strong> s'affichent dans tous les formulaires, filtres
                 et sur la carte. Un pays sans alertes peut être supprimé définitivement.
             </p>
         </div>
@@ -45,14 +45,14 @@
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi-pause-circle text-slate-500"></i></div>
+            <div class="kpi-card-icon"><i class="bi bi-pause-circle text-slate-500"></i></div>
             <div class="kpi-card-body">
                 <p class="kpi-card-val">{{ markets|filter(m => not m.actif)|length }}</p>
                 <p class="kpi-card-label">Désactivés</p>
             </div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-card-icon"><i class="bi-geo-alt text-blue-400"></i></div>
+            <div class="kpi-card-icon"><i class="bi bi-geo-alt text-blue-400"></i></div>
             <div class="kpi-card-body">
                 <p class="kpi-card-val">{{ markets|filter(m => m.zoneGeo is not null)|length }}</p>
                 <p class="kpi-card-label">Géolocalisés</p>
@@ -100,7 +100,7 @@
                     </div>
                     <div class="form-field" style="grid-column:span 2">
                         <p class="form-label mb-2">
-                            <i class="bi-crosshairs me-1.5 text-amber-400"></i>
+                            <i class="bi bi-crosshairs me-1.5 text-amber-400"></i>
                             Position sur la carte (cliquez pour placer le marqueur)
                         </p>
                         <div id="addMap" style="height:220px;border-radius:var(--radius);overflow:hidden;"></div>
@@ -130,7 +130,7 @@
     <div class="db-card">
         <div class="db-card-header">
             <p class="db-card-eyebrow">
-                <i class="bi-table me-1.5"></i>{{ markets|length }} pays enregistré{{ markets|length > 1 ? 's' : '' }}
+                <i class="bi bi-table me-1.5"></i>{{ markets|length }} pays enregistré{{ markets|length > 1 ? 's' : '' }}
             </p>
             <div class="db-search-wrap">
                 <i class="bi bi-search db-search-icon"></i>
@@ -157,7 +157,7 @@
                     <tr class="market-row {% if not market.actif %}opacity-50{% endif %}"
                         data-nom="{{ market.nom|lower }}" data-iso="{{ market.codeIso3|lower }}">
                         <td>
-                            <span class="font-semibold text-white">{{ market.nom }}</span>
+                            <span class="font-bold text-emerald-700">{{ market.nom }}</span>
                         </td>
                         <td>
                             <span class="font-mono font-bold text-amber-400 text-sm">{{ market.codeIso3 }}</span>
@@ -166,7 +166,7 @@
                         <td class="text-xs font-mono">
                             {% if market.zoneGeo %}
                                 <span class="text-emerald-400">
-                                    <i class="bi-geo-alt me-1"></i>
+                                    <i class="bi bi-geo-alt me-1"></i>
                                     {{ market.zoneGeo.latitude|number_format(4) }},
                                     {{ market.zoneGeo.longitude|number_format(4) }}
                                 </span>

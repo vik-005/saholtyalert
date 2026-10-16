@@ -11,24 +11,22 @@
         <div>
             <p class="page-eyebrow">
                 <i class="bi bi-send me-1.5 text-blue-400"></i>
-                Coordination externe & partenaires · Espace Manager / Administrateur
+                <span class="transmission-eyebrow-role">{% if app.user.role.value == 'ROLE_SUPERADMIN' %}Vue globale · Superadministrateur{% else %}Coordination externe & partenaires{% endif %}</span>
             </p>
             <h2 class="page-title">Suivi des transmissions</h2>
             <p class="page-subtitle">
                 Suivi post-transmission des alertes orientées vers les autorités et partenaires externes.
             </p>
         </div>
-        <div class="header-actions-group">
-            <span class="status-pill status-en_cours">
+        <div class="header-actions-group transmission-header-actions">
+            <span class="transmission-summary-pill transmission-summary-open">
                 <span class="status-dot"></span>
-                {{ nb_en_cours }} en cours de résolution
+                <strong>{{ nb_en_cours }}</strong><span>En cours</span>
             </span>
-            {% if nb_clotures > 0 %}
-            <span class="status-pill status-clos">
+            <span class="transmission-summary-pill transmission-summary-closed">
                 <span class="status-dot"></span>
-                {{ nb_clotures }} clôturée{{ nb_clotures > 1 ? 's' : '' }}
+                <strong>{{ nb_clotures }}</strong><span>Clôturées</span>
             </span>
-            {% endif %}
             <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-ghost">
                 <i class="bi bi-journal-text me-1.5"></i>Registre des alertes
             </a>
@@ -37,8 +35,8 @@
 
     {# ── Filtres de statut + barre de recherche dynamique ── #}
     <div data-controller="table-filter" data-table-filter-table-id-value="trTransmissions">
-    <div class="stats-filter-bar mb-4" style="justify-content:space-between">
-        <div class="stats-filter-group" style="gap:8px">
+    <div class="stats-filter-bar transmission-filter-bar mb-4">
+        <div class="stats-filter-group transmission-filter-links">
             <span class="stats-filter-label" style="font-size:12px;font-weight:600;color:var(--muted)">
                 <i class="bi bi-funnel me-1"></i>Filtrer :
             </span>
@@ -56,14 +54,14 @@
             </a>
         </div>
         {# Recherche rapide côté client #}
-        <div style="display:flex;align-items:center;gap:8px">
-            <div class="search-input-wrapper" style="position:relative">
+        <div class="transmission-search">
+            <div class="search-input-wrapper transmission-search-input">
                 <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px"></i>
                 <input type="text"
                        id="transmissionSearch"
                        data-table-filter-target="input"
                        class="form-input form-input-sm"
-                       style="padding-left:32px;min-width:240px;font-size:13px"
+                       style="padding-left:32px;font-size:13px"
                        placeholder="Rechercher alerte, destinataire…"
                        aria-label="Recherche dans les transmissions">
             </div>
@@ -74,8 +72,8 @@
     {# ── Liste / Tableau des transmissions ── #}
     <div class="db-card">
         {% if transmissions|length > 0 %}
-        <div class="table-responsive">
-            <table id="trTransmissions" class="db-table" style="width:100%;border-collapse:collapse">
+        <div class="table-responsive transmission-table-wrap">
+            <table id="trTransmissions" class="db-table transmission-table">
                 <thead>
                     <tr style="border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:0.04em">
                         <th style="padding:12px 16px;text-align:left">Alerte</th>
@@ -89,9 +87,9 @@
                 </thead>
                 <tbody>
                     {% for t in transmissions %}
-                    <tr style="border-bottom:1px solid var(--border);transition:background 0.15s ease" class="hover:bg-slate-800/20">
+                    <tr class="transmission-row">
                         {# Alerte #}
-                        <td style="padding:14px 16px">
+                        <td data-label="Alerte">
                             <div style="font-weight:700">
                                 <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="code-gei-link" style="font-size:13px">
                                     {{ t.alert.codeGei ?? ('#GEI-' ~ t.alert.id) }}
@@ -103,7 +101,7 @@
                         </td>
 
                         {# Destinataire #}
-                        <td style="padding:14px 16px">
+                        <td data-label="Destinataire">
                             <span style="font-weight:600;color:var(--text);font-size:12.5px">
                                 <i class="bi bi-building me-1.5" style="color:var(--muted)"></i>
                                 {{ t.destinataire }}
@@ -111,7 +109,7 @@
                         </td>
 
                         {# Note de transmission (tronquée si > 120 chars) #}
-                        <td style="padding:14px 16px;max-width:280px">
+                        <td data-label="Note de transmission" class="transmission-note-cell">
                             {% if t.noteTransmission %}
                                 {% set note = t.noteTransmission %}
                                 {% if note|length > 120 %}
@@ -133,7 +131,7 @@
                         </td>
 
                         {# Statut de la transmission #}
-                        <td style="padding:14px 16px">
+                        <td data-label="Statut">
                             {% if t.isCloture %}
                                 <span class="status-pill status-clos" title="Dossier traité et clôturé par le destinataire">
                                     <span class="status-dot"></span>Clôturé
@@ -151,45 +149,40 @@
                         </td>
 
                         {# Date transmission #}
-                        <td style="padding:14px 16px;font-size:11.5px;color:var(--muted);white-space:nowrap">
+                        <td data-label="Date de transmission" class="transmission-date-cell">
                             <i class="bi bi-calendar3 me-1 opacity-60"></i>
                             {{ t.transmisLe|date('d/m/Y') }}
                             <span style="font-size:10px;display:block;opacity:0.75">à {{ t.transmisLe|date('H:i') }}</span>
                         </td>
 
                         {# Transmis par (Manager) #}
-                        <td style="padding:14px 16px;font-size:12px;color:var(--text);white-space:nowrap">
+                        <td data-label="Transmis par" class="transmission-sender-cell">
                             <i class="bi bi-person me-1" style="color:var(--muted)"></i>
                             {{ t.manager ? t.manager.nomComplet : 'Manager' }}
                         </td>
 
                         {# Actions #}
-                        <td class="transmission-action-cell" style="padding:14px 16px;text-align:right;white-space:nowrap">
-                            <details class="transmission-actions">
-                                <summary class="transmission-actions-toggle" title="Afficher les actions">
-                                    <i class="bi bi-plus-lg" aria-hidden="true"></i><span class="visually-hidden">Afficher les actions</span>
-                                </summary>
-                                <div id="transmission-actions-{{ t.id }}" class="transmission-actions-menu">
-                                    <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="db-btn db-btn-sm db-btn-ghost" title="Consulter la fiche alerte">
-                                        <i class="bi bi-eye me-1"></i>Consulter
-                                    </a>
-                                    {% if not t.isCloture %}
-                                    <form method="post" action="{{ path('app_transmission_cloturer', {id: t.id}) }}" onsubmit="return confirm('Confirmez-vous la clôture du suivi pour cette transmission ?');">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('cloturer-transmission-' ~ t.id) }}">
-                                        <button type="submit" class="db-btn db-btn-sm db-btn-validate-step" title="Marquer cette transmission comme clôturée" id="btn-cloturer-{{ t.id }}">
-                                            <i class="bi bi-check2-circle me-1"></i>Clôturer
-                                        </button>
-                                    </form>
-                                    {% else %}
-                                    <form method="post" action="{{ path('app_transmission_rouvrir', {id: t.id}) }}" onsubmit="return confirm('Rouvrir cette transmission ? Elle repassera au statut \'En cours de résolution\'.');">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('rouvrir-transmission-' ~ t.id) }}">
-                                        <button type="submit" class="db-btn db-btn-sm db-btn-ghost" title="Rouvrir cette transmission" id="btn-rouvrir-{{ t.id }}">
-                                            <i class="bi bi-arrow-counterclockwise me-1"></i>Rouvrir
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                </div>
-                            </details>
+                        <td data-label="Actions" class="transmission-action-cell">
+                            <div class="transmission-row-actions">
+                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="transmission-view-btn" title="Consulter la fiche alerte">
+                                    <i class="bi bi-eye"></i><span>Voir l’alerte</span>
+                                </a>
+                                {% if not t.isCloture %}
+                                <form method="post" action="{{ path('app_transmission_cloturer', {id: t.id}) }}" onsubmit="return confirm('Confirmez-vous la clôture du suivi de cette transmission ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('cloturer-transmission-' ~ t.id) }}">
+                                    <button type="submit" class="transmission-close-btn" title="Clôturer le suivi" id="btn-cloturer-{{ t.id }}">
+                                        <i class="bi bi-check2-circle"></i><span>Clôturer le suivi</span>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{{ path('app_transmission_rouvrir', {id: t.id}) }}" onsubmit="return confirm('Rouvrir cette transmission ? Elle repassera au statut « En cours ».');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('rouvrir-transmission-' ~ t.id) }}">
+                                    <button type="submit" class="transmission-reopen-btn" title="Rouvrir le suivi" id="btn-rouvrir-{{ t.id }}">
+                                        <i class="bi bi-arrow-counterclockwise"></i><span>Rouvrir le suivi</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -226,16 +219,68 @@
 
 </div>
 <style>
-.transmission-action-cell { width: 1%; }
-.transmission-actions { position: relative; display: inline-flex; align-items: center; justify-content: flex-end; margin-left: auto; }
-.transmission-actions summary { list-style: none; }
-.transmission-actions summary::-webkit-details-marker { display: none; }
-.transmission-actions-toggle { width: 30px; height: 30px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 6px; background: var(--card2); color: var(--text); cursor: pointer; }
-.transmission-actions-toggle:hover, .transmission-actions[open] .transmission-actions-toggle { background: var(--amber); color: #000; border-color: var(--amber); }
-.transmission-actions-menu { position: absolute; z-index: 5; top: calc(100% + 6px); right: 0; display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--border); border-radius: 7px; background: var(--card); box-shadow: 0 8px 20px rgba(15, 23, 42, .16); }
-.transmission-actions-menu form { margin: 0; }
-@media (max-width: 900px) {
-    .transmission-actions-menu { flex-direction: column; align-items: stretch; }
+.transmission-table { min-width: 1080px; }
+.transmission-row { border-bottom: 1px solid var(--border); transition: background .15s ease; }
+.transmission-row:hover { background: var(--card2); }
+.transmission-table td { padding: 13px 14px; }
+.transmission-note-cell { max-width: 290px; }
+.transmission-date-cell, .transmission-sender-cell { white-space: nowrap; }
+.transmission-action-cell { width: 1%; min-width: 190px; }
+.transmission-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.transmission-row-actions form { margin: 0; }
+.transmission-view-btn, .transmission-close-btn, .transmission-reopen-btn {
+    display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px;
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 11px; font-weight: 700; line-height: 1.2; text-decoration: none;
+    white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
+}
+.transmission-view-btn { background: var(--card2); color: var(--text); }
+.transmission-view-btn:hover { border-color: var(--border2); background: var(--card); }
+.transmission-close-btn { border-color: #16856b; background: #16856b; color: #fff; }
+.transmission-close-btn:hover { border-color: #0d715b; background: #0d715b; transform: translateY(-1px); }
+.transmission-reopen-btn { border-color: var(--border); background: var(--card2); color: var(--dim); }
+.transmission-reopen-btn:hover { border-color: var(--amber); color: var(--amber); }
+.transmission-row-actions button:focus-visible, .transmission-row-actions a:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
+.transmission-header-actions { flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.transmission-summary-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); font-size: 10px; }
+.transmission-summary-pill strong { color: var(--text); font-size: 14px; }
+.transmission-summary-pill > span:last-child { color: var(--muted); }
+.transmission-summary-pill .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #16856b; }
+.transmission-summary-closed .status-dot { background: #64748b; }
+.transmission-filter-bar { justify-content: space-between; gap: 12px; }
+.transmission-filter-links { flex-wrap: wrap; gap: 8px; }
+.transmission-search { display: flex; align-items: center; gap: 8px; }
+.transmission-search-input { position: relative; width: min(290px, 100%); }
+.transmission-search-input input { width: 100%; min-height: 40px; }
+.transmission-eyebrow-role { display: inline-flex; align-items: center; gap: 5px; }
+body.dark .transmission-close-btn { color: #fff; }
+body.dark .transmission-view-btn { background: var(--card2); color: var(--text); }
+@media (max-width: 1050px) {
+    .transmission-filter-bar { align-items: stretch; flex-direction: column; }
+    .transmission-search { width: 100%; }
+    .transmission-search-input { width: min(360px, 100%); }
+}
+@media (max-width: 760px) {
+    .transmission-header-actions { width: 100%; justify-content: flex-start; }
+    .transmission-table-wrap { overflow: visible; }
+    .transmission-table { display: block; min-width: 0; border-collapse: separate !important; }
+    .transmission-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .transmission-table tbody { display: grid; gap: 12px; }
+    .transmission-table tbody tr.transmission-row { display: block; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 5px 18px rgba(15,23,42,.06); }
+    .transmission-table td { display: grid; grid-template-columns: minmax(104px, 31%) minmax(0, 1fr); align-items: start; gap: 10px; width: 100%; max-width: none; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: normal; }
+    .transmission-table td::before { content: attr(data-label); color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .transmission-table td:first-child { padding-top: 13px; }
+    .transmission-table td:last-child { border-bottom: 0; }
+    .transmission-note-cell { max-width: none; }
+    .transmission-row-actions { grid-column: 2; flex-wrap: wrap; justify-content: flex-start; }
+    .transmission-view-btn, .transmission-close-btn, .transmission-reopen-btn { min-height: 42px; }
+}
+@media (max-width: 420px) {
+    .transmission-table td { grid-template-columns: 1fr; gap: 5px; }
+    .transmission-row-actions { grid-column: 1; }
+    .transmission-row-actions form, .transmission-row-actions button, .transmission-view-btn { width: 100%; }
+    .transmission-search { align-items: stretch; flex-direction: column; }
+    .transmission-search-input { width: 100%; }
 }
 </style>
 {% endblock %}

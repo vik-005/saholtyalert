@@ -58,8 +58,9 @@
 /* ── Carte ── */
 #map {
     width: 100%; height: 100%;
-    background: #e8eef1;
+    background: #edf1f3;
 }
+#map.map-dark-tiles .leaflet-tile-pane { filter: brightness(.68) saturate(.7) contrast(1.08); }
 #map.map-tiles-unavailable::after {
     content: 'Fond cartographique indisponible - les donnees GEI restent accessibles dans le panneau';
     position: absolute; z-index: 1000; top: 12px; left: 50%; transform: translateX(-50%);
@@ -70,29 +71,25 @@
 
 /* ── Marqueurs — double dimension visuelle (priorité = fond, volume = taille/bordure) ── */
 .z-marker {
+    position: relative;
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%;
-    font-weight: 800; color: #fff;
+    font-weight: 750; color: #26332e;
     cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
+    transition: transform .15s;
     line-height: 1;
-    border: 2px solid rgba(255,255,255,.9);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+    border: 2px solid #fff;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .2);
 }
-.z-marker:hover { transform: scale(1.12); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22) !important; }
+.z-marker:hover { transform: scale(1.08); }
 
-/* Couleur de fond = Priorité dominante, plus premium et moins néon */
-.z-marker.critique { background: linear-gradient(135deg, #ef4444, #b91c1c) !important; }
-.z-marker.eleve    { background: linear-gradient(135deg, #f97316, #c2410c) !important; }
-.z-marker.modere   { background: linear-gradient(135deg, #f59e0b, #b45309) !important; }
-.z-marker.faible   { background: linear-gradient(135deg, #22c55e, #15803d) !important; }
-.z-marker.zero     { background: linear-gradient(135deg, #94a3b8, #64748b) !important; }
+.z-marker.critique { border-color: #b42318; }
+.z-marker.eleve    { border-color: #c2410c; }
+.z-marker.modere   { border-color: #a16207; }
+.z-marker.faible   { border-color: #15803d; }
 
-/* Bordure & halo = Intensité du volume (plus sobre) */
-.z-marker.vol-faible   { border-width: 2px; box-shadow: 0 3px 10px rgba(34,197,94,.28); }
-.z-marker.vol-modere   { border-width: 3px; box-shadow: 0 4px 12px rgba(245,158,11,.28); }
-.z-marker.vol-eleve    { border-width: 4px; box-shadow: 0 5px 16px rgba(249,115,22,.32); }
-.z-marker.vol-critique { border-width: 5px; box-shadow: 0 6px 18px rgba(239,68,68,.35); }
+.z-marker.vol-faible,.z-marker.vol-modere,.z-marker.vol-eleve,.z-marker.vol-critique { border-width: 2px; }
 
 /* ── Popup Leaflet — style GEI clair ── */
 .leaflet-popup-content-wrapper {
@@ -133,6 +130,34 @@
     transition: background .15s;
 }
 .popup-btn:hover { background: #e6f5ef; }
+.map-tools {
+    position: absolute; z-index: 1000; top: 14px; right: 14px;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 7px; border: 1px solid rgba(148,163,184,.28); border-radius: 12px;
+    background: rgba(255,255,255,.96); box-shadow: 0 5px 18px rgba(15,23,42,.15);
+    backdrop-filter: blur(8px);
+}
+.map-tools-count { padding: 0 7px; color: #475569; font-size: 11px; font-weight: 700; }
+.map-tools button {
+    display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px;
+    border: 1px solid #dbe4ea; border-radius: 8px; background: #fff; color: #334155;
+    font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.map-tools button:hover, .map-tools button[aria-pressed="true"] {
+    border-color: #16856b; background: #e9f6f1; color: #126b57;
+}
+.map-tools button:disabled { opacity: .45; cursor: not-allowed; }
+.route-arrow-icon { background: transparent; border: 0; }
+.route-arrow-icon span {
+    display: block; color: #126b57; font-size: 14px; line-height: 18px;
+    text-shadow: 0 1px 2px rgba(255,255,255,.95); transform-origin: center;
+}
+body.dark .map-tools { background: rgba(15,23,42,.96); border-color: var(--border); }
+body.dark .map-tools-count { color: var(--text); }
+body.dark .map-tools button { background: var(--navy-800); border-color: var(--border); color: var(--text); }
+body.dark .map-tools button:hover, body.dark .map-tools button[aria-pressed="true"] {
+    background: rgba(22,133,107,.22); color: #6ee7b7;
+}
 
 /* ── Panneau résultats ── */
 .pays-card {
@@ -385,7 +410,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         {# Liste des pays avec compteurs — triés par nombre d'alertes #}
         <div class="carte-results" id="paysListContainer">
             <div class="text-center py-8 text-slate-500 text-sm" id="paysListPlaceholder">
-                <i class="bi-arrow-repeat bi-spin text-amber-400 bi-lg block mb-2"></i>
+                <i class="bi bi-arrow-repeat bi-spin text-amber-400 bi-lg block mb-2"></i>
                 Chargement des données…
             </div>
         </div>
@@ -395,6 +420,19 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     {# ── CARTE LEAFLET ── #}
     <div style="position:relative;display:flex;flex-direction:column;height:100%;">
         <div id="map" style="flex:1;width:100%;min-height:400px;"></div>
+
+        <div class="map-tools" role="group" aria-label="Outils de carte">
+            <span class="map-tools-count" id="routeCount" aria-live="polite">0 parcours indicatif</span>
+            <button type="button" id="routeToggle" aria-pressed="true" disabled>
+                <i class="bi bi-bezier2"></i>Trajets indicatifs
+            </button>
+            <button type="button" id="routeFit" disabled>
+                <i class="bi bi-arrows-fullscreen"></i>Voir les trajets
+            </button>
+            <button type="button" id="mapReset">
+                <i class="bi bi-globe-africa"></i>Vue Afrique
+            </button>
+        </div>
 
         {# Légende enrichie ── #}
         <div class="carte-legend" id="carteLegend">
@@ -408,7 +446,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             </div>
             <div id="carteLegendBody">
                 <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Volume : taille et bordure</p>
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Volume : taille du point</p>
                     <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F9A825;font-size:9px"></i>1–5 alertes</span><br>
                     <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F57C00;font-size:11px"></i>6–20 alertes</span><br>
                     <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#EF6C00;font-size:13px"></i>21–50 alertes</span><br>
@@ -477,19 +515,15 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     function setTileLayer(isDark) {
         if (!map) return;
-        const tileUrl = isDark
-            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        const attr = isDark
-            ? '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>'
-            : '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>';
+        const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const attr = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
+        document.getElementById('map')?.classList.toggle('map-dark-tiles', isDark);
 
         if (currentTileLayer && map.hasLayer(currentTileLayer)) {
             map.removeLayer(currentTileLayer);
         }
         currentTileLayer = L.tileLayer(tileUrl, {
             attribution: attr,
-            subdomains: 'abcd',
             maxZoom: 18,
         }).addTo(map);
 
@@ -532,7 +566,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         markersLayer = L.layerGroup().addTo(map);
-        routeLayer = L.layerGroup().addTo(map);
+        routeLayer = L.featureGroup().addTo(map);
         setTileLayer(isDark);
 
         map.fitBounds(AFRICA_BOUNDS, { padding: [10, 10] });
@@ -545,6 +579,11 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         document.getElementById('carteFiltersForm').addEventListener('submit', e => {
             e.preventDefault();
             loadZones();
+        });
+        document.getElementById('routeToggle').addEventListener('click', toggleRoutes);
+        document.getElementById('routeFit').addEventListener('click', fitRoutes);
+        document.getElementById('mapReset').addEventListener('click', () => {
+            map.fitBounds(AFRICA_BOUNDS, { padding: [20, 20] });
         });
     }
 
@@ -660,19 +699,19 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
             // Double dimension visuelle :
             // 1) Taille et dégradé orange de bordure selon le volume
-            let size = 32;
+            let size = 30;
             let fontSize = 11;
             let volClass = 'vol-faible';
             if (count > 50) {
-                size = 54;
-                fontSize = 14;
+                size = 42;
+                fontSize = 12;
                 volClass = 'vol-critique';
             } else if (count > 20) {
-                size = 46;
-                fontSize = 13;
+                size = 38;
+                fontSize = 12;
                 volClass = 'vol-eleve';
             } else if (count > 5) {
-                size = 38;
+                size = 34;
                 fontSize = 12;
                 volClass = 'vol-modere';
             }
@@ -720,7 +759,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     ${corridorTitleHtml}
                 </div>
                 <a class="popup-btn" href="#" onclick="loadAlertesList(${zone.id}, '${escHtml(zone.nom)}'); return false;">
-                    <i class="bi-list me-1"></i>Voir les alertes
+                    <i class="bi bi-list me-1"></i>Voir les alertes
                 </a>`;
 
             marker.bindPopup(popupHtml, { maxWidth: 300, className: '' });
@@ -763,20 +802,84 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     function renderRoutes(routes) {
         if (!routeLayer) return;
         routeLayer.clearLayers();
+        const uniqueRoutes = new Map();
         routes.forEach(route => {
+            const key = (route.markets || []).join('|');
+            if (!uniqueRoutes.has(key)) {
+                uniqueRoutes.set(key, { ...route, occurrences: 0 });
+            }
+            uniqueRoutes.get(key).occurrences += 1;
+        });
+        const validRoutes = [...uniqueRoutes.values()].filter(route => Array.isArray(route.points) && route.points.length > 1);
+        validRoutes.forEach(route => {
             if (!Array.isArray(route.points) || route.points.length < 2) return;
             const line = L.polyline(route.points, {
-                color: '#16856b',
-                weight: 3,
-                opacity: 0.85,
-                dashArray: '8 8',
+                color: '#0f8069',
+                weight: 4,
+                opacity: 0.9,
+                dashArray: '2 9',
                 lineCap: 'round',
             }).addTo(routeLayer);
             line.bindTooltip(
-                `<strong>Parcours</strong><br>${escHtml((route.markets || []).join(' → '))}`,
+                `<strong>Parcours indicatif</strong><br>${escHtml((route.markets || []).join(' → '))}<br><small>${route.occurrences} alerte(s)</small>`,
                 { sticky: true }
             );
+            route.points.forEach((point, index) => {
+                L.circleMarker(point, {
+                    radius: index === 0 ? 6 : 4,
+                    color: '#fff',
+                    weight: 2,
+                    fillColor: '#0f8069',
+                    fillOpacity: 1,
+                }).bindTooltip(escHtml(route.markets[index] || 'Étape du parcours')).addTo(routeLayer);
+            });
+            for (let index = 0; index < route.points.length - 1; index++) {
+                const start = map.latLngToLayerPoint(route.points[index]);
+                const end = map.latLngToLayerPoint(route.points[index + 1]);
+                const midpoint = map.layerPointToLatLng(start.add(end).divideBy(2));
+                const angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI;
+                L.marker(midpoint, {
+                    interactive: false,
+                    icon: L.divIcon({
+                        className: 'route-arrow-icon',
+                        html: `<span style="transform:rotate(${angle}deg)">➜</span>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9],
+                    }),
+                }).addTo(routeLayer);
+            }
         });
+        const count = validRoutes.length;
+        const countLabel = document.getElementById('routeCount');
+        const toggle = document.getElementById('routeToggle');
+        const fit = document.getElementById('routeFit');
+        if (countLabel) countLabel.textContent = `${count} parcours indicatif${count > 1 ? 's' : ''}`;
+        if (toggle) toggle.disabled = count === 0;
+        if (fit) fit.disabled = count === 0;
+        if (toggle && count === 0) toggle.setAttribute('aria-pressed', 'false');
+        if (count === 0 && map?.hasLayer(routeLayer)) map.removeLayer(routeLayer);
+        if (count > 0 && toggle?.getAttribute('aria-pressed') !== 'false' && !map?.hasLayer(routeLayer)) {
+            routeLayer.addTo(map);
+            toggle.setAttribute('aria-pressed', 'true');
+        }
+    }
+
+    function toggleRoutes() {
+        if (!map || !routeLayer) return;
+        const button = document.getElementById('routeToggle');
+        const visible = button?.getAttribute('aria-pressed') === 'true';
+        if (visible) {
+            map.removeLayer(routeLayer);
+            button.setAttribute('aria-pressed', 'false');
+        } else {
+            routeLayer.addTo(map);
+            button.setAttribute('aria-pressed', 'true');
+        }
+    }
+
+    function fitRoutes() {
+        if (!map || !routeLayer?.getBounds().isValid()) return;
+        map.fitBounds(routeLayer.getBounds(), { padding: [50, 50], maxZoom: 7 });
     }
 
     function renderSidePanel(zones) {
@@ -813,7 +916,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     </div>
                     ${catList ? `<div class="pays-card-cats">${escHtml(catList)}</div>` : '<div class="pays-card-cats">Alertes actives</div>'}
                 </div>
-                <i class="bi-chevron-right" style="color:var(--text-muted);font-size:11px;flex-shrink:0;"></i>
+                <i class="bi bi-chevron-right pays-card-chevron"></i>
             </div>`;
         }).join('');
     }

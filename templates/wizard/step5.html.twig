@@ -1,6 +1,6 @@
 {# Étape 5 — Qualification GEI (champs 13 à 17) + score en direct #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 5}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" action="{{ path('app_wizard_new', {step: 5}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="5">
 
     <div class="db-card mb-4">
@@ -11,10 +11,31 @@
             </p>
             <p class="text-xs text-slate-500">Champs 13 à 17 — Le score se calcule automatiquement</p>
         </div>
-        <div class="db-card-body space-y-4">
+        <div class="db-card-body space-y-4 wizard-fields-grid">
+
+            <fieldset class="form-field">
+                <legend class="form-label">Qualification juridique <span class="text-red-400">*</span></legend>
+                <p class="form-help mb-3">Choisissez le statut avant le calcul du score.</p>
+                <div class="legal-status-options" id="legalStatusGroup">
+                    {% for status in ['licite', 'illicite'] %}
+                        <label class="legal-status-option" for="w_legal_{{ status }}">
+                            <input type="radio" name="alert[legalStatus]" id="w_legal_{{ status }}"
+                                   value="{{ status }}" required
+                                   {% if draftData and (draftData['alert[legalStatus]'] ?? null) == status %}checked{% endif %}>
+                            <span>
+                                <strong>{{ status == 'licite' ? 'Licite' : 'Illicite' }}</strong>
+                                <small>{{ status == 'licite' ? 'Score fixe : 1' : 'Calcul selon les critères GEI' }}</small>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+                <button type="button" class="wizard-choice-clear" data-clear-radio="legalStatusGroup" hidden>
+                    Effacer la sélection
+                </button>
+            </fieldset>
 
             {# Score live #}
-            <div id="scoreLiveBox" class="qualify-score-card mb-2">
+            <div id="scoreLiveBox" class="qualify-score-card mb-2" aria-live="polite">
                 <p class="db-card-eyebrow mb-2 text-center">
                     <i class="bi bi-lightning me-1"></i>Score GEI — Calcul en temps réel
                 </p>
@@ -29,16 +50,17 @@
                     <code id="liveFormulaText" class="text-amber-400 text-xs"></code>
                 </div>
                 <p class="text-xs text-center text-slate-500 mt-2">
-                    Formule : <code class="text-amber-400">(Fiabilité × Crédibilité) + Urgence + Impact + Exploitabilité</code>
+                    <span id="scoreFormulaHint">Illicite : (Fiabilité × Crédibilité) + Urgence + Impact + Exploitabilité</span>
                 </p>
             </div>
 
+            <div id="scoreCriteriaSection" class="space-y-4" hidden>
             {# Champ 13 — Fiabilité de la source #}
             <div class="form-field">
                 <label class="form-label" for="w_fiab">
                     Fiabilité de la source (A – D) <span class="text-red-400">*</span> <span class="text-amber-400">⚡ nourrit le score GEI</span>
                 </label>
-                <select name="alert[fiabiliteSource]" id="w_fiab" class="form-select js-score-trigger" required>
+                <select name="alert[fiabiliteSource]" id="w_fiab" class="form-select js-score-trigger">
                     <option value="">Sélectionnez la fiabilité</option>
                     {% for f in fiabilites %}
                         <option value="{{ f.value }}"
@@ -98,6 +120,7 @@
                     </select>
                 </div>
             </div>
+            </div>
 
         </div>
     </div>
@@ -120,6 +143,9 @@
     const prioEl     = document.getElementById('livePriorite');
     const formulaEl  = document.getElementById('liveFormula');
     const formulaTxt = document.getElementById('liveFormulaText');
+    const criteriaSection = document.getElementById('scoreCriteriaSection');
+    const legalStatusInputs = document.querySelectorAll('input[name="alert[legalStatus]"]');
+    const formulaHint = document.getElementById('scoreFormulaHint');
 
     const prioColors = {
         critique: { bg: 'rgba(239,68,68,.15)', color: '#f87171', border: 'rgba(239,68,68,.3)' },
@@ -156,6 +182,31 @@
     }
 
     function updateScore() {
+        const legalStatus = document.querySelector('input[name="alert[legalStatus]"]:checked')?.value || '';
+        const isIllegal = legalStatus === 'illicite';
+        if (criteriaSection) {
+            criteriaSection.hidden = !isIllegal;
+            criteriaSection.querySelectorAll('select').forEach(field => {
+                field.required = isIllegal;
+            });
+        }
+        if (formulaHint) {
+            formulaHint.textContent = isIllegal
+                ? 'Illicite : (Fiabilité × Crédibilité) + Urgence + Impact + Exploitabilité'
+                : 'Licite : score fixé automatiquement à 1';
+        }
+        if (legalStatus === 'licite') {
+            renderScore(1, 'faible', 'Faible — alerte licite', 'Alerte licite — score fixe : 1');
+            return;
+        }
+        if (!isIllegal) {
+            scoreEl.textContent = '—';
+            scoreEl.className = 'qualify-score-val text-slate-500';
+            prioEl.textContent = 'Choisissez Licite ou Illicite';
+            if (formulaEl) formulaEl.classList.add('hidden');
+            return;
+        }
+
         const fiabilite      = document.getElementById('w_fiab')?.value || '';
         const credibilite    = document.getElementById('w_credibilite')?.value || '';
         const urgence        = document.getElementById('w_urgence')?.value || '';
@@ -240,7 +291,7 @@
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ fiabiliteSource: fiabilite, credibiliteContenu: credibilite, urgence, impact, exploitabilite }),
+            body: JSON.stringify({ legalStatus, fiabiliteSource: fiabilite, credibiliteContenu: credibilite, urgence, impact, exploitabilite }),
         })
         .then(r => r.headers.get('Content-Type')?.includes('application/json') ? r.json() : null)
         .then(data => {
@@ -259,6 +310,7 @@
         el.addEventListener('change', updateScore);
         el.addEventListener('input', updateScore);
     });
+    legalStatusInputs.forEach(el => el.addEventListener('change', updateScore));
 
     // Calcul initial au chargement
     if (document.readyState === 'loading') {

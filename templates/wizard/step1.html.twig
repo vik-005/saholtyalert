@@ -1,6 +1,6 @@
 {# Étape 1 — Identification (champs 1 à 4) #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 1}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" action="{{ path('app_wizard_new', {step: 1}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="1">
 
     <div class="db-card mb-4">
@@ -11,7 +11,7 @@
             </p>
             <p class="text-xs text-slate-500">Champs 1 à 4 du formulaire Agent</p>
         </div>
-        <div class="db-card-body space-y-4">
+        <div class="db-card-body space-y-4 wizard-fields-grid">
 
             {# Champ 1 — Date de réception #}
             <div class="form-field">
@@ -37,19 +37,20 @@
                         </option>
                     {% endfor %}
                 </select>
-                <p class="form-help">Origine géographique ou commerciale de l'information.</p>
+                <p class="form-help">Marché principal de l’alerte, limité aux marchés attribués à votre compte.</p>
             </div>
 
-            <div class="form-field">
-                <label class="form-label" for="w_parcours_markets">Marchés du parcours</label>
+            <div class="form-field wizard-field-wide">
+                  <label class="form-label" for="w_parcours_markets_search">Pays et marchés du parcours</label>
                 <div class="country-picker" id="countryPicker">
-                    <div class="country-picker-selected" id="countryPickerSelected" aria-live="polite"></div>
+                      <div class="country-picker-selected" id="countryPickerSelected" aria-live="polite"></div>
                     <input type="search" id="w_parcours_markets_search" class="form-input"
-                           placeholder="Rechercher et ajouter un pays..." autocomplete="off"
+                          placeholder="Rechercher un pays puis le sélectionner..." autocomplete="off"
                            aria-label="Rechercher un pays dans les marchés du parcours"
-                           aria-controls="countryPickerOptions">
+                          aria-controls="countryPickerOptions" aria-autocomplete="list"
+                          aria-expanded="false" role="combobox">
                     <div class="country-picker-options" id="countryPickerOptions" role="listbox"
-                         aria-label="Pays disponibles">
+                        aria-label="Tous les pays disponibles" aria-multiselectable="true">
                         {% for countryCode, countryName in parcoursCountries %}
                             <button type="button" class="country-picker-option"
                                     data-country-code="{{ countryCode }}"
@@ -65,12 +66,12 @@
                         <option value="{{ countryCode }}" {% if countryCode in parcours %}selected{% endif %}>{{ countryName }}</option>
                     {% endfor %}
                 </select>
-                <p class="form-help">Optionnel : ajoutez les pays traversés. Le marché émetteur reste le marché principal de l'identifiant GEI.</p>
+                <p class="form-help">Facultatif : sélectionnez un ou plusieurs pays, puis retirez-les avec ×. Tous les pays sont proposés, indépendamment de votre marché principal.</p>
             </div>
 
             {# Champ 3 — Port / Corridor / Aéroport (radio) #}
             {% set currentTypeLoc = draftData['alert[typeLocalisation]']|default(draftData['typeLocalisation']|default(alert.typeLocalisation ? alert.typeLocalisation.value : '')) %}
-            <div class="form-field">
+            <div class="form-field wizard-field-wide">
                 <label class="form-label">
                     Type de localisation <span class="text-red-400">*</span>
                 </label>
@@ -81,13 +82,9 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
-                                    <i class="bi-anchor text-lg"></i>
-                                </div>
-                                <span class="radio-option-title text-sm font-bold text-white">Port</span>
+                                <span class="radio-option-title">Port maritime</span>
                             </div>
                         </div>
-                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
                     <label class="radio-option {% if currentTypeLoc == 'corridor' %}radio-option-active{% endif %}" data-val="corridor">
                         <input type="radio" name="alert[typeLocalisation]" value="corridor"
@@ -95,13 +92,9 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
-                                    <i class="bi-signpost-figure text-lg"></i>
-                                </div>
-                                <span class="radio-option-title text-sm font-bold text-white">Corridor</span>
+                                <span class="radio-option-title">Corridor de transit</span>
                             </div>
                         </div>
-                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
                     <label class="radio-option {% if currentTypeLoc == 'aeroport' %}radio-option-active{% endif %}" data-val="aeroport">
                         <input type="radio" name="alert[typeLocalisation]" value="aeroport"
@@ -109,20 +102,19 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
-                                    <i class="bi-airplane text-lg"></i>
-                                </div>
-                                <span class="radio-option-title text-sm font-bold text-white">Aéroport</span>
+                                <span class="radio-option-title">Aéroport international</span>
                             </div>
                         </div>
-                        <span class="radio-selected-pill"><i class="bi bi-check-lg"></i>Sélectionné</span>
                     </label>
                 </div>
+                <button type="button" class="wizard-choice-clear" data-clear-radio="typeLocalisationGroup" hidden>
+                    Effacer la sélection
+                </button>
                 <p class="form-help">Choisissez s'il s'agit d'un port, d'un corridor de transit ou d'un aéroport.</p>
             </div>
 
             {# Champ 4 — Nom (label dynamique) #}
-            <div class="form-field">
+            <div class="form-field wizard-field-wide">
                 <label class="form-label" for="w_corridor" id="label_corridor">
                     Nom <span class="text-red-400">*</span>
                 </label>
@@ -142,7 +134,7 @@
             <i class="bi bi-ban me-1.5"></i>Annuler
         </a>
         <button type="submit" name="_action" value="next" class="db-btn db-btn-amber">
-            Suivant — Contenu<i class="bi bi-arrow-right ms-2"></i>
+            Suivant<i class="bi bi-arrow-right ms-2"></i>
         </button>
     </div>
 
@@ -229,6 +221,12 @@ function renderCountryPicker() {
     if (!parcoursSelect || !countryPickerSelected || !countryPickerOptions) return;
     const selected = selectedCountryCodes();
     countryPickerSelected.innerHTML = '';
+    if (selected.size === 0) {
+        const empty = document.createElement('span');
+        empty.className = 'country-picker-empty';
+        empty.textContent = 'Aucun pays sélectionné';
+        countryPickerSelected.appendChild(empty);
+    }
     Array.from(parcoursSelect.selectedOptions).forEach(option => {
         const tag = document.createElement('span');
         tag.className = 'country-picker-tag';
@@ -274,7 +272,17 @@ countryPickerOptions?.querySelectorAll('.country-picker-option').forEach(button 
 });
 
 parcoursSearch?.addEventListener('input', filterCountryPicker);
+parcoursSearch?.addEventListener('focus', () => parcoursSearch.setAttribute('aria-expanded', 'true'));
+parcoursSearch?.addEventListener('blur', () => parcoursSearch.setAttribute('aria-expanded', 'false'));
 parcoursSearch?.addEventListener('keydown', event => {
+    if (event.key === 'ArrowDown') {
+        const firstOption = Array.from(countryPickerOptions?.querySelectorAll('.country-picker-option') ?? [])
+            .find(option => !option.hidden);
+        if (firstOption) {
+            event.preventDefault();
+            firstOption.focus();
+        }
+    }
     if (event.key === 'Escape') {
         parcoursSearch.value = '';
         filterCountryPicker();

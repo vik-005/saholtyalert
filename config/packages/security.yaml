@@ -50,9 +50,12 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/confidentialite$, roles: PUBLIC_ACCESS }
+        - { path: ^/conditions-utilisation$, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         - { path: ^/2fa_check, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
-        - { path: ^/register, roles: PUBLIC_ACCESS }
+        # Les comptes sont provisionnés dans l’administration ; aucune auto-inscription publique.
+        - { path: ^/register, roles: ROLE_SUPERADMIN }
         - { path: ^/compte/securite/2fa, roles: ROLE_USER }
         - { path: ^/admin/activites, roles: ROLE_PFT }
         - { path: ^/admin/marches, roles: ROLE_PFT }

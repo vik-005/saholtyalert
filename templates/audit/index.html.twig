@@ -1,4 +1,4 @@
-﻿{% extends 'base.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}Audit & Recherche avancée — GEI{% endblock %}
 {% block header_title %}Audit{% endblock %}
@@ -21,15 +21,15 @@
             <h2 class="page-title">Audit & Recherche avancée</h2>
             <p class="page-subtitle mx-auto" style="max-width:600px">
                 Croisez plusieurs critères simultanément. Les résultats s'affichent en
-                <strong class="text-white">tableau</strong>, <strong class="text-white">graphiques</strong>,
-                <strong class="text-white">carte</strong> ou en <strong class="text-white">texte</strong> selon votre choix.
+                <strong class="font-bold text-emerald-700">tableau</strong>, <strong class="font-bold text-emerald-700">graphiques</strong>,
+                <strong class="font-bold text-emerald-700">carte</strong> ou en <strong class="font-bold text-emerald-700">texte</strong> selon votre choix.
             </p>
         </div>
         <div class="db-card-btn-group flex-wrap">
             {% if hasSearch and total > 0 %}
                 <a href="{{ path('app_audit_index', app.request.query.all|merge({_export: 'csv', vue: vue})) }}"
                    class="db-btn db-btn-ghost">
-                    <i class="bi-filetype-csv me-1.5 text-emerald-400"></i>CSV
+                    <i class="bi bi-filetype-csv me-1.5 text-emerald-400"></i>CSV
                 </a>
                 <form method="post" action="{{ path('app_audit_export_excel') }}" class="d-inline">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('app_audit_export_excel') }}">
@@ -45,7 +45,7 @@
                         {% endif %}
                     {% endfor %}
                     <button type="submit" class="db-btn db-btn-ghost">
-                        <i class="bi-filetype-xls me-1.5 text-emerald-400"></i>Excel
+                        <i class="bi bi-filetype-xls me-1.5 text-emerald-400"></i>Excel
                     </button>
                 </form>
                 <form method="post" action="{{ path('app_audit_export_pdf') }}" class="d-inline">
@@ -62,7 +62,7 @@
                         {% endif %}
                     {% endfor %}
                     <button type="submit" class="db-btn db-btn-ghost">
-                        <i class="bi-filetype-pdf me-1.5 text-red-400"></i>PDF
+                        <i class="bi bi-filetype-pdf me-1.5 text-red-400"></i>PDF
                     </button>
                 </form>
             {% endif %}
@@ -370,22 +370,22 @@
                 {% for mId in filters.markets %}
                     {% for m in markets %}{% if (m.id ~ '') == (mId ~ '') %}
                         <span class="filter-chip">
-                            <i class="bi-earth-americas fa-xs me-1"></i>{{ m.nom }}
+                            <i class="bi bi-earth-americas fa-xs me-1"></i>{{ m.nom }}
                         </span>
                     {% endif %}{% endfor %}
                 {% endfor %}
             {% endif %}
             {% if (filters.dateFrom is defined and filters.dateFrom) or (filters.dateTo is defined and filters.dateTo) %}
                 <span class="filter-chip">
-                    <i class="bi-calendar fa-xs me-1"></i>
+                    <i class="bi bi-calendar fa-xs me-1"></i>
                     {{ filters.dateFrom|default('…') }} – {{ filters.dateTo|default('…') }}
                 </span>
             {% endif %}
             {% if filters.operateur is defined and filters.operateur %}
-                <span class="filter-chip"><i class="bi-building fa-xs me-1"></i>{{ filters.operateur }}</span>
+                <span class="filter-chip"><i class="bi bi-building fa-xs me-1"></i>{{ filters.operateur }}</span>
             {% endif %}
             {% if filters.marque is defined and filters.marque %}
-                <span class="filter-chip"><i class="bi-tag fa-xs me-1"></i>{{ filters.marque }}</span>
+                <span class="filter-chip"><i class="bi bi-tag fa-xs me-1"></i>{{ filters.marque }}</span>
             {% endif %}
             {% if filters.categories is defined and filters.categories is not empty %}
                 {% for catVal in filters.categories %}
@@ -409,18 +409,18 @@
             {% endif %}
             {% if filters.texteLibre is defined and filters.texteLibre %}
                 <span class="filter-chip">
-                    <i class="bi-search fa-xs me-1"></i>« {{ filters.texteLibre }} »
+                    <i class="bi bi-search fa-xs me-1"></i>« {{ filters.texteLibre }} »
                 </span>
             {% endif %}
 
-            <span class="ms-3 font-semibold text-white">{{ total }} résultat{{ total != 1 ? 's' : '' }}</span>
+            <span class="ms-3 font-semibold text-teal-700">{{ total }} résultat{{ total != 1 ? 's' : '' }}</span>
         </div>
 
         {# ── VUE TEXTE ── #}
         <div id="vuetexte" class="{{ vue == 'texte' ? '' : 'hidden' }} mb-4">
             <div class="db-card">
                 <div class="db-card-body">
-                    <h3 class="text-white font-semibold mb-3">Résumé de l'analyse</h3>
+                    <h3 class="font-semibold mb-3" style="color:var(--text)">Résumé de l'analyse</h3>
                     <div class="audit-text-summary">
                         <p>L'analyse porte sur <strong class="text-amber-400">{{ total }}</strong> alerte{{ total != 1 ? 's' : '' }}
                            correspondant aux critères sélectionnés.</p>
@@ -437,7 +437,7 @@
                         {% endif %}
                         {% if stats.parPays is not empty %}
                             <p class="mt-3"><strong>Répartition par marché :</strong></p>
-                            <ul class="list-disc list-inside text-slate-300">
+                            <ul class="list-disc list-inside" style="color:var(--dim)">
                                 {% for nom, nb in stats.parPays %}
                                     <li>{{ nom }} : {{ nb }} alerte{{ nb != 1 ? 's' : '' }}</li>
                                 {% endfor %}
@@ -454,15 +454,15 @@
             <div class="db-card">
                 <div class="db-card-header">
                     <p class="db-card-eyebrow">
-                        <i class="bi-table me-1.5"></i>
+                        <i class="bi bi-table me-1.5"></i>
                         {{ total }} alerte{{ total != 1 ? 's' : '' }} trouvée{{ total != 1 ? 's' : '' }}
                     </p>
                     <div class="db-card-actions">
                         <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('pdf')">
-                            <i class="bi-filetype-pdf me-1 text-red-400"></i>PDF
+                            <i class="bi bi-filetype-pdf me-1 text-red-400"></i>PDF
                         </button>
                         <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('excel')">
-                            <i class="bi-filetype-xls me-1 text-emerald-400"></i>Excel
+                            <i class="bi bi-filetype-xls me-1 text-emerald-400"></i>Excel
                         </button>
                     </div>
                 </div>
@@ -495,7 +495,7 @@
                                     </td>
                                     <td class="col-pays">
                                         <span class="pays-cell">
-                                            <span class="pays-flag" title="{{ row.pays ?? '' }}">🌍</span>
+                                            <span class="pays-flag">{{ row.pays ? row.pays|slice(0,3)|upper : '—' }}</span>
                                             <span class="pays-libelle">{{ row.pays ?? '—' }}</span>
                                         </span>
                                     </td>
@@ -578,7 +578,7 @@
             {% else %}
             <div class="db-card">
                 <div class="db-card-body text-center py-12">
-                    <i class="bi-table fa-3x text-slate-700 mb-4 block"></i>
+                    <i class="bi bi-table fa-3x text-slate-700 mb-4 block"></i>
                     <p class="text-slate-400 text-lg font-semibold">Aucune alerte ne correspond à ces critères.</p>
                     <p class="text-slate-500 text-sm mt-2">Élargissez votre recherche en modifiant les filtres ci-dessus.</p>
                 </div>
@@ -594,20 +594,20 @@
             {# KPIs rapides #}
             <div class="kpi-row mb-4">
                 <div class="kpi-chip">
-                    <i class="bi-file-shield kpi-chip-icon text-amber-400"></i>
+                    <i class="bi bi-file-shield kpi-chip-icon text-amber-400"></i>
                     <div><p class="kpi-chip-val">{{ total }}</p><p class="kpi-chip-label">Alertes trouvées</p></div>
                 </div>
                 <div class="kpi-chip">
-                    <i class="bi-radio-radar kpi-chip-icon text-red-400"></i>
+                    <i class="bi bi-radio-radar kpi-chip-icon text-red-400"></i>
                     <div><p class="kpi-chip-val">{{ stats.critiques ?? 0 }}</p><p class="kpi-chip-label">Critiques</p></div>
                 </div>
                 <div class="kpi-chip">
-                    <i class="bi-graph-up kpi-chip-icon text-blue-400"></i>
+                    <i class="bi bi-graph-up kpi-chip-icon text-blue-400"></i>
                     <div><p class="kpi-chip-val">{{ stats.scoreMoyen ?? '—' }}</p><p class="kpi-chip-label">Score moyen</p></div>
                 </div>
                 {% if stats.tauxTransmission is not null %}
                 <div class="kpi-chip">
-                    <i class="bi-send kpi-chip-icon text-emerald-400"></i>
+                    <i class="bi bi-send kpi-chip-icon text-emerald-400"></i>
                     <div><p class="kpi-chip-val">{{ stats.tauxTransmission }}%</p><p class="kpi-chip-label">Transmises</p></div>
                 </div>
                 {% endif %}
@@ -620,7 +620,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-bar-chart me-1.5 text-amber-400"></i>
+                            <i class="bi bi-bar-chart me-1.5 text-amber-400"></i>
                             Répartition par marché
                         </p>
                     </div>
@@ -633,7 +633,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-pie-chart me-1.5 text-amber-400"></i>
+                            <i class="bi bi-pie-chart me-1.5 text-amber-400"></i>
                             Niveaux de priorité
                         </p>
                     </div>
@@ -646,7 +646,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-tags me-1.5 text-amber-400"></i>
+                            <i class="bi bi-tags me-1.5 text-amber-400"></i>
                             Par catégorie
                         </p>
                     </div>
@@ -659,7 +659,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-graph-up me-1.5 text-amber-400"></i>
+                            <i class="bi bi-graph-up me-1.5 text-amber-400"></i>
                             Évolution temporelle
                         </p>
                     </div>
@@ -672,7 +672,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-check-circle me-1.5 text-amber-400"></i>
+                            <i class="bi bi-check-circle me-1.5 text-amber-400"></i>
                             Par statut
                         </p>
                     </div>
@@ -685,7 +685,7 @@
                 <div class="db-card">
                     <div class="db-card-header">
                         <p class="db-card-eyebrow">
-                            <i class="bi-clock me-1.5 text-amber-400"></i>
+                            <i class="bi bi-clock me-1.5 text-amber-400"></i>
                             Par urgence
                         </p>
                     </div>
@@ -711,7 +711,7 @@
             {% else %}
             <div class="db-card">
                 <div class="db-card-body text-center py-12">
-                    <i class="bi-bar-chart fa-3x text-slate-700 mb-4 block"></i>
+                    <i class="bi bi-bar-chart fa-3x text-slate-700 mb-4 block"></i>
                     <p class="text-slate-400 text-lg font-semibold">Aucun résultat à afficher.</p>
                 </div>
             </div>
@@ -730,7 +730,7 @@
             {% else %}
             <div class="db-card">
                 <div class="db-card-body text-center py-12">
-                    <i class="bi-map fa-3x text-slate-700 mb-4 block"></i>
+                    <i class="bi bi-map fa-3x text-slate-700 mb-4 block"></i>
                     <p class="text-slate-400 text-lg font-semibold">Aucune donnée cartographique.</p>
                 </div>
             </div>
@@ -742,18 +742,18 @@
     {# État initial — pas encore de recherche #}
     <div class="db-card">
         <div class="db-card-body text-center py-16">
-            <i class="bi-search-chart fa-3x text-slate-700 mb-5 block"></i>
-            <h3 class="text-white font-semibold text-xl mb-2">Aucune recherche effectuée</h3>
+            <i class="bi bi-search-chart fa-3x text-slate-700 mb-5 block"></i>
+            <h3 class="font-semibold text-xl mb-2" style="color:var(--text)">Aucune recherche effectuée</h3>
             <p class="text-slate-500 text-sm max-w-md mx-auto">
                 Renseignez au moins un critère de filtre ci-dessus et cliquez sur
                 <strong class="text-amber-400">Analyser</strong> pour obtenir vos résultats.
                 Vous pouvez ensuite basculer entre les 4 modes d'affichage.
             </p>
             <div class="mt-6 flex flex-wrap gap-3 justify-center text-xs text-slate-600">
-                <span><i class="bi-check text-amber-400 me-1"></i>Marchés, dates, corridors</span>
-                <span><i class="bi-check text-amber-400 me-1"></i>Catégorie, statut, priorité</span>
-                <span><i class="bi-check text-amber-400 me-1"></i>Score GEI, urgence, origine</span>
-                <span><i class="bi-check text-amber-400 me-1"></i>Tableau / Graphiques / Carte / Texte</span>
+                <span><i class="bi bi-check text-amber-400 me-1"></i>Marchés, dates, corridors</span>
+                <span><i class="bi bi-check text-amber-400 me-1"></i>Catégorie, statut, priorité</span>
+                <span><i class="bi bi-check text-amber-400 me-1"></i>Score GEI, urgence, origine</span>
+                <span><i class="bi bi-check text-amber-400 me-1"></i>Tableau / Graphiques / Carte / Texte</span>
             </div>
         </div>
     </div>
@@ -884,6 +884,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         data: Object.values(data.parPriorite),
                         backgroundColor: labels.map(l => prioColors[l] ?? '#64748b'),
                         borderColor: 'transparent',
+                        borderWidth: 0,
+                        hoverBorderWidth: 0,
                         hoverOffset: 6,
                     }]
                 },
@@ -1075,4 +1077,3 @@ function initAuditMap(zones) {
     }
 </script>
 {% endblock %}
-

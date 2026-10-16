@@ -13,7 +13,8 @@
             <span class="logo-title">GEI Platform</span>
             <span class="logo-sub">Renseignement Opérationnel</span>
         </div>
-        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" title="Réduire le menu">
+        <button type="button" class="sidebar-collapse-btn" id="sidebarCollapseBtn"
+                title="Réduire le menu" aria-label="Réduire le menu" aria-controls="gei-sidebar" aria-expanded="true">
             <i class="bi bi-chevron-double-left"></i>
         </button>
     </div>
@@ -28,17 +29,18 @@
         {% set isAlertesActive = (route starts with 'app_alert' or route starts with 'app_wizard' or route == 'app_export_registre' or route == 'app_dashboard_urgence' or route starts with 'app_transmission') %}
         {% set isStatsActive = (route == 'app_dashboard_kpi' or route starts with 'app_carte' or route == 'app_dashboard_corridors' or route == 'app_dashboard_statistiques' or route starts with 'app_audit' or route == 'app_dashboard_general') %}
         {% set isAdminActive = (route starts with 'app_admin' or route == 'app_dashboard_superadmin') %}
-        {% set isEspaceActive = (route == 'app_notifications_list' or route == 'app_account_settings' or route == 'app_2fa_settings' or route starts with 'app_notification') %}
+        {% set isEspaceActive = (route == 'app_notifications_list' or route == 'app_account_settings' or route == 'app_2fa_settings' or route starts with 'app_notification' or route == 'app_privacy_policy' or route == 'app_terms_of_use') %}
 
         {# ════════════════════════════════════════════════════
            Groupe 1 — Registre GEI
         ════════════════════════════════════════════════════ #}
-        <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isAlertesActive %}active{% endif %}"
-                onclick="toggleSubmenu('submenu-alertes')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
+        <button type="button" class="sidebar-link sidebar-submenu-toggle sidebar-submenu-btn {% if isAlertesActive %}active{% endif %}"
+                onclick="toggleSubmenu('submenu-alertes')"
+                title="Afficher les sous-menus du registre GEI" aria-controls="submenu-alertes"
+                aria-expanded="{{ isAlertesActive ? 'true' : 'false' }}">
             <span class="sidebar-link-icon"><i class="bi bi-journal-richtext"></i></span>
             <span class="sidebar-link-text">Registre GEI</span>
-            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-alertes"
-               style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isAlertesActive %}transform:rotate(180deg){% endif %}"></i>
+            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto {% if isAlertesActive %}rotated{% endif %}" id="arrow-alertes"></i>
         </button>
         <div id="submenu-alertes" class="sidebar-submenu {% if not isAlertesActive %}hidden{% endif %}">
 
@@ -90,12 +92,13 @@
         {# ════════════════════════════════════════════════════
            Groupe 2 — Tableaux de bord
         ════════════════════════════════════════════════════ #}
-        <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isStatsActive %}active{% endif %}"
-                onclick="toggleSubmenu('submenu-statistiques')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
+        <button type="button" class="sidebar-link sidebar-submenu-toggle sidebar-submenu-btn {% if isStatsActive %}active{% endif %}"
+                onclick="toggleSubmenu('submenu-statistiques')"
+                title="Afficher les sous-menus des tableaux de bord" aria-controls="submenu-statistiques"
+                aria-expanded="{{ isStatsActive ? 'true' : 'false' }}">
             <span class="sidebar-link-icon"><i class="bi bi-bar-chart-line"></i></span>
             <span class="sidebar-link-text">Tableaux de bord</span>
-            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-statistiques"
-               style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isStatsActive %}transform:rotate(180deg){% endif %}"></i>
+            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto {% if isStatsActive %}rotated{% endif %}" id="arrow-statistiques"></i>
         </button>
         <div id="submenu-statistiques" class="sidebar-submenu {% if not isStatsActive %}hidden{% endif %}">
 
@@ -118,7 +121,7 @@
             <a href="{{ path('app_dashboard_corridors') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_corridors' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-map me-1.5"></i>Carte des corridors
+                <i class="bi bi-map me-1.5"></i>Statistics corridor
             </a>
 
             {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') or is_granted('ROLE_SECRETARIAT_GEI') %}
@@ -151,12 +154,13 @@
            Groupe 3 — Administration
         ════════════════════════════════════════════════════ #}
         {% if is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_PFT') %}
-        <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isAdminActive %}active{% endif %}"
-                onclick="toggleSubmenu('submenu-admin')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
+        <button type="button" class="sidebar-link sidebar-submenu-toggle sidebar-submenu-btn {% if isAdminActive %}active{% endif %}"
+                onclick="toggleSubmenu('submenu-admin')"
+                title="Afficher les sous-menus d'administration" aria-controls="submenu-admin"
+                aria-expanded="{{ isAdminActive ? 'true' : 'false' }}">
             <span class="sidebar-link-icon"><i class="bi bi-gear-fill"></i></span>
             <span class="sidebar-link-text">Administration</span>
-            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-admin"
-               style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isAdminActive %}transform:rotate(180deg){% endif %}"></i>
+            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto {% if isAdminActive %}rotated{% endif %}" id="arrow-admin"></i>
         </button>
         <div id="submenu-admin" class="sidebar-submenu {% if not isAdminActive %}hidden{% endif %}">
 
@@ -213,12 +217,13 @@
         {# ════════════════════════════════════════════════════
            Groupe 4 — Mon espace
         ════════════════════════════════════════════════════ #}
-        <button type="button" class="sidebar-link sidebar-submenu-toggle {% if isEspaceActive %}active{% endif %}"
-                onclick="toggleSubmenu('submenu-espace')" style="width:100%;text-align:left;background:none;border:none;cursor:pointer;display:flex;align-items:center;">
+        <button type="button" class="sidebar-link sidebar-submenu-toggle sidebar-submenu-btn {% if isEspaceActive %}active{% endif %}"
+                onclick="toggleSubmenu('submenu-espace')"
+                title="Afficher les sous-menus de votre espace" aria-controls="submenu-espace"
+                aria-expanded="{{ isEspaceActive ? 'true' : 'false' }}">
             <span class="sidebar-link-icon"><i class="bi bi-person-circle"></i></span>
             <span class="sidebar-link-text">Mon espace</span>
-            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto" id="arrow-espace"
-               style="font-size:10px;color:var(--text-muted);transition:transform .2s;{% if isEspaceActive %}transform:rotate(180deg){% endif %}"></i>
+            <i class="bi bi-chevron-down sidebar-submenu-arrow ms-auto {% if isEspaceActive %}rotated{% endif %}" id="arrow-espace"></i>
         </button>
         <div id="submenu-espace" class="sidebar-submenu {% if not isEspaceActive %}hidden{% endif %}">
 
@@ -250,12 +255,18 @@
             <a href="{{ path('app_account_settings') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_account_settings' %}active{% endif %}"
                data-turbo="false">
-                <i class="bi bi-person-gear me-1.5"></i>Mon profil
+                <i class="bi bi-person-fill me-1.5" aria-hidden="true"></i>Mon profil
             </a>
             <a href="{{ path('app_2fa_settings') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_2fa_settings' %}active{% endif %}"
                data-turbo="false">
                 <i class="bi bi-shield-lock-fill me-1.5"></i>Authentification 2FA
+            </a>
+            <a href="{{ path('app_privacy_policy') }}" class="sidebar-sublink {% if route == 'app_privacy_policy' %}active{% endif %}">
+                <i class="bi bi-shield-check me-1.5"></i>Politique de confidentialité
+            </a>
+            <a href="{{ path('app_terms_of_use') }}" class="sidebar-sublink {% if route == 'app_terms_of_use' %}active{% endif %}">
+                <i class="bi bi-file-earmark-text me-1.5"></i>Conditions d’utilisation
             </a>
             {# La déconnexion est uniquement dans _sidebar_user.html.twig (bas de sidebar)
                pour éviter d'avoir deux formulaires POST /logout dans le même DOM #}

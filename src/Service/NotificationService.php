@@ -27,6 +27,7 @@ class NotificationService
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
+        private readonly WebPushService $webPushService,
     ) {}
 
     /**
@@ -56,6 +57,7 @@ class NotificationService
 
         $this->em->persist($notif);
         $this->em->flush();
+        $this->sendPushSafely($notif);
 
         return $notif;
     }
@@ -121,6 +123,9 @@ class NotificationService
 
         if (!empty($notifications)) {
             $this->em->flush();
+            foreach ($notifications as $notification) {
+                $this->sendPushSafely($notification);
+            }
         }
     }
 
@@ -148,5 +153,10 @@ class NotificationService
 
         return $this->em->getRepository(Notification::class)
             ->findExistingRecent($destinataire, $type, $alert);
+    }
+
+    private function sendPushSafely(Notification $notification): void
+    {
+        $this->webPushService->send($notification);
     }
 }

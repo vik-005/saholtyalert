@@ -19,6 +19,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
 
 #[Route('/carte')]
 #[IsGranted('ROLE_PFT')]
@@ -99,6 +101,7 @@ class CarteController extends AbstractController
         ZoneGeoRepository $zoneGeoRepo,
         AlertRepository  $alertRepo,
         MarketRepository $marketRepo,
+        CacheInterface   $cache,
     ): JsonResponse {
         $user = $this->getUser();
         if (!$user instanceof \App\Entity\User) {
@@ -140,35 +143,45 @@ class CarteController extends AbstractController
             $allowedMarkets
         );
 
-        // Zones avec coordonnées
-        $zones = $zoneGeoRepo->findWithAlertCountFiltered($filters);
+        $allowedMarketIds = array_map(
+            static fn(Market $market): int => (int) $market->getId(),
+            $allowedMarkets
+        );
+        sort($allowedMarketIds);
+        $cacheKey = 'gei_map_zones_' . hash('sha256', json_encode([
+            'allowedMarkets' => $allowedMarketIds,
+            'filters' => $filters,
+        ], JSON_THROW_ON_ERROR));
 
-        // Enrichir avec la répartition par catégorie et corridors pour les popups
-        $result = [];
-        foreach ($zones as $zone) {
-            $marketId = $zone['marketId'] ?? null;
-            if (!$marketId) {
-                continue;
+        $result = $cache->get($cacheKey, function (ItemInterface $item) use ($zoneGeoRepo, $alertRepo, $filters): array {
+            $item->expiresAfter(20);
+            $zones = $zoneGeoRepo->findWithAlertCountFiltered($filters);
+            $marketIds = array_map(static fn(array $zone): int => (int) ($zone['marketId'] ?? 0), $zones);
+            $statsByMarket = $alertRepo->getMapStatsByMarkets($marketIds, $filters);
+
+            $result = [];
+            foreach ($zones as $zone) {
+                $marketId = (int) ($zone['marketId'] ?? 0);
+                if ($marketId === 0) {
+                    continue;
+                }
+                $stats = $statsByMarket[$marketId] ?? ['categories' => [], 'corridors' => []];
+                $result[] = [
+                    'id'          => (int) $zone['id'],
+                    'nom'         => $zone['nom'] ?? '',
+                    'codeIso3'    => $zone['codeIso3'] ?? '',
+                    'polygonWkt'  => $zone['polygonWkt'] ?? null,
+                    'latitude'    => (float) $zone['latitude'],
+                    'longitude'   => (float) $zone['longitude'],
+                    'alertCount'  => (int) $zone['alertCount'],
+                    'maxPriority' => $zone['maxPriority'] ?? 'faible',
+                    'categories'  => $stats['categories'],
+                    'corridors'   => $stats['corridors'],
+                ];
             }
 
-            // Répartition par catégorie pour ce marché
-            $catStats = $alertRepo->getCategorieStatsByMarket($marketId, $filters);
-
-            // Répartition par corridor pour ce marché
-            $corridorStats = $alertRepo->getCorridorStatsByMarket($marketId, $filters);
-
-            $result[] = [
-                'id'          => (int) $zone['id'],
-                'nom'         => $zone['nom'] ?? '',
-                'codeIso3'    => $zone['codeIso3'] ?? '',
-                'latitude'    => (float) $zone['latitude'],
-                'longitude'   => (float) $zone['longitude'],
-                'alertCount'  => (int) $zone['alertCount'],
-                'maxPriority' => $zone['maxPriority'] ?? 'faible',
-                'categories'  => $catStats,
-                'corridors'   => $corridorStats,
-            ];
-        }
+            return $result;
+        });
 
         return new JsonResponse($result);
     }
@@ -217,9 +230,9 @@ class CarteController extends AbstractController
     }
 
     /**
-     * API — itinéraires des alertes multi-marchés pour la couche cartographique.
+     * API — parcours indicatifs entre les marchés des alertes multi-marchés.
      * Les compteurs de la carte restent basés sur le marché principal ; cette
-     * route sert uniquement à visualiser les parcours associés.
+     * route sert uniquement à visualiser les parcours associés, pas des trajets routiers.
      */
     #[Route('/api/parcours', name: 'app_carte_parcours_api', methods: ['GET'])]
     public function apiParcours(

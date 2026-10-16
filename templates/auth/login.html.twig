@@ -6,15 +6,14 @@
 <div class="auth-form-header">
     <h1 class="auth-title">Connexion</h1>
     <p class="auth-subtitle">
-        Pas encore de compte ?
-        <a href="{{ path('app_register') }}" class="auth-link">Créer un accès</a>
+        Accès réservé aux utilisateurs créés par l’administrateur.
     </p>
 </div>
 
 {# ── Erreur ── #}
 {% if error %}
 <div class="auth-error">
-    <i class="bi-x-circle auth-error-icon"></i>
+    <i class="bi bi-x-circle auth-error-icon"></i>
     <div>
         <p class="auth-error-title">Connexion échouée</p>
         <p class="auth-error-msg">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
@@ -28,7 +27,7 @@
     {# Email #}
     <div class="auth-field-wrap">
         <label class="auth-label" for="username">
-            <i class="bi-envelope me-1.5 opacity-60"></i>Adresse email
+            <i class="bi bi-envelope me-1.5 opacity-60"></i>Adresse email
         </label>
         <div class="auth-input-wrap">
             <input
@@ -48,7 +47,7 @@
     <div class="auth-field-wrap">
         <div class="auth-label-row">
             <label class="auth-label" for="password">
-                <i class="bi-lock me-1.5 opacity-60"></i>Mot de passe
+                <i class="bi bi-lock me-1.5 opacity-60"></i>Mot de passe
             </label>
             {# <a href="#" class="auth-forgot">Mot de passe oublié ?</a> #}
         </div>
@@ -62,9 +61,10 @@
                 autocomplete="current-password"
                 required
             >
-            <button type="button" class="auth-input-btn" id="togglePasswordBtn"
-                    onclick="togglePassword('password', 'togglePasswordBtn')" tabindex="-1">
-                <i class="bi-eye"></i>
+                <button type="button" class="auth-input-btn" id="togglePasswordBtn"
+                    onclick="togglePassword('password', 'togglePasswordBtn')"
+                    aria-label="Afficher le mot de passe" aria-pressed="false">
+                <i class="bi bi-eye"></i>
             </button>
         </div>
     </div>
@@ -72,20 +72,16 @@
     {# Se souvenir #}
     <div class="auth-checkbox-row">
         <label class="auth-checkbox-label">
-            <input type="checkbox" name="_remember_me" class="auth-checkbox" checked>
+            <input type="checkbox" name="_remember_me" class="auth-checkbox">
             <span class="auth-checkbox-custom"></span>
             <span>Se souvenir de moi</span>
         </label>
     </div>
 
     <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-    {# Champs GPS — remplis automatiquement par JS si l'utilisateur donne son accord #}
-    <input type="hidden" name="_geo_lat" id="geoLat" value="">
-    <input type="hidden" name="_geo_lng" id="geoLng" value="">
-
     {# Bouton principal #}
     <button type="submit" class="auth-submit-btn">
-        <i class="bi-box-arrow-in-right me-2"></i>
+        <i class="bi bi-box-arrow-in-right me-2"></i>
         Se connecter
     </button>
 
@@ -101,47 +97,16 @@
 {# ── Info sécurité ── #}
 <div class="auth-security-note">
     <div class="auth-security-item">
-        <i class="bi-shield-lock text-amber-400"></i>
-        <span>Connexion chiffrée TLS</span>
+        <i class="bi bi-shield-lock text-amber-400"></i>
+        <span>Accès réservé aux utilisateurs autorisés</span>
     </div>
     <div class="auth-security-item">
-        <i class="bi-clock-history text-amber-400"></i>
-        <span>Session 8h maximum</span>
+        <i class="bi bi-clock-history text-amber-400"></i>
+        <span>Expiration automatique de session</span>
     </div>
     <div class="auth-security-item">
-        <i class="bi-eye-slash text-amber-400"></i>
+        <i class="bi bi-eye-slash text-amber-400"></i>
         <span>Données confidentielles</span>
     </div>
 </div>
-{% endblock %}
-
-{% block javascripts %}{{ parent() }}
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    if (!('geolocation' in navigator)) return;
-    const form  = document.querySelector('form[action*="login"]');
-    const latEl = document.getElementById('geoLat');
-    const lngEl = document.getElementById('geoLng');
-    if (!form || !latEl || !lngEl) return;
-
-    function capturePosition() {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                latEl.value = pos.coords.latitude.toFixed(6);
-                lngEl.value = pos.coords.longitude.toFixed(6);
-                document.cookie = 'geo_consent=granted; max-age=31536000; path=/; SameSite=Lax; Secure';
-            },
-            () => { document.cookie = 'geo_consent=denied; max-age=86400; path=/; SameSite=Lax; Secure'; },
-            { timeout: 5000, maximumAge: 60000 }
-        );
-    }
-
-    const consent = document.cookie.split('; ').find(r => r.startsWith('geo_consent='));
-    if (consent && consent.includes('granted')) {
-        capturePosition();
-    } else if (!consent) {
-        form.addEventListener('submit', capturePosition, { once: true });
-    }
-});
-</script>
 {% endblock %}

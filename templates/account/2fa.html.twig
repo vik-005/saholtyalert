@@ -95,16 +95,11 @@
                          width="220" height="220">
                     <p class="tfa-qr-sub">Scannez ce code avec votre application TOTP</p>
                 {% else %}
-                    {# Fallback API externe — le secret est dans l'URL, acceptable uniquement en dev #}
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&ecc=L&data={{ qr_code_url|e('url') }}"
-                         alt="QR Code de configuration 2FA"
-                         class="tfa-qr-img"
-                         width="220" height="220"
-                         onerror="this.parentElement.innerHTML='<div class=\'tfa-qr-error\'><i class=\'bi bi-exclamation-triangle text-amber-400\' style=\'font-size:32px\'></i><p>QR code indisponible</p><p class=\'text-xs\'>Utilisez la clé manuelle ci-dessous</p></div>'">
-                    <p class="tfa-qr-sub tfa-qr-fallback">
-                        <i class="bi bi-wifi-off me-1 opacity-50"></i>
-                        Chargé depuis un service externe
-                    </p>
+                    <div class="tfa-qr-error">
+                        <i class="bi bi-exclamation-triangle text-amber-400" style="font-size:32px"></i>
+                        <p>QR code indisponible</p>
+                        <p class="text-xs">Utilisez la clé manuelle ci-dessous. Votre clé secrète n’est jamais envoyée à un service externe.</p>
+                    </div>
                 {% endif %}
             </div>
 

@@ -1,6 +1,6 @@
 {# Étape 3 — Classification (champs 9 et 10) #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 3}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" action="{{ path('app_wizard_new', {step: 3}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="3">
 
     <div class="db-card mb-4">
@@ -11,7 +11,7 @@
             </p>
             <p class="text-xs text-slate-500">Champs 9 et 10 du formulaire Agent</p>
         </div>
-        <div class="db-card-body space-y-4">
+        <div class="db-card-body space-y-4 wizard-fields-grid">
 
             {# Champ 9 — Catégorie (liste administrable) #}
             <div class="form-field">
@@ -43,18 +43,12 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 flex-shrink-0">
-                                    <i class="bi-lightning-charge text-xl"></i>
-                                </div>
                                 <div>
-                                    <div class="radio-option-title text-sm font-bold text-white">Opérationnelle</div>
-                                    <div class="text-xs text-slate-400 font-normal">Action immédiate, saisie terrain, interception</div>
+                                    <div class="radio-option-title">Alerte Opérationnelle</div>
+                                    <div class="form-help">Action immédiate, saisie terrain, interception</div>
                                 </div>
                             </div>
                         </div>
-                        <span class="radio-selected-pill">
-                            <i class="bi bi-check-lg"></i>Sélectionné
-                        </span>
                     </label>
                     <label class="radio-option {% if currentTypeAlerte == 'strategique' %}radio-option-active{% endif %}" data-val="strategique">
                         <input type="radio" name="alert[typeAlerte]" value="strategique"
@@ -62,20 +56,17 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex-shrink-0">
-                                    <i class="bi-diagram-3 text-xl"></i>
-                                </div>
                                 <div>
-                                    <div class="radio-option-title text-sm font-bold text-white">Stratégique</div>
-                                    <div class="text-xs text-slate-400 font-normal">Tendance, schéma de fraude, analyse de fond</div>
+                                    <div class="radio-option-title">Alerte Stratégique</div>
+                                    <div class="form-help">Tendance, schéma de fraude, analyse de fond</div>
                                 </div>
                             </div>
                         </div>
-                        <span class="radio-selected-pill">
-                            <i class="bi bi-check-lg"></i>Sélectionné
-                        </span>
                     </label>
                 </div>
+                <button type="button" class="wizard-choice-clear" data-clear-radio="typeAlerteGroup" hidden>
+                    Effacer la sélection
+                </button>
                 <p class="form-help">Sélectionnez la finalité opérationnelle de cette alerte.</p>
             </div>
 

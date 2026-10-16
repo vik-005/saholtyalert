@@ -4,7 +4,7 @@
 {% block header_title %}{{ is_editing ? 'Modifier une alerte' : 'Création d’une alerte' }}{% endblock %}
 
 {% block body %}
-<div class="db-wrapper">
+<div class="db-wrapper wizard-page">
 
     {# ── En-tête #}
     <div class="page-header-row mb-4">
@@ -18,18 +18,27 @@
         </div>
     </div>
 
-    {# ── Barre de progression #}
-    <div class="db-card mb-4">
-        <div class="db-card-body" style="padding: 16px 20px;">
+    {# ── Barre de progression & Stepper ── #}
+    {% set stepLabels = ['Identification', 'Contenu', 'Classification', 'Source', 'Qualification', 'Récapitulatif'] %}
+    <div class="db-card mb-4 wizard-stepper-card">
+        <div class="db-card-body wizard-progress-container">
+            <div class="wizard-stepper-header flex items-center justify-between mb-3">
+                <span class="wizard-stepper-eyebrow">
+                    <i class="bi bi-diagram-3-fill me-1.5 text-emerald-600"></i>Parcours opérationnel GEI
+                </span>
+                <span class="wizard-stepper-status">
+                    Étape {{ currentStep }} sur {{ totalSteps }} — <strong>{{ stepLabels[currentStep - 1] }}</strong>
+                    <span class="wizard-percent-pill ms-2">{{ ((currentStep - 1) / 5 * 100)|round }}%</span>
+                </span>
+            </div>
             <ol class="wizard-progress-steps" aria-label="Étapes du formulaire">
-                {% set stepLabels = ['Identification', 'Contenu', 'Classification', 'Source', 'Qualification', 'Récapitulatif'] %}
                 {% for i in 1..6 %}
                     <li class="wizard-progress-step {% if currentStep > i %}done{% elseif currentStep == i %}current{% endif %}"
                         aria-current="{{ currentStep == i ? 'step' : 'false' }}">
-                        <a href="{{ path('app_wizard_new', {step: i }) }}" class="wps-link">
+                        <a href="{{ path('app_wizard_new', {step: i }) }}" class="wps-link" title="Étape {{ i }} : {{ stepLabels[i - 1] }}">
                             <span class="wps-num">
                                 {% if currentStep > i %}
-                                    <i class="bi bi-check"></i>
+                                    <i class="bi bi-check-lg"></i>
                                 {% else %}
                                     {{ i }}
                                 {% endif %}
@@ -42,7 +51,6 @@
             <div class="wizard-progress-bar" role="progressbar" aria-valuenow="{{ currentStep }}" aria-valuemin="1" aria-valuemax="6">
                 <div class="wizard-progress-fill" style="width: {{ ((currentStep - 1) / 5 * 100)|round }}%"></div>
             </div>
-            <p class="text-xs text-slate-500 mt-1 text-right">Étape {{ currentStep }} sur {{ totalSteps }} — {{ stepLabels[currentStep - 1] }}</p>
         </div>
     </div>
 
@@ -51,7 +59,7 @@
         {% if currentStep == 1 %}
             {% include 'wizard/step1.html.twig' with {alert: alert, draftData: draftData, markets: markets, parcoursCountries: parcoursCountries} %}
         {% elseif currentStep == 2 %}
-            {% include 'wizard/step2.html.twig' with {alert: alert, draftData: draftData} %}
+            {% include 'wizard/step2.html.twig' with {alert: alert, draftData: draftData, pendingAttachment: pendingAttachment} %}
         {% elseif currentStep == 3 %}
             {% include 'wizard/step3.html.twig' with {alert: alert, draftData: draftData, categories: categories, typeAlertes: typeAlertes} %}
         {% elseif currentStep == 4 %}
@@ -64,5 +72,27 @@
     </div>
 
 </div>
+
+<script>
+document.querySelectorAll('[data-clear-radio]').forEach(button => {
+    const group = document.getElementById(button.dataset.clearRadio);
+    if (!group) return;
+
+    const inputs = Array.from(group.querySelectorAll('input[type="radio"]'));
+    const updateButton = () => {
+        button.hidden = !inputs.some(input => input.checked);
+    };
+
+    group.addEventListener('change', updateButton);
+    button.addEventListener('click', () => {
+        inputs.forEach(input => {
+            input.checked = false;
+        });
+        inputs[0]?.dispatchEvent(new Event('change', { bubbles: true }));
+        updateButton();
+    });
+    updateButton();
+});
+</script>
 
 {% endblock %}

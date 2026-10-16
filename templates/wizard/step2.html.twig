@@ -1,6 +1,6 @@
 {# Étape 2 — Contenu de l'alerte (champs 5 à 8) #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 2}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" enctype="multipart/form-data" action="{{ path('app_wizard_new', {step: 2}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="2">
 
     <div class="db-card mb-4">
@@ -81,6 +81,22 @@
                     <p class="form-help">Obligatoire. Faits bruts, pas d'hypothèses ici.</p>
                     <span id="resumeCounter" class="text-xs text-slate-500">0 / 500</span>
                 </div>
+            </div>
+
+            <div class="form-field">
+                <label class="form-label" for="w_justificatif">Document justificatif</label>
+                <input type="file" name="alert[justificatif]" id="w_justificatif"
+                       class="form-input wizard-file-input" aria-describedby="w_justificatif_help"
+                       accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                <p class="form-help" id="w_justificatif_help">Formats acceptés : PDF, Word ou Excel. Taille maximale : 15 Mo.</p>
+                {% if pendingAttachment is defined and pendingAttachment %}
+                    <p class="form-help text-emerald-400">
+                        <i class="bi bi-paperclip me-1"></i>Document joint : {{ pendingAttachment.originalName }}. Un nouveau fichier remplacera celui-ci.
+                    </p>
+                    <button type="submit" name="_action" value="remove_attachment" class="db-btn db-btn-ghost mt-2">
+                        <i class="bi bi-x-circle me-1"></i>Retirer le document joint
+                    </button>
+                {% endif %}
             </div>
 
         </div>

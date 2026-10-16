@@ -6,42 +6,22 @@
     <title>{% block title %}Plateforme GEI — Renseignement Opérationnel{% endblock %}</title>
     <meta name="description" content="Plateforme GEI de renseignement opérationnel, suivi des alertes et tableaux de bord stratégiques.">
     <meta name="csrf-token" content="{{ csrf_token('app') }}">
+    <meta name="push-csrf-token" content="{{ csrf_token('push_subscription') }}">
     <meta name="turbo-cache-control" content="no-cache">
     <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/gei-180.png') }}">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <meta name="theme-color" content="#123f35">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     {# ── Google Fonts — Inter ── #}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    {# ── Tailwind CDN — chargé AVANT les icônes pour éviter que preflight écrase les classes bi-* ── #}
-    <script>
-        window.tailwind = window.tailwind || {};
-        tailwind.config = {
-            corePlugins: { preflight: false },
-            theme: {
-                extend: {
-                    colors: {
-                        navy: {
-                            '50': '#f0f4f9', '100': '#dfe7f1', '200': '#bfd3e3',
-                            '300': '#9fbace', '400': '#6e8fb3', '500': '#4a6fa5',
-                            '600': '#38568e', '700': '#2d4575', '800': '#1f3a61',
-                            '900': '#0f1729', '950': '#090e1a',
-                        },
-                    },
-                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-                }
-            }
-        };
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    {# ══ Bootstrap Icons 1.11 — chargé APRÈS Tailwind pour éviter le reset ══ #}
+    {# ══ Bootstrap Icons 1.11 ══ #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-    {# ── Font Awesome 6 Free — chargé APRÈS Tailwind ── #}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-          crossorigin="anonymous" referrerpolicy="no-referrer">
 
     {# ── Chart.js ── #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -140,7 +120,8 @@ function toggleSubmenu(id) {
     if (!menu) return;
     const isHidden = menu.classList.contains('hidden');
     menu.classList.toggle('hidden', !isHidden);
-    if (arrow) arrow.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+    if (arrow) arrow.classList.toggle('rotated', isHidden);
+    document.querySelector(`[aria-controls="${id}"]`)?.setAttribute('aria-expanded', String(isHidden));
     localStorage.setItem('menu-' + id + '-open', isHidden ? '1' : '0');
 }
 
@@ -149,14 +130,23 @@ document.addEventListener('DOMContentLoaded', () => {
     ['submenu-alertes', 'submenu-statistiques', 'submenu-admin', 'submenu-espace'].forEach(id => {
         const menu = document.getElementById(id);
         const arrow = document.getElementById('arrow-' + id.replace('submenu-', ''));
+        const trigger = document.querySelector(`[aria-controls="${id}"]`);
         if (menu) {
             const isOpen = localStorage.getItem('menu-' + id + '-open');
-            if (isOpen !== null) {
-                const open = isOpen === '1';
-                menu.classList.toggle('hidden', !open);
-                if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-            }
+            const open = Boolean(trigger?.classList.contains('active')) || isOpen === '1';
+            menu.classList.toggle('hidden', !open);
+            if (arrow) arrow.classList.toggle('rotated', open);
+            trigger?.setAttribute('aria-expanded', String(open));
         }
+    });
+
+    const shell = document.querySelector('.gei-shell');
+    const collapseButton = document.getElementById('sidebarCollapseBtn');
+    if (shell && collapseButton && window.matchMedia('(min-width: 1025px)').matches) {
+        setSidebarMini(localStorage.getItem('sidebar-mini') === '1');
+    }
+    document.querySelectorAll('#gei-sidebar .sidebar-link, #gei-sidebar .sidebar-sublink').forEach(link => {
+        if (!link.title) link.title = link.textContent.trim();
     });
 });
 
@@ -164,19 +154,36 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleSidebar() {
     const shell = document.querySelector('.gei-shell');
     const overlay = document.getElementById('sidebarOverlay');
-    shell.classList.toggle('sidebar-collapsed');
-    overlay.classList.toggle('hidden');
+    if (!shell || !overlay) return;
+    const open = !shell.classList.contains('sidebar-collapsed');
+    shell.classList.toggle('sidebar-collapsed', open);
+    overlay.classList.toggle('hidden', !open);
+    const button = document.getElementById('sidebarToggleBtn');
+    button?.setAttribute('aria-expanded', String(open));
+    button?.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
 }
 function closeSidebar() {
-    document.querySelector('.gei-shell').classList.remove('sidebar-collapsed');
-    document.getElementById('sidebarOverlay').classList.add('hidden');
+    document.querySelector('.gei-shell')?.classList.remove('sidebar-collapsed');
+    document.getElementById('sidebarOverlay')?.classList.add('hidden');
+    const button = document.getElementById('sidebarToggleBtn');
+    button?.setAttribute('aria-expanded', 'false');
+    button?.setAttribute('aria-label', 'Ouvrir le menu');
+}
+function setSidebarMini(collapsed) {
+    const shell = document.querySelector('.gei-shell');
+    const button = document.getElementById('sidebarCollapseBtn');
+    const icon = button?.querySelector('i');
+    if (!shell || !button || !icon) return;
+    shell.classList.toggle('sidebar-mini', collapsed);
+    icon.classList.toggle('bi-chevron-double-left', !collapsed);
+    icon.classList.toggle('bi-chevron-double-right', collapsed);
+    button.setAttribute('aria-expanded', String(!collapsed));
+    button.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
+    button.title = collapsed ? 'Développer le menu' : 'Réduire le menu';
+    localStorage.setItem('sidebar-mini', collapsed ? '1' : '0');
 }
 document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => {
-    document.querySelector('.gei-shell').classList.toggle('sidebar-mini');
-    const btn = document.getElementById('sidebarCollapseBtn');
-    const icon = btn.querySelector('i');
-    icon.classList.toggle('bi-chevron-double-left');
-    icon.classList.toggle('bi-chevron-double-right');
+    setSidebarMini(!document.querySelector('.gei-shell')?.classList.contains('sidebar-mini'));
 });
 
 /* ─── Polling notifications (toutes les 30s — badge sans rechargement) ─── */
@@ -190,9 +197,15 @@ async function pollNotifications() {
         });
         if (r.status === 401 || r.redirected || !r.headers.get('content-type')?.includes('application/json')) {
             clearInterval(notifPollInterval);
+            if (r.status === 401) {
+                window.location.href = '/login';
+            }
             return;
         }
-        if (!r.ok) return;
+        if (!r.ok) {
+            console.error(`Le chargement des notifications a échoué (HTTP ${r.status}).`);
+            return;
+        }
         const data = await r.json();
 
         // Badge topbar
@@ -244,38 +257,48 @@ async function pollNotifications() {
         }
 
         // Mettre à jour le panel dropdown topbar
-        if (data.notifications && window._notifPanelOpen !== true) {
-            const list = document.querySelector('.notif-list');
+        if (Array.isArray(data.notifications)) {
+            const list = document.querySelector('#notifPanel .notif-list');
             if (list && data.notifications.length > 0) {
                 list.innerHTML = data.notifications.map(n => {
-                    const iconClass = n.type === 'urgence' ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
-                    const icon = n.type === 'urgence' ? 'bi-exclamation-triangle' : n.type === 'tache' ? 'bi-clipboard-check' : n.type === 'escalade' ? 'bi-arrow-up-right-square' : n.type === 'validation' ? 'bi-check-circle' : n.type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
-                    const href = n.alertId ? `/notification/${n.id}/read` : '/notification/' + n.id + '/read';
-                    return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'}">
+                    const is72h = n.type === 'sla_proche' || n.urgence === '72h';
+                    const isUrgent = Number(n.priorite) > 0 || n.type === 'urgence' || n.type === 'escalade';
+                    const iconClass = is72h ? 'notif-icon-amber' : isUrgent ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
+                    const icon = is72h ? 'bi-clock-history' : isUrgent ? 'bi-exclamation-triangle' : n.type === 'tache' ? 'bi-clipboard-check' : n.type === 'escalade' ? 'bi-arrow-up-right-square' : n.type === 'validation' ? 'bi-check-circle' : n.type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
+                    const category = is72h ? 'Urgence 72 h' : isUrgent ? 'Prioritaire' : 'Information';
+                    const href = `/notification/${encodeURIComponent(n.id)}/read`;
+                    return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'} ${isUrgent ? 'notif-item-urgent' : ''} ${is72h ? 'notif-item-72h' : ''}">
                         <span class="notif-icon-wrap ${iconClass}"><i class="bi ${icon}"></i></span>
                         <div class="notif-body">
+                            <span class="notif-category">${category}</span>
                             <p class="notif-title">${escapeHtml(n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—')}</p>
                             <span class="notif-meta">${n.codeGei ? escapeHtml(n.codeGei) + ' · ' : ''}${escapeHtml(n.date)}</span>
                         </div>
                     </a>`;
                 }).join('');
+            } else if (list) {
+                list.innerHTML = '<p class="notif-empty">Vous êtes à jour. Aucune nouvelle notification.</p>';
             }
         }
-    } catch (e) { /* Silencieux — pas critique */ }
+    } catch (error) {
+        console.error('Impossible de récupérer les notifications.', error);
+    }
 }
 
 function showToast(contenu, type, alertId) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
+    const is72h = type === 'sla_proche';
     const toast = document.createElement('div');
     toast.className = `gei-toast toast-${type || 'info'}`;
-    const icon = type === 'urgence' ? 'bi-exclamation-triangle' : type === 'tache' ? 'bi-clipboard-check' : type === 'escalade' ? 'bi-arrow-up-right-square' : type === 'validation' ? 'bi-check-circle' : type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
-    const href = alertId ? `/alert/${alertId}` : '/notifications';
+    const icon = is72h ? 'bi-clock-history' : type === 'urgence' ? 'bi-exclamation-triangle' : type === 'tache' ? 'bi-clipboard-check' : type === 'escalade' ? 'bi-arrow-up-right-square' : type === 'validation' ? 'bi-check-circle' : type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
+    const safeAlertId = alertId ? parseInt(alertId, 10) : null;
+    const href = (safeAlertId && safeAlertId > 0) ? `/alert/${safeAlertId}` : '/notifications';
     toast.innerHTML = `
         <a href="${href}" class="gei-toast-link">
             <span class="gei-toast-icon"><i class="bi ${icon}"></i></span>
-            <span class="gei-toast-text">${escapeHtml(contenu)}</span>
+            <span class="gei-toast-text">${is72h ? '<strong class="gei-toast-category">Urgence 72 h · </strong>' : ''}${escapeHtml(contenu)}</span>
         </a>
         <button class="gei-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
     `;
@@ -291,19 +314,190 @@ function escapeHtml(value) {
 
 // Premier appel immédiat + polling toutes les 30s
 document.addEventListener('DOMContentLoaded', () => {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch(error => {
+            console.error('Impossible d’enregistrer le service worker GEI.', error);
+        });
+    }
     pollNotifications();
     notifPollInterval = setInterval(pollNotifications, 30000);
+    initializePushNotifications();
 });
+
+async function initializePushNotifications() {
+    const button = document.getElementById('pushNotificationButton');
+    const status = document.getElementById('pushNotificationStatus');
+    if (!button || !status) return;
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        status.textContent = 'Les notifications push ne sont pas prises en charge par ce navigateur.';
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/push/config', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        if (!response.ok) throw new Error(`Configuration Push indisponible (HTTP ${response.status}).`);
+        const config = await response.json();
+        if (!config.enabled || !config.publicKey) {
+            status.textContent = 'Les clés Web Push doivent être configurées par l’administrateur.';
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.register('/service-worker.js');
+        const subscription = await registration.pushManager.getSubscription();
+        const isAppleMobile = /iPhone|iPad|iPod/.test(navigator.userAgent)
+            || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isInstalledApp = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        if (isAppleMobile && !isInstalledApp) {
+            status.textContent = 'Sur iPhone/iPad, ajoutez d’abord la plateforme à l’écran d’accueil depuis Safari.';
+            return;
+        }
+        button.disabled = false;
+        button.textContent = subscription ? 'Désactiver' : 'Activer';
+        status.textContent = subscription
+            ? 'Cet appareil recevra les notifications, même lorsque la page est fermée.'
+            : Notification.permission === 'denied'
+                ? 'Autorisation bloquée dans les réglages du navigateur.'
+                : 'Activez les notifications sur cet appareil.';
+
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            try {
+                const current = await registration.pushManager.getSubscription();
+                if (current) {
+                    const removed = await fetch('/api/push/subscriptions/remove', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': pushCsrfToken() },
+                        body: JSON.stringify({ endpoint: current.endpoint }),
+                    });
+                    if (!removed.ok) throw new Error(await responseError(removed));
+                    await current.unsubscribe();
+                    button.textContent = 'Activer';
+                    status.textContent = 'Notifications désactivées sur cet appareil.';
+                    return;
+                }
+
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    status.textContent = 'Autorisation non accordée. Vous pouvez la modifier dans les réglages du navigateur.';
+                    return;
+                }
+
+                const created = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: decodeVapidKey(config.publicKey),
+                });
+                const saved = await fetch('/api/push/subscriptions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': pushCsrfToken() },
+                    body: JSON.stringify(created.toJSON()),
+                });
+                if (!saved.ok) {
+                    await created.unsubscribe();
+                    throw new Error(await responseError(saved));
+                }
+                button.textContent = 'Désactiver';
+                status.textContent = 'Cet appareil recevra les notifications, même lorsque la page est fermée.';
+                showToast('Notifications activées sur cet appareil.', 'success');
+            } catch (error) {
+                console.error('Impossible de modifier les notifications sur cet appareil.', error);
+                status.textContent = error.message || 'Échec de la configuration des notifications.';
+            } finally {
+                button.disabled = false;
+            }
+        });
+    } catch (error) {
+        console.error('Impossible d’initialiser les notifications Web Push.', error);
+        status.textContent = 'Impossible de vérifier la configuration des notifications.';
+    }
+}
+
+function pushCsrfToken() {
+    return document.querySelector('meta[name="push-csrf-token"]')?.content || '';
+}
+
+function decodeVapidKey(value) {
+    const padding = '='.repeat((4 - value.length % 4) % 4);
+    const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
+    return Uint8Array.from(atob(base64), character => character.charCodeAt(0));
+}
+
+async function responseError(response) {
+    const data = await response.json().catch(() => ({}));
+    return data.error || `La requête a échoué (HTTP ${response.status}).`;
+}
 
 function toggleNotifPanel() {
     const panel = document.getElementById('notifPanel');
-    panel.classList.toggle('hidden');
-    window._notifPanelOpen = !panel.classList.contains('hidden');
+    const button = document.getElementById('notifBtn');
+    if (!panel || !button) return;
+    const open = panel.classList.contains('hidden');
+    panel.classList.toggle('hidden', !open);
+    button.setAttribute('aria-expanded', String(open));
+    window._notifPanelOpen = open;
+    if (open) pollNotifications();
 }
+function closeNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    if (panel && !panel.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+        window._notifPanelOpen = false;
+        document.getElementById('notifBtn')?.setAttribute('aria-expanded', 'false');
+    }
+}
+function toggleProfileMenu() {
+    const menu = document.getElementById('profileMenu');
+    const button = document.getElementById('userMenuBtn');
+    if (!menu || !button) return;
+    const open = menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', !open);
+    button.setAttribute('aria-expanded', String(open));
+}
+function closeProfileMenu() {
+    document.getElementById('profileMenu')?.classList.add('hidden');
+    document.getElementById('userMenuBtn')?.setAttribute('aria-expanded', 'false');
+}
+document.getElementById('userMenuBtn')?.addEventListener('click', toggleProfileMenu);
+document.getElementById('userMenuBtn')?.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (document.getElementById('profileMenu')?.classList.contains('hidden')) toggleProfileMenu();
+        document.querySelector('#profileMenu a, #profileMenu button')?.focus();
+    }
+});
+document.getElementById('profileMenu')?.addEventListener('keydown', (event) => {
+    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = [...document.querySelectorAll('#profileMenu a[href], #profileMenu button:not([disabled])')];
+    if (!items.length) return;
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement);
+    const nextIndex = event.key === 'Home' ? 0
+        : event.key === 'End' ? items.length - 1
+        : (currentIndex + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items[nextIndex].focus();
+});
+document.addEventListener('click', (e) => {
+    const wrap = document.getElementById('notifDropdownWrap');
+    if (wrap && !wrap.contains(e.target)) {
+        closeNotifPanel();
+    }
+    const profileWrap = document.getElementById('profileMenuWrap');
+    if (profileWrap && !profileWrap.contains(e.target)) closeProfileMenu();
+});
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const profileWasOpen = !document.getElementById('profileMenu')?.classList.contains('hidden');
+        closeNotifPanel();
+        closeProfileMenu();
+        closeSidebar();
+        if (profileWasOpen) document.getElementById('userMenuBtn')?.focus();
+    }
+});
 
 /* ─── Dark / Night mode ─── */
 (function() {
     if (localStorage.getItem('gei-dark') === '1') {
+        document.documentElement.classList.add('dark');
         document.body.classList.add('dark');
     }
 })();
@@ -312,19 +506,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const icon = document.getElementById('darkModeIcon');
     if (!btn) return;
     function applyDark(on) {
+        document.documentElement.classList.toggle('dark', on);
         document.body.classList.toggle('dark', on);
         if (icon) {
-                    icon.className = on ? 'bi bi-sun' : 'bi bi-moon';
+            icon.className = on ? 'bi bi-sun' : 'bi bi-moon';
         }
         localStorage.setItem('gei-dark', on ? '1' : '0');
-        // Notifier les autres composants (ex: carte Leaflet)
+        // Notifier les autres composants (ex: carte Leaflet, Chart.js)
         document.dispatchEvent(new CustomEvent('dark-mode-changed', { detail: { dark: on } }));
     }
     // Init icon on page load
-    const isDark = document.body.classList.contains('dark');
+    const isDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
     if (icon) icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon';
     btn.addEventListener('click', function() {
-        applyDark(!document.body.classList.contains('dark'));
+        const currentlyDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
+        applyDark(!currentlyDark);
     });
 });
 
@@ -393,7 +589,7 @@ document.addEventListener('DOMContentLoaded', () => {
 {% block javascripts %}{% endblock %}
 
 {# ── Container toasts notifications ── #}
-<div id="toastContainer" class="gei-toast-container"></div>
+<div id="toastContainer" class="gei-toast-container" role="region" aria-label="Notifications récentes" aria-live="polite" aria-relevant="additions"></div>
 
 </body>
 </html>

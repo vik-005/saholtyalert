@@ -4,8 +4,10 @@ namespace App\Controller;
 
 use App\Entity\Alert;
 use App\Entity\Notification;
+use App\Entity\PushSubscription;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
+use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -35,6 +37,7 @@ class NotificationController extends AbstractController
     public function __construct(
         private readonly NotificationRepository $notifRepo,
         private readonly EntityManagerInterface $em,
+        private readonly WebPushService $webPushService,
     ) {}
 
     /**
@@ -75,11 +78,7 @@ class NotificationController extends AbstractController
             throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
         }
 
-        $unread = $this->notifRepo->findUnreadForUser($user, 100);
-        foreach ($unread as $notif) {
-            $notif->setLu(true);
-        }
-        $this->em->flush();
+        $this->notifRepo->markAllUnreadAsRead($user);
 
         $this->addFlash('success', 'Toutes les notifications marquées comme lues.');
         return $this->redirectToRoute('app_dashboard_operationnel');
@@ -110,10 +109,89 @@ class NotificationController extends AbstractController
                 'contenu' => $n->getContenu(),
                 'alertId' => $n->getAlert()?->getId(),
                 'codeGei' => $n->getAlert()?->getCodeGei(),
+                'urgence' => $n->getAlert()?->getUrgence()?->value,
+                'priorite' => $n->getPriorite(),
                 'lu'      => $n->isLu(),
                 'date'    => $n->getCreatedAt()->format('d/m H:i'),
             ], $recent),
         ]);
+    }
+
+    #[Route('/api/push/config', name: 'app_push_config', methods: ['GET'])]
+    public function pushConfig(): JsonResponse
+    {
+        return $this->json([
+            'enabled' => $this->webPushService->isConfigured(),
+            'publicKey' => $this->webPushService->isConfigured() ? $this->webPushService->getPublicKey() : null,
+        ]);
+    }
+
+    #[Route('/api/push/subscriptions', name: 'app_push_subscribe', methods: ['POST'])]
+    public function subscribe(Request $request): JsonResponse
+    {
+        if (!$this->webPushService->isConfigured()) {
+            return $this->json(['error' => 'Les notifications sur appareil ne sont pas configurées par l’administrateur.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+        if (!$this->isCsrfTokenValid('push_subscription', (string) $request->headers->get('X-CSRF-Token'))) {
+            return $this->json(['error' => 'Jeton de sécurité invalide. Rechargez la page puis réessayez.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $data = $request->toArray();
+        $endpoint = $data['endpoint'] ?? null;
+        $keys = $data['keys'] ?? null;
+        if (!is_string($endpoint) || strlen($endpoint) > 2048 || !$this->isAllowedPushEndpoint($endpoint)
+            || !is_array($keys) || !is_string($keys['p256dh'] ?? null) || !is_string($keys['auth'] ?? null)
+            || strlen($keys['p256dh']) > 255 || strlen($keys['auth']) > 255
+            || $keys['p256dh'] === '' || $keys['auth'] === '') {
+            return $this->json(['error' => 'L’abonnement de notification reçu est invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $hash = hash('sha256', $endpoint);
+        $subscription = $this->em->getRepository(PushSubscription::class)->findOneBy(['endpointHash' => $hash]);
+        if ($subscription instanceof PushSubscription) {
+            $subscription->updateSubscription($user, $endpoint, $keys['p256dh'], $keys['auth']);
+        } else {
+            $subscription = new PushSubscription($user, $endpoint, $keys['p256dh'], $keys['auth']);
+            $this->em->persist($subscription);
+        }
+
+        $this->em->flush();
+
+        return $this->json(['subscribed' => true], Response::HTTP_CREATED);
+    }
+
+    #[Route('/api/push/subscriptions/remove', name: 'app_push_unsubscribe', methods: ['POST'])]
+    public function unsubscribe(Request $request): JsonResponse
+    {
+        if (!$this->isCsrfTokenValid('push_subscription', (string) $request->headers->get('X-CSRF-Token'))) {
+            return $this->json(['error' => 'Jeton de sécurité invalide. Rechargez la page puis réessayez.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $endpoint = $request->toArray()['endpoint'] ?? null;
+        if (!is_string($endpoint) || strlen($endpoint) > 2048) {
+            return $this->json(['error' => 'Endpoint d’abonnement invalide.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $subscription = $this->em->getRepository(PushSubscription::class)->findOneBy([
+            'user' => $user,
+            'endpointHash' => hash('sha256', $endpoint),
+        ]);
+        if ($subscription instanceof PushSubscription) {
+            $this->em->remove($subscription);
+            $this->em->flush();
+        }
+
+        return $this->json(['subscribed' => false]);
     }
 
     /**
@@ -134,5 +212,24 @@ class NotificationController extends AbstractController
             'notifications' => $notifications,
             'unread_count'  => $unreadCount,
         ]);
+    }
+
+    private function isAllowedPushEndpoint(string $endpoint): bool
+    {
+        $parts = parse_url($endpoint);
+        if (!is_array($parts) || ($parts['scheme'] ?? null) !== 'https' || empty($parts['host'])
+            || (isset($parts['port']) && $parts['port'] !== 443)
+            || isset($parts['user']) || isset($parts['pass'])) {
+            return false;
+        }
+
+        $host = strtolower(rtrim($parts['host'], '.'));
+        foreach (['fcm.googleapis.com', 'push.services.mozilla.com', 'push.apple.com', 'notify.windows.com'] as $allowedHost) {
+            if ($host === $allowedHost || str_ends_with($host, '.' . $allowedHost)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Tests\Unit;
 use App\Entity\Alert;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
 use App\Enum\NiveauPriorite;
@@ -268,6 +269,33 @@ class ScoreCalculatorTest extends TestCase
         $changed = $this->calculator->calculate($alert);
         $this->assertFalse($changed);
         $this->assertNull($alert->getScoreGei());
+    }
+
+    /**
+     * @test
+     * Une alerte licite ne nécessite aucun critère et conserve toujours le score 1.
+     */
+    public function testLiciteAlertGetsFixedScoreOneAndLowPriority(): void
+    {
+        $alert = new Alert();
+        $alert->setLegalStatus(AlertLegality::LICITE);
+
+        $this->assertTrue($alert->isScoreable());
+        $this->assertSame(1, $this->calculator->computeScore($alert));
+        $this->assertTrue($this->calculator->calculate($alert));
+        $this->assertSame(1, $alert->getScoreGei());
+        $this->assertSame(NiveauPriorite::FAIBLE, $alert->getNiveauPriorite());
+
+        $preview = $this->calculator->computeFromValues(
+            'A',
+            1,
+            'immediat',
+            'eleve',
+            'actionnable',
+            AlertLegality::LICITE,
+        );
+        $this->assertSame(1, $preview['score']);
+        $this->assertSame(NiveauPriorite::FAIBLE->value, $preview['niveau']);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

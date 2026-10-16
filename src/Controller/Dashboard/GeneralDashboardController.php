@@ -40,8 +40,10 @@ class GeneralDashboardController extends AbstractController
         $scoreMoyen = $alertRepository->getScoreMoyen($user);
         $delaiMoyenH = $alertRepository->getAvgDelaiTraitementHeures($user);
 
-        // --- Données graphique évolution (30 derniers jours) ---
-        $chartData = $alertRepository->getEvolutionData(30, $user);
+        // --- Données réelles du graphique selon la période choisie ---
+        $requestedPeriod = filter_var($request->query->get('period', '30'), FILTER_VALIDATE_INT);
+        $chartPeriod = in_array($requestedPeriod, [7, 30, 90], true) ? $requestedPeriod : 30;
+        $chartData = $alertRepository->getEvolutionData($chartPeriod, $user);
 
         // --- Marchés actifs ---
         $markets = $marketRepository->findBy(['actif' => true]);
@@ -98,6 +100,7 @@ class GeneralDashboardController extends AbstractController
             'chartLabels'   => $chartData['labels'],
             'chartNouvelles' => $chartData['nouvelles'],
             'chartTransmises' => $chartData['transmises'],
+            'chartPeriod'   => $chartPeriod,
             'alerts'        => $alerts,
             'filters'       => (array) $filterDto,
             'page'          => $filterDto->page,

@@ -1,6 +1,6 @@
 {# Étape 6 — Relecture et soumission #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 6}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" action="{{ path('app_wizard_new', {step: 6}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="6">
     {# Repasser toutes les données du draft dans des champs cachés #}
     {% if draftData %}
@@ -40,7 +40,7 @@
                     <dd>
                         {% if alert.typeLocalisation %}
                             <span class="loc-type loc-type-{{ alert.typeLocalisation.value }}">
-                                <i class="bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
+                                <i class="bi bi-{{ alert.typeLocalisation.icon() }} fa-xs"></i>
                                 {{ alert.typeLocalisation.label() }}
                             </span>
                         {% else %}<span class="text-red-400">Non renseigné</span>{% endif %}
@@ -63,15 +63,15 @@
                     <dt>Réf. documentaire</dt>
                     <dd>{{ alert.referenceDocumentaire ?: '—' }}</dd>
                     <dt>Description / Quantité</dt>
-                    <dd class="text-slate-300">{{ alert.elementsFactuels ? alert.elementsFactuels|slice(0,200) ~ (alert.elementsFactuels|length > 200 ? '…' : '') : '—' }}</dd>
+                    <dd class="text-slate-600">{{ alert.elementsFactuels ? alert.elementsFactuels|slice(0,200) ~ (alert.elementsFactuels|length > 200 ? '…' : '') : '—' }}</dd>
                     <dt>Hypothèses analytiques</dt>
-                    <dd class="text-slate-300">{{ alert.hypothesesAnalytiques ? alert.hypothesesAnalytiques|slice(0,200) ~ (alert.hypothesesAnalytiques|length > 200 ? '…' : '') : '—' }}</dd>
+                    <dd class="text-slate-600">{{ alert.hypothesesAnalytiques ? alert.hypothesesAnalytiques|slice(0,200) ~ (alert.hypothesesAnalytiques|length > 200 ? '…' : '') : '—' }}</dd>
                     <dt>Marque</dt>
                     <dd>{{ alert.marque ?: '—' }}</dd>
                     <dt>Opérateur / Acteur</dt>
                     <dd>{{ alert.operateurActeur ?: '—' }}</dd>
                     <dt>Résumé de l'information</dt>
-                    <dd class="text-slate-300">{{ alert.resumeExecutif ?: '—' }}</dd>
+                    <dd class="text-slate-600">{{ alert.resumeExecutif ?: '—' }}</dd>
                 </dl>
             </div>
 
@@ -119,6 +119,18 @@
                     </a>
                 </div>
                 <dl class="recap-grid">
+                    <dt>Statut juridique</dt>
+                    <dd>
+                        {% if alert.legalStatus %}
+                            <strong>{{ alert.legalStatus.label() }}</strong>
+                            {% if alert.legalStatus.value == 'licite' %}
+                                <span class="text-slate-500">— score fixe : 1</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-red-400">Non renseigné</span>
+                        {% endif %}
+                    </dd>
+                    {% if alert.legalStatus and alert.legalStatus.value == 'illicite' %}
                     <dt>Fiabilité source</dt>
                     <dd>
                         {% if alert.fiabiliteSource %}
@@ -137,6 +149,7 @@
                     <dd>{{ alert.impact ? alert.impact.label() : '—' }}</dd>
                     <dt>Exploitabilité</dt>
                     <dd>{{ alert.exploitabilite ? alert.exploitabilite.label() : '—' }}</dd>
+                    {% endif %}
                 </dl>
 
                 {# Score calculé #}
@@ -198,4 +211,3 @@
     </div>
 
 </form>
-

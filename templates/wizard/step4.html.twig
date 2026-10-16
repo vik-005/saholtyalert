@@ -1,6 +1,6 @@
 {# Étape 4 — Source (champs 11 à 12) #}
 
-<form id="wizardForm" method="post" action="{{ path('app_wizard_new', {step: 4}) }}" novalidate>
+<form id="wizardForm" class="wizard-form" method="post" action="{{ path('app_wizard_new', {step: 4}) }}" novalidate>
     <input type="hidden" name="wizard_step" value="4">
 
     <div class="db-card mb-4">
@@ -11,7 +11,7 @@
             </p>
             <p class="text-xs text-slate-500">Champs 11 à 12 du formulaire Agent</p>
         </div>
-        <div class="db-card-body space-y-4">
+        <div class="db-card-body space-y-4 wizard-fields-grid">
 
             {# Champ 11 — Type de source (liste administrable) #}
             <div class="form-field">
@@ -43,18 +43,12 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex-shrink-0">
-                                    <i class="bi bi-shield-check text-xl"></i>
-                                </div>
                                 <div>
-                                    <div class="radio-option-title text-sm font-bold text-white">Oui (Source protégée)</div>
-                                    <div class="text-xs text-slate-400 font-normal">Identité caviardée dans toute diffusion</div>
+                                    <div class="radio-option-title">Oui (Source protégée)</div>
+                                    <div class="form-help">Identité caviardée dans toute diffusion</div>
                                 </div>
                             </div>
                         </div>
-                        <span class="radio-selected-pill">
-                            <i class="bi bi-check-lg"></i>Sélectionné
-                        </span>
                     </label>
                     <label class="radio-option {% if currentAnon == 'non' %}radio-option-active{% endif %}" data-val="non">
                         <input type="radio" name="alert[anonymisation]" value="non"
@@ -62,20 +56,17 @@
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
                             <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-500/10 border border-slate-500/20 text-slate-300 flex-shrink-0">
-                                    <i class="bi bi-shield-slash text-xl"></i>
-                                </div>
                                 <div>
-                                    <div class="radio-option-title text-sm font-bold text-white">Non (Source ouverte / officielle)</div>
-                                    <div class="text-xs text-slate-400 font-normal">Renseignement issu d'un canal public ou officiel</div>
+                                    <div class="radio-option-title">Non (Source ouverte / officielle)</div>
+                                    <div class="form-help">Renseignement issu d'un canal public ou officiel</div>
                                 </div>
                             </div>
                         </div>
-                        <span class="radio-selected-pill">
-                            <i class="bi bi-check-lg"></i>Sélectionné
-                        </span>
                     </label>
                 </div>
+                <button type="button" class="wizard-choice-clear" data-clear-radio="anonymisationGroup" hidden>
+                    Effacer la sélection
+                </button>
                 <p class="form-help">La source doit-elle être protégée (anonymisée) dans les communications ?</p>
             </div>
 

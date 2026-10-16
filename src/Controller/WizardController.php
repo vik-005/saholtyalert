@@ -3,10 +3,12 @@
 namespace App\Controller;
 
 use App\Entity\Alert;
+use App\Entity\AlertAttachment;
 use App\Entity\AlertComment;
 use App\Entity\ListeReferenceValeur;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
@@ -17,6 +19,7 @@ use App\Repository\MarketRepository;
 use App\Service\AlertCodeGeneratorService;
 use App\Service\ScoreCalculatorService;
 use App\Service\NotificationService;
+use App\Service\AlertAttachmentStorageService;
 use Symfony\Component\Intl\Countries;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,7 +38,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
  *   Étape 2 — Contenu de l'alerte    : champs 5 (réf. doc), 6 (description/quantité), 7 (marque), 8 (résumé)
  *   Étape 3 — Classification         : champs 9 (catégorie), 10 (type d'alerte)
  *   Étape 4 — Source                 : champs 11 (type de source), 12 (anonymisation)
- *   Étape 5 — Qualification          : champs 13 (fiabilité), 14 (crédibilité), 15 (urgence), 16 (impact), 17 (exploitabilité)
+ *   Étape 5 — Qualification          : statut Licite/Illicite, puis critères de score si Illicite
  *   Étape 6 — Relecture & soumission : récapitulatif + commentaire + soumission
  *
  * Champ ID Alerte : généré par le système à la soumission (GEI-{ISO3}-{ANNEE}-{SEQ:003}).
@@ -54,6 +57,7 @@ class WizardController extends AbstractController
         private readonly MarketRepository $marketRepository,
         private readonly ListeReferenceValeurRepository $listeReferenceRepository,
         private readonly NotificationService $notificationService,
+        private readonly AlertAttachmentStorageService $attachmentStorage,
     ) {}
 
     #[Route('/new', name: 'app_wizard_new', methods: ['GET', 'POST'])]
@@ -89,6 +93,7 @@ class WizardController extends AbstractController
 
         if ($draftData) {
             $this->hydrateAlertFromDraft($alert, $draftData, $em);
+            $this->scoreCalculator->calculate($alert);
         }
 
         // Gestion du POST (navigation entre étapes)
@@ -106,6 +111,31 @@ class WizardController extends AbstractController
 
             // Sauvegarder le draft à chaque étape
             $this->saveDraft($user->getId(), $formData);
+
+            if ($currentStep === 2) {
+                $files = $request->files->all();
+                $justificatif = $files['alert']['justificatif'] ?? null;
+                if ($justificatif instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                    try {
+                        $pendingAttachment = $this->attachmentStorage->stage($justificatif);
+                    } catch (\InvalidArgumentException $exception) {
+                        $this->addFlash('error', $exception->getMessage());
+                        return $this->redirectToRoute('app_wizard_new', ['step' => 2]);
+                    }
+
+                    $sessionKey = "alert_attachment_pending_{$user->getId()}";
+                    $previousAttachment = $request->getSession()->get($sessionKey);
+                    if (is_array($previousAttachment) && isset($previousAttachment['token'])) {
+                        $this->attachmentStorage->removeStaged((string) $previousAttachment['token']);
+                    }
+                    $request->getSession()->set($sessionKey, $pendingAttachment);
+                }
+            }
+
+            if ($action === 'remove_attachment') {
+                $this->clearPendingAttachment($user->getId());
+                return $this->redirectToRoute('app_wizard_new', ['step' => 2]);
+            }
 
             if ($action === 'prev') {
                 return $this->redirectToRoute('app_wizard_new', ['step' => max(1, $currentStep - 1)]);
@@ -135,6 +165,7 @@ class WizardController extends AbstractController
             'alert'         => $alert,
             'is_editing'    => (bool) $editingId,
             'draftData'     => $draftData ?? [],
+            'pendingAttachment' => $request->getSession()->get("alert_attachment_pending_{$user->getId()}"),
             'currentStep'   => $currentStep,
             'totalSteps'    => 6,
             'markets'       => $markets,
@@ -156,6 +187,13 @@ class WizardController extends AbstractController
     public function scorePreview(Request $request): JsonResponse
     {
         $data = json_decode($request->getContent(), true) ?? $request->request->all();
+        $legalStatus = null;
+        if (array_key_exists('legalStatus', $data)) {
+            $legalStatus = AlertLegality::tryFrom((string) $data['legalStatus']);
+            if ($legalStatus === null) {
+                return new JsonResponse(['error' => 'Le statut juridique sélectionné n’est pas valide.'], 400);
+            }
+        }
 
         try {
             $result = $this->scoreCalculator->computeFromValues(
@@ -164,6 +202,7 @@ class WizardController extends AbstractController
                 urgence:        $data['urgence'] ?? 'routine',
                 impact:         $data['impact'] ?? 'moyen',
                 exploitabilite: $data['exploitabilite'] ?? 'a_completer',
+                legalStatus:   $legalStatus,
             );
 
             return new JsonResponse($result);
@@ -183,6 +222,7 @@ class WizardController extends AbstractController
         }
 
         $this->clearDraftData($user->getId());
+        $this->clearPendingAttachment($user->getId());
 
         return new JsonResponse(['success' => true]);
     }
@@ -264,6 +304,14 @@ class WizardController extends AbstractController
 
     private function validateStep5(array $data): ?string
     {
+        $legalStatus = AlertLegality::tryFrom((string) ($data['legalStatus'] ?? ''));
+        if ($legalStatus === null) {
+            return 'Le statut juridique (Licite ou Illicite) est obligatoire.';
+        }
+        if ($legalStatus === AlertLegality::LICITE) {
+            return null;
+        }
+
         $fiab = $data['fiabiliteSource'] ?? '';
         if (empty($fiab) || !in_array($fiab, ['A', 'B', 'C', 'D'], true)) {
             return 'La fiabilité source doit être A, B, C ou D.';
@@ -309,11 +357,31 @@ class WizardController extends AbstractController
         // Capture du brouillon (format alert[key])
         $draftData = $this->getDraftData($user->getId());
         $commentaireSoumission = trim($formData['alert']['commentaires'] ?? $draftData['alert[commentaires]'] ?? '');
+        $submissionData = array_merge($draftData ?? [], $formData);
+        $qualificationData = $submissionData['alert'] ?? [];
+        foreach ($submissionData as $key => $value) {
+            if (preg_match('/^alert\[(.+)\]$/', (string) $key, $matches)) {
+                $qualificationData[$matches[1]] = $value;
+            }
+        }
+        if ($qualificationError = $this->validateStep5($qualificationData)) {
+            $this->addFlash('error', $qualificationError);
+            return $this->redirectToRoute('app_wizard_new', ['step' => 5]);
+        }
+
+        $pendingAttachment = $session?->get("alert_attachment_pending_{$user->getId()}");
+        if (!is_array($pendingAttachment)
+            || !isset($pendingAttachment['token'], $pendingAttachment['originalName'], $pendingAttachment['mimeType'], $pendingAttachment['size'])) {
+            $pendingAttachment = null;
+        }
+
+        $storedAttachmentPath = null;
 
         // Exécuter tout le processus de soumission dans une transaction
-        $em->wrapInTransaction(function () use (
-            $alert, $formData, $draftData, $em, $user, $isEdit, $previousStatut, $commentaireSoumission, $existingAlert
-        ): void {
+        try {
+            $em->wrapInTransaction(function () use (
+                $alert, $formData, $draftData, $em, $user, $isEdit, $previousStatut, $commentaireSoumission, $existingAlert, $pendingAttachment, &$storedAttachmentPath
+            ): void {
             // Hydration complète en fusionnant le brouillon session et les données du formulaire POST
             $mergedData = array_merge($draftData ?? [], $formData);
             $this->hydrateAlertFromDraft($alert, $mergedData, $em);
@@ -353,6 +421,23 @@ class WizardController extends AbstractController
             }
 
             $em->persist($alert);
+
+            if ($pendingAttachment !== null) {
+                $storedAttachmentPath = $this->attachmentStorage->copyToPermanent(
+                    (string) $pendingAttachment['token'],
+                    (string) $pendingAttachment['originalName'],
+                );
+                $attachment = new AlertAttachment();
+                $attachment->setFichierChemin($storedAttachmentPath);
+                $attachment->setFichierNomOriginal((string) $pendingAttachment['originalName']);
+                $attachment->setMimeType((string) $pendingAttachment['mimeType']);
+                $attachment->setTailleOctets((int) $pendingAttachment['size']);
+                $attachment->setUploadedBy($user);
+                $alert->addPieceJointe($attachment);
+                $alert->setPiecesDisponibles(true);
+                $alert->setPiecesType('Document justificatif');
+                $em->persist($attachment);
+            }
 
             // Le marché principal porte l'identifiant GEI ; les autres marchés
             // décrivent le parcours et sont conservés dans alert_market.
@@ -405,13 +490,20 @@ class WizardController extends AbstractController
             if ($alert->getMarket()) {
                 $this->createManagerNotifications($alert, $em, $isEdit, $user);
             }
-        });
+            });
 
-        // Flush unique à la fin de la transaction
-        $em->flush();
+            // Flush unique à la fin de la transaction
+            $em->flush();
+        } catch (\Throwable $exception) {
+            if ($storedAttachmentPath !== null) {
+                $this->attachmentStorage->removeStored($storedAttachmentPath);
+            }
+            throw $exception;
+        }
 
         // Supprimer le draft et l'id d'édition (hors transaction — session seulement)
         $this->clearDraftData($user->getId());
+        $this->clearPendingAttachment($user->getId());
         $session?->remove("alert_edit_id_{$user->getId()}");
 
         $this->addFlash('success', sprintf('Alerte %s soumise avec succès.', $alert->getCodeGei()));
@@ -523,6 +615,17 @@ class WizardController extends AbstractController
         $this->requestStack->getCurrentRequest()?->getSession()?->remove("alert_draft_{$userId}");
     }
 
+    private function clearPendingAttachment(int $userId): void
+    {
+        $session = $this->requestStack->getCurrentRequest()?->getSession();
+        $sessionKey = "alert_attachment_pending_{$userId}";
+        $pendingAttachment = $session?->get($sessionKey);
+        if (is_array($pendingAttachment) && isset($pendingAttachment['token'])) {
+            $this->attachmentStorage->removeStaged((string) $pendingAttachment['token']);
+        }
+        $session?->remove($sessionKey);
+    }
+
     /**
      * Capture un instantané des champs modifiables d'une alerte
      * pour le journal d'activité (avant/après).
@@ -609,6 +712,7 @@ class WizardController extends AbstractController
 
         // Enums
         $enumMap = [
+            'legalStatus'     => [\App\Enum\AlertLegality::class, 'setLegalStatus'],
             'typeLocalisation'=> [\App\Enum\TypeLocalisation::class, 'setTypeLocalisation'],
             'typeAlerte'      => [\App\Enum\TypeAlerte::class, 'setTypeAlerte'],
             'fiabiliteSource' => [\App\Enum\FiabiliteSource::class, 'setFiabiliteSource'],
@@ -632,6 +736,14 @@ class WizardController extends AbstractController
         // Crédibilité (int)
         if (!empty($alertData['credibiliteContenu'])) {
             $alert->setCredibiliteContenu((int) $alertData['credibiliteContenu']);
+        }
+
+        if ($alert->getLegalStatus() === AlertLegality::LICITE) {
+            $alert->setFiabiliteSource(null);
+            $alert->setCredibiliteContenu(null);
+            $alert->setUrgence(null);
+            $alert->setImpact(null);
+            $alert->setExploitabilite(null);
         }
     }
 

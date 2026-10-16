@@ -1,4 +1,4 @@
-{% extends 'base.html.twig' %}
+﻿{% extends 'base.html.twig' %}
 
 {% block title %}Dashboard Général — GEI{% endblock %}
 {% block header_title %}Dashboard Général{% endblock %}
@@ -13,10 +13,7 @@
             title: 'Total Alertes',
             value: kpis.total,
             icon: 'bi-clipboard-data',
-            color: 'teal',
-            trend_val: '+' ~ (kpis.total > 0 ? '12%' : '0%'),
-            trend_label: 'vs. mois dernier',
-            trend_dir: 'up'
+            color: 'teal'
         } %}
 
         {# Card 2 — Alertes critiques #}
@@ -36,9 +33,8 @@
             value: kpis.actionnables,
             icon: 'bi-lightning-charge',
             color: 'amber',
-            trend_val: '+' ~ (kpis.actionnables > 0 ? '8%' : '0%'),
-            trend_label: 'Exploitabilité opérat.',
-            trend_dir: 'up'
+            trend_val: 'Exploitabilité opérat.',
+            trend_dir: 'neutral'
         } %}
 
         {# Card 4 — Transmis #}
@@ -46,10 +42,7 @@
             title: 'Transmis',
             value: kpis.transmis,
             icon: 'bi-send',
-            color: 'blue',
-            trend_val: '+' ~ (kpis.transmis > 0 ? '3' : '0'),
-            trend_label: 'cette semaine',
-            trend_dir: 'up'
+            color: 'blue'
         } %}
 
         {# Card 5 — Délai traitement moy. #}
@@ -75,10 +68,10 @@
                     <p class="db-card-title">Activité du Registre GEI</p>
                 </div>
                 <div class="db-card-actions">
-                    <select class="db-select" id="chartPeriodSelect" onchange="updateChartPeriod(this.value)">
-                        <option value="7">7 derniers jours</option>
-                        <option value="30" selected>30 derniers jours</option>
-                        <option value="90">3 mois</option>
+                    <select class="db-select" id="chartPeriodSelect" aria-label="Période du graphique">
+                        <option value="7" {% if chartPeriod == 7 %}selected{% endif %}>7 derniers jours</option>
+                        <option value="30" {% if chartPeriod == 30 %}selected{% endif %}>30 derniers jours</option>
+                        <option value="90" {% if chartPeriod == 90 %}selected{% endif %}>3 mois</option>
                     </select>
                 </div>
             </div>
@@ -109,22 +102,24 @@
                 </div>
             </div>
 
-            <div class="notif-list" style="max-height: 420px; overflow-y: auto;">
+            <div class="notif-list notif-list-scroll">
                 {% for notif in notifications %}
-                <div class="notif-list-item
+                {% set is72hNotification = notif.type == 'sla_proche' or (notif.alert and notif.alert.urgence and notif.alert.urgence.value == '72h') %}
+                <div class="notif-list-item notif-item-container
                     {% if not notif.lu %}notif-list-item-unread{% endif %}
-                    {% if notif.urgente %}notif-list-item-urgente{% endif %}"
-                    style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+                    {% if notif.urgente and not is72hNotification %}notif-list-item-urgente{% endif %}
+                    {% if is72hNotification %}notif-list-item-72h{% endif %}">
                     <div class="notif-icon-wrap
-                        {% if notif.urgente or notif.type == 'urgence' or notif.type == 'sla_proche' %}notif-icon-red
+                        {% if is72hNotification %}notif-icon-amber
+                        {% elseif notif.urgente or notif.type == 'urgence' %}notif-icon-red
                         {% elseif notif.type == 'rejet' or notif.type == 'danger' %}notif-icon-red
                         {% elseif notif.type == 'warning' %}notif-icon-amber
                         {% elseif notif.type == 'validation' or notif.type == 'success' %}notif-icon-emerald
                         {% else %}notif-icon-blue{% endif %}">
-                        {% if notif.urgente or notif.type == 'urgence' %}
+                        {% if is72hNotification %}
+                            <i class="bi bi-clock-history"></i>
+                        {% elseif notif.urgente or notif.type == 'urgence' %}
                             <i class="bi bi-broadcast-pin"></i>
-                        {% elseif notif.type == 'sla_proche' %}
-                            <i class="bi bi-stopwatch"></i>
                         {% elseif notif.type == 'rejet' %}
                             <i class="bi bi-x-circle"></i>
                         {% elseif notif.type == 'validation' %}
@@ -135,26 +130,27 @@
                             <i class="bi bi-info-circle"></i>
                         {% endif %}
                     </div>
-                    <div class="notif-list-text" style="flex: 1; min-width: 0;">
-                        <p style="font-size: 11.5px; font-weight: {% if notif.urgente %}700{% else %}600{% endif %}; color: {% if notif.urgente %}#f87171{% else %}var(--text){% endif %}; line-height: 1.4; margin-bottom: 2px;">
-                            {% if notif.urgente %}<i class="bi bi-exclamation-triangle me-1 text-red-400"></i>{% endif %}
+                    <div class="notif-text-wrapper">
+                        <p class="notif-text-title{% if notif.urgente and not is72hNotification %} notif-text-title-urgent{% endif %}">
+                            {% if is72hNotification %}<span class="notif-list-category notif-category-72h">Urgence 72 h</span>
+                            {% elseif notif.urgente %}<i class="bi bi-exclamation-triangle me-1 text-red-400"></i>{% endif %}
                             {{ notif.contenu|slice(0, 90) }}{% if notif.contenu|length > 90 %}…{% endif %}
                         </p>
-                        <span style="font-size: 10px; color: var(--muted);">
+                        <span class="notif-meta">
                             {{ notif.createdAt|date('d/m/Y H:i') }}
                             {% if notif.alert %}
-                                <a href="{{ path('app_alert_show', {id: notif.alert.id}) }}" style="color: var(--amber); text-decoration: none; margin-left: 6px;">
+                                <a href="{{ path('app_alert_show', {id: notif.alert.id}) }}" class="notif-link-alert">
                                     <i class="bi bi-link-45deg"></i>
                                 </a>
                             {% endif %}
                         </span>
                     </div>
                     {% if notif.urgente %}
-                        <span style="font-size: 9px; color: #f87171; font-weight: 800; white-space: nowrap; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.2); border-radius:99px; padding:2px 6px;">URGENT</span>
+                        <span class="notif-badge-urgent">URGENT</span>
                     {% elseif not notif.lu %}
-                        <span style="font-size: 9px; color: var(--amber); font-weight: 700; white-space: nowrap;">Nouveau</span>
+                        <span class="notif-badge-new">Nouveau</span>
                     {% else %}
-                        <span style="font-size: 9px; color: var(--muted); white-space: nowrap;">Lu</span>
+                        <span class="notif-badge-read">Lu</span>
                     {% endif %}
                 </div>
                 {% else %}
@@ -455,9 +451,12 @@ const chartData = {
     nouvelles:   {{ chartNouvelles|default([3,5,2,8,6,4,7])|json_encode|raw }},
     transmises:  {{ chartTransmises|default([1,2,1,3,2,2,3])|json_encode|raw }},
 };
+document.getElementById('chartPeriodSelect')?.addEventListener('change', event => {
+    updateChartPeriod(event.currentTarget.value);
+});
 
 /* ─── Defaults Chart.js ─── */
-const isDarkChart = localStorage.getItem('gei-dark') === '1';
+const isDarkChart = document.body.classList.contains('dark');
 Chart.defaults.color          = isDarkChart ? '#a8c4b8' : '#94a3b8';
 Chart.defaults.borderColor    = isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
 Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
@@ -493,8 +492,8 @@ new Chart(evolutionCtx, {
                 pointBackgroundColor: '#16856b',
                 pointBorderColor:     isDarkChart ? '#162219' : '#fff',
                 pointBorderWidth:     2,
-                pointRadius:     3.5,
-                pointHoverRadius: 6,
+                pointRadius:     0,
+                pointHoverRadius: 5,
                 tension: 0.35,
                 fill: true,
             },
@@ -507,10 +506,10 @@ new Chart(evolutionCtx, {
                 pointBackgroundColor: '#3b82f6',
                 pointBorderColor:     isDarkChart ? '#162219' : '#fff',
                 pointBorderWidth:     2,
-                pointRadius:     3.5,
-                pointHoverRadius: 6,
+                pointRadius:     0,
+                pointHoverRadius: 5,
                 tension: 0.35,
-                fill: true,
+                fill: false,
             }
         ]
     },
@@ -537,13 +536,13 @@ new Chart(evolutionCtx, {
         },
         scales: {
             x: {
-                grid: { color: isDarkChart ? 'rgba(168,196,184,0.04)' : 'rgba(148,163,184,0.04)', drawBorder: false },
-                ticks: { color: isDarkChart ? '#7da090' : '#7da090', font: { size: 10, family: 'Inter, sans-serif' } },
+                grid: { color: isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.12)', drawBorder: false },
+                ticks: { color: isDarkChart ? '#a8c4b8' : '#64748b', maxTicksLimit: 10, maxRotation: 0, font: { size: 10, family: 'Inter, sans-serif' } },
                 border: { display: false }
             },
             y: {
-                grid: { color: isDarkChart ? 'rgba(168,196,184,0.04)' : 'rgba(148,163,184,0.04)', drawBorder: false },
-                ticks: { color: isDarkChart ? '#7da090' : '#7da090', stepSize: 1, font: { size: 10, family: 'Inter, sans-serif' } },
+                grid: { color: isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.12)', drawBorder: false },
+                ticks: { color: isDarkChart ? '#a8c4b8' : '#64748b', precision: 0, font: { size: 10, family: 'Inter, sans-serif' } },
                 border: { display: false },
                 beginAtZero: true
             }
@@ -553,21 +552,11 @@ new Chart(evolutionCtx, {
 
 /* ─── Mise à jour de la période (démo) ─── */
 function updateChartPeriod(days) {
-    const labels7  = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-    const labels30 = Array.from({length: 30}, (_, i) => `J-${30 - i}`);
-    const labels90 = Array.from({length: 12}, (_, i) => `S${i + 1}`);
-
-    const labels = days == 7 ? labels7 : days == 30 ? labels30 : labels90;
-    const len = labels.length;
-
-    const ctx = document.getElementById('alertEvolutionChart').getContext('2d');
-    const chart = Chart.getChart(ctx);
-    if (!chart) return;
-
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = Array.from({length: len}, () => Math.floor(Math.random() * 12) + 1);
-    chart.data.datasets[1].data = Array.from({length: len}, () => Math.floor(Math.random() * 5));
-    chart.update('active');
+    const period = Number(days);
+    if (![7, 30, 90].includes(period)) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set('period', String(period));
+    window.location.assign(url);
 }
 
 /* ─── Stabiliser le redimensionnement du graphique ─── */

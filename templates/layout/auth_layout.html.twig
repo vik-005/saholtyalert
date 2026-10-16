@@ -2,38 +2,9 @@
 
 {% block body_login %}
 <div class="auth-shell auth-shell-pro">
-
-    {# ══════════════════════════════════════════════════════════════════
-       PANNEAU GAUCHE — fond vert institutionnel + slideshow photo
-    ══════════════════════════════════════════════════════════════════ #}
     <aside class="auth-brand-panel">
-
-        {# ── Diaporama fond ── #}
-        <div class="auth-slide-wrap" id="authSlideWrap">
-            {#
-                Images issues de Unsplash (libres de droits, thème opérationnel / sécurité).
-                Remplacez les URLs par vos propres assets si besoin.
-            #}
-            <div class="auth-slide-item auth-slide-active"
-                 style="background-image:url('https://images.unsplash.com/photo-1557597774-9d475d030a6d?w=900&q=80&auto=format&fit=crop')">
-            </div>
-            <div class="auth-slide-item"
-                 style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=900&q=80&auto=format&fit=crop')">
-            </div>
-            <div class="auth-slide-item"
-                 style="background-image:url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop')">
-            </div>
-            <div class="auth-slide-item"
-                 style="background-image:url('https://images.unsplash.com/photo-1591696205602-2f950c417cb9?w=900&q=80&auto=format&fit=crop')">
-            </div>
-        </div>
-
-        {# ── Overlay vert semi-transparent ── #}
-        <div class="auth-slide-overlay"></div>
-
-        {# ── Contenu branding (au-dessus de l'overlay) ── #}
         <a href="{{ path('app_login') }}" class="auth-brand">
-            <span><i class="bi-shield-lock"></i></span>GEI Platform
+            <span><i class="bi bi-shield-lock"></i></span>GEI Platform
         </a>
 
         <div class="auth-brand-copy">
@@ -43,32 +14,26 @@
         </div>
 
         <ul class="auth-brand-points">
-            <li><i class="bi-check-circle"></i>Accès contrôlé par rôle</li>
-            <li><i class="bi-check-circle"></i>Traçabilité des opérations</li>
-            <li><i class="bi-check-circle"></i>Suivi des urgences sous 72 h</li>
+            <li><i class="bi bi-check-circle"></i>Accès contrôlé par rôle</li>
+            <li><i class="bi bi-check-circle"></i>Traçabilité des opérations</li>
+            <li><i class="bi bi-check-circle"></i>Suivi des urgences sous 72 h</li>
         </ul>
 
-        <p class="auth-brand-footer"><i class="bi-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
-
-        {# ── Points de navigation ── #}
-        <div class="auth-slide-dots" id="authSlideDots">
-            <button class="auth-slide-dot auth-dot-active" data-slide="0" aria-label="Slide 1"></button>
-            <button class="auth-slide-dot" data-slide="1" aria-label="Slide 2"></button>
-            <button class="auth-slide-dot" data-slide="2" aria-label="Slide 3"></button>
-            <button class="auth-slide-dot" data-slide="3" aria-label="Slide 4"></button>
-        </div>
-
+        <p class="auth-brand-footer"><i class="bi bi-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
     </aside>
 
-    {# ══════════════════════════════════════════════════════════════════
-       PANNEAU DROIT — formulaire
-    ══════════════════════════════════════════════════════════════════ #}
     <main class="auth-form-panel auth-form-panel-pro">
         <div class="auth-mobile-brand">
-            <span><i class="bi-shield-lock"></i></span> GEI Platform
+            <span><i class="bi bi-shield-lock"></i></span> GEI Platform
         </div>
         <div class="auth-form-inner">{% block auth_form %}{% endblock %}</div>
-        <p class="auth-footer-note">© {{ 'now'|date('Y') }} · Plateforme GEI</p>
+        <div class="auth-footer-note auth-legal-footer">
+            <span>© {{ 'now'|date('Y') }} · Plateforme GEI</span>
+            <nav aria-label="Informations légales">
+                <a href="{{ path('app_privacy_policy') }}">Confidentialité</a>
+                <a href="{{ path('app_terms_of_use') }}">Conditions d’utilisation</a>
+            </nav>
+        </div>
     </main>
 
 </div>
@@ -77,50 +42,17 @@
 {% block javascripts %}
 {{ parent() }}
 <script>
-/* ── Slideshow panneau gauche ── */
-(function() {
-    const slides = document.querySelectorAll('.auth-slide-item');
-    const dots   = document.querySelectorAll('.auth-slide-dots .auth-slide-dot');
-    if (!slides.length) return;
-
-    let current = 0;
-    let timer   = null;
-
-    function goTo(idx) {
-        slides[current].classList.remove('auth-slide-active');
-        dots[current]?.classList.remove('auth-dot-active');
-        current = (idx + slides.length) % slides.length;
-        slides[current].classList.add('auth-slide-active');
-        dots[current]?.classList.add('auth-dot-active');
-    }
-
-    function next() { goTo(current + 1); }
-
-    function startAuto() {
-        clearInterval(timer);
-        timer = setInterval(next, 5000);
-    }
-
-    // Clic sur les dots
-    dots.forEach(function(dot) {
-        dot.addEventListener('click', function() {
-            goTo(parseInt(dot.dataset.slide, 10));
-            startAuto(); // reset du timer
-        });
-    });
-
-    startAuto();
-})();
-
-/* ── Afficher/masquer mot de passe ── */
 function togglePassword(inputId, btnId) {
     const input = document.getElementById(inputId);
-    const icon  = document.getElementById(btnId)?.querySelector('i');
-    if (!input || !icon) return;
+    const button = document.getElementById(btnId);
+    const icon = button?.querySelector('i');
+    if (!input || !button || !icon) return;
     const visible = input.type === 'password';
     input.type = visible ? 'text' : 'password';
     icon.classList.toggle('bi-eye',      !visible);
     icon.classList.toggle('bi-eye-slash', visible);
+    button.setAttribute('aria-label', visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+    button.setAttribute('aria-pressed', String(visible));
 }
 </script>
 {% endblock %}

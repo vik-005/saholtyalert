@@ -123,6 +123,11 @@ class TransmissionController extends AbstractController
             return $this->redirectToRoute('app_transmission_index');
         }
 
+        if ($transmission->isCloture()) {
+            $this->addFlash('info', 'Cette transmission est déjà clôturée.');
+            return $this->redirectToRoute('app_transmission_index');
+        }
+
         $transmission->cloturer();
 
         $log = new AccessLog();
@@ -149,6 +154,11 @@ class TransmissionController extends AbstractController
     {
         if (!$this->isCsrfTokenValid('rouvrir-transmission-' . $transmission->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_transmission_index');
+        }
+
+        if (!$transmission->isCloture()) {
+            $this->addFlash('info', 'Cette transmission est déjà en cours de suivi.');
             return $this->redirectToRoute('app_transmission_index');
         }
 

@@ -1,0 +1,115 @@
+<div class="legal-page">
+    <header class="legal-header">
+        <a class="legal-back-link" href="{{ app.user ? path('app_dashboard_operationnel') : path('app_login') }}">
+            <i class="bi bi-arrow-left"></i>
+            <span>{{ app.user ? 'Retour à la plateforme' : 'Retour à la connexion' }}</span>
+        </a>
+        <span class="legal-document-type"><i class="bi bi-shield-lock"></i> GEI · Accès sécurisé</span>
+        <p class="legal-kicker">Information institutionnelle</p>
+        <h1>{{ isPrivacy ? 'Politique de confidentialité' : 'Conditions d’utilisation' }}</h1>
+        <p class="legal-lead">
+            {% if isPrivacy %}
+                Comment les informations de compte, les données opérationnelles et les journaux de sécurité sont utilisés et protégés.
+            {% else %}
+                Règles d’accès et d’utilisation de la plateforme GEI par les utilisateurs autorisés.
+            {% endif %}
+        </p>
+        <p class="legal-updated">Mis à jour le {{ 'now'|date('d/m/Y') }}</p>
+    </header>
+
+    {% if isPrivacy %}
+    <section class="legal-content">
+        <article class="legal-section">
+            <h2><span>01</span> Données traitées</h2>
+            <p>Selon les fonctionnalités utilisées, la plateforme peut traiter :</p>
+            <ul>
+                <li>les informations de compte et de profil (nom, prénom, adresse électronique professionnelle, fonction, téléphone et rôle) ;</li>
+                <li>les informations opérationnelles saisies dans les alertes, leur qualification, leur suivi et leurs transmissions ;</li>
+                <li>les données techniques nécessaires à la sécurité et à la traçabilité, notamment les dates d’accès, l’adresse IP, le navigateur et les événements de connexion ;</li>
+                <li>les informations de configuration de l’authentification à deux facteurs, sous forme de secret protégé et d’état d’activation.</li>
+            </ul>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>02</span> Finalités et accès</h2>
+            <p>Les données servent au fonctionnement du registre GEI : création et qualification des alertes, suivi des urgences et transmissions, production des indicateurs, gestion des comptes et prévention des accès non autorisés.</p>
+            <p>L’accès aux informations est limité par les rôles attribués aux comptes et par les contrôles appliqués aux fonctionnalités et aux données. Les utilisateurs ne doivent consulter que les informations nécessaires à leur mission. Les administrateurs habilités peuvent intervenir pour gérer les comptes, la sécurité et la configuration.</p>
+            <p>Une transmission à un partenaire externe est effectuée dans le cadre opérationnel prévu et par un utilisateur habilité ; les informations communiquées doivent être limitées à ce qui est nécessaire au traitement.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>03</span> Sécurité et traçabilité</h2>
+            <p>La plateforme applique des contrôles d’authentification, une gestion des permissions par rôle, une protection CSRF des formulaires sensibles et, lorsqu’elle est activée, une authentification à deux facteurs. Les opérations sensibles et les événements de sécurité peuvent être inscrits dans les journaux d’activité afin de faciliter les contrôles et la détection d’incidents.</p>
+            <p>Chaque utilisateur est responsable de la confidentialité de ses identifiants et doit signaler rapidement à l’administrateur tout accès suspect ou toute perte de contrôle de son compte.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>04</span> Conservation et partage</h2>
+            <p>Les données sont conservées pendant la durée nécessaire aux finalités opérationnelles, de sécurité et de traçabilité, conformément aux règles applicables à l’organisation. Les durées précises doivent être définies et documentées par le responsable de la plateforme. Les données ne sont pas rendues publiques par ces pages.</p>
+            <p>Les données ne sont accessibles qu’aux personnes habilitées et aux prestataires techniques autorisés, dans la mesure nécessaire à l’hébergement et au fonctionnement du service. Toute communication opérationnelle à un destinataire externe relève des règles de transmission GEI.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>05</span> Cookies et préférences</h2>
+            <p>La connexion utilise des mécanismes techniques nécessaires à la session et, si l’utilisateur le choisit, à la mémorisation de sa connexion. Des préférences d’interface peuvent être enregistrées dans le navigateur. Ces mécanismes ne sont pas destinés au ciblage publicitaire.</p>
+        </article>
+
+        <article class="legal-section legal-contact">
+            <h2><span>06</span> Questions et demandes</h2>
+            <p>Pour toute question relative aux données, à la rectification d’informations de profil ou à l’exercice de droits prévus par la réglementation applicable, contactez l’administrateur de la plateforme par les canaux internes de votre organisation.</p>
+            <p class="legal-note"><i class="bi bi-info-circle"></i> L’organisation responsable doit compléter et valider les coordonnées du responsable de traitement, le fondement juridique et les durées de conservation avant toute mise en production réglementée.</p>
+        </article>
+    </section>
+    {% else %}
+    <section class="legal-content">
+        <article class="legal-section">
+            <h2><span>01</span> Accès réservé</h2>
+            <p>La plateforme GEI est un outil professionnel à accès restreint. Un compte est créé ou activé par un administrateur habilité. Le partage d’identifiants et l’accès au compte d’un autre utilisateur sont interdits.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>02</span> Rôles et périmètre d’accès</h2>
+            <p>Les autorisations sont attribuées en fonction de la mission de chaque utilisateur. Les rôles et leurs périmètres fonctionnels sont les suivants :</p>
+            <div class="legal-role-list">
+                {% for role in roles %}
+                    <div class="legal-role">
+                        <div><strong>{{ role.label() }}</strong><code>{{ role.value }}</code></div>
+                        <p>{{ role.description() }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            <p>Le Superadministrateur dispose des accès de gestion globale prévus par la hiérarchie des rôles. Les accès effectifs restent soumis aux règles de sécurité et aux contrôles de chaque fonctionnalité. Toute demande de droits supplémentaires doit être adressée à l’administrateur ; un accès plus large ne doit pas être utilisé hors du besoin professionnel.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>03</span> Utilisation responsable</h2>
+            <ul>
+                <li>utiliser les informations uniquement dans le cadre des missions autorisées ;</li>
+                <li>renseigner des informations exactes, pertinentes et nécessaires au traitement d’une alerte ;</li>
+                <li>respecter le niveau de confidentialité des alertes et les consignes de transmission ;</li>
+                <li>ne pas contourner les contrôles d’accès, extraire massivement des données ou tenter de perturber le service ;</li>
+                <li>protéger ses identifiants et verrouiller sa session lorsqu’elle n’est pas utilisée.</li>
+            </ul>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>04</span> Contrôles et incidents</h2>
+            <p>Les accès et opérations sensibles peuvent être journalisés à des fins de sécurité, d’audit et de traçabilité. Les tentatives d’accès non autorisées peuvent être limitées, examinées et signalées aux responsables habilités.</p>
+            <p>Tout incident, erreur d’autorisation, perte d’identifiants ou divulgation suspectée doit être signalé sans délai à l’administrateur de la plateforme par les canaux internes.</p>
+        </article>
+
+        <article class="legal-section">
+            <h2><span>05</span> Disponibilité et évolution</h2>
+            <p>La plateforme est destinée au traitement opérationnel des alertes ; elle ne remplace pas les procédures de secours ou de notification d’urgence de l’organisation. Les fonctionnalités et présentes conditions peuvent évoluer. Les utilisateurs sont invités à consulter cette page lors des mises à jour importantes.</p>
+        </article>
+    </section>
+    {% endif %}
+
+    <footer class="legal-footer">
+        <a href="{{ path(isPrivacy ? 'app_terms_of_use' : 'app_privacy_policy') }}">
+            {{ isPrivacy ? 'Consulter les conditions d’utilisation' : 'Consulter la politique de confidentialité' }}
+            <i class="bi bi-arrow-right"></i>
+        </a>
+        {% if not app.user %}<a href="{{ path('app_login') }}">Connexion</a>{% endif %}
+    </footer>
+</div>

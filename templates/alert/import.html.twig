@@ -9,7 +9,7 @@
     {# ── En-tête ── #}
     <div class="page-header-row">
         <div>
-            <p class="page-eyebrow"><i class="bi-file-upload me-1.5 text-emerald-400"></i>Import en masse</p>
+            <p class="page-eyebrow"><i class="bi bi-file-upload me-1.5 text-emerald-400"></i>Import en masse</p>
             <h2 class="page-title">Importer le Registre GEI</h2>
             <p class="page-subtitle">
                 Déposez le fichier Excel du registre GEI (Annexe B), notamment celui téléchargé avec le bouton Excel du registre.
@@ -17,11 +17,11 @@
                 et signale les lignes incomplètes pour complétion par le Manager.
             </p>
             <a href="{{ path('app_alert_import_template') }}" class="db-btn db-btn-ghost">
-                <i class="bi-download me-1.5"></i>Télécharger le gabarit officiel
+                <i class="bi bi-download me-1.5"></i>Télécharger le gabarit officiel
             </a>
         </div>
         <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-ghost">
-            <i class="bi-arrow-left me-1.5"></i>Retour
+            <i class="bi bi-arrow-left me-1.5"></i>Retour
         </a>
     </div>
 
@@ -30,7 +30,7 @@
         {# ── Formulaire d'upload ── #}
         <div class="import-upload-card">
             <div class="import-dropzone" id="dropzone">
-                <i class="bi-cloud-arrow-up import-dz-icon"></i>
+                <i class="bi bi-cloud-arrow-up import-dz-icon"></i>
                 <p class="import-dz-title">Glissez-déposez votre fichier .xlsx</p>
                 <p class="import-dz-sub">ou cliquez pour sélectionner</p>
 
@@ -54,28 +54,28 @@
             {# Info format #}
             <div class="import-info-grid">
                 <div class="import-info-item">
-                    <i class="bi-table text-emerald-400"></i>
+                    <i class="bi bi-table text-emerald-400"></i>
                     <div>
                         <p class="import-info-label">Colonnes détectées auto</p>
                         <p class="import-info-val">30 colonnes, identiques à l’export Excel</p>
                     </div>
                 </div>
                 <div class="import-info-item">
-                    <i class="bi-star-half text-amber-400"></i>
+                    <i class="bi bi-star-half text-amber-400"></i>
                     <div>
                         <p class="import-info-label">Score GEI</p>
                         <p class="import-info-val">Recalculé systématiquement</p>
                     </div>
                 </div>
                 <div class="import-info-item">
-                    <i class="bi-clipboard-fill text-blue-400"></i>
+                    <i class="bi bi-clipboard-fill text-blue-400"></i>
                     <div>
                         <p class="import-info-label">Doublons</p>
                         <p class="import-info-val">Mise à jour (pas de doublon)</p>
                     </div>
                 </div>
                 <div class="import-info-item">
-                    <i class="bi-clipboard-text-fill text-purple-400"></i>
+                    <i class="bi bi-clipboard-text-fill text-purple-400"></i>
                     <div>
                         <p class="import-info-label">Lignes incomplètes</p>
                         <p class="import-info-val">Signalées pour complétion</p>
@@ -85,23 +85,23 @@
 
             {# Bouton #}
             <button type="submit" form="importForm" class="import-submit-btn" id="importSubmitBtn">
-                <i class="bi-search me-2"></i>Analyser le fichier
+                <i class="bi bi-search me-2"></i>Analyser le fichier
             </button>
         </div>
 
         {% if dryRun %}
         <div class="import-result-card">
-            <div class="import-section-header"><i class="bi-clipboard-check text-emerald-400"></i><span>Analyse à blanc</span></div>
+            <div class="import-section-header"><i class="bi bi-clipboard-check text-emerald-400"></i><span>Analyse à blanc</span></div>
             {% if dryRun.header_errors|length > 0 %}
                 <div class="import-errors-list">
-                    {% for error in dryRun.header_errors %}<div class="import-error-item"><i class="bi-x text-red-400"></i><span>{{ error }}</span></div>{% endfor %}
+                    {% for error in dryRun.header_errors %}<div class="import-error-item"><i class="bi bi-x text-red-400"></i><span>{{ error }}</span></div>{% endfor %}
                 </div>
             {% else %}
                 <p>{{ dryRun.total }} ligne(s) détectée(s) : {{ dryRun.compteur.valide }} valide(s), {{ dryRun.compteur.a_corriger }} à corriger, {{ dryRun.compteur.doublon }} doublon(s), {{ dryRun.compteur.erreur }} erreur(s).</p>
                 <form method="post">
                     <input type="hidden" name="confirm" value="1">
                     <input type="hidden" name="_confirm_token" value="{{ csrf_token('import_excel_confirm') }}">
-                    <button type="submit" class="import-submit-btn"><i class="bi-check2-circle me-2"></i>Confirmer et importer</button>
+                    <button type="submit" class="import-submit-btn"><i class="bi bi-check2-circle me-2"></i>Confirmer et importer</button>
                 </form>
             {% endif %}
         </div>
@@ -112,28 +112,28 @@
         <div class="import-result-card">
 
             {% if result.queued|default(false) %}
-            <div class="import-success-banner"><i class="bi-hourglass-split text-amber-400 fa-lg"></i><div><p class="font-700 text-white">Import lancé en arrière-plan</p><p class="text-xs text-slate-400 mt-1">{{ result.total }} lignes seront traitées. Batch : <code>{{ result.batch_id }}</code></p></div></div>
+            <div class="import-success-banner"><i class="bi bi-hourglass-split text-amber-400 fa-lg"></i><div><p class="font-700 text-white">Import lancé en arrière-plan</p><p class="text-xs text-slate-400 mt-1">{{ result.total }} lignes seront traitées. Batch : <code>{{ result.batch_id }}</code></p></div></div>
             {% else %}
 
             {# KPI #}
             <div class="import-kpi-row">
                 <div class="import-kpi import-kpi-green">
-                    <i class="bi-check-circle import-kpi-icon"></i>
+                    <i class="bi bi-check-circle import-kpi-icon"></i>
                     <span class="import-kpi-val">{{ result.success_count }}</span>
                     <span class="import-kpi-label">Créées</span>
                 </div>
                 <div class="import-kpi import-kpi-blue">
-                    <i class="bi-arrow-clockwise import-kpi-icon"></i>
+                    <i class="bi bi-arrow-clockwise import-kpi-icon"></i>
                     <span class="import-kpi-val">{{ result.update_count }}</span>
                     <span class="import-kpi-label">Mises à jour</span>
                 </div>
                 <div class="import-kpi import-kpi-amber">
-                    <i class="bi-triangle-alert import-kpi-icon"></i>
+                    <i class="bi bi-exclamation-triangle import-kpi-icon"></i>
                     <span class="import-kpi-val">{{ result.lignes_incompletes|length }}</span>
                     <span class="import-kpi-label">À compléter</span>
                 </div>
                 <div class="import-kpi import-kpi-red">
-                    <i class="bi-x-circle import-kpi-icon"></i>
+                    <i class="bi bi-x-circle import-kpi-icon"></i>
                     <span class="import-kpi-val">{{ result.error_count }}</span>
                     <span class="import-kpi-label">Erreurs</span>
                 </div>
@@ -143,13 +143,13 @@
             {% if result.errors|length > 0 and result.success_count > 0 %}
             <div class="import-errors-section" style="border-color:rgba(251,191,36,.2);">
                 <div class="import-section-header">
-                    <i class="bi-triangle-alert" style="color:var(--amber)"></i>
+                    <i class="bi bi-exclamation-triangle" style="color:var(--amber)"></i>
                     <span>Structure partielle détectée</span>
                 </div>
                 <div class="import-errors-list">
                     {% for err in result.errors %}
                     <div class="import-error-item" style="color:var(--muted)">
-                        <i class="bi-circle-info fa-xs flex-shrink-0 mt-0.5" style="color:var(--amber)"></i>
+                        <i class="bi bi-info-circle fa-xs flex-shrink-0 mt-0.5" style="color:var(--amber)"></i>
                         <span>{{ err }}</span>
                     </div>
                     {% endfor %}
@@ -158,7 +158,7 @@
             {% endif %}
 
             <p class="import-batch-id">
-                <i class="bi-credit-card me-1.5 text-slate-500"></i>
+                <i class="bi bi-credit-card me-1.5 text-slate-500"></i>
                 Batch ID : <code>{{ result.batch_id }}</code>
             </p>
 
@@ -166,7 +166,7 @@
             {% if result.lignes_incompletes|length > 0 %}
             <div class="import-incomplete-section">
                 <div class="import-section-header">
-                    <i class="bi-clipboard-text-fill text-amber-400"></i>
+                    <i class="bi bi-clipboard-text-fill text-amber-400"></i>
                     <span>{{ result.lignes_incompletes|length }} ligne(s) à compléter</span>
                     <span class="import-section-badge badge-amber">Action Manager requise</span>
                 </div>
@@ -179,7 +179,7 @@
                     <div class="import-incomplete-item">
                         <div class="import-incomplete-left">
                             <span class="import-incomplete-id">
-                                <i class="bi-hash fa-xs me-1 opacity-50"></i>
+                                <i class="bi bi-hash fa-xs me-1 opacity-50"></i>
                                 {{ li.id }}
                             </span>
                             <div class="import-incomplete-tags">
@@ -191,7 +191,7 @@
                         {% if li.alert_id is defined %}
                         <a href="{{ path('app_alert_qualify', {id: li.alert_id}) }}"
                            class="import-complete-btn">
-                            <i class="bi-pencil-square me-1.5"></i>Qualifier
+                            <i class="bi bi-pencil-square me-1.5"></i>Qualifier
                         </a>
                         {% endif %}
                     </div>
@@ -204,13 +204,13 @@
             {% if result.errors|length > 0 %}
             <div class="import-errors-section">
                 <div class="import-section-header">
-                    <i class="bi-x-circle text-red-400"></i>
+                    <i class="bi bi-x-circle text-red-400"></i>
                     <span>{{ result.errors|length }} erreur(s) technique(s)</span>
                 </div>
                 <div class="import-errors-list">
                     {% for err in result.errors %}
                     <div class="import-error-item">
-                        <i class="bi-x text-red-400 fa-xs flex-shrink-0 mt-0.5"></i>
+                        <i class="bi bi-x text-red-400 fa-xs flex-shrink-0 mt-0.5"></i>
                         <span>{{ err }}</span>
                     </div>
                     {% endfor %}
@@ -221,16 +221,16 @@
             {# ── Succès total ── #}
             {% if result.error_count == 0 and result.lignes_incompletes|length == 0 %}
             <div class="import-success-banner">
-                <i class="bi-check-circle text-emerald-400 fa-lg"></i>
+                <i class="bi bi-check-circle text-emerald-400 fa-lg"></i>
                 <div>
-                    <p class="font-700 text-white">Import parfait — aucune ligne incomplète ni erreur</p>
+                    <p class="font-700" style="color:var(--text)">Import parfait — aucune ligne incomplète ni erreur</p>
                     <p class="text-xs text-slate-400 mt-1">
                         {{ result.success_count + result.update_count }} fiches enregistrées.
                         Les scores GEI ont été calculés automatiquement.
                     </p>
                 </div>
                 <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-emerald">
-                    <i class="bi-speedometer me-1.5"></i>Voir le dashboard
+                    <i class="bi bi-speedometer me-1.5"></i>Voir le dashboard
                 </a>
             </div>
             {% endif %}
@@ -424,7 +424,7 @@ dz?.addEventListener('drop', e => {
 document.getElementById('importForm')?.addEventListener('submit', () => {
     const btn = document.getElementById('importSubmitBtn');
     if (btn) {
-        btn.innerHTML = '<i class="bi-arrow-repeat bi-spin me-2"></i>Importation en cours…';
+        btn.innerHTML = '<i class="bi bi-arrow-repeat bi-spin me-2"></i>Importation en cours…';
         btn.disabled = true;
     }
 });

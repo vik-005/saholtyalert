@@ -9,22 +9,34 @@
     <div class="page-header-row">
         <div>
             <p class="page-eyebrow">
-                <i class="bi-scroll me-1.5 text-amber-400"></i>
+                <i class="bi bi-scroll me-1.5 text-amber-400"></i>
                 Traçabilité · Annexe D §6/§8
             </p>
             <h2 class="page-title">Journal d'activité</h2>
             <p class="page-subtitle">
                 {% if total > 0 %}
-                    <strong class="text-white">{{ total }}</strong> entrée{{ total > 1 ? 's' : '' }} trouvée{{ total > 1 ? 's' : '' }}
+                    <strong class="font-bold text-emerald-700">{{ total }}</strong> entrée{{ total > 1 ? 's' : '' }} trouvée{{ total > 1 ? 's' : '' }}
                 {% else %}
                     Aucune entrée pour ces critères.
                 {% endif %}
             </p>
         </div>
         <a href="{{ path('app_admin_activity_export', app.request.query.all) }}" class="db-btn db-btn-ghost">
-            <i class="bi-file-csv me-1.5 text-emerald-400"></i>Exporter CSV
+            <i class="bi bi-file-csv me-1.5 text-emerald-400"></i>Exporter CSV
         </a>
     </div>
+
+    <section class="activity-security-summary" aria-label="Surveillance des connexions, dernières 24 heures">
+        <div class="activity-security-stat">
+            <span class="activity-security-icon"><i class="bi bi-shield-exclamation"></i></span>
+            <div><span>Échecs de connexion · 24 h</span><strong>{{ securityFailures24h }}</strong></div>
+        </div>
+        <div class="activity-security-stat {% if securityAlerts24h > 0 %}activity-security-alert{% endif %}">
+            <span class="activity-security-icon"><i class="bi bi-radar"></i></span>
+            <div><span>Seuils suspects atteints · 24 h</span><strong>{{ securityAlerts24h }}</strong></div>
+        </div>
+        <p><i class="bi bi-info-circle"></i> Détection basée sur 5 échecs depuis une même adresse IP en 15 minutes. Le blocage des tentatives est assuré par la limitation de connexion.</p>
+    </section>
 
     {# ── Filtres ── #}
     <div class="db-card mb-4">
@@ -139,7 +151,7 @@
                             </td>
                             <td>
                                 {% if log.user %}
-                                    <span class="font-600" style="color:#fff">{{ log.user.nomComplet }}</span>
+                                    <span class="font-600" style="color:var(--text)">{{ log.user.nomComplet }}</span>
                                     <span class="text-xs block" style="color:var(--text-muted)">{{ log.user.role.label() }}</span>
                                 {% else %}
                                     <span style="color:var(--text-muted)">Système</span>
@@ -153,6 +165,8 @@
                                     'lecture':      'text-slate-400 bg-slate-800',
                                     'export':       'text-blue-400 bg-blue-900/20',
                                     'login':        'text-teal-400 bg-teal-900/20',
+                                    'login_failed': 'text-red-400 bg-red-900/20',
+                                    'login_suspicious': 'text-red-400 bg-red-900/20',
                                     'logout':       'text-slate-400 bg-slate-800',
                                     'transmission': 'text-purple-400 bg-purple-900/20',
                                     'vue_source':   'text-orange-400 bg-orange-900/20',
@@ -164,6 +178,8 @@
                                     'lecture': 'Consultation',
                                     'export': 'Export',
                                     'login': 'Connexion',
+                                    'login_failed': 'Échec de connexion',
+                                    'login_suspicious': 'Activité suspecte',
                                     'logout': 'Déconnexion',
                                     'transmission': 'Transmission',
                                     'vue_source': 'Vue source',
@@ -175,6 +191,8 @@
                                     'lecture':      'bi bi-eye',
                                     'export':       'bi bi-file-earmark-arrow-down',
                                     'login':        'bi bi-box-arrow-in-right',
+                                    'login_failed': 'bi bi-shield-x',
+                                    'login_suspicious': 'bi bi-radar',
                                     'logout':       'bi bi-box-arrow-right',
                                     'transmission': 'bi bi-send-fill',
                                     'vue_source':   'bi bi-incognito',
@@ -212,7 +230,7 @@
                         {% else %}
                         <tr>
                             <td colspan="7" class="text-center text-slate-500 py-8">
-                                <i class="bi-scroll bi-2x mb-3 block opacity-20"></i>
+                                <i class="bi bi-scroll bi-2x mb-3 block opacity-20"></i>
                                 Aucune activité enregistrée pour ces critères.
                             </td>
                         </tr>
@@ -229,12 +247,12 @@
             <div class="flex gap-2">
                 {% if page > 1 %}
                     <a href="{{ path('app_admin_activity_index', filters|merge({page: page - 1})) }}" class="db-btn db-btn-ghost">
-                        <i class="bi-chevron-left me-1"></i>Précédent
+                        <i class="bi bi-chevron-left me-1"></i>Précédent
                     </a>
                 {% endif %}
                 {% if page < totalPages %}
                     <a href="{{ path('app_admin_activity_index', filters|merge({page: page + 1})) }}" class="db-btn db-btn-ghost">
-                        Suivant<i class="bi-chevron-right ms-1"></i>
+                        Suivant<i class="bi bi-chevron-right ms-1"></i>
                     </a>
                 {% endif %}
             </div>
@@ -292,6 +310,8 @@ function openLogModal(data) {
         lecture: 'bi-eye',
         export: 'bi-file-earmark-arrow-down',
         login: 'bi-box-arrow-in-right',
+        login_failed: 'bi-shield-x',
+        login_suspicious: 'bi-radar',
         logout: 'bi-box-arrow-right',
         transmission: 'bi-send-fill',
         vue_source: 'bi-incognito',
@@ -300,6 +320,7 @@ function openLogModal(data) {
         creation: '#34d399', modification: '#fbbf24', suppression: '#f87171',
         lecture: '#94a3b8', export: '#60a5fa', login: '#2dd4bf',
         logout: '#94a3b8', transmission: '#c084fc', vue_source: '#fb923c',
+        login_failed: '#f87171', login_suspicious: '#ef4444',
     };
     const icon  = actionIcons[data.action] || 'bi-circle';
     const color = actionColors[data.action] || '#94a3b8';

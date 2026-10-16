@@ -465,12 +465,16 @@
                 </td>
             </tr>
             <tr>
+                <th>Statut juridique</th>
+                <td>{{ alert.legalStatus ? alert.legalStatus.label() : '-' }}</td>
                 <th>Fiabilité de la source</th>
                 <td>
                     {% if alert.fiabiliteSource %}
                         <strong>{{ alert.fiabiliteSource.value }}</strong> — {{ alert.fiabiliteSource.label() }} (Score : {{ alert.fiabiliteSource.score() }})
                     {% else %}-{% endif %}
                 </td>
+            </tr>
+            <tr>
                 <th>Crédibilité du contenu</th>
                 <td>{{ alert.credibiliteContenu ? alert.credibiliteContenu ~ '/4' : '-' }}</td>
             </tr>
@@ -513,7 +517,7 @@
                 <th>Documents annexés en plateforme</th>
                 <td colspan="3">
                     {% for piece in alert.pieceJointes %}
-                        • {{ piece.nomOriginal ?? piece.fichierChemin }} ({{ piece.type ?? 'Document' }}){% if not loop.last %} | {% endif %}
+                        • {{ piece.fichierNomOriginal }} ({{ piece.type.label() }}){% if not loop.last %} | {% endif %}
                     {% endfor %}
                 </td>
             </tr>

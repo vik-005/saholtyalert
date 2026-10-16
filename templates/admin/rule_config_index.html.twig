@@ -59,7 +59,7 @@
     <div class="db-card mb-4">
         <div class="db-card-body" style="padding:12px 16px;">
             <div class="db-search-wrap" style="flex:1">
-                <i class="bi-search db-search-icon"></i>
+                <i class="bi bi-search db-search-icon"></i>
                 <input type="text" placeholder="Rechercher une règle par clé, description, catégorie…"
                        class="db-search-input" style="width:100%"
                        id="ruleSearchInput" oninput="filterRules(this.value)">
@@ -113,14 +113,14 @@
                                 <span class="font-mono text-amber-400 text-xs">{{ rule.cle }}</span>
                             </td>
                             <td>
-                                <span class="text-white font-semibold">{{ rule.valeur }}</span>
+                                <span class="font-bold text-emerald-700">{{ rule.valeur }}</span>
                                 {% if categorie == 'scoring' %}
                                     <span class="text-xs text-slate-500 ms-1">points</span>
                                 {% elseif categorie == 'sla' %}
                                     <span class="text-xs text-slate-500 ms-1">heures</span>
                                 {% endif %}
                             </td>
-                            <td class="text-slate-300 text-sm">{{ rule.description }}</td>
+                            <td class="text-slate-600 text-sm">{{ rule.description }}</td>
                             <td>
                                 {% if rule.modifiable %}
                                     <span class="status-pill status-active">

@@ -37,6 +37,20 @@ class NotificationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function markAllUnreadAsRead(User $user): int
+    {
+        return $this->createQueryBuilder('n')
+            ->update()
+            ->set('n.lu', ':isRead')
+            ->where('n.destinataire = :user')
+            ->andWhere('n.lu = :unread')
+            ->setParameter('isRead', true)
+            ->setParameter('unread', false)
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
+    }
+
     /**
      * Toutes les notifications d'un utilisateur (lues + non lues).
      * Tri : urgentes en tête (priorite DESC), puis par date décroissante (Partie H).

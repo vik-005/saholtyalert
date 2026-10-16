@@ -7,12 +7,12 @@
 
     <div class="page-header-row">
         <div>
-            <p class="page-eyebrow"><i class="bi-pencil me-1.5 text-amber-400"></i>Modification</p>
+            <p class="page-eyebrow"><i class="bi bi-pencil me-1.5 text-amber-400"></i>Modification</p>
             <h2 class="page-title">Modifier — {{ market.nom }}</h2>
             <p class="page-subtitle">Code ISO3 : <span class="font-mono text-amber-400">{{ market.codeIso3 }}</span> · Non modifiable après création.</p>
         </div>
         <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">
-            <i class="bi-arrow-left me-1.5"></i>Retour
+            <i class="bi bi-arrow-left me-1.5"></i>Retour
         </a>
     </div>
 
@@ -20,7 +20,7 @@
 
         <div class="db-card mb-4">
             <div class="db-card-header">
-                <p class="db-card-eyebrow"><i class="bi-globe me-1.5"></i>Informations</p>
+                <p class="db-card-eyebrow"><i class="bi bi-globe me-1.5"></i>Informations</p>
             </div>
             <div class="db-card-body">
                 <div class="form-grid-2">
@@ -50,7 +50,7 @@
         <div class="db-card mb-4">
             <div class="db-card-header">
                 <p class="db-card-eyebrow">
-                    <i class="bi-geo-alt me-1.5 text-amber-400"></i>
+                    <i class="bi bi-geo-alt me-1.5 text-amber-400"></i>
                     Coordonnées géographiques
                 </p>
             </div>
@@ -73,7 +73,7 @@
                 </div>
                 <div class="mt-4">
                     <p class="form-label mb-2">
-                        <i class="bi-crosshairs me-1.5 text-amber-400"></i>
+                        <i class="bi bi-crosshairs me-1.5 text-amber-400"></i>
                         Cliquez pour repositionner le marqueur
                     </p>
                     <div id="pickMap" style="height: 280px; border-radius: var(--radius); overflow: hidden;"></div>
@@ -84,7 +84,7 @@
         <div class="flex gap-3 justify-end">
             <a href="{{ path('app_admin_market_index') }}" class="db-btn db-btn-ghost">Annuler</a>
             <button type="submit" class="db-btn db-btn-amber">
-                <i class="bi-save me-1.5"></i>Enregistrer
+                <i class="bi bi-save me-1.5"></i>Enregistrer
             </button>
         </div>
 

@@ -8,6 +8,7 @@ use App\Enum\UserRoleEnum;
 use App\Message\AlertEscalationMessage;
 use App\Repository\AlertRepository;
 use App\Repository\UserRepository;
+use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\MailerInterface;
@@ -33,6 +34,9 @@ use Twig\Environment;
 #[AsMessageHandler]
 class AlertEscalationHandler
 {
+    /** @var list<Notification> */
+    private array $createdNotifications = [];
+
     public function __construct(
         private readonly LoggerInterface       $logger,
         private readonly EntityManagerInterface $em,
@@ -40,6 +44,7 @@ class AlertEscalationHandler
         private readonly UserRepository        $userRepository,
         private readonly MailerInterface       $mailer,
         private readonly Environment           $twig,
+        private readonly WebPushService        $webPushService,
     ) {}
 
     public function __invoke(AlertEscalationMessage $message): void
@@ -74,6 +79,10 @@ class AlertEscalationHandler
         };
 
         $this->em->flush();
+        foreach ($this->createdNotifications as $notification) {
+            $this->webPushService->send($notification);
+        }
+        $this->createdNotifications = [];
     }
 
     /**
@@ -221,9 +230,11 @@ class AlertEscalationHandler
         $notif->setDestinataire($destinataire);
         $notif->setContenu($contenu);
         $notif->setType($type);
+        $notif->setPriorite(in_array($type, ['urgence', 'sla_proche'], true) ? 1 : 0);
         $notif->setAlert($alert);
 
         $this->em->persist($notif);
+        $this->createdNotifications[] = $notif;
     }
 
     private function sendCriticalEmail(\App\Entity\User $destinataire, Alert $alert, int $score): void

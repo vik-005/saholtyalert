@@ -28,6 +28,59 @@ class AccessLogRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    public function countLoginFailuresSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->where('l.action IN (:actions)')
+            ->andWhere('l.dateAction >= :since')
+            ->setParameter('actions', [AccessLog::ACTION_LOGIN_FAILED, AccessLog::ACTION_LOGIN_SUSPICIOUS])
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countSuspiciousLoginsSince(\DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->where('l.action = :action')
+            ->andWhere('l.dateAction >= :since')
+            ->setParameter('action', AccessLog::ACTION_LOGIN_SUSPICIOUS)
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function countLoginFailuresFromIpSince(string $ip, \DateTimeImmutable $since): int
+    {
+        return (int) $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->where('l.ipAdresse = :ip')
+            ->andWhere('l.action IN (:actions)')
+            ->andWhere('l.dateAction >= :since')
+            ->setParameter('ip', $ip)
+            ->setParameter('actions', [AccessLog::ACTION_LOGIN_FAILED, AccessLog::ACTION_LOGIN_SUSPICIOUS])
+            ->setParameter('since', $since)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
+
+    public function hasRecentSuspiciousLoginFromIp(string $ip, \DateTimeImmutable $since): bool
+    {
+        return $this->createQueryBuilder('l')
+            ->select('l.id')
+            ->where('l.ipAdresse = :ip')
+            ->andWhere('l.action = :action')
+            ->andWhere('l.dateAction >= :since')
+            ->setParameter('ip', $ip)
+            ->setParameter('action', AccessLog::ACTION_LOGIN_SUSPICIOUS)
+            ->setParameter('since', $since)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult() !== null;
+    }
+
     /**
      * Recherche paginée avec filtres — utilisée par ActivityController.
      */

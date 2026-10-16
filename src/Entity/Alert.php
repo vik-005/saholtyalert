@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
@@ -126,6 +127,9 @@ class Alert
 
     #[ORM\Column(type: 'string', enumType: AlertExploitabilite::class, nullable: true)]
     private ?AlertExploitabilite $exploitabilite = null;
+
+    #[ORM\Column(type: 'string', enumType: AlertLegality::class, nullable: true)]
+    private ?AlertLegality $legalStatus = null;
 
     /** Statut piloté par Symfony Workflow (§3.3) */
     #[ORM\Column(type: 'string', enumType: AlertStatut::class)]
@@ -619,6 +623,17 @@ class Alert
         return $this;
     }
 
+    public function getLegalStatus(): ?AlertLegality
+    {
+        return $this->legalStatus;
+    }
+
+    public function setLegalStatus(?AlertLegality $legalStatus): static
+    {
+        $this->legalStatus = $legalStatus;
+        return $this;
+    }
+
     public function getStatut(): AlertStatut
     {
         return $this->statut;
@@ -1043,6 +1058,10 @@ class Alert
     /** Indique si tous les critères de scoring sont renseignés */
     public function isScoreable(): bool
     {
+        if ($this->legalStatus === AlertLegality::LICITE) {
+            return true;
+        }
+
         return null !== $this->fiabiliteSource
             && null !== $this->credibiliteContenu
             && null !== $this->urgence

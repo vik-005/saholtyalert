@@ -19,6 +19,100 @@ class AlertRepository extends ServiceEntityRepository
         parent::__construct($registry, Alert::class);
     }
 
+    /**
+     * Agrégats cartographiques groupés par marché en deux requêtes au lieu de deux par marché.
+     *
+     * @return array<int, array{categories: array<string, int>, corridors: array<string, int>}>
+     */
+    public function getMapStatsByMarkets(array $marketIds, array $filters = []): array
+    {
+        $marketIds = array_values(array_unique(array_filter(array_map('intval', $marketIds))));
+        if ($marketIds === []) {
+            return [];
+        }
+
+        $connection = $this->getEntityManager()->getConnection();
+        $marketParameters = [];
+        $parameters = [];
+        foreach ($marketIds as $index => $marketId) {
+            $name = 'market_' . $index;
+            $marketParameters[] = ':' . $name;
+            $parameters[$name] = $marketId;
+        }
+
+        $conditions = ['a.market_id IN (' . implode(', ', $marketParameters) . ')', 'a.deleted_at IS NULL'];
+        $filterColumns = [
+            'statut' => 'a.statut',
+            'categorie' => 'a.categorie',
+            'priorite' => 'COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite)',
+            'urgence' => 'a.urgence',
+            'typeAlerte' => 'a.type_alerte',
+            'origine' => 'a.origine',
+        ];
+        foreach ($filterColumns as $key => $column) {
+            if (!isset($filters[$key]) || $filters[$key] === '') {
+                continue;
+            }
+            $name = 'filter_' . $key;
+            $conditions[] = $column . ' = :' . $name;
+            $parameters[$name] = $filters[$key];
+        }
+        foreach (['scoreMin' => '>=', 'scoreMax' => '<='] as $key => $operator) {
+            if (!isset($filters[$key]) || $filters[$key] === '') {
+                continue;
+            }
+            $name = 'filter_' . $key;
+            $conditions[] = 'COALESCE(a.score_surcharge, a.score_gei) ' . $operator . ' :' . $name;
+            $parameters[$name] = (int) $filters[$key];
+        }
+        if (!empty($filters['dateDebut'])) {
+            $conditions[] = 'a.date_creation >= :filter_date_start';
+            $parameters['filter_date_start'] = $filters['dateDebut'] . ' 00:00:00';
+        }
+        if (!empty($filters['dateFin'])) {
+            $conditions[] = 'a.date_creation <= :filter_date_end';
+            $parameters['filter_date_end'] = $filters['dateFin'] . ' 23:59:59';
+        }
+
+        $where = implode(' AND ', $conditions);
+        $stats = [];
+        $categories = $connection->executeQuery(
+            'SELECT a.market_id AS marketId, a.categorie AS value, COUNT(a.id) AS cnt'
+                . ' FROM alert a WHERE ' . $where
+                . ' GROUP BY a.market_id, a.categorie ORDER BY a.market_id, cnt DESC',
+            $parameters,
+        )->fetchAllAssociative();
+
+        foreach ($categories as $row) {
+            if ($row['value'] === null) {
+                continue;
+            }
+            $marketId = (int) $row['marketId'];
+            $stats[$marketId]['categories'][$row['value']] = (int) $row['cnt'];
+        }
+
+        $corridors = $connection->executeQuery(
+            'SELECT a.market_id AS marketId, a.port_corridor AS value, COUNT(a.id) AS cnt'
+                . ' FROM alert a WHERE ' . $where
+                . ' AND a.port_corridor IS NOT NULL AND a.port_corridor != :empty_corridor'
+                . ' GROUP BY a.market_id, a.port_corridor ORDER BY a.market_id, cnt DESC',
+            $parameters + ['empty_corridor' => ''],
+        )->fetchAllAssociative();
+
+        foreach ($corridors as $row) {
+            $marketId = (int) $row['marketId'];
+            $stats[$marketId]['corridors'][trim($row['value'])] = (int) $row['cnt'];
+        }
+
+        foreach ($marketIds as $marketId) {
+            $stats[$marketId] ??= ['categories' => [], 'corridors' => []];
+            $stats[$marketId]['categories'] ??= [];
+            $stats[$marketId]['corridors'] ??= [];
+        }
+
+        return $stats;
+    }
+
     public function findForUser(User $user, array $filters = [], int $page = 1, int $limit = 0): array
     {
         $qb = $this->createQueryBuilder('a')

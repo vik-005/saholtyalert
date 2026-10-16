@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% set isPrivacy = document == 'privacy' %}
+{% set documentTitle = isPrivacy ? 'Politique de confidentialité' : 'Conditions d’utilisation' %}
+
+{% block title %}{{ documentTitle }} — Plateforme GEI{% endblock %}
+{% block header_title %}{{ documentTitle }}{% endblock %}
+
+{% block body %}
+    {% include 'legal/_document_content.html.twig' %}
+{% endblock %}
+
+{% block body_login %}
+    {% include 'legal/_document_content.html.twig' %}
+{% endblock %}

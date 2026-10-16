@@ -6,6 +6,7 @@ use App\Entity\Market;
 use App\Entity\Notification;
 use App\Repository\NotificationRepository;
 use App\Repository\UserRepository;
+use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -32,6 +33,7 @@ class SlaWatcherCommand extends Command
         private readonly EntityManagerInterface  $em,
         private readonly NotificationRepository  $notifRepo,
         private readonly UserRepository          $userRepo,
+        private readonly WebPushService          $webPushService,
     ) {
         parent::__construct();
     }
@@ -127,6 +129,7 @@ class SlaWatcherCommand extends Command
 
         $notified1h = 0;
         $notifiedDepass = 0;
+        $createdNotifications = [];
 
         foreach ($cases as $case) {
             $alert = $case->getAlert();
@@ -146,12 +149,14 @@ class SlaWatcherCommand extends Command
                         $notif->setDestinataire($manager);
                         $notif->setAlert($alert);
                         $notif->setType('sla_proche');
+                        $notif->setPriorite(1);
                         $notif->setContenu(sprintf(
                             '⏰ SLA CRITIQUE — Alerte %s : il reste %.1f heure(s) avant expiration de la procédure urgence 72h.',
                             $alert->getCodeGei() ?? '#' . $alert->getId(),
                             $heuresRestantes
                         ));
                         $this->em->persist($notif);
+                        $createdNotifications[] = $notif;
                         $notified1h++;
                     }
                 }
@@ -166,12 +171,14 @@ class SlaWatcherCommand extends Command
                         $notif->setDestinataire($manager);
                         $notif->setAlert($alert);
                         $notif->setType('urgence');
+                        $notif->setPriorite(1);
                         $notif->setContenu(sprintf(
                             ' SLA DÉPASSÉ — Alerte %s : procédure urgence 72h dépassée de %.1f heure(s). Action immédiate requise.',
                             $alert->getCodeGei() ?? '#' . $alert->getId(),
                             $heuresEcoulees - 72
                         ));
                         $this->em->persist($notif);
+                        $createdNotifications[] = $notif;
                         $notifiedDepass++;
                     }
                 }
@@ -179,6 +186,9 @@ class SlaWatcherCommand extends Command
         }
 
         $this->em->flush();
+        foreach ($createdNotifications as $notification) {
+            $this->webPushService->send($notification);
+        }
 
         $io->success(sprintf(
             'SLA Watch terminé : %d cas actifs, %d notif. "1h avant", %d notif. "dépassé".',

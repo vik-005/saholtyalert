@@ -29,7 +29,7 @@ class AlertAttachment
     #[ORM\Column(type: 'string', length: 255)]
     private string $fichierNomOriginal;
 
-    #[ORM\Column(type: 'string', length: 50, nullable: true)]
+    #[ORM\Column(type: 'string', length: 127, nullable: true)]
     private ?string $mimeType = null;
 
     #[ORM\Column(type: 'integer', nullable: true)]

@@ -6,6 +6,7 @@ use App\Entity\Alert;
 use App\Entity\AlertQualificationHistory;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
 use App\Enum\NiveauPriorite;
@@ -56,7 +57,9 @@ class ScoreCalculatorService
         }
 
         $score = $this->computeScore($alert);
-        $niveau = $this->resolveNiveauPriorite($score);
+        $niveau = $alert->getLegalStatus() === AlertLegality::LICITE
+            ? NiveauPriorite::FAIBLE
+            : $this->resolveNiveauPriorite($score);
 
         $changed = $alert->getScoreGei() !== $score
             || $alert->getNiveauPriorite() !== $niveau;
@@ -73,6 +76,10 @@ class ScoreCalculatorService
      */
     public function computeScore(Alert $alert): int
     {
+        if ($alert->getLegalStatus() === AlertLegality::LICITE) {
+            return 1;
+        }
+
         $fiabilite    = $alert->getFiabiliteSource()?->score() ?? 0;
         $credibilite  = $this->convertCredibilite($alert->getCredibiliteContenu() ?? 0);
         $urgence      = $alert->getUrgence()?->score() ?? 0;
@@ -114,6 +121,7 @@ class ScoreCalculatorService
         $entry->setNiveauPriorite($alert->getNiveauPriorite() ?? NiveauPriorite::FAIBLE);
         $entry->setCalculePar($calculePar);
         $entry->setCriteresSnapshot([
+            'qualification_juridique' => $alert->getLegalStatus()?->value,
             'fiabilite'           => $alert->getFiabiliteSource()?->value,
             'fiabilite_score'     => $alert->getFiabiliteSource()?->score(),
             'credibilite_raw'     => $alert->getCredibiliteContenu(),
@@ -142,7 +150,21 @@ class ScoreCalculatorService
         string $urgence,
         string $impact,
         string $exploitabilite,
+        ?AlertLegality $legalStatus = null,
     ): array {
+        if ($legalStatus === AlertLegality::LICITE) {
+            $niveau = NiveauPriorite::FAIBLE;
+
+            return [
+                'score' => 1,
+                'niveau' => $niveau->value,
+                'niveau_label' => $niveau->label(),
+                'niveau_icon' => $niveau->icon(),
+                'seuils' => $this->getSeuils(),
+                'detail' => ['qualification_juridique' => AlertLegality::LICITE->value],
+            ];
+        }
+
         $fiabiliteEnum    = FiabiliteSource::tryFrom($fiabilite) ?? FiabiliteSource::C;
         $urgenceEnum      = AlertUrgence::tryFrom($urgence) ?? AlertUrgence::ROUTINE;
         $impactEnum       = AlertImpact::tryFrom($impact) ?? AlertImpact::MOYEN;

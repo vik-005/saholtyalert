@@ -20,6 +20,8 @@ class AccessLog
     public const ACTION_TRANSMISSION = 'transmission';
     public const ACTION_VUE_SOURCE = 'vue_source';
     public const ACTION_LOGIN = 'login';
+    public const ACTION_LOGIN_FAILED = 'login_failed';
+    public const ACTION_LOGIN_SUSPICIOUS = 'login_suspicious';
     public const ACTION_LOGOUT = 'logout';
 
     #[ORM\Id]

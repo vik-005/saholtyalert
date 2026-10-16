@@ -6,6 +6,7 @@ use App\Entity\Alert;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
 use App\Service\NotificationService;
+use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -20,7 +21,7 @@ class NotificationServiceTest extends TestCase
         $repo->expects($this->never())->method('findExistingRecent');
         $em->method('getRepository')->willReturn($repo);
 
-        $service = new NotificationService($em);
+        $service = new NotificationService($em, $this->createMock(WebPushService::class));
 
         $user = new User();
         $alert = new Alert(); // Alert non persistée, getId() === null

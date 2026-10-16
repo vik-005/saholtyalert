@@ -4,15 +4,19 @@ namespace App\Controller\Alert;
 
 use App\Entity\AccessLog;
 use App\Entity\Alert;
+use App\Entity\AlertAttachment;
 use App\Repository\AlertRepository;
 use App\Repository\MarketRepository;
+use App\Service\AlertAttachmentStorageService;
 use App\Service\StatistiquesService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Intl\Countries;
@@ -101,6 +105,40 @@ class AlertController extends AbstractController
         ]);
     }
 
+    #[Route('/{id}/piece-jointe/{attachmentId}', name: 'app_alert_attachment_download', methods: ['GET'], requirements: ['id' => '\d+', 'attachmentId' => '\d+'])]
+    public function downloadAttachment(
+        Alert $alert,
+        int $attachmentId,
+        EntityManagerInterface $em,
+        AlertAttachmentStorageService $attachmentStorage,
+    ): Response {
+        $this->denyAccessUnlessGranted(AlertVoter::VIEW, $alert);
+
+        $attachment = $em->getRepository(AlertAttachment::class)->find($attachmentId);
+        if (!$attachment instanceof AlertAttachment || $attachment->getAlert()?->getId() !== $alert->getId()) {
+            throw $this->createNotFoundException('Justificatif introuvable.');
+        }
+
+        $path = $attachmentStorage->resolveStoredPath($attachment->getFichierChemin());
+        if ($path === null) {
+            throw $this->createNotFoundException('Le fichier justificatif est indisponible.');
+        }
+
+        $this->logAction($alert, AccessLog::ACTION_LECTURE, 'Téléchargement du justificatif ' . $attachment->getFichierNomOriginal(), $em);
+        $em->flush();
+
+        $response = new BinaryFileResponse($path);
+        $response->headers->set('Content-Type', $attachment->getMimeType() ?? 'application/octet-stream');
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->headers->set('Cache-Control', 'private, no-store');
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $attachment->getFichierNomOriginal(),
+        );
+
+        return $response;
+    }
+
     #[Route('/{id}/edit', name: 'app_alert_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
     public function edit(Request $request, Alert $alert): Response
     {
@@ -157,7 +195,8 @@ class AlertController extends AbstractController
         Alert $alert,
         EntityManagerInterface $em,
         StatistiquesService $statistiquesService,
-        \App\Service\AlertCodeGeneratorService $codeGenerator
+        \App\Service\AlertCodeGeneratorService $codeGenerator,
+        AlertAttachmentStorageService $attachmentStorage,
     ): Response {
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
@@ -200,9 +239,17 @@ class AlertController extends AbstractController
         ));
         $em->persist($log);
 
+        $attachmentPaths = [];
+        foreach ($alert->getPieceJointes() as $attachment) {
+            $attachmentPaths[] = $attachment->getFichierChemin();
+        }
+
         // Suppression en cascade via Doctrine (suivis, historiques, transmissions, commentaires, urgence 72h)
         $em->remove($alert);
         $em->flush();
+        foreach ($attachmentPaths as $attachmentPath) {
+            $attachmentStorage->removeStored($attachmentPath);
+        }
 
         // Réinitialiser le cache des numéros de séquence pour permettre la réattribution immédiate
         $codeGenerator->resetSequenceCache();

@@ -1,37 +1,193 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Mon profil — GEI{% endblock %}
-{% block header_title %}Mon compte{% endblock %}
+{% block header_title %}Mon profil{% endblock %}
 
 {% block body %}
+{% set managedMarkets = user.role.value in ['ROLE_PFT', 'ROLE_SAHOLTY', 'ROLE_SUPERADMIN'] ? user.allManagedMarkets : user.allAgentMarkets %}
 <section class="account-page">
-    <header class="account-hero">
-        <div class="account-avatar">{{ user.prenom|slice(0,1) }}{{ user.nom|slice(0,1) }}</div>
-        <div><p class="registry-kicker">Espace personnel</p><h1 class="registry-title">Profil et sécurité</h1><p class="registry-subtitle">Gérez vos informations et les accès à votre compte.</p></div>
+    <header class="account-hero account-hero-pro">
+        <div class="account-identity">
+            <form id="accountProfileForm" method="post" enctype="multipart/form-data" class="account-profile-form">
+                <input type="hidden" name="_token" value="{{ csrf_token('account-profile') }}">
+                <div class="account-avatar-wrap">
+                    {% if user.photoProfil %}
+                        <img class="account-avatar account-avatar-photo" src="{{ path('app_account_photo') }}" alt="Photo de {{ user.nomComplet }}">
+                    {% else %}
+                        <span class="account-avatar account-avatar-initials" aria-label="Initiales de {{ user.nomComplet }}">{{ user.prenom|slice(0,1) }}{{ user.nom|slice(0,1) }}</span>
+                    {% endif %}
+                    <label class="account-avatar-edit" for="photo_profil" title="Choisir une photo de profil" aria-label="Choisir une photo de profil">
+                        <i class="bi bi-camera-fill" aria-hidden="true"></i>
+                    </label>
+                    <input class="account-photo-input" type="file" id="photo_profil" name="photo_profil" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" form="accountProfileForm">
+                </div>
+                <div class="account-identity-copy">
+                    <p class="account-kicker"><i class="bi bi-person-badge-fill" aria-hidden="true"></i>Espace personnel</p>
+                    <h1>{{ user.nomComplet }}</h1>
+                    <p class="account-identity-role">{{ user.role.label() }}</p>
+                    <p class="account-identity-email"><i class="bi bi-envelope" aria-hidden="true"></i>{{ user.email }}</p>
+                    <div class="account-photo-actions">
+                        <label for="photo_profil" class="account-photo-select"><i class="bi bi-camera" aria-hidden="true"></i>Choisir une photo</label>
+                        <span>JPG, PNG ou WebP · 5 Mo max.</span>
+                        {% if user.photoProfil %}
+                            <button type="submit" name="action" value="remove_photo" class="account-photo-remove" formnovalidate>
+                                <i class="bi bi-trash3" aria-hidden="true"></i>Supprimer
+                            </button>
+                        {% endif %}
+                    </div>
+                    <p id="profilePhotoFilename" class="account-photo-filename" aria-live="polite"></p>
+                </div>
+            </form>
+        </div>
+        <div class="account-status-pill {{ user.actif ? 'is-active' : 'is-pending' }}">
+            <span></span>{{ user.actif ? 'Compte actif' : 'Compte en attente' }}
+        </div>
     </header>
 
-    <nav class="account-tabs">
-        <a href="{{ path('app_account_settings') }}" class="account-tab active">Profil</a>
-        <a href="{{ path('app_2fa_settings') }}" class="account-tab">Sécurité 2FA</a>
-    </nav>
+    <section class="account-overview" aria-label="Informations du compte">
+        <div class="account-overview-item">
+            <span class="account-overview-icon"><i class="bi bi-person-vcard-fill" aria-hidden="true"></i></span>
+            <span><small>Fonction</small><strong>{{ user.fonction ?: 'Non renseignée' }}</strong></span>
+        </div>
+        <div class="account-overview-item">
+            <span class="account-overview-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span>
+            <span>
+                <small>Périmètre opérationnel</small>
+                <strong>{% if user.role.value == 'ROLE_SUPERADMIN' %}Toute la plateforme{% elseif managedMarkets|length > 0 %}{{ managedMarkets|length }} marché{{ managedMarkets|length > 1 ? 's' : '' }}{% else %}À définir{% endif %}</strong>
+            </span>
+        </div>
+        <a href="{{ path('app_2fa_settings') }}" class="account-overview-item account-overview-link {% if totp_enabled %}is-enabled{% endif %}">
+            <span class="account-overview-icon"><i class="bi {% if totp_enabled %}bi-shield-lock-fill{% else %}bi-shield-exclamation{% endif %}" aria-hidden="true"></i></span>
+            <span><small>Authentification à deux facteurs</small><strong>{{ totp_enabled ? 'Activée' : 'À configurer' }}</strong></span>
+            <i class="bi bi-arrow-up-right account-overview-arrow" aria-hidden="true"></i>
+        </a>
+        <div class="account-overview-item">
+            <span class="account-overview-icon"><i class="bi bi-calendar-check-fill" aria-hidden="true"></i></span>
+            <span><small>Membre depuis</small><strong>{{ user.createdAt|date('d/m/Y') }}</strong></span>
+        </div>
+    </section>
+
+    {% if managedMarkets|length > 0 and user.role.value != 'ROLE_SUPERADMIN' %}
+    <section class="account-markets" aria-label="Marchés associés au compte">
+        <div class="account-section-heading">
+            <span class="account-section-icon"><i class="bi bi-globe-americas" aria-hidden="true"></i></span>
+            <div><h2>Mon périmètre</h2><p>Marchés associés à votre compte dans la plateforme.</p></div>
+        </div>
+        <div class="account-market-list">
+            {% for market in managedMarkets %}
+                <span class="account-market-chip"><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ market.nom }}</span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if user.role.value == 'ROLE_SUPERADMIN' %}
+    <section class="account-admin-panel">
+        <div class="account-admin-heading">
+            <span class="account-admin-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
+            <div><p class="account-admin-kicker">Administration globale</p><h2>Accès Superadministrateur</h2></div>
+            <span class="account-admin-scope"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Portée complète</span>
+        </div>
+        <p class="account-admin-description">Votre rôle donne accès à l’ensemble des marchés, alertes, utilisateurs et paramètres de la plateforme.</p>
+        <nav class="account-admin-links" aria-label="Raccourcis d’administration">
+            <a href="{{ path('app_admin_user_index') }}"><i class="bi bi-people-fill" aria-hidden="true"></i><span>Utilisateurs</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a href="{{ path('app_admin_market_index') }}"><i class="bi bi-globe2" aria-hidden="true"></i><span>Marchés</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a href="{{ path('app_admin_rule_index') }}"><i class="bi bi-sliders" aria-hidden="true"></i><span>Règles de qualification</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            <a href="{{ path('app_admin_activity_index') }}"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Journal d’activité</span><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        </nav>
+    </section>
+    {% endif %}
 
     <div class="account-grid">
-        <form method="post" class="account-card">
-            <input type="hidden" name="action" value="profile"><input type="hidden" name="_token" value="{{ csrf_token('account-profile') }}">
-            <div class="account-card-head"><i class="bi-id-card"></i><div><h2>Informations personnelles</h2><p>Ces données sont visibles dans vos actions et transmissions.</p></div></div>
-            <div class="form-grid-2"><div class="form-field"><label class="form-label" for="prenom">Prénom</label><input class="form-input" id="prenom" name="prenom" value="{{ user.prenom }}" required></div><div class="form-field"><label class="form-label" for="nom">Nom</label><input class="form-input" id="nom" name="nom" value="{{ user.nom }}" required></div></div>
-            <div class="form-grid-2 mt-4"><div class="form-field"><label class="form-label" for="telephone">Téléphone</label><input class="form-input" id="telephone" name="telephone" value="{{ user.telephone ?? '' }}" autocomplete="tel"></div><div class="form-field"><label class="form-label" for="fonction">Fonction</label><input class="form-input" id="fonction" name="fonction" value="{{ user.fonction ?? '' }}"></div></div>
-            <div class="account-readonly"><i class="bi-envelope"></i><div><span>Adresse email professionnelle</span><strong>{{ user.email }}</strong></div><small>Modification par un administrateur.</small></div>
-            <button class="account-submit" type="submit"><i class="bi-save"></i>Enregistrer le profil</button>
-        </form>
-        <form method="post" class="account-card">
-            <input type="hidden" name="action" value="password"><input type="hidden" name="_token" value="{{ csrf_token('account-password') }}">
-            <div class="account-card-head"><i class="bi-lock"></i><div><h2>Mot de passe</h2><p>Utilisez un mot de passe unique et difficile à deviner.</p></div></div>
-            <div class="form-field"><label class="form-label" for="current_password">Mot de passe actuel</label><input class="form-input" id="current_password" name="current_password" type="password" autocomplete="current-password" required></div>
-            <div class="form-field mt-4"><label class="form-label" for="new_password">Nouveau mot de passe</label><input class="form-input" id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="12" required><p class="form-help">12 caractères minimum, avec majuscule, minuscule et chiffre.</p></div>
-            <div class="form-field mt-4"><label class="form-label" for="confirm_password">Confirmer le nouveau mot de passe</label><input class="form-input" id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required></div>
-            <button class="account-submit" type="submit"><i class="bi-key"></i>Modifier le mot de passe</button>
-        </form>
+        <section class="account-card">
+            <div class="account-card-head">
+                <span class="account-card-icon"><i class="bi bi-person-lines-fill" aria-hidden="true"></i></span>
+                <div><h2>Informations professionnelles</h2><p>Mettez à jour les coordonnées associées à vos activités sur GEI.</p></div>
+            </div>
+            <div class="account-form-body">
+                <div class="form-grid-2">
+                    <div class="form-field"><label class="form-label" for="prenom">Prénom</label><input class="form-input" id="prenom" name="prenom" form="accountProfileForm" value="{{ user.prenom }}" autocomplete="given-name" maxlength="100" required></div>
+                    <div class="form-field"><label class="form-label" for="nom">Nom</label><input class="form-input" id="nom" name="nom" form="accountProfileForm" value="{{ user.nom }}" autocomplete="family-name" maxlength="100" required></div>
+                </div>
+                <div class="form-grid-2 mt-4">
+                    <div class="form-field"><label class="form-label" for="telephone">Téléphone professionnel</label><input class="form-input" id="telephone" name="telephone" type="tel" form="accountProfileForm" value="{{ user.telephone ?? '' }}" autocomplete="tel" maxlength="30" placeholder="+225 00 00 00 00"></div>
+                    <div class="form-field"><label class="form-label" for="fonction">Fonction</label><input class="form-input" id="fonction" name="fonction" form="accountProfileForm" value="{{ user.fonction ?? '' }}" autocomplete="organization-title" maxlength="150" placeholder="Ex. Responsable régional"></div>
+                </div>
+                <div class="account-readonly"><i class="bi bi-envelope-at-fill" aria-hidden="true"></i><div><span>Adresse email professionnelle</span><strong>{{ user.email }}</strong></div><small>Modifiable par l’administrateur</small></div>
+                <button class="account-submit" type="submit" name="action" value="profile" form="accountProfileForm"><i class="bi bi-check2-circle" aria-hidden="true"></i>Enregistrer mon profil</button>
+            </div>
+        </section>
+
+        <section class="account-card">
+            <div class="account-card-head">
+                <span class="account-card-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span>
+                <div><h2>Sécurité du compte</h2><p>Renforcez votre accès et gardez le contrôle de votre session.</p></div>
+            </div>
+            <div class="account-security-list">
+                <a href="{{ path('app_2fa_settings') }}" class="account-security-row">
+                    <span class="account-security-row-icon"><i class="bi bi-phone-fill" aria-hidden="true"></i></span>
+                    <span><strong>Double authentification</strong><small>{{ totp_enabled ? 'Votre compte est protégé par un second facteur.' : 'Ajoutez une vérification supplémentaire à la connexion.' }}</small></span>
+                    <span class="account-security-badge {{ totp_enabled ? 'is-enabled' : '' }}">{{ totp_enabled ? 'Activée' : 'Configurer' }}</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="{{ path('app_notifications_list') }}" class="account-security-row">
+                    <span class="account-security-row-icon"><i class="bi bi-bell-fill" aria-hidden="true"></i></span>
+                    <span><strong>Mes notifications</strong><small>Consultez les alertes et mises à jour qui vous concernent.</small></span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <div class="account-security-row account-security-row-static">
+                    <span class="account-security-row-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span>
+                    <span><strong>Dernière connexion</strong><small>{% if user.lastLoginAt %}{{ user.lastLoginAt|date('d/m/Y à H:i') }}{% else %}Aucune connexion précédente enregistrée{% endif %}</small></span>
+                </div>
+            </div>
+            <form method="post" class="account-password-form">
+                <input type="hidden" name="action" value="password">
+                <input type="hidden" name="_token" value="{{ csrf_token('account-password') }}">
+                <h3><i class="bi bi-key-fill" aria-hidden="true"></i>Modifier le mot de passe</h3>
+                <div class="form-field"><label class="form-label" for="current_password">Mot de passe actuel</label><input class="form-input" id="current_password" name="current_password" type="password" autocomplete="current-password" required></div>
+                <div class="form-field mt-3"><label class="form-label" for="new_password">Nouveau mot de passe</label><input class="form-input" id="new_password" name="new_password" type="password" autocomplete="new-password" minlength="12" required><p class="form-help">12 caractères minimum, avec majuscule, minuscule et chiffre.</p></div>
+                <div class="form-field mt-3"><label class="form-label" for="confirm_password">Confirmer le nouveau mot de passe</label><input class="form-input" id="confirm_password" name="confirm_password" type="password" autocomplete="new-password" required></div>
+                <button class="account-submit" type="submit"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Mettre à jour le mot de passe</button>
+            </form>
+        </section>
     </div>
 </section>
+
+<script>
+(() => {
+    const input = document.getElementById('photo_profil');
+    const label = document.getElementById('profilePhotoFilename');
+    if (input && label) {
+        input.addEventListener('change', () => {
+            if (!input.files || !input.files.length) {
+                label.textContent = '';
+                return;
+            }
+
+            const file = input.files[0];
+            label.textContent = `Photo sélectionnée : ${file.name}`;
+            if (!file.type.startsWith('image/')) return;
+
+            const avatar = document.querySelector('.account-avatar-wrap');
+            if (!avatar) return;
+            let image = avatar.querySelector('.account-avatar-photo');
+            if (!image) {
+                image = document.createElement('img');
+                image.className = 'account-avatar account-avatar-photo';
+                image.alt = 'Aperçu de la photo de profil';
+                avatar.querySelector('.account-avatar-initials')?.remove();
+                avatar.prepend(image);
+            }
+            const reader = new FileReader();
+            reader.addEventListener('load', () => {
+                if (typeof reader.result === 'string') image.src = reader.result;
+            });
+            reader.addEventListener('error', () => {
+                label.textContent = `Aperçu indisponible pour ${file.name}. Vous pouvez quand même enregistrer le fichier.`;
+            });
+            reader.readAsDataURL(file);
+        });
+    }
+})();
+</script>
 {% endblock %}

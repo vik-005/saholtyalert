@@ -7,6 +7,8 @@
    - id          : Attribut id (optionnel)
    - icon_id     : Attribut id sur la balise <i> (optionnel)
    - onclick     : Gestionnaire de clic JS (optionnel)
+   - controls    : ID de l'élément contrôlé (optionnel)
+   - expanded    : État initial aria-expanded (optionnel)
    - badge_id    : Attribut id pour le badge numérique (optionnel)
    - badge_count : Valeur initiale du badge (optionnel, entier ou string)
    - class       : Classes supplémentaires (optionnel)
@@ -19,7 +21,9 @@
         {% if id is defined and id %}id="{{ id }}"{% endif %}
         {% if onclick is defined and onclick %}onclick="{{ onclick }}"{% endif %}
         {% if title is defined and title %}title="{{ title }}"{% endif %}
-        aria-label="{{ label|default('Action') }}">
+        aria-label="{{ label|default('Action') }}"
+        {% if controls is defined and controls %}aria-controls="{{ controls }}"{% endif %}
+        {% if expanded is defined %}aria-expanded="{{ expanded }}"{% endif %}>
     <i class="{{ iconClass }}" {% if icon_id is defined and icon_id %}id="{{ icon_id }}"{% endif %}></i>
     {% if badge_id is defined and badge_id %}
         <span class="topbar-badge" id="{{ badge_id }}" {% if badge_count|default(0) <= 0 %}style="display:none"{% endif %}>

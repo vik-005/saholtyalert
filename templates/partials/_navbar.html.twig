@@ -1,11 +1,12 @@
-{# ─────────────────────────────────────────────────────────────────────────
+﻿{# ─────────────────────────────────────────────────────────────────────────
    Topbar GEI — style COINEST adapté dark navy + amber
 ───────────────────────────────────────────────────────────────────────── #}
 <header class="gei-topbar">
 
     {# ── Gauche : hamburger + titre + marché ── #}
     <div class="topbar-left">
-        <button class="topbar-hamburger" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Menu">
+        <button class="topbar-hamburger" id="sidebarToggleBtn" onclick="toggleSidebar()"
+                aria-label="Ouvrir le menu" aria-controls="gei-sidebar" aria-expanded="false">
             <i class="bi bi-list"></i>
         </button>
 
@@ -30,7 +31,7 @@
     <div class="topbar-right">
 
         {# Bouton "Nouvelle fiche" ── visible desktop #}
-        <a href="{{ path('app_alert_new') }}" class="topbar-cta-btn">
+        <a href="{{ path('app_wizard_new') }}" class="topbar-cta-btn">
             <i class="bi bi-plus"></i>
             <span>Nouvelle alerte</span>
         </a>
@@ -42,11 +43,13 @@
                 icon: 'bi-bell',
                 label: 'Notifications',
                 onclick: 'toggleNotifPanel()',
+                controls: 'notifPanel',
+                expanded: 'false',
                 badge_id: 'topbarNotifBadge',
                 badge_count: 0
             } %}
 
-            <div class="notif-panel hidden" id="notifPanel">
+            <div class="notif-panel hidden" id="notifPanel" aria-label="Notifications récentes">
                 <div class="notif-panel-header">
                     <span><i class="bi bi-bell me-1.5"></i>Notifications</span>
                     <form method="post" action="{{ path('app_notification_read_all') }}">
@@ -56,21 +59,23 @@
                         </button>
                     </form>
                 </div>
-                <div class="notif-list">
+                <div class="notif-list" aria-live="polite" aria-relevant="additions text">
                     <div class="notif-item"><span class="notif-body"><span class="notif-meta">Chargement des notifications…</span></span></div>
+                </div>
+                <div class="notif-push-controls">
+                    <div>
+                        <strong>Notifications sur cet appareil</strong>
+                        <span id="pushNotificationStatus" role="status">Vérification de la compatibilité…</span>
+                    </div>
+                    <button type="button" id="pushNotificationButton" class="notif-push-button" disabled>
+                        Activer
+                    </button>
                 </div>
                 <a href="{{ path('app_notifications_list') }}" class="notif-panel-footer">
                     Voir toutes les notifications <i class="bi bi-arrow-right ms-1"></i>
                 </a>
             </div>
         </div>
-
-        {# Messages ── #}
-        {% include 'components/_icon_button.html.twig' with {
-            icon: 'bi-chat',
-            label: 'Messages',
-            title: 'Messagerie interne'
-        } %}
 
         {# Dark / Night mode ── #}
         {% include 'components/_icon_button.html.twig' with {
@@ -83,15 +88,41 @@
         } %}
 
         {# Profil ── #}
-        <a href="{{ path('app_account_settings') }}" class="topbar-user" title="Mon compte">
-            <div class="topbar-avatar">
-                {{ app.user.prenom|slice(0,1) }}{{ app.user.nom|slice(0,1) }}
+        <div class="topbar-user-wrap" id="profileMenuWrap">
+            <button type="button" class="topbar-user" id="userMenuBtn"
+                    aria-label="Ouvrir le menu du compte" aria-haspopup="menu"
+                    aria-controls="profileMenu" aria-expanded="false">
+                <span class="topbar-avatar">
+                    {% if app.user.photoProfil %}
+                        <img src="{{ path('app_account_photo') }}" alt="" class="user-avatar-image">
+                    {% else %}
+                        <i class="bi bi-person-fill" aria-hidden="true"></i>
+                    {% endif %}
+                </span>
+                <span class="topbar-user-info">
+                    <span class="topbar-user-name">{{ app.user.prenom }} {{ app.user.nom|slice(0,1) }}.</span>
+                    <span class="topbar-user-role">{{ app.user.role.label() }}</span>
+                </span>
+                <i class="bi bi-chevron-down topbar-user-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="profile-menu hidden" id="profileMenu" role="menu" aria-labelledby="userMenuBtn">
+                <div class="profile-menu-heading">
+                    <strong>{{ app.user.nomComplet }}</strong>
+                    <span>{{ app.user.email }}</span>
+                </div>
+                <a href="{{ path('app_account_settings') }}" class="profile-menu-item" role="menuitem">
+                    <i class="bi bi-person-fill" aria-hidden="true"></i>
+                    <span>Mon profil</span>
+                </a>
+                <form method="post" action="{{ path('app_logout') }}" class="profile-menu-logout-form">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                    <button type="submit" class="profile-menu-item profile-menu-logout" role="menuitem">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        <span>Se déconnecter</span>
+                    </button>
+                </form>
             </div>
-            <div class="topbar-user-info">
-                <span class="topbar-user-name">{{ app.user.prenom }} {{ app.user.nom|slice(0,1) }}.</span>
-                <span class="topbar-user-role">{{ app.user.role.label() }}</span>
-            </div>
-        </a>
+        </div>
 
     </div>
 </header>

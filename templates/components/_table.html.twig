@@ -47,9 +47,9 @@
     </div>
 
     {% if pagination is defined and pagination and totalPages is defined and totalPages > 1 %}
-    <div class="db-table-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid rgba(148,163,184,0.1); background: #0f172a;">
-        <div class="text-xs text-slate-500">
-            Page {{ currentPage }} sur {{ totalPages }} - {{ totalItems ?? rows|length }} éléments
+    <div class="db-table-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border); background: var(--card2);">
+        <div class="text-xs" style="color: var(--muted);">
+            Page {{ currentPage }} sur {{ totalPages }} — {{ totalItems ?? rows|length }} éléments
         </div>
         <div class="flex gap-2">
             <button class="db-btn db-btn-ghost" style="font-size: 11px;" {% if currentPage <= 1 %}disabled{% endif %}>
@@ -70,26 +70,30 @@
 .db-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13px;
+    font-size: 12.5px;
 }
 .db-table th {
-    padding: 10px 16px;
+    padding: 10px 14px;
     text-align: left;
-    font-weight: 600;
-    color: #94a3b8;
-    background: #0f172a;
-    border-bottom: 1px solid rgba(148,163,184,0.1);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    background: var(--card2);
+    border-bottom: 1px solid var(--border);
 }
 .db-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(148,163,184,0.05);
-    color: #cbd5e1;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: middle;
 }
-.db-table tr:hover td {
-    background: rgba(251,191,36,0.05);
+.db-table tr.db-tr:hover td {
+    background: var(--card-hover, rgba(5, 150, 105, 0.04));
 }
 .db-table .db-empty-state p {
-    color: #64748b;
+    color: var(--muted);
     font-size: 13px;
 }
 .db-table-pagination {

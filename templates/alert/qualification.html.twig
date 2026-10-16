@@ -44,14 +44,14 @@
     {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
     <div class="workflow-banner workflow-banner-red">
         <span class="urgence-pulse"></span>
-        <i class="bi-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
+        <i class="bi bi-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
         <div>
             <p class="workflow-banner-title">⚠️ URGENCE 72h ACTIVE — {{ alert.urgence72hCase.heuresRestantes }} h restantes</p>
             <p class="workflow-banner-sub">Procédure d'urgence déclenchée automatiquement (score ≥ 18). Suivi requis par le Manager.</p>
         </div>
         <a href="{{ path('app_dashboard_urgence') }}" class="db-btn flex-shrink-0"
            style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.2)">
-            <i class="bi-stopwatch me-1.5"></i>Tableau de bord Urgence
+            <i class="bi bi-stopwatch me-1.5"></i>Tableau de bord Urgence
         </a>
     </div>
     {% endif %}
@@ -121,6 +121,8 @@
                     <span class="qualify-recap-val">{{ alert.typeSource ?: '—' }}</span>
                     <span class="qualify-recap-label">Anonymisation</span>
                     <span class="qualify-recap-val">{{ alert.anonymisation ?: '—' }}</span>
+                    <span class="qualify-recap-label">Statut juridique</span>
+                    <span class="qualify-recap-val">{{ alert.legalStatus ? alert.legalStatus.label() : '—' }}</span>
                     <span class="qualify-recap-label">Fiabilité source</span>
                     <span class="qualify-recap-val fiab-{{ alert.fiabiliteSource ? alert.fiabiliteSource.value|lower : 'nd' }}">
                         {% if alert.fiabiliteSource %}
@@ -143,6 +145,11 @@
                 </p>
                 <div class="qualify-scores-readonly">
                     <div class="qs-score-item">
+                        <span class="qs-score-label">Statut juridique</span>
+                        <span class="qs-score-val">{{ alert.legalStatus ? alert.legalStatus.label() : '—' }}</span>
+                    </div>
+                    {% if not alert.legalStatus or alert.legalStatus.value != 'licite' %}
+                    <div class="qs-score-item">
                         <span class="qs-score-label">Fiabilité</span>
                         <span class="qs-score-val fiab-{{ alert.fiabiliteSource ? alert.fiabiliteSource.value|lower : 'nd' }}">
                             {{ alert.fiabiliteSource ? alert.fiabiliteSource.value : '—' }}
@@ -164,6 +171,7 @@
                         <span class="qs-score-label">Exploitabilité</span>
                         <span class="qs-score-val">{{ alert.exploitabilite ? alert.exploitabilite.label() : '—' }}</span>
                     </div>
+                    {% endif %}
                 </div>
 
                 {# Score GEI calculé — affiché en évidence pour le Manager #}

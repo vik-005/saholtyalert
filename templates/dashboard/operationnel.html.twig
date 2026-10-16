@@ -1,4 +1,4 @@
-{% extends 'base.html.twig' %}
+﻿{% extends 'base.html.twig' %}
 
 {% block title %}Dashboard GEI — Opérationnel{% endblock %}
 {% block header_title %}Dashboard{% endblock %}
@@ -19,10 +19,7 @@
             title: 'Total Alertes',
             value: kpis.total,
             icon: 'bi-clipboard-data',
-            color: 'teal',
-            trend_val: '+' ~ (kpis.total > 0 ? '12%' : '0%'),
-            trend_label: 'vs. mois dernier',
-            trend_dir: 'up'
+            color: 'teal'
         } %}
 
         {# Card 2 — Alertes critiques #}
@@ -42,9 +39,8 @@
             value: kpis.actionnables,
             icon: 'bi-lightning-charge',
             color: 'amber',
-            trend_val: '+' ~ (kpis.actionnables > 0 ? '8%' : '0%'),
-            trend_label: 'Exploitabilité opérat.',
-            trend_dir: 'up'
+            trend_val: 'Exploitabilité opérat.',
+            trend_dir: 'neutral'
         } %}
 
         {# Card 4 — Transmis #}
@@ -52,10 +48,7 @@
             title: 'Transmis',
             value: kpis.transmis,
             icon: 'bi-send',
-            color: 'blue',
-            trend_val: '+' ~ (kpis.transmis > 0 ? '3' : '0'),
-            trend_label: 'cette semaine',
-            trend_dir: 'up'
+            color: 'blue'
         } %}
 
         {# Card 5 — Délai traitement moy. #}
@@ -782,8 +775,8 @@ new Chart(donutCtx, {
                 'rgba(251,191,36,0.85)',
                 'rgba(52,211,153,0.85)',
             ],
-            borderColor: '#090e1a',
-            borderWidth: 3,
+            borderColor: 'transparent',
+            borderWidth: 0,
             hoverBorderWidth: 0,
             hoverOffset: 6,
         }]

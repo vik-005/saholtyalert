@@ -39,6 +39,7 @@ class ActivityController extends AbstractController
         $perPage = 50;
 
         $result = $logRepo->findFiltered($filters, $page, $perPage);
+        $securityWindow = new \DateTimeImmutable('-24 hours');
 
         // Liste des utilisateurs pour le filtre (périmètre du Manager)
         $users = $userRepo->findAll();
@@ -50,6 +51,8 @@ class ActivityController extends AbstractController
             'totalPages' => $result['totalPages'],
             'filters'    => $filters,
             'users'      => $users,
+            'securityFailures24h' => $logRepo->countLoginFailuresSince($securityWindow),
+            'securityAlerts24h' => $logRepo->countSuspiciousLoginsSince($securityWindow),
             'actions'    => [
                 AccessLog::ACTION_LECTURE       => 'Consultation',
                 AccessLog::ACTION_CREATION      => 'Création',
@@ -58,6 +61,8 @@ class ActivityController extends AbstractController
                 AccessLog::ACTION_EXPORT        => 'Export',
                 AccessLog::ACTION_TRANSMISSION  => 'Transmission',
                 AccessLog::ACTION_LOGIN         => 'Connexion',
+                AccessLog::ACTION_LOGIN_FAILED  => 'Échec de connexion',
+                AccessLog::ACTION_LOGIN_SUSPICIOUS => 'Activité suspecte',
                 AccessLog::ACTION_LOGOUT        => 'Déconnexion',
                 AccessLog::ACTION_VUE_SOURCE    => 'Vue source',
             ],
