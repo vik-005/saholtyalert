@@ -142,9 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const shell = document.querySelector('.gei-shell');
     const collapseButton = document.getElementById('sidebarCollapseBtn');
-    if (shell && collapseButton && window.matchMedia('(min-width: 1025px)').matches) {
-        setSidebarMini(localStorage.getItem('sidebar-mini') === '1');
-    }
+    if (shell && collapseButton) syncSidebarCollapseMode();
     document.querySelectorAll('#gei-sidebar .sidebar-link, #gei-sidebar .sidebar-sublink').forEach(link => {
         if (!link.title) link.title = link.textContent.trim();
     });
@@ -161,6 +159,7 @@ function toggleSidebar() {
     const button = document.getElementById('sidebarToggleBtn');
     button?.setAttribute('aria-expanded', String(open));
     button?.setAttribute('aria-label', open ? 'Fermer le menu' : 'Ouvrir le menu');
+    syncSidebarCollapseMode();
 }
 function closeSidebar() {
     document.querySelector('.gei-shell')?.classList.remove('sidebar-collapsed');
@@ -168,6 +167,7 @@ function closeSidebar() {
     const button = document.getElementById('sidebarToggleBtn');
     button?.setAttribute('aria-expanded', 'false');
     button?.setAttribute('aria-label', 'Ouvrir le menu');
+    syncSidebarCollapseMode();
 }
 function setSidebarMini(collapsed) {
     const shell = document.querySelector('.gei-shell');
@@ -175,16 +175,41 @@ function setSidebarMini(collapsed) {
     const icon = button?.querySelector('i');
     if (!shell || !button || !icon) return;
     shell.classList.toggle('sidebar-mini', collapsed);
-    icon.classList.toggle('bi-chevron-double-left', !collapsed);
-    icon.classList.toggle('bi-chevron-double-right', collapsed);
+    icon.classList.toggle('bi-chevron-left', !collapsed);
+    icon.classList.toggle('bi-chevron-right', collapsed);
     button.setAttribute('aria-expanded', String(!collapsed));
     button.setAttribute('aria-label', collapsed ? 'Développer le menu' : 'Réduire le menu');
     button.title = collapsed ? 'Développer le menu' : 'Réduire le menu';
     localStorage.setItem('sidebar-mini', collapsed ? '1' : '0');
 }
-document.getElementById('sidebarCollapseBtn')?.addEventListener('click', () => {
+function syncSidebarCollapseMode() {
+    const shell = document.querySelector('.gei-shell');
+    const button = document.getElementById('sidebarCollapseBtn');
+    const icon = button?.querySelector('i');
+    if (!shell || !button || !icon) return;
+
+    if (window.matchMedia('(max-width: 1024px)').matches) {
+        shell.classList.remove('sidebar-mini');
+        const drawerOpen = shell.classList.contains('sidebar-collapsed');
+        icon.classList.toggle('bi-chevron-left', drawerOpen);
+        icon.classList.toggle('bi-chevron-right', !drawerOpen);
+        button.setAttribute('aria-expanded', String(drawerOpen));
+        button.setAttribute('aria-label', drawerOpen ? 'Fermer le menu' : 'Ouvrir le menu');
+        button.title = drawerOpen ? 'Fermer le menu' : 'Ouvrir le menu';
+        return;
+    }
+
+    setSidebarMini(localStorage.getItem('sidebar-mini') === '1');
+}
+function handleSidebarHeaderAction() {
+    if (window.matchMedia('(max-width: 1024px)').matches) {
+        closeSidebar();
+        return;
+    }
     setSidebarMini(!document.querySelector('.gei-shell')?.classList.contains('sidebar-mini'));
-});
+}
+document.getElementById('sidebarCollapseBtn')?.addEventListener('click', handleSidebarHeaderAction);
+window.addEventListener('resize', syncSidebarCollapseMode);
 
 /* ─── Polling notifications (toutes les 30s — badge sans rechargement) ─── */
 let notifPollInterval;

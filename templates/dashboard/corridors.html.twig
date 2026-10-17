@@ -26,8 +26,20 @@
     </div>
 
     {# ── Filtres ── #}
-    <div class="stats-filter-bar">
-        <form method="get" class="stats-filter-form" id="corridorFilterForm">
+    <div class="stats-filter-bar corridor-filter-bar">
+        <button type="button" class="corridor-filter-toggle" id="corridorFilterToggle"
+                aria-expanded="false" aria-controls="corridorFilterContent">
+            <span class="corridor-filter-toggle-copy">
+                <i class="bi bi-sliders2" aria-hidden="true"></i>
+                <span>
+                    <strong>Filtres d’analyse</strong>
+                    <small>Période, marchés et localisation</small>
+                </span>
+            </span>
+            <i class="bi bi-chevron-down corridor-filter-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="corridor-filter-content" id="corridorFilterContent">
+        <form method="get" class="stats-filter-form corridor-filter-form" id="corridorFilterForm">
 
             {# Période #}
             <div class="stats-filter-group">
@@ -97,6 +109,7 @@
                     onclick="setCorridorPeriod(90)">3 mois</button>
             <button class="stats-shortcut {% if diffDays >= 360 and diffDays <= 370 %}active{% endif %}"
                     onclick="setCorridorPeriod(365)">1 an</button>
+        </div>
         </div>
     </div>
 
@@ -191,7 +204,7 @@
             </div>
         </div>
         {% if kpis.top_element %}
-        <div class="corridor-kpi-card" style="flex:2">
+        <div class="corridor-kpi-card corridor-kpi-card-featured">
             <div class="corridor-kpi-icon" style="background:rgba(251,191,36,0.1);color:var(--amber)">
                 <i class="bi bi-trophy"></i>
             </div>
@@ -206,7 +219,7 @@
     </div>
 
     {# ── Grille principale : graphique + volume par pays ── #}
-    <div class="db-mid-row" style="grid-template-columns:1fr 340px;margin-top:12px">
+    <div class="db-mid-row corridor-chart-grid" style="margin-top:12px">
 
         {# ── Graphique barres horizontales ── #}
         <div class="db-chart-card">
@@ -222,9 +235,10 @@
                 </span>
             </div>
             {% if top_localisations|length > 0 %}
-            <div style="position:relative;margin-top:8px">
-                <canvas id="corridorsChart"
-                        height="{{ top_localisations|length * 32 > 220 ? top_localisations|length * 32 : 220 }}">
+            <div class="corridor-chart-wrap" id="corridorChartWrap"
+                 style="height:{{ top_localisations|length * 32 > 640 ? 640 : (top_localisations|length * 32 > 240 ? top_localisations|length * 32 : 240) }}px">
+                <canvas id="corridorsChart" role="img"
+                        aria-label="{{ chart_title }} : nombre d'alertes par localisation">
                 </canvas>
             </div>
             {% else %}
@@ -435,14 +449,6 @@ function getBarColor(type, alpha) {
         default:         return `rgba(69,227,184,${alpha})`;
     }
 }
-function getBorderColor(type) {
-    switch (type) {
-        case 'corridor': return '#22c55e';
-        case 'port':     return '#60a5fa';
-        case 'aeroport': return 'var(--amber)';
-        default:         return '#45e3b8';
-    }
-}
 
 /* ── Rendu du graphique ── */
 if (corridorsData.labels.length > 0) {
@@ -461,44 +467,58 @@ if (corridorsData.labels.length > 0) {
                         const alpha = 0.4 + (v / maxVal) * 0.55;
                         return getBarColor(type, alpha);
                     }),
-                    borderColor: corridorsData.types.map(t => getBorderColor(t || currentType || '')),
-                    borderWidth: 1,
-                    borderRadius: 4,
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    borderRadius: 6,
                     borderSkipped: false,
+                    barPercentage: 0.78,
+                    categoryPercentage: 0.86,
+                    maxBarThickness: 22,
                 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 4, right: 8, bottom: 4 } },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(10,40,30,0.97)',
-                        borderColor:     'rgba(69,227,184,0.25)',
-                        borderWidth: 1,
-                        padding: 10,
+                        backgroundColor: document.body.classList.contains('dark')
+                            ? 'rgba(15,23,42,0.97)'
+                            : 'rgba(255,255,255,0.98)',
+                        borderWidth: 0,
+                        padding: 12,
                         cornerRadius: 8,
-                        titleColor: '#e2ede8',
-                        bodyColor:  '#a8c4b8',
+                        titleColor: document.body.classList.contains('dark') ? '#f1f5f9' : '#0f172a',
+                        bodyColor: document.body.classList.contains('dark') ? '#cbd5e1' : '#475569',
                         titleFont: { family: 'Inter, sans-serif', size: 11, weight: 'bold' },
                         bodyFont:  { family: 'Inter, sans-serif', size: 11 },
+                        displayColors: false,
                         callbacks: {
+                            title: items => corridorsData.labels[items[0]?.dataIndex] || '',
                             label: ctx => ` ${ctx.parsed.x} alerte${ctx.parsed.x > 1 ? 's' : ''}`
                         }
                     }
                 },
                 scales: {
                     x: {
-                        grid:   { color: 'rgba(148,163,184,0.06)', drawBorder: false },
-                        ticks:  { color: '#7da090', font: { size: 10, family: 'Inter, sans-serif' }, precision: 0 },
+                        grid:   { color: document.body.classList.contains('dark') ? 'rgba(148,163,184,0.10)' : 'rgba(71,85,105,0.08)', drawBorder: false },
+                        ticks:  { color: document.body.classList.contains('dark') ? '#94a3b8' : '#64748b', font: { size: 10, family: 'Inter, sans-serif' }, precision: 0 },
                         border: { display: false },
                         beginAtZero: true,
                     },
                     y: {
                         grid:   { display: false },
-                        ticks:  { color: '#a8c4b8', font: { size: 10, family: 'Inter, sans-serif' },
-                                  callback: v => v.length > 28 ? v.slice(0, 26) + '…' : v },
+                        ticks:  {
+                            color: document.body.classList.contains('dark') ? '#cbd5e1' : '#475569',
+                            font: { size: window.matchMedia('(max-width: 640px)').matches ? 9 : 10, family: 'Inter, sans-serif' },
+                            callback: value => {
+                                const label = corridorsData.labels[value] ?? value;
+                                const limit = window.matchMedia('(max-width: 640px)').matches ? 17 : 28;
+                                return label.length > limit ? label.slice(0, limit - 1) + '…' : label;
+                            }
+                        },
                         border: { display: false },
                     }
                 }
@@ -506,6 +526,14 @@ if (corridorsData.labels.length > 0) {
         });
     }
 }
+
+const corridorFilterToggle = document.getElementById('corridorFilterToggle');
+const corridorFilterContent = document.getElementById('corridorFilterContent');
+corridorFilterToggle?.addEventListener('click', () => {
+    const isExpanded = corridorFilterToggle.getAttribute('aria-expanded') === 'true';
+    corridorFilterToggle.setAttribute('aria-expanded', String(!isExpanded));
+    corridorFilterContent?.classList.toggle('is-open', !isExpanded);
+});
 
 /* ── Raccourcis période ── */
 function setCorridorPeriod(days) {
