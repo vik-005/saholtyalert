@@ -9,17 +9,17 @@
 {% endblock %}
 
 {% block body %}
-<div class="db-wrapper">
+<div class="db-wrapper audit-page">
 
     {# ── En-tête ── #}
-    <div class="page-header-row">
-        <div class="text-center" style="flex:1">
+    <div class="page-header-row audit-page-header">
+        <div class="audit-page-intro">
             <p class="page-eyebrow">
                 <i class="bi bi-search-chart me-1.5 text-amber-400"></i>
                 Recherche multicritère — Audit
             </p>
             <h2 class="page-title">Audit & Recherche avancée</h2>
-            <p class="page-subtitle mx-auto" style="max-width:600px">
+            <p class="page-subtitle">
                 Croisez plusieurs critères simultanément. Les résultats s'affichent en
                 <strong class="font-bold text-emerald-700">tableau</strong>, <strong class="font-bold text-emerald-700">graphiques</strong>,
                 <strong class="font-bold text-emerald-700">carte</strong> ou en <strong class="font-bold text-emerald-700">texte</strong> selon votre choix.
@@ -71,10 +71,13 @@
 
     {# ── Panneau de filtres ── #}
     <div class="db-card mb-4 audit-filter-panel">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-funnel me-1.5"></i>Critères de recherche
-            </p>
+        <div class="db-card-header audit-filter-header">
+            <div>
+                <p class="db-card-eyebrow">
+                    <i class="bi bi-funnel me-1.5"></i>Critères de recherche
+                </p>
+                <p class="audit-filter-caption">Combinez les critères utiles, puis lancez l'analyse.</p>
+            </div>
             {% if hasSearch %}
             <a href="{{ path('app_audit_index') }}" class="db-btn db-btn-ghost db-btn-sm">
                 <i class="bi bi-arrow-counterclockwise me-1.5"></i>Réinitialiser
@@ -86,10 +89,19 @@
                 <input type="hidden" name="vue" value="{{ vue }}">
 
                 <div class="audit-filters-grid">
+                    <section class="audit-filter-section" aria-labelledby="audit-territory-title">
+                        <div class="audit-section-heading">
+                            <span class="audit-section-icon"><i class="bi bi-globe2" aria-hidden="true"></i></span>
+                            <div>
+                                <h3 id="audit-territory-title">Territoire et période</h3>
+                                <p>Délimitez les marchés et la période à analyser.</p>
+                            </div>
+                        </div>
+                        <div class="audit-section-fields">
 
                     {# Pays / marchés — multi-sélection #}
                     <div class="audit-filter-field audit-filter-wide">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-earth-americas me-1 text-amber-400"></i>
                             Pays / Marchés
                         </label>
@@ -107,7 +119,7 @@
 
                     {# Période — dates + raccourcis #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-calendar me-1 text-amber-400"></i>
                             Date début
                         </label>
@@ -116,14 +128,14 @@
                     </div>
 
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Date fin</label>
+                        <label class="form-label">Date fin</label>
                         <input type="date" name="dateTo" class="form-input"
                                value="{{ filters.dateTo|default('') }}">
                     </div>
 
                     {# Raccourcis période #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Raccourcis</label>
+                        <label class="form-label">Raccourcis</label>
                         <div class="db-card-btn-group flex-wrap justify-center">
                             <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="today" data-to="today">Aujourd'hui</button>
                             <button type="button" class="db-btn db-btn-ghost db-btn-sm shortcut-period" data-from="week" data-to="week">Cette semaine</button>
@@ -134,7 +146,7 @@
 
                     {# Corridor #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-signpost-figure me-1 text-amber-400"></i>
                             Corridor
                         </label>
@@ -143,42 +155,94 @@
                                value="{{ filters.corridors[0]|default('') }}"
                                id="corridorInput"
                                autocomplete="off">
-                        <p class="form-help text-center">Autocomplétion selon les marchés sélectionnés.</p>
+                        <p class="form-help">Autocomplétion selon les marchés sélectionnés.</p>
                     </div>
+                        </div>
+                    </section>
+
+                    <section class="audit-filter-section" aria-labelledby="audit-qualification-title">
+                        <div class="audit-section-heading">
+                            <span class="audit-section-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+                            <div>
+                                <h3 id="audit-qualification-title">Qualification des alertes</h3>
+                                <p>Affinez par catégorie, statut, urgence et score.</p>
+                            </div>
+                        </div>
+                        <div class="audit-section-fields">
 
                     {# Catégorie #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Catégorie</label>
-                        <select name="categories[]" class="form-select" multiple size="4">
+                        <label class="form-label" id="audit-category-label">Catégorie</label>
+                        <details class="audit-multi-select" data-empty-label="Aucune catégorie trouvée" data-all-label="Toutes">
+                            <summary aria-labelledby="audit-category-label">
+                                <span class="audit-multi-select-placeholder"><i class="bi bi-tags" aria-hidden="true"></i>Choisir des catégories</span>
+                                <span class="audit-multi-select-count" aria-live="polite">Toutes</span>
+                                <i class="bi bi-chevron-down audit-multi-select-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="audit-multi-select-popover">
+                                <label class="audit-multi-select-search">
+                                    <i class="bi bi-search" aria-hidden="true"></i>
+                                    <input type="search" placeholder="Rechercher une catégorie…" aria-label="Rechercher une catégorie">
+                                </label>
+                                <div class="audit-multi-select-options" role="group" aria-label="Catégories">
                             {% for cat in categories %}
-                            <option value="{{ cat.libelle }}"
-                                {% if cat.libelle in (filters.categories|default([])) %}selected{% endif %}>
-                                {{ cat.libelle }}
-                            </option>
+                                    <label class="audit-multi-select-option">
+                                        <input type="checkbox" name="categories[]" value="{{ cat.libelle }}"
+                                            {% if cat.libelle in (filters.categories|default([])) %}checked{% endif %}>
+                                        <span>{{ cat.libelle }}</span>
+                                        <i class="bi bi-check2" aria-hidden="true"></i>
+                                    </label>
                             {% else %}
-                            <option value="">Aucune catégorie disponible</option>
+                                    <span class="audit-multi-select-empty">Aucune catégorie disponible</span>
                             {% endfor %}
-                        </select>
+                                </div>
+                                <div class="audit-multi-select-no-results" hidden>Aucune catégorie trouvée</div>
+                                <div class="audit-multi-select-footer">
+                                    <span class="audit-multi-select-hint">Plusieurs choix possibles</span>
+                                    <button type="button" class="audit-multi-select-clear">Tout effacer</button>
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     {# Type de source #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Type de source</label>
-                        <select name="typeSources[]" class="form-select" multiple size="4">
+                        <label class="form-label" id="audit-source-label">Type de source</label>
+                        <details class="audit-multi-select" data-empty-label="Aucun type de source trouvé" data-all-label="Tous">
+                            <summary aria-labelledby="audit-source-label">
+                                <span class="audit-multi-select-placeholder"><i class="bi bi-broadcast-pin" aria-hidden="true"></i>Choisir des sources</span>
+                                <span class="audit-multi-select-count" aria-live="polite">Toutes</span>
+                                <i class="bi bi-chevron-down audit-multi-select-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="audit-multi-select-popover">
+                                <label class="audit-multi-select-search">
+                                    <i class="bi bi-search" aria-hidden="true"></i>
+                                    <input type="search" placeholder="Rechercher un type de source…" aria-label="Rechercher un type de source">
+                                </label>
+                                <div class="audit-multi-select-options" role="group" aria-label="Types de source">
                             {% for ts in typeSources %}
-                            <option value="{{ ts.libelle }}"
-                                {% if ts.libelle in (filters.typeSources|default([])) %}selected{% endif %}>
-                                {{ ts.libelle }}
-                            </option>
+                                    <label class="audit-multi-select-option">
+                                        <input type="checkbox" name="typeSources[]" value="{{ ts.libelle }}"
+                                            {% if ts.libelle in (filters.typeSources|default([])) %}checked{% endif %}>
+                                        <span>{{ ts.libelle }}</span>
+                                        <i class="bi bi-check2" aria-hidden="true"></i>
+                                    </label>
                             {% else %}
-                            <option value="">Aucun type de source disponible</option>
+                                    <span class="audit-multi-select-empty">Aucun type de source disponible</span>
                             {% endfor %}
-                        </select>
+                                </div>
+                                <div class="audit-multi-select-no-results" hidden>Aucun type de source trouvé</div>
+                                <div class="audit-multi-select-footer">
+                                    <span class="audit-multi-select-hint">Plusieurs choix possibles</span>
+                                    <button type="button" class="audit-multi-select-clear">Tout effacer</button>
+                                </div>
+                            </div>
+                        </details>
                     </div>
 
                     {# Type d'alerte #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Type d'alerte</label>
+                        <label class="form-label">Type d'alerte</label>
                         <select name="typeAlerte" class="form-select">
                             <option value="">Tous</option>
                             {% for t in typeAlertes %}
@@ -192,7 +256,7 @@
 
                     {# Statut #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Statut</label>
+                        <label class="form-label">Statut</label>
                         <select name="statuts[]" class="form-select" multiple size="4">
                             {% for s in statuts %}
                             <option value="{{ s.value }}"
@@ -205,7 +269,7 @@
 
                     {# Urgence #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Urgence</label>
+                        <label class="form-label">Urgence</label>
                         <select name="urgences[]" class="form-select" multiple size="3">
                             {% for u in urgences %}
                             <option value="{{ u.value }}"
@@ -218,7 +282,7 @@
 
                     {# Niveau de priorité #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Niveau de priorité</label>
+                        <label class="form-label">Niveau de priorité</label>
                         <select name="niveauxPriorite[]" class="form-select" multiple size="4">
                             {% for n in niveaux %}
                             <option value="{{ n.value }}"
@@ -231,14 +295,14 @@
 
                     {# Score GEI min/max #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Score min</label>
+                        <label class="form-label">Score min</label>
                         <input type="number" name="scoreMin" class="form-input"
                                min="0" max="25" placeholder="0"
                                value="{{ filters.scoreMin|default('') }}">
                     </div>
 
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Score max</label>
+                        <label class="form-label">Score max</label>
                         <input type="number" name="scoreMax" class="form-input"
                                min="0" max="25" placeholder="25"
                                value="{{ filters.scoreMax|default('') }}">
@@ -246,17 +310,29 @@
 
                     {# Origine #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Origine</label>
+                        <label class="form-label">Origine</label>
                         <select name="origine" class="form-select">
                             <option value="">Toutes</option>
                             <option value="saisie_agent" {% if filters.origine == 'saisie_agent' %}selected{% endif %}>Saisie agent</option>
                             <option value="import_excel" {% if filters.origine == 'import_excel' %}selected{% endif %}>Import Excel</option>
                         </select>
                     </div>
+                        </div>
+                    </section>
+
+                    <section class="audit-filter-section" aria-labelledby="audit-actors-title">
+                        <div class="audit-section-heading">
+                            <span class="audit-section-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+                            <div>
+                                <h3 id="audit-actors-title">Acteurs et recherche</h3>
+                                <p>Retrouvez les alertes par agent, opérateur ou mot-clé.</p>
+                            </div>
+                        </div>
+                        <div class="audit-section-fields">
 
                     {# Agent #}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Agent</label>
+                        <label class="form-label">Agent</label>
                         <select name="agentId" class="form-select">
                             <option value="">Tous</option>
                             {% for agent in agents %}
@@ -271,7 +347,7 @@
                     {# Manager (superadmin uniquement) #}
                     {% if isSuperadmin %}
                     <div class="audit-filter-field">
-                        <label class="form-label text-center">Manager</label>
+                        <label class="form-label">Manager</label>
                         <select name="managerId" class="form-select">
                             <option value="">Tous</option>
                             {% for manager in managers %}
@@ -286,7 +362,7 @@
 
                     {# Opérateur / Marque conservés pour rétro-compatibilité #}
                     <div class="audit-filter-field audit-filter-wide">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-building me-1 text-amber-400"></i>
                             Opérateur / Acteur
                         </label>
@@ -298,7 +374,7 @@
                     </div>
 
                     <div class="audit-filter-field audit-filter-wide">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-tag me-1 text-amber-400"></i>
                             Marque / Produit (recherche plein texte)
                         </label>
@@ -309,7 +385,7 @@
 
                     {# Texte libre cross-champs #}
                     <div class="audit-filter-field audit-filter-wide">
-                        <label class="form-label text-center">
+                        <label class="form-label">
                             <i class="bi bi-search me-1 text-amber-400"></i>
                             Recherche textuelle libre
                         </label>
@@ -317,14 +393,14 @@
                                placeholder="Mot-clé dans tous les champs (code GEI, résumé, corridor…)"
                                value="{{ filters.texteLibre|default('') }}">
                     </div>
-
+                        </div>
+                    </section>
                 </div>
 
                 {# Boutons + bascule vue #}
-                <div class="audit-form-footer justify-center">
-                    <button type="submit" class="db-btn db-btn-amber">
-                        <i class="bi bi-search"></i>
-                        Analyser
+                <div class="audit-form-footer">
+                    <button type="submit" class="db-btn db-btn-amber audit-submit-btn">
+                        <i class="bi bi-search"></i>Analyser les résultats
                     </button>
 
                     {# Sélecteur de mode d'affichage #}
@@ -795,6 +871,64 @@ document.addEventListener('DOMContentLoaded', () => {
     const fromInput = document.querySelector('input[name="dateFrom"]');
     const toInput = document.querySelector('input[name="dateTo"]');
 
+    const multiSelects = [...document.querySelectorAll('.audit-multi-select')];
+    multiSelects.forEach(select => {
+        const count = select.querySelector('.audit-multi-select-count');
+        const search = select.querySelector('.audit-multi-select-search input');
+        const options = [...select.querySelectorAll('.audit-multi-select-option')];
+        const noResults = select.querySelector('.audit-multi-select-no-results');
+        const updateSelection = () => {
+            const selected = options.filter(option => option.querySelector('input').checked).length;
+            select.toggleAttribute('data-selected', selected > 0);
+            count.textContent = selected
+                ? `${selected} sélectionné${selected > 1 ? 's' : ''}`
+                : (select.dataset.allLabel || 'Toutes');
+        };
+
+        select.querySelectorAll('.audit-multi-select-option input').forEach(input => {
+            input.addEventListener('change', updateSelection);
+        });
+        select.querySelector('.audit-multi-select-clear')?.addEventListener('click', () => {
+            options.forEach(option => { option.querySelector('input').checked = false; });
+            if (search) {
+                search.value = '';
+                search.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            updateSelection();
+        });
+        search?.addEventListener('input', () => {
+            const query = search.value.trim().toLocaleLowerCase();
+            let visibleCount = 0;
+            options.forEach(option => {
+                const matches = option.textContent.trim().toLocaleLowerCase().includes(query);
+                option.hidden = !matches;
+                if (matches) visibleCount++;
+            });
+            if (noResults) {
+                noResults.hidden = visibleCount > 0 || options.length === 0;
+                noResults.textContent = select.dataset.emptyLabel || 'Aucun résultat';
+            }
+        });
+        select.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                select.open = false;
+                select.querySelector('summary')?.focus();
+            }
+        });
+        select.addEventListener('toggle', () => {
+            if (!select.open) return;
+            multiSelects.forEach(other => {
+                if (other !== select) other.open = false;
+            });
+        });
+        updateSelection();
+    });
+    document.addEventListener('click', event => {
+        multiSelects.forEach(select => {
+            if (select.open && !select.contains(event.target)) select.open = false;
+        });
+    });
+
     document.querySelectorAll('.shortcut-period').forEach(btn => {
         btn.addEventListener('click', () => {
             const range = btn.dataset.from;
@@ -1017,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Carte Leaflet ─────────────────────────────────────────────────────────
     initAuditMap({{ (stats.donneesCartographie is defined ? stats.donneesCartographie : [])|json_encode|raw }});
-}
+});
 
 let auditMapInstance = null;
 function initAuditMap(zones) {
