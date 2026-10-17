@@ -81,13 +81,15 @@
                 <label class="stats-filter-label">
                     <i class="bi bi-tag me-1"></i>Type
                 </label>
-                <select name="type_loc" class="stats-input" id="filterTypeLoc"
-                        onchange="document.getElementById('corridorFilterForm').submit()">
-                    <option value=""        {% if not type_loc %}selected{% endif %}>Tous</option>
-                    <option value="corridor" {% if type_loc == 'corridor' %}selected{% endif %}>Corridor</option>
-                    <option value="port"     {% if type_loc == 'port' %}selected{% endif %}>Port</option>
-                    <option value="aeroport" {% if type_loc == 'aeroport' %}selected{% endif %}>Aéroport</option>
-                </select>
+                <span class="corridor-select-wrap">
+                    <select name="type_loc" class="stats-input" id="filterTypeLoc"
+                            onchange="document.getElementById('corridorFilterForm').submit()">
+                        <option value=""        {% if not type_loc %}selected{% endif %}>Tous</option>
+                        <option value="corridor" {% if type_loc == 'corridor' %}selected{% endif %}>Corridor</option>
+                        <option value="port"     {% if type_loc == 'port' %}selected{% endif %}>Port</option>
+                        <option value="aeroport" {% if type_loc == 'aeroport' %}selected{% endif %}>Aéroport</option>
+                    </select>
+                </span>
             </div>
 
             <div class="stats-filter-actions">

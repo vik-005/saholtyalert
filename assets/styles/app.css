@@ -3434,6 +3434,30 @@ html body .bi {
 .corridor-filter-form { min-width: 0; }
 .corridor-filter-bar .stats-filter-group { min-width: 0; }
 .corridor-filter-bar .stats-market-checks { max-height: 82px; overflow-y: auto; }
+.corridor-select-wrap {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+}
+.corridor-select-wrap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 11px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+.corridor-select-wrap #filterTypeLoc {
+    width: 100%;
+    padding-right: 30px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
 
 /* ── Type répartition cards (mode Tous) ─────────────────────────────────── */
 .corridor-type-grid {
@@ -3556,7 +3580,7 @@ html body .bi {
     .corridor-filter-form .stats-filter-actions { grid-column: 1 / -1; }
     .corridor-filter-form .stats-market-checks { display: flex; max-height: 104px; overflow-y: auto; }
     .corridor-filter-form .stats-check-label { min-height: 30px; font-size: 10px; }
-    .corridor-filter-form #filterTypeLoc { width: 100%; }
+    .corridor-filter-form .corridor-select-wrap { width: 100%; }
     .corridor-filter-form .stats-filter-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
     .corridor-filter-form .stats-apply-btn,
     .corridor-filter-form .stats-reset-btn { min-height: 38px; justify-content: center; font-size: 11px; }

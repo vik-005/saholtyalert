@@ -61,6 +61,98 @@
     flex: 1; overflow-y: auto;
     padding: 8px 0;
 }
+@media(max-width: 900px) {
+    .carte-side {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        border-right: 0;
+        border-top: 1px solid var(--border);
+    }
+    .carte-filters {
+        max-height: none;
+        overflow: visible;
+    }
+    .carte-results {
+        flex: none;
+        overflow: visible;
+    }
+}
+@media(max-width: 560px) {
+    .carte-filters { padding: 10px 12px; }
+}
+
+.carte-market-dropdown {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+}
+.carte-market-dropdown summary {
+    min-height: 40px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    list-style: none;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 12px;
+}
+.carte-market-dropdown summary::-webkit-details-marker { display: none; }
+.carte-market-dropdown summary::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    margin: -4px 2px 0 auto;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    transform: rotate(45deg);
+    transition: transform .18s ease, margin .18s ease;
+}
+.carte-market-dropdown[open] summary::after {
+    margin-top: 4px;
+    transform: rotate(225deg);
+}
+.carte-market-summary-icon { color: var(--amber); }
+.carte-market-summary-count {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 10px;
+}
+.carte-market-dropdown[open] .carte-market-summary-count { margin-left: 0; }
+.carte-market-options {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 8px 8px;
+    border-top: 1px solid var(--border);
+}
+.carte-market-option {
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 11px;
+    cursor: pointer;
+}
+.carte-market-option:hover { background: var(--card2); }
+.carte-market-option input {
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--green);
+    flex: 0 0 15px;
+}
+.carte-market-option span { min-width: 0; flex: 1; }
+.carte-market-option small { color: var(--muted); font-size: 9px; }
+@media(max-width: 900px) {
+    .carte-market-options {
+        max-height: none;
+        overflow: visible;
+    }
+}
 
 /* ── Carte ── */
 #map {
@@ -327,18 +419,23 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             <form id="carteFiltersForm" class="carte-filter-row">
 
                 <div>
-                    <label class="form-label" style="font-size:11px;display:flex;justify-content:space-between;align-items:center;">
-                        <span><i class="bi bi-earth-americas me-1 text-amber-400"></i>Marché(s)</span>
-                        <span style="font-size:9.5px;color:var(--muted);font-weight:normal;">Ctrl+clic multi</span>
-                    </label>
-                    <select name="marche[]" id="fMarche" class="form-select" multiple size="4" style="font-size:12px;">
+                    <details class="carte-market-dropdown">
+                        <summary>
+                            <i class="bi bi-globe-africa carte-market-summary-icon" aria-hidden="true"></i>
+                            <span>Marchés</span>
+                            <span class="carte-market-summary-count" id="carteMarketSelectionCount">Tous les marchés</span>
+                        </summary>
+                        <div class="carte-market-options" id="fMarche">
                         {% for market in markets %}
-                            <option value="{{ market.id }}"
-                                {% if filters.marche and (market.id in filters.marche) %}selected{% endif %}>
-                                {{ market.nom }} ({{ market.codeIso3 }})
-                            </option>
+                            <label class="carte-market-option">
+                                <input type="checkbox" name="marche[]" value="{{ market.id }}"
+                                    {% if filters.marche and (market.id in filters.marche) %}checked{% endif %}>
+                                <span>{{ market.nom }}</span>
+                                <small>{{ market.codeIso3 }}</small>
+                            </label>
                         {% endfor %}
-                    </select>
+                        </div>
+                    </details>
                 </div>
 
                 <div>
@@ -565,8 +662,18 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     let map, markersLayer, targetZonesLayer, routeLayer, currentTileLayer;
     let allZones = [];
+    const marketInputs = document.querySelectorAll('#fMarche input[name="marche[]"]');
+    const marketCount = document.getElementById('carteMarketSelectionCount');
     const AFRICA_BOUNDS = [[-37, -25], [38, 55]];
     const CATEGORY_COLORS = ['#0f766e', '#2563eb', '#7c3aed', '#d97706', '#be123c', '#0891b2', '#4d7c0f'];
+
+    function updateMarketCount() {
+        const selected = [...marketInputs].filter(input => input.checked).length;
+        marketCount.textContent = selected ? `${selected} marché${selected > 1 ? 's' : ''} sélectionné${selected > 1 ? 's' : ''}` : 'Tous les marchés';
+    }
+
+    marketInputs.forEach(input => input.addEventListener('change', updateMarketCount));
+    updateMarketCount();
 
     function categoryColor(value) {
         let hash = 0;
