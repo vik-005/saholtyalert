@@ -804,14 +804,9 @@ class ImportService
         }
 
         // ── Type de localisation (si colonne explicite fournie) ──────────────────
-        $typeLocRaw = mb_strtolower(trim($get('type_localisation')));
+        $typeLocRaw = trim($get('type_localisation'));
         if (!empty($typeLocRaw)) {
-            $typeLoc = match(true) {
-                str_contains($typeLocRaw, 'port')     => TypeLocalisation::PORT,
-                str_contains($typeLocRaw, 'corridor') => TypeLocalisation::CORRIDOR,
-                str_contains($typeLocRaw, 'aero')     => TypeLocalisation::AEROPORT,
-                default                               => null,
-            };
+            $typeLoc = self::detectTypeLocalisation($typeLocRaw);
             if ($typeLoc !== null) {
                 $alert->setTypeLocalisation($typeLoc);
             }
@@ -857,7 +852,37 @@ class ImportService
             }
         }
 
+        // ── Dernière mise à jour exportée ────────────────────────────────────────
+        $updatedAtRaw = $get('derniere_maj');
+        if ($updatedAtRaw !== '') {
+            $updatedAt = $this->parseImportDateTime($updatedAtRaw);
+            if (null !== $updatedAt) {
+                $alert->setUpdatedAt($updatedAt);
+            }
+        }
+
         return $manquants;
+    }
+
+    private function parseImportDateTime(string $dateStr): ?\DateTime
+    {
+        if (is_numeric($dateStr) && (float) $dateStr > 30000 && (float) $dateStr < 70000) {
+            try {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $dateStr);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        foreach (['d/m/Y H:i:s', 'd/m/Y H:i', 'n/j/Y H:i:s', 'n/j/Y H:i', 'm/d/Y H:i:s', 'm/d/Y H:i', 'Y-m-d H:i:s', 'Y-m-d H:i'] as $format) {
+            $parsed = \DateTime::createFromFormat('!' . $format, $dateStr);
+            $errors = \DateTime::getLastErrors();
+            if ($parsed && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)) && $parsed->format($format) === $dateStr) {
+                return $parsed;
+            }
+        }
+
+        return $this->parseImportDate($dateStr);
     }
 
     private function parseImportDate(string $dateStr): ?\DateTime

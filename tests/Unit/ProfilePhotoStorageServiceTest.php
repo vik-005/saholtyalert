@@ -47,11 +47,14 @@ class ProfilePhotoStorageServiceTest extends TestCase
 
         $this->assertMatchesRegularExpression('/\A27\/[a-f0-9]{32}\.png\z/', $storedPath);
         $this->assertNotFalse($this->storage->resolve($storedPath, 27));
+        $reloadedStorage = new ProfilePhotoStorageService($this->storageDirectory);
+        $this->assertNotFalse($reloadedStorage->resolve($storedPath, 27));
         $this->assertNull($this->storage->resolve($storedPath, 28));
         $this->assertSame('image/png', $this->storage->mimeType($storedPath));
 
         $this->storage->remove($storedPath, 27);
         $this->assertNull($this->storage->resolve($storedPath, 27));
+        $this->assertNull($reloadedStorage->resolve($storedPath, 27));
     }
 
     public function testRejectsNonImageUploads(): void

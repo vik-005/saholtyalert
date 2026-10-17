@@ -97,6 +97,18 @@ class AlertCodeGeneratorTest extends TestCase
         $this->assertEquals('GEI-CIV-2026-001', $code);
     }
 
+    public function testDeletingHighestAlertAllowsReusingItsSequence(): void
+    {
+        $generator = $this->makeGenerator(50);
+        $alert = $this->buildAlert('BEN', '2026-07-01');
+
+        self::assertSame('GEI-BEN-2026-051', $generator->generate($alert));
+
+        $generator->resetSequenceCache();
+
+        self::assertSame('GEI-BEN-2026-051', $generator->generate($alert));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // C.2 — Test passage d'année (RESET à 001)
     // ─────────────────────────────────────────────────────────────────────────

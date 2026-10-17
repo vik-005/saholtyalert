@@ -16,20 +16,27 @@
     margin: -20px;
 }
 @media(max-width: 900px) {
-    .carte-shell { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; min-height: calc(100vh - 72px); height: auto; }
-    .carte-side  { order: 2; height: auto; max-height: 42vh; overflow-y: auto; border-right: 0; border-top: 1px solid var(--border); }
-    #map { min-height: 380px; height: 46vh; }
+    .carte-shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(380px, 54dvh) auto; min-height: 0; height: auto; }
+    .carte-shell > aside { grid-row: 2; }
+    .carte-shell > div { grid-row: 1; min-height: 0; }
+    .carte-side  { height: auto; max-height: none; overflow: visible; border-right: 0; border-top: 1px solid var(--border); }
+    #map { min-height: 0; height: 100%; }
 }
 @media(max-width: 560px) {
-    .carte-shell { gap: 0; }
-    .carte-side  { max-height: 46vh; }
+    .carte-shell { gap: 0; margin: -12px; grid-template-rows: minmax(340px, 56dvh) auto; }
     .carte-filters { padding: 10px 12px; }
     .carte-results { padding-top: 6px; }
     .pays-card { padding: 9px 12px; }
     .pays-card-nom { font-size: 12px; }
     .pays-card-iso { font-size: 9px; }
     .pays-badge-count { width: 30px; height: 30px; font-size: 11px; }
-    .carte-legend { left: 8px; right: 8px; bottom: 10px; min-width: auto; }
+    .carte-shell .map-tools { top: 58px; right: 8px; left: auto; gap: 4px; padding: 5px; flex-wrap: nowrap; }
+    .carte-shell .map-tools-count { display: none; }
+    .carte-shell .map-tools button { width: 36px; height: 36px; justify-content: center; padding: 0; font-size: 0; }
+    .carte-shell .map-tools button i { font-size: 15px; }
+    .carte-shell .category-targets { top: 8px; left: 8px; right: auto; width: 190px; max-width: calc(100% - 160px); }
+    .carte-shell .carte-legend { left: 8px; right: 8px; bottom: 10px; min-width: auto; max-width: calc(100% - 16px); padding: 8px 10px; }
+    .carte-shell .carte-loading { left: 50%; }
 }
 /* ── Panneau gauche ── */
 .carte-side {
@@ -147,6 +154,36 @@
     border-color: #16856b; background: #e9f6f1; color: #126b57;
 }
 .map-tools button:disabled { opacity: .45; cursor: not-allowed; }
+.category-targets {
+    position: absolute; z-index: 1000; top: 14px; left: 14px;
+    width: min(290px, calc(100% - 28px));
+    border: 1px solid rgba(148,163,184,.35); border-radius: 12px;
+    background: rgba(255,255,255,.97); color: #334155;
+    box-shadow: 0 5px 18px rgba(15,23,42,.14); backdrop-filter: blur(8px);
+}
+.category-targets summary {
+    display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px;
+    list-style: none; cursor: pointer; font-size: 11px; font-weight: 750;
+}
+.category-targets summary::-webkit-details-marker { display: none; }
+.category-targets summary::after { content: '⌄'; margin-left: auto; color: #64748b; font-size: 16px; }
+.category-targets[open] summary { border-bottom: 1px solid #e2e8f0; }
+.category-targets[open] summary::after { content: '⌃'; }
+.category-target-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 180px; overflow-y: auto; padding: 10px; }
+.category-target {
+    display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 30px; padding: 5px 9px;
+    border: 1px solid #dbe4ea; border-radius: 999px; background: #fff; color: #334155;
+    font: inherit; font-size: 10px; font-weight: 650; cursor: pointer;
+}
+.category-target > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.category-target:hover, .category-target[aria-pressed="true"] { border-color: #16856b; background: #e9f6f1; color: #126b57; }
+.category-target-swatch { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; }
+.category-target-count { color: #64748b; font-variant-numeric: tabular-nums; }
+.category-target-note { margin: 0; padding: 0 10px 10px; color: #64748b; font-size: 9px; line-height: 1.4; }
+.category-target-empty { padding: 8px 10px; color: #64748b; font-size: 10px; }
+.target-zone { fill-opacity: .14; opacity: .48; }
+.target-zone:hover { fill-opacity: .24; opacity: .8; }
+.target-zone-tooltip { font-size: 10px; font-weight: 650; }
 .route-arrow-icon { background: transparent; border: 0; }
 .route-arrow-icon span {
     display: block; color: #126b57; font-size: 14px; line-height: 18px;
@@ -158,6 +195,15 @@ body.dark .map-tools button { background: var(--navy-800); border-color: var(--b
 body.dark .map-tools button:hover, body.dark .map-tools button[aria-pressed="true"] {
     background: rgba(22,133,107,.22); color: #6ee7b7;
 }
+body.dark .category-targets { background: rgba(15,23,42,.97); border-color: var(--border); color: var(--text); }
+body.dark .category-targets[open] summary { border-bottom-color: var(--border); }
+body.dark .category-targets summary::after,
+body.dark .category-target-count,
+body.dark .category-target-note,
+body.dark .category-target-empty { color: var(--muted); }
+body.dark .category-target { background: var(--navy-800); border-color: var(--border); color: var(--text); }
+body.dark .category-target:hover,
+body.dark .category-target[aria-pressed="true"] { background: rgba(22,133,107,.22); color: #6ee7b7; }
 
 /* ── Panneau résultats ── */
 .pays-card {
@@ -419,20 +465,28 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     {# ── CARTE LEAFLET ── #}
     <div style="position:relative;display:flex;flex-direction:column;height:100%;">
-        <div id="map" style="flex:1;width:100%;min-height:400px;"></div>
+        <div id="map" style="flex:1;width:100%;min-height:0;"></div>
 
         <div class="map-tools" role="group" aria-label="Outils de carte">
             <span class="map-tools-count" id="routeCount" aria-live="polite">0 parcours indicatif</span>
-            <button type="button" id="routeToggle" aria-pressed="true" disabled>
+            <button type="button" id="routeToggle" aria-label="Afficher ou masquer les trajets indicatifs" title="Trajets indicatifs" aria-pressed="true" disabled>
                 <i class="bi bi-bezier2"></i>Trajets indicatifs
             </button>
-            <button type="button" id="routeFit" disabled>
+            <button type="button" id="routeFit" aria-label="Cadrer les trajets indicatifs" title="Voir les trajets" disabled>
                 <i class="bi bi-arrows-fullscreen"></i>Voir les trajets
             </button>
-            <button type="button" id="mapReset">
+            <button type="button" id="mapReset" aria-label="Recentrer la carte sur l'Afrique" title="Vue Afrique">
                 <i class="bi bi-globe-africa"></i>Vue Afrique
             </button>
         </div>
+
+        <details class="category-targets">
+            <summary><i class="bi bi-bullseye" aria-hidden="true"></i>Zones par catégorie</summary>
+            <div class="category-target-list" id="categoryTargetOptions">
+                <div class="category-target-empty">Chargement des catégories…</div>
+            </div>
+            <p class="category-target-note">Zones indicatives agrégées par marché ; le halo n'est pas une frontière ni une localisation précise.</p>
+        </details>
 
         {# Légende enrichie ── #}
         <div class="carte-legend" id="carteLegend">
@@ -509,9 +563,16 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 (function() {
     'use strict';
 
-    let map, markersLayer, routeLayer, currentTileLayer;
+    let map, markersLayer, targetZonesLayer, routeLayer, currentTileLayer;
     let allZones = [];
     const AFRICA_BOUNDS = [[-37, -25], [38, 55]];
+    const CATEGORY_COLORS = ['#0f766e', '#2563eb', '#7c3aed', '#d97706', '#be123c', '#0891b2', '#4d7c0f'];
+
+    function categoryColor(value) {
+        let hash = 0;
+        for (const char of String(value || '')) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+        return CATEGORY_COLORS[hash % CATEGORY_COLORS.length];
+    }
 
     function setTileLayer(isDark) {
         if (!map) return;
@@ -540,6 +601,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             try { map.remove(); } catch(e) {}
             map = null;
             markersLayer = null;
+            targetZonesLayer = null;
             routeLayer = null;
             currentTileLayer = null;
         }
@@ -566,6 +628,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
         markersLayer = L.layerGroup().addTo(map);
+        targetZonesLayer = L.layerGroup().addTo(map);
         routeLayer = L.featureGroup().addTo(map);
         setTileLayer(isDark);
 
@@ -624,6 +687,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             })
             .then(zones => {
                 allZones = zones;
+                updateCategoryTargets(zones);
                 renderMarkers(zones);
                 renderSidePanel(zones);
                 updateStats(zones);
@@ -683,6 +747,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     function renderMarkers(zones) {
         markersLayer.clearLayers();
+        targetZonesLayer.clearLayers();
         const bounds = [];
 
         zones.forEach(zone => {
@@ -696,6 +761,24 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             bounds.push([lat, lng]);
 
             const prio = zone.maxPriority || 'faible';
+            const categories = Object.entries(zone.categories || {}).sort((a, b) => Number(b[1]) - Number(a[1]));
+            const dominantCategory = categories[0]?.[0] || '';
+            const targetColor = dominantCategory ? categoryColor(dominantCategory) : '#16856b';
+            const targetRadius = Math.min(34, 13 + Math.sqrt(count) * 2.2);
+            const targetZone = L.circleMarker([lat, lng], {
+                radius: targetRadius,
+                color: targetColor,
+                weight: 1.5,
+                fillColor: targetColor,
+                opacity: 0.72,
+                fillOpacity: 0.2,
+                className: 'target-zone',
+                interactive: false,
+            }).addTo(targetZonesLayer);
+            targetZone.bindTooltip(
+                `${escHtml(zone.nom)} · ${count} alerte${count > 1 ? 's' : ''} · ${escHtml(dominantCategory ? categorieLabel(dominantCategory) : 'toutes catégories')}`,
+                { className: 'target-zone-tooltip', direction: 'top', offset: [0, -targetRadius] }
+            );
 
             // Double dimension visuelle :
             // 1) Taille et dégradé orange de bordure selon le volume
@@ -714,6 +797,10 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 size = 34;
                 fontSize = 12;
                 volClass = 'vol-modere';
+            }
+            if (window.matchMedia('(max-width: 560px)').matches) {
+                size = Math.round(size * 0.72);
+                fontSize = Math.max(9, Math.round(fontSize * 0.85));
             }
 
             const label = count > 99 ? '99+' : String(count);
@@ -734,7 +821,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             const cats = zone.categories || {};
             const catHtml = Object.entries(cats).slice(0, 5).map(([k, v]) => {
                 const label = categorieLabel(k);
-                return `<span class="popup-cat">${escHtml(label)} <strong>${v}</strong></span>`;
+                return `<span class="popup-cat"><span class="category-target-swatch" style="background:${categoryColor(k)}"></span>${escHtml(label)} <strong>${v}</strong></span>`;
             }).join('');
 
             const corridors = zone.corridors || {};
@@ -775,22 +862,25 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             const coords = parseWKTPolygon(zone.polygonWkt);
             if (!coords || coords.length === 0) return;
 
-            const intensity = count > 50 ? 0.7 : count > 20 ? 0.55 : count > 5 ? 0.4 : 0.25;
-            const fillColor = count > 50 ? '#E65100' : count > 20 ? '#EF6C00' : count > 5 ? '#F57C00' : '#F9A825';
+            const dominantCategory = Object.entries(zone.categories || {}).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0];
+            const fillColor = dominantCategory ? categoryColor(dominantCategory) : '#16856b';
 
             const polygon = L.polygon(coords, {
                 fillColor: fillColor,
                 color: fillColor,
-                weight: 1.5,
-                opacity: 0.5,
-                fillOpacity: intensity,
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.18,
             }).addTo(markersLayer);
 
             polygon.bindPopup(
-                `<strong>${escHtml(zone.nom)}</strong><br>Alertes filtrées: ${count}`
+                `<strong>${escHtml(zone.nom)}</strong><br>Zone indicative — ${count} alerte${count > 1 ? 's' : ''}`
             );
         });
 
+        targetZonesLayer.eachLayer(layer => {
+            if (typeof layer.bringToBack === 'function') layer.bringToBack();
+        });
         if (bounds.length > 0) {
             const africanBounds = bounds.filter(b => b[0] >= -37 && b[0] <= 38 && b[1] >= -25 && b[1] <= 55);
             if (africanBounds.length > 0) {
@@ -926,6 +1016,53 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         const total = activeZones.reduce((s, z) => s + (parseInt(z.alertCount) || 0), 0);
         document.getElementById('totalPays').textContent    = activeZones.length;
         document.getElementById('totalAlertes').textContent = total;
+    }
+
+    function updateCategoryTargets(zones) {
+        const container = document.getElementById('categoryTargetOptions');
+        const select = document.getElementById('fCategorie');
+        if (!container || !select) return;
+
+        const counts = new Map();
+        zones.forEach(zone => {
+            Object.entries(zone.categories || {}).forEach(([category, count]) => {
+                counts.set(category, (counts.get(category) || 0) + (Number(count) || 0));
+            });
+        });
+        const selected = select.value;
+        const entries = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        const allCount = entries.reduce((sum, [, count]) => sum + count, 0);
+        const options = [{
+            value: '',
+            label: 'Toutes',
+            count: allCount,
+            color: '#16856b',
+        }, ...entries.map(([value, count]) => ({
+            value,
+            label: categorieLabel(value),
+            count,
+            color: categoryColor(value),
+        }))];
+
+        container.innerHTML = options.map(option => `
+            <button type="button" class="category-target" data-category="${escHtml(option.value)}"
+                    aria-pressed="${selected === option.value ? 'true' : 'false'}">
+                <span class="category-target-swatch" style="background:${option.color}"></span>
+                <span>${escHtml(option.label)}</span>
+                <span class="category-target-count">${option.count}</span>
+            </button>
+        `).join('') || '<div class="category-target-empty">Aucune zone avec des alertes pour ces filtres.</div>';
+
+        container.querySelectorAll('.category-target').forEach(button => {
+            button.addEventListener('click', () => {
+                const value = button.dataset.category || '';
+                if (value && ![...select.options].some(option => option.value === value)) {
+                    select.add(new Option(categorieLabel(value), value));
+                }
+                select.value = value;
+                loadZones();
+            });
+        });
     }
 
     function focusZone(zoneId, lat, lng) {

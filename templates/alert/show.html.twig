@@ -464,6 +464,31 @@
 .show-flag-red   { background:rgba(239,68,68,.1);  color:#f87171;    border:1px solid rgba(239,68,68,.2); }
 .show-meta { font-size:11.5px; color:var(--text-muted); }
 .show-actions { display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0; }
+@media(max-width:640px) {
+    .show-header-card { align-items:stretch; padding:16px; }
+    .show-header-left { width:100%; min-width:0; }
+    .show-meta { overflow-wrap:anywhere; line-height:1.6; }
+    .show-actions {
+        display:grid;
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+        width:100%;
+        min-width:0;
+        flex:1 1 100%;
+    }
+    .show-actions > .db-btn,
+    .show-actions .inline-delete-form { width:100%; min-width:0; max-width:100%; }
+    .show-actions .inline-delete-form { display:flex; margin:0; }
+    .show-actions .db-btn {
+        justify-content:center;
+        padding-inline:8px;
+        text-align:center;
+        white-space:normal;
+    }
+    .show-actions .inline-delete-form > .db-btn { width:100%; }
+}
+@media(max-width:360px) {
+    .show-actions { grid-template-columns:1fr; }
+}
 .show-route-section { border-left: 3px solid #34d399; }
 .show-route-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .show-route-help { color:var(--text-muted); font-size:11.5px; margin:0; }

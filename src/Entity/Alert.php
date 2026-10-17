@@ -253,6 +253,8 @@ class Alert
     #[ORM\Column(type: 'datetime')]
     private \DateTime $updatedAt;
 
+    private bool $preserveImportedUpdatedAt = false;
+
     /** Soft-delete : date de suppression (si null, alerte active) */
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTime $deletedAt = null;
@@ -305,12 +307,20 @@ class Alert
     public function onPrePersist(): void
     {
         $this->createdAt = new \DateTimeImmutable();
-        $this->updatedAt = new \DateTime();
+        if (!$this->preserveImportedUpdatedAt) {
+            $this->updatedAt = new \DateTime();
+        }
+        $this->preserveImportedUpdatedAt = false;
     }
 
     #[ORM\PreUpdate]
     public function onPreUpdate(): void
     {
+        if ($this->preserveImportedUpdatedAt) {
+            $this->preserveImportedUpdatedAt = false;
+            return;
+        }
+
         $this->updatedAt = new \DateTime();
     }
 
@@ -956,6 +966,14 @@ class Alert
     public function getUpdatedAt(): \DateTime
     {
         return $this->updatedAt;
+    }
+
+    public function setUpdatedAt(\DateTime $updatedAt): static
+    {
+        $this->preserveImportedUpdatedAt = $this->updatedAt != $updatedAt;
+        $this->updatedAt = $updatedAt;
+
+        return $this;
     }
 
     public function getDeletedAt(): ?\DateTime

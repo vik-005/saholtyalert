@@ -11,7 +11,7 @@
             <form id="accountProfileForm" method="post" enctype="multipart/form-data" class="account-profile-form">
                 <input type="hidden" name="_token" value="{{ csrf_token('account-profile') }}">
                 <div class="account-avatar-wrap">
-                    {% if user.photoProfil %}
+                    {% if photo_available %}
                         <img class="account-avatar account-avatar-photo" src="{{ path('app_account_photo') }}" alt="Photo de {{ user.nomComplet }}">
                     {% else %}
                         <span class="account-avatar account-avatar-initials" aria-label="Initiales de {{ user.nomComplet }}">{{ user.prenom|slice(0,1) }}{{ user.nom|slice(0,1) }}</span>
@@ -29,6 +29,9 @@
                     <div class="account-photo-actions">
                         <label for="photo_profil" class="account-photo-select"><i class="bi bi-camera" aria-hidden="true"></i>Choisir une photo</label>
                         <span>JPG, PNG ou WebP · 5 Mo max.</span>
+                        <button type="submit" id="accountPhotoSave" name="action" value="upload_photo" class="account-photo-select" formnovalidate>
+                            <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>Enregistrer la photo
+                        </button>
                         {% if user.photoProfil %}
                             <button type="submit" name="action" value="remove_photo" class="account-photo-remove" formnovalidate>
                                 <i class="bi bi-trash3" aria-hidden="true"></i>Supprimer
@@ -36,6 +39,9 @@
                         {% endif %}
                     </div>
                     <p id="profilePhotoFilename" class="account-photo-filename" aria-live="polite"></p>
+                    {% if user.photoProfil and not photo_available %}
+                        <p class="account-photo-filename" role="status">La photo enregistrée est indisponible. Choisissez-en une nouvelle pour la remplacer.</p>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -165,8 +171,8 @@
             }
 
             const file = input.files[0];
-            label.textContent = `Photo sélectionnée : ${file.name}`;
-            if (!file.type.startsWith('image/')) return;
+            label.textContent = `Aperçu uniquement — ${file.name}. Cliquez sur « Enregistrer la photo » pour la conserver.`;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
 
             const avatar = document.querySelector('.account-avatar-wrap');
             if (!avatar) return;

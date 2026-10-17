@@ -91,13 +91,12 @@ class AlertCodeGeneratorService
         $key = sprintf('%s-%s', $iso3, $annee);
         $conn = $this->em->getConnection();
 
-        $sql = '
-            SELECT COALESCE(MAX(CAST(SUBSTRING(code_gei, -3) AS UNSIGNED)), 0) AS max_seq
+        $sql = "
+            SELECT COALESCE(MAX(CAST(SUBSTRING_INDEX(code_gei, '-', -1) AS UNSIGNED)), 0) AS max_seq
             FROM alert
             WHERE code_gei LIKE :pattern
-              AND (deleted_at IS NULL)
             FOR UPDATE
-        ';
+        ";
 
         $dbMax = (int) $conn->fetchOne($sql, [
             'pattern' => sprintf('GEI-%s-%s-%%', $iso3, $annee),
@@ -111,7 +110,7 @@ class AlertCodeGeneratorService
     }
 
     /**
-     * Réinitialise le cache des séquences (notamment après la suppression d'une alerte).
+     * Réinitialise les séquences générées mais pas encore persistées en base.
      */
     public function resetSequenceCache(?string $key = null): void
     {

@@ -18,14 +18,13 @@ class ImportType extends AbstractType
                 'mapped' => false,
                 'required' => true,
                 'constraints' => [
-                    new File([
-                        'maxSize' => '10M',
-                        'mimeTypes' => [
+                    new File(
+                        maxSize: '10M',
+                        mimeTypes: [
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                            'application/vnd.ms-excel',
                         ],
-                        'mimeTypesMessage' => 'Veuillez télécharger un fichier Excel valide (.xlsx)',
-                    ]),
+                        mimeTypesMessage: 'Veuillez télécharger un fichier Excel valide (.xlsx)',
+                    ),
                 ],
                 'attr' => ['class' => 'form-input'],
             ]);

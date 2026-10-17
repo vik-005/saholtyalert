@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{{ heading }} — GEI Platform</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            --error-bg: #f1f5f9;
+            --error-surface: #ffffff;
+            --error-soft: #ecfdf5;
+            --error-border: #dbe5e0;
+            --error-text: #0f172a;
+            --error-muted: #475569;
+            --error-dim: #64748b;
+            --error-primary: #047857;
+            --error-primary-hover: #065f46;
+            --error-art: #059669;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            display: grid;
+            min-width: 320px;
+            min-height: 100vh;
+            min-height: 100svh;
+            margin: 0;
+            padding: clamp(16px, 5vw, 64px);
+            place-items: center;
+            background: var(--error-bg);
+            color: var(--error-text);
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .error-page {
+            width: min(100%, 1000px);
+        }
+
+        .error-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 18px 4px;
+            color: var(--error-text);
+            font-size: 14px;
+            font-weight: 750;
+            letter-spacing: .01em;
+        }
+
+        .error-brand-mark {
+            display: grid;
+            width: 30px;
+            height: 30px;
+            place-items: center;
+            border-radius: 8px;
+            background: #45e3b8;
+            color: #07352b;
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .error-panel {
+            display: grid;
+            grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr);
+            overflow: hidden;
+            border: 1px solid var(--error-border);
+            border-radius: 16px;
+            background: var(--error-surface);
+        }
+
+        .error-visual {
+            display: grid;
+            min-height: 390px;
+            padding: 36px;
+            place-items: center;
+            border-right: 1px solid var(--error-border);
+            background: var(--error-soft);
+        }
+
+        .error-illustration {
+            width: min(100%, 260px);
+            height: auto;
+            overflow: visible;
+        }
+
+        .error-illustration .art-outline {
+            fill: var(--error-surface);
+            stroke: var(--error-art);
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 3;
+        }
+
+        .error-illustration .art-line {
+            fill: none;
+            stroke: var(--error-art);
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 3;
+        }
+
+        .error-illustration .art-muted {
+            fill: none;
+            stroke: var(--error-dim);
+            stroke-dasharray: 5 8;
+            stroke-linecap: round;
+            stroke-width: 2;
+        }
+
+        .error-copy {
+            align-self: center;
+            padding: clamp(28px, 5vw, 56px);
+        }
+
+        .error-eyebrow {
+            margin: 0 0 12px;
+            color: var(--error-primary);
+            font-size: 12px;
+            font-weight: 750;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .error-code {
+            margin: 0 0 12px;
+            color: var(--error-dim);
+            font-size: clamp(46px, 7vw, 68px);
+            font-variant-numeric: tabular-nums;
+            font-weight: 800;
+            letter-spacing: -.075em;
+            line-height: .95;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(24px, 3vw, 34px);
+            font-weight: 720;
+            letter-spacing: -.04em;
+            line-height: 1.18;
+        }
+
+        .error-description {
+            max-width: 48ch;
+            margin: 14px 0 0;
+            color: var(--error-muted);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .error-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 28px;
+        }
+
+        .error-action {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            padding: 0 17px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 650;
+            text-align: center;
+            text-decoration: none;
+            transition: background-color .15s ease, border-color .15s ease;
+        }
+
+        .error-action--primary {
+            background: var(--error-primary);
+            color: #ffffff;
+        }
+
+        .error-action--primary:hover {
+            background: var(--error-primary-hover);
+        }
+
+        .error-action:focus-visible {
+            outline: 3px solid #34d399;
+            outline-offset: 3px;
+        }
+
+        .art-float {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: error-float 4s ease-in-out infinite;
+        }
+
+        @keyframes error-float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --error-bg: #0b1612;
+                --error-surface: #12221b;
+                --error-soft: #182e25;
+                --error-border: #294638;
+                --error-text: #e6f2ec;
+                --error-muted: #a6c7b9;
+                --error-dim: #85a697;
+                --error-primary: #10b981;
+                --error-primary-hover: #059669;
+                --error-art: #34d399;
+            }
+
+            .error-action--primary { color: #062c21; }
+        }
+
+        @media (max-width: 680px) {
+            body { padding: 22px 16px; }
+
+            .error-brand { margin-left: 2px; }
+
+            .error-panel { grid-template-columns: 1fr; }
+
+            .error-visual {
+                min-height: 190px;
+                padding: 22px;
+                border-right: 0;
+                border-bottom: 1px solid var(--error-border);
+            }
+
+            .error-illustration { width: 180px; }
+
+            .error-copy { padding: 28px 24px 30px; }
+        }
+
+        @media (max-width: 420px) {
+            .error-actions { display: grid; }
+            .error-action { width: 100%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="error-page" aria-labelledby="error-heading">
+        <div class="error-brand" aria-label="GEI Platform">
+            <span class="error-brand-mark" aria-hidden="true">GEI</span>
+            <span>GEI Platform</span>
+        </div>
+
+        <section class="error-panel">
+            <div class="error-visual">
+                <svg class="error-illustration" viewBox="0 0 260 230" aria-hidden="true" focusable="false">
+                    {% if visual == 'not-found' %}
+                        <path class="art-muted" d="M24 181c28-25 41-22 61-4s34 16 53-4 43-24 72 4" />
+                        <g class="art-float">
+                            <path class="art-outline" d="M72 34h76l38 38v91a12 12 0 0 1-12 12H72a12 12 0 0 1-12-12V46a12 12 0 0 1 12-12Z" />
+                            <path class="art-line" d="M148 35v28a10 10 0 0 0 10 10h27M88 96h68M88 116h44" />
+                            <circle class="art-outline" cx="164" cy="151" r="22" />
+                            <path class="art-line" d="m180 167 17 17" />
+                        </g>
+                    {% elseif visual == 'forbidden' %}
+                        <path class="art-muted" d="M34 186h192" />
+                        <g class="art-float">
+                            <path class="art-outline" d="m130 28 64 24v48c0 43-27 72-64 91-37-19-64-48-64-91V52l64-24Z" />
+                            <rect class="art-outline" x="105" y="99" width="50" height="39" rx="7" />
+                            <path class="art-line" d="M115 99V86a15 15 0 0 1 30 0v13m-15 16v8" />
+                        </g>
+                    {% elseif visual == 'server' %}
+                        <path class="art-muted" d="M31 191h198" />
+                        <g class="art-float">
+                            <rect class="art-outline" x="52" y="40" width="156" height="48" rx="9" />
+                            <rect class="art-outline" x="52" y="101" width="156" height="48" rx="9" />
+                            <circle cx="75" cy="64" r="5" fill="var(--error-art)" />
+                            <circle cx="75" cy="125" r="5" fill="var(--error-art)" />
+                            <path class="art-line" d="M94 64h78m-78 61h49" />
+                            <path class="art-outline" d="m182 144 23 39h-46l23-39Z" />
+                            <path class="art-line" d="M182 158v10m0 7h.1" />
+                        </g>
+                    {% elseif visual == 'rate-limit' %}
+                        <path class="art-muted" d="M31 181h198" />
+                        <g class="art-float">
+                            <circle class="art-outline" cx="130" cy="108" r="66" />
+                            <path class="art-line" d="M130 69v42l28 17" />
+                            <path class="art-line" d="M85 54 69 40m106 14 16-14" />
+                            <circle cx="130" cy="108" r="5" fill="var(--error-art)" />
+                        </g>
+                    {% else %}
+                        <path class="art-muted" d="M28 177c25 0 34-30 58-30s33 30 57 30 33-30 57-30 26 30 32 30" />
+                        <g class="art-float">
+                            <rect class="art-outline" x="54" y="47" width="152" height="104" rx="12" />
+                            <path class="art-line" d="M54 75h152" />
+                            <circle cx="72" cy="61" r="3" fill="var(--error-art)" />
+                            <circle cx="84" cy="61" r="3" fill="var(--error-art)" />
+                            <path class="art-line" d="m104 111 14 14 31-32" />
+                            <path class="art-line" d="M103 138h54" />
+                        </g>
+                    {% endif %}
+                </svg>
+            </div>
+
+            <div class="error-copy">
+                <p class="error-eyebrow">{{ eyebrow }}</p>
+                <p class="error-code" aria-hidden="true">{{ code }}</p>
+                <h1 id="error-heading">{{ heading }}</h1>
+                <p class="error-description">{{ description }}</p>
+                <div class="error-actions">
+                    <a class="error-action error-action--primary" href="{{ path(action_route) }}">{{ action_label }}</a>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

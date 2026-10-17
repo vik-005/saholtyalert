@@ -40,7 +40,7 @@ final class AccountController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if ($request->isMethod('POST') && in_array($request->request->get('action'), ['profile', 'remove_photo'], true)) {
+        if ($request->isMethod('POST') && in_array($request->request->get('action'), ['profile', 'upload_photo', 'remove_photo'], true)) {
             if (!$this->isCsrfTokenValid('account-profile', (string) $request->request->get('_token'))) {
                 throw $this->createAccessDeniedException('Jeton de sécurité invalide.');
             }
@@ -54,6 +54,36 @@ final class AccountController extends AbstractController
                 return $this->redirectToRoute('app_account_settings');
             }
 
+            if ($request->request->get('action') === 'upload_photo') {
+                $photo = $request->files->get('photo_profil');
+                if (!$photo instanceof UploadedFile) {
+                    $this->addFlash('error', 'Choisissez une photo avant de l’enregistrer.');
+                    return $this->redirectToRoute('app_account_settings');
+                }
+
+                $oldPhotoPath = $user->getPhotoProfil();
+                try {
+                    $newPhotoPath = $this->profilePhotoStorage->store($photo, (int) $user->getId());
+                } catch (\InvalidArgumentException $exception) {
+                    $this->addFlash('error', $exception->getMessage());
+                    return $this->redirectToRoute('app_account_settings');
+                }
+
+                $user->setPhotoProfil($newPhotoPath);
+                try {
+                    $em->flush();
+                } catch (\Throwable $exception) {
+                    $this->profilePhotoStorage->remove($newPhotoPath, (int) $user->getId());
+                    throw $exception;
+                }
+
+                if ($oldPhotoPath !== null) {
+                    $this->profilePhotoStorage->remove($oldPhotoPath, (int) $user->getId());
+                }
+                $this->addFlash('success', 'Votre photo a été enregistrée et restera visible après rechargement.');
+                return $this->redirectToRoute('app_account_settings');
+            }
+
             $prenom = trim((string) $request->request->get('prenom'));
             $nom = trim((string) $request->request->get('nom'));
             if ($prenom === '' || $nom === '') {
@@ -61,41 +91,11 @@ final class AccountController extends AbstractController
                 return $this->redirectToRoute('app_account_settings');
             }
 
-            $photo = $request->files->get('photo_profil');
-            if ($photo !== null && !$photo instanceof UploadedFile) {
-                $this->addFlash('error', 'Le fichier de photo transmis n’est pas valide.');
-                return $this->redirectToRoute('app_account_settings');
-            }
-
-            $oldPhotoPath = $user->getPhotoProfil();
-            $newPhotoPath = null;
-            if ($photo instanceof UploadedFile) {
-                try {
-                    $newPhotoPath = $this->profilePhotoStorage->store($photo, (int) $user->getId());
-                } catch (\InvalidArgumentException $exception) {
-                    $this->addFlash('error', $exception->getMessage());
-                    return $this->redirectToRoute('app_account_settings');
-                }
-            }
-
             $user->setPrenom($prenom);
             $user->setNom($nom);
             $user->setTelephone(trim((string) $request->request->get('telephone')) ?: null);
             $user->setFonction(trim((string) $request->request->get('fonction')) ?: null);
-            if ($newPhotoPath !== null) {
-                $user->setPhotoProfil($newPhotoPath);
-            }
-            try {
-                $em->flush();
-            } catch (\Throwable $exception) {
-                if ($newPhotoPath !== null) {
-                    $this->profilePhotoStorage->remove($newPhotoPath, (int) $user->getId());
-                }
-                throw $exception;
-            }
-            if ($newPhotoPath !== null && $oldPhotoPath !== null) {
-                $this->profilePhotoStorage->remove($oldPhotoPath, (int) $user->getId());
-            }
+            $em->flush();
             $this->addFlash('success', 'Vos informations de profil ont été mises à jour.');
             return $this->redirectToRoute('app_account_settings');
         }
@@ -139,6 +139,8 @@ final class AccountController extends AbstractController
         return $this->render('account/settings.html.twig', [
             'user' => $user,
             'totp_enabled' => $user->isTotpEnabled(),
+            'photo_available' => $user->getPhotoProfil() !== null
+                && $this->profilePhotoStorage->resolve($user->getPhotoProfil(), (int) $user->getId()) !== null,
         ]);
     }
 

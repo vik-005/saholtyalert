@@ -58,7 +58,7 @@ final class ProfilePhotoStorageService
         }
 
         $path = $this->userDirectory($userId) . DIRECTORY_SEPARATOR . basename($storedPath);
-        return is_file($path) ? $path : null;
+        return is_file($path) && is_readable($path) ? $path : null;
     }
 
     public function mimeType(string $storedPath): string
