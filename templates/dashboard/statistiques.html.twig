@@ -124,11 +124,14 @@
                 <p class="db-card-title">Soumissions vs Transmises</p>
             </div>
         </div>
-        <div class="db-chart-legend">
+        <div class="db-chart-legend stats-evolution-legend">
             <span class="chart-legend-item chart-legend-amber"><span class="chart-legend-dot"></span>Soumises</span>
             <span class="chart-legend-item chart-legend-emerald"><span class="chart-legend-dot"></span>Transmises</span>
         </div>
-        <canvas id="chartEvolution" height="100"></canvas>
+        <div class="stats-evolution-chart-wrap">
+            <canvas id="chartEvolution" role="img"
+                    aria-label="Évolution des alertes soumises et transmises sur la période sélectionnée"></canvas>
+        </div>
     </div>
 
 </div>
@@ -412,9 +415,10 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
 (function() {
     const ctx = document.getElementById('chartEvolution')?.getContext('2d');
     if (!ctx || !DATA.evolution.labels) return;
-    const ga = ctx.createLinearGradient(0,0,0,180);
+    const chartHeight = ctx.canvas.clientHeight || 260;
+    const ga = ctx.createLinearGradient(0,0,0,chartHeight);
     ga.addColorStop(0, 'rgba(251,191,36,0.25)'); ga.addColorStop(1, 'rgba(251,191,36,0.01)');
-    const ge = ctx.createLinearGradient(0,0,0,180);
+    const ge = ctx.createLinearGradient(0,0,0,chartHeight);
     ge.addColorStop(0, 'rgba(52,211,153,0.18)'); ge.addColorStop(1, 'rgba(52,211,153,0.01)');
     new Chart(ctx, {
         type: 'line',
@@ -423,19 +427,64 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
             datasets: [
                 { label:'Soumises',  data: DATA.evolution.soumises,  borderColor: C.amber,
                   backgroundColor: ga, fill: true, tension: 0.4, borderWidth: 2.5,
-                  pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: C.amber, pointBorderColor: C.bg },
+                  pointRadius: 2.5, pointHoverRadius: 5, pointBackgroundColor: C.amber,
+                  pointBorderColor: C.amber, pointBorderWidth: 0, pointHoverBorderWidth: 0 },
                 { label:'Transmises', data: DATA.evolution.transmises, borderColor: C.emerald,
                   backgroundColor: ge, fill: true, tension: 0.4, borderWidth: 2,
-                  pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: C.emerald, pointBorderColor: C.bg },
+                  pointRadius: 2.5, pointHoverRadius: 5, pointBackgroundColor: C.emerald,
+                  pointBorderColor: C.emerald, pointBorderWidth: 0, pointHoverBorderWidth: 0 },
             ]
         },
         options: {
-            responsive: true, maintainAspectRatio: true,
+            responsive: true, maintainAspectRatio: false,
             interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+            layout: { padding: { top: 8, right: 8, bottom: 2 } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    ...TOOLTIP,
+                    borderWidth: 0,
+                    displayColors: true,
+                    callbacks: {
+                        title: items => {
+                            const label = DATA.evolution.labels[items[0]?.dataIndex] ?? '';
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(label)) {
+                                return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    .format(new Date(`${label}T12:00:00`));
+                            }
+                            return label;
+                        },
+                        label: item => ` ${item.dataset.label} : ${item.parsed.y}`,
+                    },
+                },
+            },
             scales: {
-                x: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false } },
-                y: { grid: { color: 'rgba(148,163,184,0.06)' }, ticks: { color: C.slate }, border: { display: false }, beginAtZero: true },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: C.slate,
+                        autoSkip: true,
+                        maxTicksLimit: window.matchMedia('(max-width: 640px)').matches ? 5 : 9,
+                        maxRotation: 0,
+                        minRotation: 0,
+                        font: { size: window.matchMedia('(max-width: 640px)').matches ? 9 : 10 },
+                        callback: (_value, index) => {
+                            const label = DATA.evolution.labels[index] ?? '';
+                            if (/^\d{4}-\d{2}-\d{2}$/.test(label)) {
+                                return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'short' })
+                                    .format(new Date(`${label}T12:00:00`));
+                            }
+                            return label;
+                        },
+                    },
+                    border: { display: false },
+                },
+                y: {
+                    grid: { color: 'rgba(148,163,184,0.08)', drawTicks: false },
+                    ticks: { color: C.slate, precision: 0, padding: 8 },
+                    border: { display: false },
+                    beginAtZero: true,
+                },
             }
         }
     });

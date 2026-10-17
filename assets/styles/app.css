@@ -1078,6 +1078,13 @@ body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
 .stats-shortcut{background:var(--card2);border:1px solid var(--border);color:var(--muted);font-size:10.5px;font-weight:600;border-radius:6px;padding:4px 9px;cursor:pointer;transition:all .15s}
 .stats-shortcut:hover{color:var(--amber);border-color:var(--amber-bd)}
 .stats-gauge-row{display:grid;grid-template-columns:200px 200px 1fr;gap:12px}
+.stats-evolution-chart-wrap{position:relative;width:100%;height:260px;min-width:0}
+.stats-evolution-chart-wrap canvas{display:block;width:100%!important;height:100%!important}
+.stats-evolution-legend{gap:16px}
+.stats-evolution-legend .chart-legend-item{gap:7px;font-size:10.5px}
+.stats-evolution-legend .chart-legend-dot{width:8px;height:8px;border-radius:50%}
+.stats-evolution-legend .chart-legend-amber .chart-legend-dot{background:var(--amber)}
+.stats-evolution-legend .chart-legend-emerald .chart-legend-dot{background:#34d399}
 .stats-row-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .stats-row-1col{display:grid;grid-template-columns:1fr;gap:12px}
 .stats-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
@@ -1131,6 +1138,9 @@ body.dark .chart-legend-emerald .chart-legend-dot{background:#60a5fa}
   .gauge-sub{font-size:9px}
   .heatmap-row-header,.heatmap-col-header{font-size:8.5px}
   .heatmap-nb{font-size:12px}
+  .stats-evolution-chart-wrap{height:220px}
+  .stats-evolution-legend{gap:12px;margin-bottom:8px}
+  .stats-evolution-legend .chart-legend-item{font-size:10px}
   .corridor-kpi-card{padding:10px 12px;min-width:unset}
   .corridor-kpi-value{font-size:18px}
   .corridor-kpi-label{font-size:9px}
@@ -3368,6 +3378,32 @@ html body .bi {
     font-weight: 700;
     margin-top: 2px;
 }
+.corridor-kpi-card > div:last-child { min-width: 0; }
+.corridor-kpi-card-featured { flex: 2; }
+
+/* The chart and companion country breakdown stay readable at tablet widths. */
+.corridor-chart-grid { grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); }
+.corridor-chart-grid > * { min-width: 0; }
+.corridor-chart-wrap {
+    position: relative;
+    width: 100%;
+    min-height: 240px;
+    max-height: 640px;
+    margin-top: 8px;
+}
+.corridor-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+.corridor-filter-toggle { display: none; }
+.corridor-filter-content {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.corridor-filter-form { min-width: 0; }
+.corridor-filter-bar .stats-filter-group { min-width: 0; }
+.corridor-filter-bar .stats-market-checks { max-height: 82px; overflow-y: auto; }
 
 /* ── Type répartition cards (mode Tous) ─────────────────────────────────── */
 .corridor-type-grid {
@@ -3448,18 +3484,61 @@ html body .bi {
     .corridor-kpi-value { font-size: 22px; }
 }
 @media (max-width: 640px) {
-    .corridor-kpi-row { flex-direction: column; }
-    .corridor-kpi-card { min-width: unset; width: 100%; }
+    .page-header-row { flex-direction: column; gap: 10px; }
+    .page-header-row > .db-btn { width: 100%; justify-content: center; }
+    .corridor-kpi-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .corridor-kpi-card { min-width: 0; width: auto; gap: 8px; padding: 10px; }
+    .corridor-kpi-card-featured { grid-column: 1 / -1; }
+    .corridor-kpi-icon { width: 32px; height: 32px; font-size: 14px; }
+    .corridor-kpi-value { font-size: 20px; }
+    .corridor-kpi-label { line-height: 1.3; }
     .corridor-type-grid { flex-direction: column; }
     .corridor-type-card { min-width: unset; }
-    /* Filtres empilés sur mobile */
-    .stats-filter-bar {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+    .corridor-filter-bar { display: block; padding: 0; overflow: hidden; }
+    .corridor-filter-toggle {
+        display: flex;
+        width: 100%;
+        min-height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 0;
+        background: transparent;
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
     }
-    .stats-period-shortcuts { margin-top: 4px; }
-    /* Tableau responsive : scroll horizontal */
+    .corridor-filter-toggle-copy { display: flex; align-items: center; gap: 10px; }
+    .corridor-filter-toggle-copy > i { color: var(--amber); font-size: 16px; }
+    .corridor-filter-toggle-copy strong { display: block; font-size: 12px; }
+    .corridor-filter-toggle-copy small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+    .corridor-filter-chevron { color: var(--muted); transition: transform .18s ease; }
+    .corridor-filter-toggle[aria-expanded="true"] .corridor-filter-chevron { transform: rotate(180deg); }
+    .corridor-filter-content { display: none; padding: 0 12px 12px; }
+    .corridor-filter-content.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 10px; }
+    .corridor-filter-form { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .corridor-filter-form .stats-filter-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+    .corridor-filter-form .stats-filter-group:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+    .corridor-filter-form .stats-filter-group:first-child .stats-filter-label { grid-column: 1 / -1; }
+    .corridor-filter-form .stats-filter-group:first-child .stats-input { width: 100%; min-width: 0; }
+    .corridor-filter-form .stats-filter-group:nth-child(2),
+    .corridor-filter-form .stats-filter-actions { grid-column: 1 / -1; }
+    .corridor-filter-form .stats-market-checks { display: flex; max-height: 104px; overflow-y: auto; }
+    .corridor-filter-form .stats-check-label { min-height: 30px; font-size: 10px; }
+    .corridor-filter-form #filterTypeLoc { width: 100%; }
+    .corridor-filter-form .stats-filter-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    .corridor-filter-form .stats-apply-btn,
+    .corridor-filter-form .stats-reset-btn { min-height: 38px; justify-content: center; font-size: 11px; }
+    .corridor-filter-content .stats-period-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .corridor-filter-content .stats-shortcut { min-height: 34px; }
+    .corridor-chart-grid { grid-template-columns: minmax(0, 1fr); }
+    .corridor-chart-grid .db-chart-card { padding: 12px; }
+    .corridor-chart-wrap { min-height: 240px; }
+    .corridor-chart-grid .db-card-header { gap: 8px; }
+    .corridor-chart-grid .db-card-title { font-size: 12px; line-height: 1.4; }
+    .corridor-chart-grid .db-card-eyebrow { font-size: 9px; line-height: 1.4; }
+    .corridor-chart-grid .db-card-header > span { flex-shrink: 0; }
     .db-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .db-table { min-width: 520px; }
 }
@@ -5033,36 +5112,38 @@ html:not(.dark) body:not(.dark) .wizard-page .db-table tbody tr.db-tr {
 }
 
 .sidebar-submenu-arrow {
-  width: 22px;
-  height: 22px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 22px;
+  width: 24px;
+  height: 24px;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 24px;
+  align-self: center;
   box-sizing: border-box;
   margin-left: auto;
   padding: 0 !important;
-  border: 1px solid rgba(226, 241, 236, 0.22);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fef08a;
-  font-size: 10px;
-  line-height: 1;
+  border: 1px solid rgba(226, 241, 236, 0.16);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #c7d8d2;
+  font-size: 11px;
+  line-height: 24px !important;
   text-align: center;
-  vertical-align: middle;
   transform-origin: center;
   transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
 
 .sidebar-submenu-arrow.rotated {
   transform: rotate(180deg);
-  background: rgba(253, 224, 71, 0.12);
-  border-color: rgba(253, 224, 71, 0.38);
+  background: rgba(69, 227, 184, 0.1);
+  border-color: rgba(69, 227, 184, 0.28);
+  color: #6ee7c5;
 }
 
 .sidebar-submenu-btn:hover .sidebar-submenu-arrow,
 .sidebar-submenu-btn:focus-visible .sidebar-submenu-arrow {
-  border-color: rgba(253, 224, 71, 0.55);
-  background: rgba(253, 224, 71, 0.16);
+  border-color: rgba(69, 227, 184, 0.4);
+  background: rgba(69, 227, 184, 0.12);
+  color: #6ee7c5;
 }
 
 .sidebar-submenu {
