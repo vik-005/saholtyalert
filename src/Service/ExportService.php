@@ -163,7 +163,8 @@ class ExportService
             ];
 
             foreach ($row as $colIdx => $value) {
-                $sheet->getCell(Coordinate::stringFromColumnIndex($colIdx + 1) . $rowNum)->setValue($value ?? '');
+                $sanitized = $this->sanitizeFormula($value ?? '');
+                $sheet->getCell(Coordinate::stringFromColumnIndex($colIdx + 1) . $rowNum)->setValue($sanitized);
             }
 
             // Couleur de ligne selon priorité
@@ -195,5 +196,18 @@ class ExportService
         $sheet->setAutoFilter('A1:' . $lastCell);
 
         return $spreadsheet;
+    }
+
+    /**
+     * Neutralise les attaques par injection de formule Excel / CSV (CWE-1236).
+     * Si une valeur texte commence par =, +, -, @ ou tabulation, on préfixe par une apostrophe.
+     */
+    private function sanitizeFormula(string $value): string
+    {
+        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return "'" . $value;
+        }
+
+        return $value;
     }
 }

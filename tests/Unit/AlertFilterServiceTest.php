@@ -219,7 +219,7 @@ class AlertFilterServiceTest extends TestCase
         $this->assertSame($user, $qb->getParameter('currentUser')->getValue());
     }
 
-    public function testRolePFT(): void
+    public function testRolePFTCanViewAllMarkets(): void
     {
         $market1 = new Market();
         $this->setEntityId($market1, 1);
@@ -235,10 +235,10 @@ class AlertFilterServiceTest extends TestCase
         $qb = $this->service->buildQueryBuilder($dto, $user);
         $dql = $qb->getDQL();
 
-        $this->assertStringContainsString('a.market IN (:managedMarkets)', $dql);
+        $this->assertStringNotContainsString('managedMarkets', $dql);
     }
 
-    public function testRolePFTAucunMarket(): void
+    public function testRolePFTWithoutAssignedMarketCanViewAllAlerts(): void
     {
         $user = $this->createMockUser(UserRoleEnum::PFT);
 
@@ -247,8 +247,8 @@ class AlertFilterServiceTest extends TestCase
         $qb = $this->service->buildQueryBuilder($dto, $user);
         $dql = $qb->getDQL();
 
-        // Aucun marché géré → aucune alerte visible
-        $this->assertStringContainsString('1 = 0', $dql);
+        $this->assertStringNotContainsString('1 = 0', $dql);
+        $this->assertStringNotContainsString('managedMarkets', $dql);
     }
 
     public function testRoleSuperAdmin(): void

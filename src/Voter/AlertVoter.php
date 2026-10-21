@@ -73,31 +73,22 @@ class AlertVoter extends Voter
 
     private function canView(Alert $alert, User $user): bool
     {
-        // SUPERADMIN et SAHOLTY : vus plus haut, toujours true
-        // COMITE_AIT / SECRETARIAT_GEI : vue globale
-        if (in_array($user->getRole(), [UserRoleEnum::COMITE_AIT, UserRoleEnum::SECRETARIAT_GEI], true)) {
+        // Rôles avec vue globale : tout utilisateur ayant au moins le rôle MANAGER (PFT, SAHOLTY, SUPERADMIN, COMITE_AIT, SECRETARIAT_GEI)
+        // voit les alertes de TOUS les agents
+        if ($user->getRole() !== UserRoleEnum::EMETTEUR_TERRAIN) {
             return true;
         }
 
-        // MANAGER (PFT) : Voit les alertes de TOUS ses marchés gérés
-        if ($user->getRole() === UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            return in_array($alert->getMarket(), $managedMarkets, true);
-        }
-
-        // AGENT : Ne voit QUE ses propres alertes
-        if ($user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
-            return $alert->getEmetteur()?->getId() === $user->getId();
-        }
-
-        return false;
+        // AGENT TERRAIN : Ne voit QUE ses propres alertes (son propre espace dédié)
+        return $alert->getEmetteur()?->getId() === $user->getId();
     }
 
     private function canEditCollecte(Alert $alert, User $user): bool
     {
-        // MANAGER (PFT) : Droit d'édition TOTAL et permanent sur les alertes de ses marchés (Spec A.1)
+        // MANAGER (PFT) : Droit d'édition sur les alertes
         if ($user->getRole() === UserRoleEnum::PFT) {
-            return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+            $managedMarkets = $user->getAllManagedMarkets();
+            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
         }
 
         // AGENT : Uniquement ses propres alertes ET si statut brouillon/nouveau/a_completer
@@ -111,9 +102,10 @@ class AlertVoter extends Voter
 
     private function canEditQualification(Alert $alert, User $user): bool
     {
-        // MANAGER (PFT) : Qualification sur ses marchés gérés
+        // MANAGER (PFT) : Qualification des alertes
         if ($user->getRole() === UserRoleEnum::PFT) {
-            return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+            $managedMarkets = $user->getAllManagedMarkets();
+            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
         }
 
         return false;
@@ -121,22 +113,24 @@ class AlertVoter extends Voter
 
     private function canReject(Alert $alert, User $user): bool
     {
-        // Seul le Manager (PFT) peut rejeter une fiche
+        // Le Manager (PFT) peut rejeter une fiche
         if ($user->getRole() !== UserRoleEnum::PFT) {
             return false;
         }
 
-        return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+        $managedMarkets = $user->getAllManagedMarkets();
+        return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
     }
 
     private function canDecide(Alert $alert, User $user): bool
     {
-        // Seul le Manager (PFT) peut décider (valider)
-        if ($user->getRole() !== UserRoleEnum::PFT) {
-            return false;
+        // Le Manager (PFT) valide et décide des actions et de l'urgence 72h
+        if ($user->getRole() === UserRoleEnum::PFT) {
+            $managedMarkets = $user->getAllManagedMarkets();
+            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
         }
 
-        return in_array($alert->getMarket(), $user->getAllManagedMarkets(), true);
+        return in_array($user->getRole(), [UserRoleEnum::SAHOLTY, UserRoleEnum::SUPERADMIN], true);
     }
 
     private function canTransmit(Alert $alert, User $user): bool

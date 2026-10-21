@@ -17,6 +17,7 @@
     </div>
 
     <form method="post" action="{{ path('app_admin_market_edit', {id: market.id}) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('market_edit_' ~ market.id) }}">
 
         <div class="db-card mb-4">
             <div class="db-card-header">
@@ -108,8 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const initZoom = latInput.value ? 6 : 3;
 
     const map = L.map('pickMap').setView([initLat, initLng], initZoom);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 18,
+    const isDark = document.body.classList.contains('dark') || localStorage.getItem('gei-dark') === '1';
+    L.tileLayer(isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+        attribution: isDark ? '&copy; OpenStreetMap &copy; CARTO' : '&copy; OpenStreetMap — Rendu OSM France',
+        subdomains: isDark ? 'abcd' : 'abc', maxZoom: 19,
     }).addTo(map);
 
     let marker = null;

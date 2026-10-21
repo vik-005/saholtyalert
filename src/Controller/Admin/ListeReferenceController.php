@@ -37,6 +37,11 @@ class ListeReferenceController extends AbstractController
         $user = $this->getUser();
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('lrv_new', (string) $request->request->get('_token'))) {
+                $this->addFlash('danger', 'Jeton CSRF invalide.');
+                return $this->redirectToRoute('app_admin_liste_reference_new');
+            }
+
             $typeListe = $request->request->get('type_liste', '');
             $libelle  = trim($request->request->get('libelle', ''));
             $ordre    = (int) $request->request->get('ordre_affichage', 0);

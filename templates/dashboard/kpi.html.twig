@@ -37,7 +37,7 @@
                 </div>
             </div>
             <div class="kpi-card-bottom">
-                <span class="kpi-trend {{ kpi_alertes_soumises.trend == 'up' ? 'kpi-trend-up' : (kpi_alertes_soumises.trend == 'down' ? 'kpi-trend-down' : 'kpi-trend-up') }}">
+                <span class="kpi-trend {{ kpi_alertes_soumises.trend == 'up' ? 'kpi-trend-up' : (kpi_alertes_soumises.trenCCCd == 'down' ? 'kpi-trend-down' : 'kpi-trend-up') }}">
                     <i class="bi bi-arrow-{{ kpi_alertes_soumises.trend == 'down' ? 'down' : 'up' }}"></i>
                     {{ kpi_alertes_soumises.variation >= 0 ? '+' : '' }}{{ kpi_alertes_soumises.variation|number_format(1) }}%
                 </span>

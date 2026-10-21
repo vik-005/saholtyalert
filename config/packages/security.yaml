@@ -50,6 +50,7 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/mot-de-passe-oublie, roles: PUBLIC_ACCESS }
         - { path: ^/confidentialite$, roles: PUBLIC_ACCESS }
         - { path: ^/conditions-utilisation$, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
@@ -60,7 +61,8 @@ security:
         - { path: ^/admin/activites, roles: ROLE_PFT }
         - { path: ^/admin/marches, roles: ROLE_PFT }
         - { path: ^/admin/automations, roles: ROLE_PFT }
-        - { path: ^/admin/rules, roles: ROLE_PFT }
+        - { path: ^/automations, roles: ROLE_PFT }
+        - { path: ^/admin/rule, roles: ROLE_SUPERADMIN }
         - { path: ^/admin/user, roles: ROLE_PFT }
         - { path: ^/admin/listes-reference, roles: ROLE_PFT }
         - { path: ^/admin, roles: ROLE_SUPERADMIN }

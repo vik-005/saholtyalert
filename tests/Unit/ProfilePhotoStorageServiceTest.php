@@ -37,24 +37,30 @@ class ProfilePhotoStorageServiceTest extends TestCase
     public function testStoresAnImagePrivatelyAndScopesItToItsOwner(): void
     {
         $source = tempnam(sys_get_temp_dir(), 'gei-profile-png-');
-        file_put_contents($source, base64_decode(
-            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a+qkAAAAASUVORK5CYII=',
-            true,
-        ));
+        $image = imagecreatetruecolor(320, 160);
+        imagefill($image, 0, 0, imagecolorallocate($image, 20, 100, 60));
+        imagepng($image, $source);
+        imagedestroy($image);
         $upload = new UploadedFile($source, 'avatar.png', null, UPLOAD_ERR_OK, true);
 
         $storedPath = $this->storage->store($upload, 27);
 
-        $this->assertMatchesRegularExpression('/\A27\/[a-f0-9]{32}\.png\z/', $storedPath);
+        $this->assertMatchesRegularExpression('/\A27\/[a-f0-9]{32}\.webp\z/', $storedPath);
         $this->assertNotFalse($this->storage->resolve($storedPath, 27));
         $reloadedStorage = new ProfilePhotoStorageService($this->storageDirectory);
         $this->assertNotFalse($reloadedStorage->resolve($storedPath, 27));
         $this->assertNull($this->storage->resolve($storedPath, 28));
-        $this->assertSame('image/png', $this->storage->mimeType($storedPath));
+        $this->assertSame('image/webp', $this->storage->mimeType($storedPath));
+        $optimizedPath = $this->storage->resolveOptimized($storedPath, 27);
+        $this->assertNotFalse($optimizedPath);
+        $imageInfo = getimagesize($optimizedPath);
+        $this->assertSame([256, 256], [$imageInfo[0], $imageInfo[1]]);
+        $this->assertSame('image/webp', $imageInfo['mime']);
 
         $this->storage->remove($storedPath, 27);
         $this->assertNull($this->storage->resolve($storedPath, 27));
         $this->assertNull($reloadedStorage->resolve($storedPath, 27));
+        $this->assertFileDoesNotExist($optimizedPath);
     }
 
     public function testRejectsNonImageUploads(): void

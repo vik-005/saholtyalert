@@ -231,7 +231,7 @@ Toutes les notifications sont persistées (`Notification` entity) + log `AccessL
 | Notifications temps réel (WebSocket/Mercure) | **Non implémenté** | Seulement polling / rechargement page |
 | API REST complète (API Platform installé mais ressources vides) | **Squelette seulement** | `src/ApiResource/` vide |
 | Gestion pièces jointes (upload, preview, signature) | **Entités prêtes** (`AlertAttachment`, `AlertActor`) mais **pas d'UI/contrôleur** |
-| Tableau de bord cartographique (CarteController) | **LIVRÉ & VALIDÉ** | Filtre Marché en 1ère position, badge filtré, masquage marchés 0 alerte, double dimension volume/priorité, tuiles libres OSM/CARTO |
+| Tableau de bord cartographique (CarteController) | **LIVRÉ** | Tous les marchés et alertes ; filtres multicritères ; couches Alertes par marché et Parcours activables séparément ; fonds OSM, imagerie satellite quotidienne NASA et mode sombre ; contrôles et légende responsive |
 | Authentification SSO / LDAP | **Non implémenté** | Seule auth locale + JWT + TOTP |
 | Plan de reprise d'activité (PRA) / Backup automatisé | **Non documenté** | Dépend de l'infra cible |
 | Tests E2E (Cypress/Playwright) | **Absents** | Seulement PHPUnit unit/integration |

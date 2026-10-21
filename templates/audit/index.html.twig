@@ -1163,8 +1163,17 @@ function initAuditMap(zones) {
     const mapEl = document.getElementById('auditMap');
     if (!mapEl) return;
     const map = L.map('auditMap').setView([7.5, 2.5], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
+    const isDark = document.body.classList.contains('dark') || localStorage.getItem('gei-dark') === '1';
+    const tileUrl = isDark
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        : 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png';
+    const tileAttr = isDark
+        ? '&copy; OpenStreetMap &copy; CARTO'
+        : '&copy; OpenStreetMap — Rendu OSM France';
+    L.tileLayer(tileUrl, {
+        attribution: tileAttr,
+        maxZoom: 19,
+        subdomains: isDark ? 'abcd' : 'abc',
     }).addTo(map);
 
     zones.forEach(z => {

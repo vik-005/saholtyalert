@@ -65,18 +65,14 @@ class CarteController extends AbstractController
             'dateFin'     => $request->query->get('dateFin'),
         ];
 
-        // Stats globales pour la légende et le titre
+        $userMarkets = $marketRepo->findActifs();
+
         $totalAlertes = (int) $alertRepo->createQueryBuilder('a')
             ->select('COUNT(a.id)')
             ->where('a.deletedAt IS NULL')
             ->getQuery()
             ->getSingleScalarResult();
-
-        $totalPays = $marketRepo->count(['actif' => true]);
-
-        $userMarkets = $user->getRole() === \App\Enum\UserRoleEnum::PFT
-            ? $user->getAllManagedMarkets()
-            : $marketRepo->findActifs();
+        $totalPays = count($userMarkets);
 
         return $this->render('carte/index.html.twig', [
             'filters'      => $filters,
@@ -135,9 +131,10 @@ class CarteController extends AbstractController
             'dateFin'    => $request->query->get('dateFin'),
         ];
 
-        $allowedMarkets = $user->getRole() === \App\Enum\UserRoleEnum::PFT
-            ? $user->getAllManagedMarkets()
-            : $marketRepo->findActifs();
+        $allowedMarkets = $marketRepo->findActifs();
+        if ($allowedMarkets === []) {
+            return new JsonResponse([]);
+        }
         $filters['allowedMarkets'] = array_map(
             static fn(Market $market): int => (int) $market->getId(),
             $allowedMarkets
@@ -168,6 +165,7 @@ class CarteController extends AbstractController
                 $stats = $statsByMarket[$marketId] ?? ['categories' => [], 'corridors' => []];
                 $result[] = [
                     'id'          => (int) $zone['id'],
+                    'marketId'    => (int) $zone['marketId'],
                     'nom'         => $zone['nom'] ?? '',
                     'codeIso3'    => $zone['codeIso3'] ?? '',
                     'polygonWkt'  => $zone['polygonWkt'] ?? null,
@@ -200,15 +198,17 @@ class CarteController extends AbstractController
         }
 
         $filters = [
-            'market'     => $request->query->get('marketId'),
-            'categorie'  => $request->query->get('categorie'),
-            'priorite'   => $request->query->get('priorite'),
-            'statut'     => $request->query->get('statut'),
-            'urgence'    => $request->query->get('urgence'),
-            'typeAlerte' => $request->query->get('typeAlerte'),
-            'scoreMin'   => $request->query->get('scoreMin'),
-            'scoreMax'   => $request->query->get('scoreMax'),
-            'origine'    => $request->query->get('origine'),
+            'market'         => $request->query->get('marketId') ?: $request->query->get('market'),
+            'categorie'      => $request->query->get('categorie'),
+            'niveauPriorite' => $request->query->get('priorite') ?: $request->query->get('niveauPriorite'),
+            'statut'         => $request->query->get('statut'),
+            'urgence'        => $request->query->get('urgence'),
+            'typeAlerte'     => $request->query->get('typeAlerte'),
+            'scoreMin'       => $request->query->get('scoreMin'),
+            'scoreMax'       => $request->query->get('scoreMax'),
+            'origine'        => $request->query->get('origine'),
+            'dateDebut'      => $request->query->get('dateDebut'),
+            'dateFin'        => $request->query->get('dateFin'),
         ];
 
         $alerts = $alertRepo->findForUser($user, $filters);
@@ -224,7 +224,7 @@ class CarteController extends AbstractController
             'categorie'      => $a->getCategorie() ?? '',
             'categorieLabel' => $a->getCategorie() ?? '—',
             'dateCreation'   => $a->getDateCreation()->format('d/m/Y'),
-            'resumeExecutif' => mb_substr($a->getResumeExecutif() ?? '', 0, 120),
+            'resumeExecutif' => mb_substr($a->getResumeExecutif() ?? '', 0, 160),
             'portCorridor'   => $a->getPortCorridor() ?? '—',
         ], $alerts));
     }
@@ -232,7 +232,7 @@ class CarteController extends AbstractController
     /**
      * API — parcours indicatifs entre les marchés des alertes multi-marchés.
      * Les compteurs de la carte restent basés sur le marché principal ; cette
-     * route sert uniquement à visualiser les parcours associés, pas des trajets routiers.
+     * route sert à visualiser les corridors et flux transfrontaliers avec leurs métadonnées.
      */
     #[Route('/api/parcours', name: 'app_carte_parcours_api', methods: ['GET'])]
     public function apiParcours(
@@ -250,9 +250,7 @@ class CarteController extends AbstractController
             $selectedRaw = $request->query->all('markets');
         }
         $selectedIds = array_values(array_filter(array_map('intval', (array) $selectedRaw)));
-        $allowedMarkets = $user->getRole() === \App\Enum\UserRoleEnum::PFT
-            ? $user->getAllManagedMarkets()
-            : $marketRepo->findActifs();
+        $allowedMarkets = $marketRepo->findActifs();
         $allowedIds = array_map(static fn(Market $market): int => (int) $market->getId(), $allowedMarkets);
         $mainIds = $selectedIds !== [] ? array_values(array_intersect($selectedIds, $allowedIds)) : $allowedIds;
 
@@ -261,9 +259,57 @@ class CarteController extends AbstractController
         }
 
         $placeholders = implode(',', array_fill(0, count($mainIds), '?'));
+        $params = $mainIds;
+        $whereClauses = ["a.deleted_at IS NULL", "a.market_id IN ({$placeholders})"];
+
+        if ($cat = $request->query->get('categorie')) {
+            $whereClauses[] = "a.categorie = ?";
+            $params[] = $cat;
+        }
+        if ($prio = $request->query->get('priorite')) {
+            $whereClauses[] = "COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = ?";
+            $params[] = $prio;
+        }
+        if ($statut = $request->query->get('statut')) {
+            $whereClauses[] = "a.statut = ?";
+            $params[] = $statut;
+        }
+        if ($urgence = $request->query->get('urgence')) {
+            $whereClauses[] = "a.urgence = ?";
+            $params[] = $urgence;
+        }
+        if ($typeAlerte = $request->query->get('typeAlerte')) {
+            $whereClauses[] = "a.type_alerte = ?";
+            $params[] = $typeAlerte;
+        }
+        if ($scoreMin = $request->query->get('scoreMin')) {
+            $whereClauses[] = "COALESCE(a.score_surcharge, a.score_gei) >= ?";
+            $params[] = (int) $scoreMin;
+        }
+        if ($scoreMax = $request->query->get('scoreMax')) {
+            $whereClauses[] = "COALESCE(a.score_surcharge, a.score_gei) <= ?";
+            $params[] = (int) $scoreMax;
+        }
+        if ($origine = $request->query->get('origine')) {
+            $whereClauses[] = "a.origine = ?";
+            $params[] = $origine;
+        }
+        if ($dateDebut = $request->query->get('dateDebut')) {
+            $whereClauses[] = "a.date_creation >= ?";
+            $params[] = $dateDebut . ' 00:00:00';
+        }
+        if ($dateFin = $request->query->get('dateFin')) {
+            $whereClauses[] = "a.date_creation <= ?";
+            $params[] = $dateFin . ' 23:59:59';
+        }
+
+        $whereSql = implode(' AND ', $whereClauses);
+
         $rows = $em->getConnection()->fetchAllAssociative(
-            "SELECT a.id,
-                    principal.nom AS principal, principal.code_iso3 AS principal_iso3,
+            "SELECT a.id, a.code_gei, a.port_corridor, a.categorie,
+                    COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS niveau_priorite,
+                    COALESCE(a.score_surcharge, a.score_gei) AS score,
+                    principal.id AS principal_id, principal.nom AS principal, principal.code_iso3 AS principal_iso3,
                     COALESCE(principal_zone.latitude, CASE principal.code_iso3
                         WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195 WHEN 'GHA' THEN 7.9465
                         WHEN 'BFA' THEN 12.2383 WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
@@ -272,7 +318,7 @@ class CarteController extends AbstractController
                         WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248 WHEN 'GHA' THEN -1.0232
                         WHEN 'BFA' THEN -1.5616 WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
                         WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 ELSE 2.0000 END) AS principal_lng,
-                    am.ordre, associe.nom AS associe, associe.code_iso3 AS associe_iso3,
+                    am.ordre, associe.id AS associe_id, associe.nom AS associe, associe.code_iso3 AS associe_iso3,
                     associe_zone.latitude AS associe_lat, associe_zone.longitude AS associe_lng
              FROM alert a
              JOIN market principal ON principal.id = a.market_id
@@ -280,9 +326,9 @@ class CarteController extends AbstractController
              JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
              JOIN market associe ON associe.id = am.market_id
              LEFT JOIN zone_geo associe_zone ON associe_zone.market_id = associe.id
-             WHERE a.deleted_at IS NULL AND a.market_id IN ({$placeholders})
+             WHERE {$whereSql}
              ORDER BY a.id, am.ordre",
-            $mainIds
+            $params
         );
 
         $routes = [];
@@ -290,15 +336,26 @@ class CarteController extends AbstractController
             $id = (int) $row['id'];
             if (!isset($routes[$id])) {
                 $routes[$id] = [
-                    'id' => $id,
-                    'principal' => $row['principal'],
-                    'points' => [[(float) $row['principal_lat'], (float) $row['principal_lng']]],
-                    'markets' => [$row['principal']],
+                    'id'            => $id,
+                    'codeGei'       => $row['code_gei'] ?? 'BROUILLON',
+                    'portCorridor'  => $row['port_corridor'] ?? null,
+                    'categorie'     => $row['categorie'] ?? null,
+                    'priorite'      => $row['niveau_priorite'] ?? 'faible',
+                    'score'         => (int) ($row['score'] ?? 0),
+                    'principalId'   => (int) $row['principal_id'],
+                    'principal'     => $row['principal'],
+                    'principalIso3' => $row['principal_iso3'],
+                    'points'        => [[(float) $row['principal_lat'], (float) $row['principal_lng']]],
+                    'markets'       => [$row['principal']],
+                    'marketIds'     => [(int) $row['principal_id']],
+                    'iso3s'         => [$row['principal_iso3']],
                 ];
             }
             if ($row['associe_lat'] !== null && $row['associe_lng'] !== null) {
                 $routes[$id]['points'][] = [(float) $row['associe_lat'], (float) $row['associe_lng']];
                 $routes[$id]['markets'][] = $row['associe'];
+                $routes[$id]['marketIds'][] = (int) $row['associe_id'];
+                $routes[$id]['iso3s'][] = $row['associe_iso3'];
             }
         }
 

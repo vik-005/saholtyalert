@@ -166,22 +166,11 @@ class AlertFilterService
         $role = $user->getRole();
 
         if ($role === UserRoleEnum::EMETTEUR_TERRAIN) {
-            // AGENT : ses propres alertes uniquement
+            // AGENT TERRAIN : uniquement ses propres alertes (espace dédié)
             $qb->andWhere($alias . '.emetteur = :currentUser')
                ->setParameter('currentUser', $user);
-        } elseif ($role === UserRoleEnum::PFT) {
-            // MANAGER : alertes de ses marchés gérés
-            $managedMarkets = $user->getAllManagedMarkets();
-            if (!empty($managedMarkets)) {
-                     $qb->leftJoin($alias . '.alertMarkets', 'amRole')
-                         ->andWhere($alias . '.market IN (:managedMarkets) OR amRole.market IN (:managedMarkets)')
-                   ->setParameter('managedMarkets', $managedMarkets);
-            } else {
-                // Aucun marché géré → aucune alerte visible
-                $qb->andWhere('1 = 0');
-            }
         }
-        // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → toutes les alertes
+        // Les rôles de supervision, y compris PFT, ont une visibilité globale sur les alertes.
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
+use App\Service\CryptoService;
 use App\Service\PdfExportService;
 use App\Service\AuditPdfExportService;
 use Twig\Extension\AbstractExtension;
@@ -17,6 +18,7 @@ class SidebarExtension extends AbstractExtension
         private readonly RequestStack $requestStack,
         private readonly PdfExportService $pdfExportService,
         private readonly AuditPdfExportService $auditPdfExportService,
+        private readonly CryptoService $cryptoService,
     ) {
     }
 
@@ -34,7 +36,19 @@ class SidebarExtension extends AbstractExtension
             new TwigFunction('is_active_route', [$this, 'isActiveRoute']),
             new TwigFunction('generate_pdf_url', [$this, 'generatePdfUrl']),
             new TwigFunction('has_audit_pdf', [$this, 'hasAuditPdf']),
+            new TwigFunction('encrypt_id', [$this, 'encryptId']),
+            new TwigFunction('signed_token', [$this, 'signedToken']),
         ];
+    }
+
+    public function encryptId(int $id, string $context = 'default'): string
+    {
+        return $this->cryptoService->encryptId($id, $context);
+    }
+
+    public function signedToken(int $id, int $ttl = 3600, string $context = 'download'): string
+    {
+        return $this->cryptoService->generateSignedToken($id, $ttl, $context);
     }
 
     /**

@@ -4,7 +4,7 @@
     <a href="{{ path('app_account_settings') }}" class="sidebar-profile-link" title="Consulter mon compte et mes préférences">
         <div class="profile-avatar">
             {% if app.user.photoProfil %}
-                <img src="{{ path('app_account_photo') }}" alt="" class="user-avatar-image">
+                <img src="{{ path('app_account_photo', {v: app.user.photoProfil}) }}" alt="" class="user-avatar-image" width="40" height="40" decoding="async">
             {% else %}
                 <i class="bi bi-person-fill" aria-hidden="true"></i>
             {% endif %}

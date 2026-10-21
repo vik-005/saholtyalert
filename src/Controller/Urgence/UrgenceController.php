@@ -6,6 +6,7 @@ use App\Entity\Alert;
 use App\Entity\Urgence72hCase;
 use App\Entity\Urgence72hPhase;
 use App\Enum\PhaseUrgence;
+use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,13 +21,18 @@ class UrgenceController extends AbstractController
     #[Route('/activate/{id}', name: 'app_urgence_activate', methods: ['POST'])]
     public function activate(Request $request, Alert $alert, EntityManagerInterface $em): Response
     {
+        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
+
         if (!$this->isCsrfTokenValid('activate-urgence-' . $alert->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
             return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
         }
 
-        if (!$alert->isEligibleForUrgence72h()) {
-            throw $this->createAccessDeniedException('Seule une alerte validée par le Manager et classée Urgence 72h peut entrer dans cet espace.');
+        if ($alert->getStatut() !== \App\Enum\AlertStatut::VALIDEE) {
+            throw $this->createAccessDeniedException('Seule une alerte validée par le Manager peut entrer dans l’espace Urgence 72h.');
+        }
+        if ($alert->getUrgence() !== \App\Enum\AlertUrgence::SOIXANTE_DOUZE_H) {
+            $alert->setUrgence(\App\Enum\AlertUrgence::SOIXANTE_DOUZE_H);
         }
 
         if ($alert->getUrgence72hCase()) {
@@ -92,10 +98,13 @@ class UrgenceController extends AbstractController
         }
 
         $case = $phase->getUrgenceCase();
+        $alert = $case?->getAlert();
 
-        if (!$case || !$case->getAlert()?->isEligibleForUrgence72h()) {
+        if (!$case || !$alert || !$alert->isEligibleForUrgence72h()) {
             throw $this->createAccessDeniedException('Ce cas n’est plus éligible au processus opérationnel Urgence 72h.');
         }
+
+        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         // Si phase COORDINATION terminée -> démarrer la phase SUIVI
         if ($phase->getPhase() === PhaseUrgence::COORDINATION) {

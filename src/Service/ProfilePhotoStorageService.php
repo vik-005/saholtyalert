@@ -8,11 +8,13 @@ final class ProfilePhotoStorageService
 {
     private const MAX_FILE_SIZE = 5_242_880;
     private const MAX_IMAGE_PIXELS = 16_000_000;
+    private const AVATAR_SIZE = 256;
+    private const WEBP_QUALITY = 82;
 
-    private const MIME_EXTENSIONS = [
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/webp' => 'webp',
+    private const IMAGE_READERS = [
+        'image/jpeg' => 'imagecreatefromjpeg',
+        'image/png' => 'imagecreatefrompng',
+        'image/webp' => 'imagecreatefromwebp',
     ];
 
     public function __construct(
@@ -32,21 +34,40 @@ final class ProfilePhotoStorageService
         }
 
         $imageInfo = @getimagesize($file->getPathname());
-        $mimeType = $imageInfo['mime'] ?? null;
-        if (!is_string($mimeType) || !isset(self::MIME_EXTENSIONS[$mimeType])) {
+        if (!is_array($imageInfo)) {
             throw new \InvalidArgumentException('Format non accepté. Choisissez une image JPEG, PNG ou WebP.');
         }
 
-        $width = (int) ($imageInfo[0] ?? 0);
-        $height = (int) ($imageInfo[1] ?? 0);
+        $mimeType = $imageInfo['mime'];
+        if (!isset(self::IMAGE_READERS[$mimeType])) {
+            throw new \InvalidArgumentException('Format non accepté. Choisissez une image JPEG, PNG ou WebP.');
+        }
+
+        $width = (int) $imageInfo[0];
+        $height = (int) $imageInfo[1];
         if ($width < 1 || $height < 1 || $width > 4096 || $height > 4096 || $width * $height > self::MAX_IMAGE_PIXELS) {
             throw new \InvalidArgumentException('Les dimensions de la photo sont trop importantes.');
         }
 
+        $reader = self::IMAGE_READERS[$mimeType];
+        if (!function_exists($reader) || !function_exists('imagewebp')) {
+            throw new \RuntimeException('Le serveur ne peut pas optimiser ce format de photo.');
+        }
+
         $directory = $this->userDirectory($userId);
         $this->ensureDirectory($directory);
-        $filename = bin2hex(random_bytes(16)) . '.' . self::MIME_EXTENSIONS[$mimeType];
-        $file->move($directory, $filename);
+        $filename = bin2hex(random_bytes(16)) . '.webp';
+        $destination = $directory . DIRECTORY_SEPARATOR . $filename;
+        $image = @$reader($file->getPathname());
+        if ($image === false) {
+            throw new \InvalidArgumentException('La photo ne peut pas être décodée. Choisissez un autre fichier.');
+        }
+
+        try {
+            $this->writeOptimizedImage($image, $destination);
+        } finally {
+            imagedestroy($image);
+        }
 
         return $userId . '/' . $filename;
     }
@@ -61,14 +82,59 @@ final class ProfilePhotoStorageService
         return is_file($path) && is_readable($path) ? $path : null;
     }
 
+    public function resolveOptimized(string $storedPath, int $userId): ?string
+    {
+        $source = $this->resolve($storedPath, $userId);
+        if ($source === null) {
+            return null;
+        }
+
+        $optimized = $this->optimizedPath($source);
+        if (!is_file($optimized)) {
+            $imageInfo = @getimagesize($source);
+            if (!is_array($imageInfo)) {
+                throw new \RuntimeException('La photo de profil enregistrée ne peut pas être lue.');
+            }
+
+            $mimeType = $imageInfo['mime'];
+            if ($mimeType === 'image/webp' && $imageInfo[0] === self::AVATAR_SIZE && $imageInfo[1] === self::AVATAR_SIZE) {
+                return $source;
+            }
+
+            if (!isset(self::IMAGE_READERS[$mimeType])) {
+                throw new \RuntimeException('Le format de la photo de profil enregistrée n’est pas pris en charge.');
+            }
+
+            $reader = self::IMAGE_READERS[$mimeType];
+            if (!function_exists($reader) || !function_exists('imagewebp')) {
+                throw new \RuntimeException('Le serveur ne peut pas optimiser cette photo de profil.');
+            }
+
+            $image = @$reader($source);
+            if ($image === false) {
+                throw new \RuntimeException('La photo de profil enregistrée ne peut pas être décodée.');
+            }
+
+            try {
+                $temporary = $optimized . '.' . bin2hex(random_bytes(8)) . '.tmp';
+                $this->writeOptimizedImage($image, $temporary);
+                if (!is_file($optimized) && !rename($temporary, $optimized) && !is_file($optimized)) {
+                    throw new \RuntimeException('Impossible de mettre en cache la vignette de la photo de profil.');
+                }
+            } finally {
+                imagedestroy($image);
+                if (isset($temporary) && is_file($temporary)) {
+                    unlink($temporary);
+                }
+            }
+        }
+
+        return is_file($optimized) && is_readable($optimized) ? $optimized : null;
+    }
+
     public function mimeType(string $storedPath): string
     {
-        return match (strtolower(pathinfo($storedPath, PATHINFO_EXTENSION))) {
-            'jpg' => 'image/jpeg',
-            'png' => 'image/png',
-            'webp' => 'image/webp',
-            default => throw new \InvalidArgumentException('Format de photo enregistré non valide.'),
-        };
+        return 'image/webp';
     }
 
     public function remove(?string $storedPath, int $userId): void
@@ -78,9 +144,57 @@ final class ProfilePhotoStorageService
         }
 
         $path = $this->resolve($storedPath, $userId);
-        if ($path !== null && !unlink($path)) {
-            throw new \RuntimeException('Impossible de supprimer l’ancienne photo de profil.');
+        if ($path !== null) {
+            $optimized = $this->optimizedPath($path);
+            if (is_file($optimized) && !unlink($optimized)) {
+                throw new \RuntimeException('Impossible de supprimer la vignette de la photo de profil.');
+            }
+            if (!unlink($path)) {
+                throw new \RuntimeException('Impossible de supprimer l’ancienne photo de profil.');
+            }
         }
+    }
+
+    private function writeOptimizedImage(\GdImage $source, string $destination): void
+    {
+        $sourceWidth = imagesx($source);
+        $sourceHeight = imagesy($source);
+        $cropSize = min($sourceWidth, $sourceHeight);
+        $cropX = intdiv($sourceWidth - $cropSize, 2);
+        $cropY = intdiv($sourceHeight - $cropSize, 2);
+        $thumbnail = imagecreatetruecolor(self::AVATAR_SIZE, self::AVATAR_SIZE);
+        if ($thumbnail === false) {
+            throw new \RuntimeException('Impossible de préparer la vignette de la photo de profil.');
+        }
+
+        imagealphablending($thumbnail, false);
+        imagesavealpha($thumbnail, true);
+        $transparent = imagecolorallocatealpha($thumbnail, 0, 0, 0, 127);
+        imagefill($thumbnail, 0, 0, $transparent);
+
+        try {
+            if (!imagecopyresampled(
+                $thumbnail,
+                $source,
+                0,
+                0,
+                $cropX,
+                $cropY,
+                self::AVATAR_SIZE,
+                self::AVATAR_SIZE,
+                $cropSize,
+                $cropSize,
+            ) || !imagewebp($thumbnail, $destination, self::WEBP_QUALITY)) {
+                throw new \RuntimeException('Impossible d’enregistrer la vignette optimisée de la photo.');
+            }
+        } finally {
+            imagedestroy($thumbnail);
+        }
+    }
+
+    private function optimizedPath(string $source): string
+    {
+        return dirname($source) . DIRECTORY_SEPARATOR . pathinfo($source, PATHINFO_FILENAME) . '-optimized.webp';
     }
 
     private function userDirectory(int $userId): string

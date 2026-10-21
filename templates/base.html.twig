@@ -310,6 +310,43 @@ async function pollNotifications() {
     }
 }
 
+async function initializeRealtimeNotifications() {
+    try {
+        const response = await fetch('/api/ably/config', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+        if (!response.ok) {
+            throw new Error(`Configuration Ably indisponible (HTTP ${response.status}).`);
+        }
+
+        const config = await response.json();
+        if (!config.enabled || !config.channel) return;
+
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.ably.com/lib/ably.min-2.js';
+            script.async = true;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Le SDK Ably n’a pas pu être chargé.'));
+            document.head.appendChild(script);
+        });
+
+        const realtime = new window.Ably.Realtime({
+            authUrl: '/api/ably/auth',
+            authMethod: 'GET',
+        });
+        realtime.channels.get(config.channel).subscribe('notification.created', () => {
+            pollNotifications();
+        });
+        realtime.connection.on('failed', state => {
+            console.error('La connexion Ably aux notifications a échoué.', state.reason);
+        });
+        window.addEventListener('pagehide', () => realtime.close(), { once: true });
+    } catch (error) {
+        console.error('Impossible d’initialiser les notifications temps réel Ably; le polling reste actif.', error);
+    }
+}
+
 function showToast(contenu, type, alertId) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
@@ -346,6 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     pollNotifications();
     notifPollInterval = setInterval(pollNotifications, 30000);
+    initializeRealtimeNotifications();
     initializePushNotifications();
 });
 

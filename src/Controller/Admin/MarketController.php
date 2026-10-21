@@ -41,6 +41,11 @@ class MarketController extends AbstractController
         ValidatorInterface $validator,
     ): Response {
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('market_new', (string) $request->request->get('_token'))) {
+                $this->addFlash('danger', 'Jeton CSRF invalide.');
+                return $this->redirectToRoute('app_admin_market_new');
+            }
+
             $nom      = trim($request->request->get('nom', ''));
             $iso3     = strtoupper(trim($request->request->get('codeIso3', '')));
             $region   = trim($request->request->get('region', 'Afrique de l\'Ouest'));
@@ -108,6 +113,11 @@ class MarketController extends AbstractController
         $zone = $zoneGeoRepo->findOneBy(['market' => $market]);
 
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('market_edit_' . $market->getId(), (string) $request->request->get('_token'))) {
+                $this->addFlash('danger', 'Jeton CSRF invalide.');
+                return $this->redirectToRoute('app_admin_market_edit', ['id' => $market->getId()]);
+            }
+
             $nom    = trim($request->request->get('nom', ''));
             $region = trim($request->request->get('region', $market->getRegion()));
             $lat    = $request->request->get('latitude');

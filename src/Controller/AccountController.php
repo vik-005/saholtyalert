@@ -145,23 +145,29 @@ final class AccountController extends AbstractController
     }
 
     #[Route('/photo', name: 'app_account_photo', methods: ['GET'])]
-    public function profilePhoto(): Response
+    public function profilePhoto(Request $request): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User || $user->getPhotoProfil() === null) {
             throw $this->createNotFoundException('Aucune photo de profil disponible.');
         }
 
-        $path = $this->profilePhotoStorage->resolve($user->getPhotoProfil(), (int) $user->getId());
+        $storedPath = $user->getPhotoProfil();
+        $path = $this->profilePhotoStorage->resolveOptimized($storedPath, (int) $user->getId());
         if ($path === null) {
             throw $this->createNotFoundException('La photo de profil est indisponible.');
         }
 
         $response = new BinaryFileResponse($path);
-        $response->headers->set('Content-Type', $this->profilePhotoStorage->mimeType($user->getPhotoProfil()));
+        $response->headers->set('Content-Type', $this->profilePhotoStorage->mimeType($storedPath));
         $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('Cache-Control', 'private, no-store');
-        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, 'profile.' . pathinfo($path, PATHINFO_EXTENSION));
+        $response->setPrivate();
+        $response->setMaxAge(31_536_000);
+        $response->setImmutable();
+        $response->setEtag(hash('sha256', $storedPath));
+        $response->setLastModified((new \DateTimeImmutable())->setTimestamp((int) filemtime($path)));
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, 'profile.webp');
+        $response->isNotModified($request);
 
         return $response;
     }

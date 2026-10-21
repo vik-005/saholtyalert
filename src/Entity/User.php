@@ -28,8 +28,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     private ?int $id = null;
 
     #[ORM\Column(type: 'string', length: 180, unique: true)]
-    #[Assert\NotBlank]
-    #[Assert\Email]
+    #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]
+    #[Assert\Email(message: 'L\'adresse email "{{ value }}" n\'est pas valide.')]
+    #[Assert\Regex(
+        pattern: '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+        message: 'L\'adresse email doit comporter un nom de domaine complet valide (ex: agent@gei.org).'
+    )]
     private string $email;
 
     #[ORM\Column(type: 'string', length: 100)]

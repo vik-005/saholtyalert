@@ -28,6 +28,7 @@ class NotificationService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly WebPushService $webPushService,
+        private readonly AblyRealtimeService $ablyRealtimeService,
     ) {}
 
     /**
@@ -57,6 +58,7 @@ class NotificationService
 
         $this->em->persist($notif);
         $this->em->flush();
+        $this->ablyRealtimeService->publish($notif);
         $this->sendPushSafely($notif);
 
         return $notif;
@@ -124,6 +126,7 @@ class NotificationService
         if (!empty($notifications)) {
             $this->em->flush();
             foreach ($notifications as $notification) {
+                $this->ablyRealtimeService->publish($notification);
                 $this->sendPushSafely($notification);
             }
         }

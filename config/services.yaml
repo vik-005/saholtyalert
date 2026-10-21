@@ -34,6 +34,10 @@ services:
             $privateKey: '%env(default:app.empty_string:VAPID_PRIVATE_KEY)%'
             $subject: '%env(default:app.empty_string:VAPID_SUBJECT)%'
 
+    App\Service\AblyRealtimeService:
+        arguments:
+            $apiKey: '%env(default:app.empty_string:ABLY_API_KEY)%'
+
     App\Service\AlertAttachmentStorageService:
         arguments:
             $storageDirectory: '%kernel.project_dir%/var/alert-attachments'

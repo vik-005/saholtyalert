@@ -20,6 +20,7 @@
 | **Twig** | 3.x | Templates serveur |
 | **Asset Mapper** | 7.3 | Gestion assets (JS/CSS) sans Node |
 | **Stimulus + UX Turbo** | 2.36 | Interactivité légère (SPA-like) |
+| **Ably Realtime** | 2.x JS SDK + REST API | Notifications instantanées, canal privé par utilisateur |
 | **PhpSpreadsheet** | 5.9 | Import/Export Excel (.xlsx) |
 | **DomPDF** | 3.1 | Export PDF |
 | **PHPStan** | 2.2 | Analyse statique (config `phpstan.dist.neon`) |
@@ -107,6 +108,19 @@ idx_alert_date_statut         (date_creation, statut)
 | `Version20260912000001.php` | 12/09 | Nettoyage colonnes redondantes (audit 17/08) |
 
 > **Commande migration** : `php bin/console doctrine:migrations:migrate --no-interaction`
+
+### Notifications temps réel Ably
+
+- Définir `ABLY_API_KEY` dans `.env.local` en développement, ou dans les variables sécurisées de l’environnement de déploiement. Format attendu : `appId.keyId:secret`. Ne jamais exposer la clé secrète au navigateur ni la committer.
+- La clé Ably serveur doit autoriser la publication et la création de Token Requests. Le navigateur reçoit uniquement un Token Request signé, limité à l’abonnement au canal `gei-user-{id}` de l’utilisateur authentifié.
+- Les notifications sont d’abord conservées en base, puis publiées comme signal Ably. Le navigateur recharge les détails depuis l’API authentifiée; le polling 30 s reste le fallback si Ably ou son SDK CDN est indisponible.
+- Les notifications Web Push existantes continuent d’assurer la livraison sur appareil lorsque l’application est en arrière-plan ou fermée (sous réserve de configuration VAPID).
+
+### Photos de profil
+
+- Les nouveaux téléversements sont recadrés en carré et convertis en WebP 256 × 256 (qualité 82) avec GD.
+- Les photos déjà stockées sont converties en vignette WebP à la première lecture; les requêtes suivantes servent ce fichier optimisé.
+- Les vignettes sont mises en cache un an côté navigateur avec une URL versionnée par photo et des réponses privées.
 
 ---
 
@@ -310,7 +324,7 @@ php vendor/bin/phpunit --coverage-html var/coverage
 | **TOTP secret** | Stocké chiffré (`encrypted_string`). Si `APP_ENCRYPTION_KEY` change → **perte d'accès 2FA** pour tous les utilisateurs. |
 | **Soft delete** | `Alert.deletedAt` — toutes les requêtes Repository/Audit ajoutent `AND deletedAt IS NULL`. |
 | `RuleConfig` cache | `ScoreCalculatorService::getSeuils()` cache par requête HTTP. Modification en base → effet au rechargement. |
-| **Fonds de carte Leaflet** | Cartographie 100% libre sans clé API : OpenStreetMap jour (`https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png`) / CARTO Dark Matter nuit (`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`). Aucun filigrane tiers. Basculement via `setTileLayer()` sans résidu. |
+| **Fonds de carte Leaflet** | Fonds sans clé API : plan OSM rendu par EOX, imagerie quotidienne VIIRS true color via NASA EOSDIS GIBS, et plan OSM assombri par filtre CSS. Attributions affichées pour OSM/EOX et NASA. Les couches Alertes et Parcours sont indépendantes ; contrôles et légende s'empilent sur tablette/mobile. `setTileMode()` remplace le fond actif. Plugin MarkerCluster (`leaflet.markercluster@1.5.3`) pour regrouper les marqueurs à faible zoom. |
 
 ---
 

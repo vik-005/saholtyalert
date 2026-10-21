@@ -43,13 +43,18 @@ class NotificationController extends AbstractController
     /**
      * Marque une notification comme lue et redirige vers l'alerte.
      */
-    #[Route('/notification/{id}/read', name: 'app_notification_read', methods: ['GET'],
+    #[Route('/notification/{id}/read', name: 'app_notification_read', methods: ['GET', 'POST'],
              requirements: ['id' => '\d+'])]
-    public function read(Notification $notification): Response
+    public function read(Request $request, Notification $notification): Response
     {
         // Vérification : seul le destinataire peut marquer comme lu
         if ($notification->getDestinataire() !== $this->getUser()) {
             throw $this->createAccessDeniedException();
+        }
+
+        $token = (string) ($request->request->get('_token') ?? $request->query->get('_token'));
+        if ($request->isMethod('POST') && !$this->isCsrfTokenValid('read_notif_' . $notification->getId(), $token)) {
+            throw $this->createAccessDeniedException('Jeton CSRF invalide.');
         }
 
         $notification->setLu(true);

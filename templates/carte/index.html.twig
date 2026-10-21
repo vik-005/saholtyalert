@@ -4,7 +4,14 @@
 
 {% block stylesheets %}
 {{ parent() }}
+<link rel="preconnect" href="https://tiles.maps.eox.at" crossorigin>
+<link rel="dns-prefetch" href="https://tiles.maps.eox.at">
+<link rel="preconnect" href="https://gibs.earthdata.nasa.gov" crossorigin>
+<link rel="dns-prefetch" href="https://gibs.earthdata.nasa.gov">
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin=""/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin=""/>
 <style>
 /* ── Layout plein-écran style Google Maps ── */
 .carte-shell {
@@ -30,11 +37,11 @@
     .pays-card-nom { font-size: 12px; }
     .pays-card-iso { font-size: 9px; }
     .pays-badge-count { width: 30px; height: 30px; font-size: 11px; }
-    .carte-shell .map-tools { top: 58px; right: 8px; left: auto; gap: 4px; padding: 5px; flex-wrap: nowrap; }
+    .carte-shell .map-tools { align-self: stretch; gap: 4px; padding: 5px; }
     .carte-shell .map-tools-count { display: none; }
     .carte-shell .map-tools button { width: 36px; height: 36px; justify-content: center; padding: 0; font-size: 0; }
     .carte-shell .map-tools button i { font-size: 15px; }
-    .carte-shell .category-targets { top: 8px; left: 8px; right: auto; width: 190px; max-width: calc(100% - 160px); }
+    .carte-shell .category-targets { width: min(290px, 100%); max-width: 100%; }
     .carte-shell .carte-legend { left: 8px; right: 8px; bottom: 10px; min-width: auto; max-width: calc(100% - 16px); padding: 8px 10px; }
     .carte-shell .carte-loading { left: 50%; }
 }
@@ -158,37 +165,330 @@
 #map {
     width: 100%; height: 100%;
     background: #edf1f3;
+    contain: layout style paint;
 }
-#map.map-dark-tiles .leaflet-tile-pane { filter: brightness(.68) saturate(.7) contrast(1.08); }
+#map.map-dark-tiles .leaflet-tile {
+    filter: grayscale(.2) invert(.88) hue-rotate(180deg) brightness(.84) contrast(.9);
+}
 #map.map-tiles-unavailable::after {
-    content: 'Fond cartographique indisponible - les donnees GEI restent accessibles dans le panneau';
+    content: 'Fond de carte indisponible — les données GEI restent accessibles dans le panneau.';
     position: absolute; z-index: 1000; top: 12px; left: 50%; transform: translateX(-50%);
     max-width: calc(100% - 24px); padding: 7px 12px; border: 1px solid #f0c36d;
     border-radius: 6px; background: rgba(255, 248, 230, .96); color: #7a4d00;
     font-size: 11px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
-/* ── Marqueurs — double dimension visuelle (priorité = fond, volume = taille/bordure) ── */
+/* ── Marqueurs — double dimension visuelle (priorité = gradient + halo, volume = taille/bordure) ── */
 .z-marker {
     position: relative;
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%;
-    font-weight: 750; color: #26332e;
+    font-weight: 800;
     cursor: pointer;
-    transition: transform .15s;
+    transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s ease;
     line-height: 1;
-    border: 2px solid #fff;
-    background: #fff;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, .2);
+    will-change: transform;
+    border: 2.5px solid #fff;
+    user-select: none;
 }
-.z-marker:hover { transform: scale(1.08); }
+.z-marker:hover {
+    transform: scale(1.16);
+    z-index: 1000 !important;
+}
 
-.z-marker.critique { border-color: #b42318; }
-.z-marker.eleve    { border-color: #c2410c; }
-.z-marker.modere   { border-color: #a16207; }
-.z-marker.faible   { border-color: #15803d; }
+/* Marqueurs Clairs — Gradients soignés */
+.z-marker.critique {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border-color: #dc2626;
+    color: #991b1b;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, .35);
+    animation: pulse-beacon 2s cubic-bezier(.4, 0, .6, 1) infinite;
+}
+.z-marker.eleve {
+    background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+    border-color: #ea580c;
+    color: #9a3412;
+    box-shadow: 0 3px 10px rgba(234, 88, 12, .3);
+}
+.z-marker.modere {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #d97706;
+    color: #92400e;
+    box-shadow: 0 3px 10px rgba(217, 119, 6, .25);
+}
+.z-marker.faible {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    border-color: #16a34a;
+    color: #166534;
+    box-shadow: 0 3px 10px rgba(22, 163, 74, .25);
+}
 
-.z-marker.vol-faible,.z-marker.vol-modere,.z-marker.vol-eleve,.z-marker.vol-critique { border-width: 2px; }
+@keyframes pulse-beacon {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, .6), 0 4px 12px rgba(220, 38, 38, .35);
+    }
+    70% {
+        box-shadow: 0 0 0 12px rgba(220, 38, 38, 0), 0 4px 12px rgba(220, 38, 38, .35);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 38, 38, 0), 0 4px 12px rgba(220, 38, 38, .35);
+    }
+}
+
+/* ── Animation de flux pour le tracé de corridor ── */
+@keyframes route-flow-dash {
+    from { stroke-dashoffset: 28; }
+    to   { stroke-dashoffset: 0; }
+}
+.route-flow-line {
+    animation: route-flow-dash 1.3s linear infinite;
+}
+
+/* ── Balises de corridor (Waypoints & Radar Beacons) ── */
+.route-origin-beacon {
+    position: relative;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+}
+.route-beacon-core {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+}
+.route-beacon-core-dot {
+    width: 4px; height: 4px; border-radius: 50%; background: #ffffff;
+}
+.route-beacon-wave {
+    position: absolute; top: 0; left: 0;
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid currentColor;
+    opacity: 0.85;
+    animation: radar-wave 2s cubic-bezier(.21, .53, .56, 1) infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+.route-beacon-wave-2 {
+    animation-delay: 1s;
+}
+@keyframes radar-wave {
+    0%   { transform: scale(0.5); opacity: 0.9; }
+    75%  { transform: scale(2.2); opacity: 0.15; }
+    100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Balise d'arrivée (Target Pin) */
+.route-dest-beacon {
+    position: relative;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+}
+.route-dest-core {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2.5px solid #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 3;
+}
+.route-dest-target {
+    width: 6px; height: 6px; border-radius: 50%; background: #ffffff;
+}
+
+/* Balise de transit (Étape) */
+.route-step-beacon {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid #ffffff;
+    box-shadow: 0 1px 6px rgba(0,0,0,.3);
+}
+
+/* ── Popup / Tooltip de corridor ultra-soigné ── */
+.corridor-popup-card {
+    padding: 14px 16px;
+    min-width: 260px;
+    font-family: inherit;
+}
+.corridor-popup-badge-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin-bottom: 8px;
+}
+.corridor-badge-prio {
+    font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 99px; letter-spacing: .06em;
+}
+.corridor-badge-prio.critique { background: #fee2e2; color: #991b1b; }
+.corridor-badge-prio.eleve { background: #ffedd5; color: #9a3412; }
+.corridor-badge-prio.modere { background: #fef3c7; color: #92400e; }
+.corridor-badge-prio.faible { background: #dcfce7; color: #166534; }
+.corridor-badge-count {
+    font-size: 11px; font-weight: 700; color: #64748b;
+}
+.corridor-popup-title {
+    font-size: 13.5px; font-weight: 800; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+    line-height: 1.35; margin-bottom: 4px;
+}
+.corridor-popup-sub {
+    font-size: 11px; color: #16856b; font-weight: 600;
+    margin-bottom: 8px;
+}
+.corridor-popup-cats {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 12px;
+}
+.corridor-popup-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px 12px; border-radius: 7px;
+    background: #16856b; color: #ffffff !important; font-size: 11.5px; font-weight: 700;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: background .15s, transform .15s;
+}
+.corridor-popup-btn:hover {
+    background: #126b57; transform: translateY(-1px);
+}
+
+/* ── Tiroir latéral rétractable (Alerts Drawer) ── */
+.carte-alerts-drawer {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 410px; max-width: calc(100% - 30px);
+    background: #ffffff;
+    border-left: 1px solid var(--border);
+    box-shadow: -10px 0 35px rgba(15, 23, 42, .22);
+    z-index: 1500;
+    display: flex; flex-direction: column;
+    transform: translateX(105%);
+    transition: transform .32s cubic-bezier(.16, 1, .3, 1);
+    backdrop-filter: blur(12px);
+}
+.carte-alerts-drawer.is-open {
+    transform: translateX(0);
+}
+.drawer-header {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #f8fafc;
+}
+.drawer-badge-prio {
+    font-size: 9px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .08em; color: #16856b; margin-bottom: 2px;
+}
+.drawer-title {
+    margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text);
+    line-height: 1.3;
+}
+.drawer-subtitle {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+}
+.drawer-close-btn {
+    width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px;
+    border: 1px solid var(--border); background: #ffffff;
+    display: grid; place-items: center; cursor: pointer; color: var(--muted);
+    transition: all .15s;
+}
+.drawer-close-btn:hover { background: #fee2e2; color: #ef4444; border-color: #fca5a5; }
+
+.drawer-search-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    background: #ffffff;
+}
+.drawer-input {
+    width: 100%; border: none; outline: none; font-size: 12px;
+    background: transparent; color: var(--text);
+}
+.drawer-count-chip {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    background: #e2e8f0; color: #475569; border-radius: 99px;
+}
+
+.drawer-body {
+    flex: 1; overflow-y: auto; padding: 12px 14px;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.drawer-loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 40px 10px; color: var(--muted); font-size: 12.5px;
+}
+.drawer-loading i { font-size: 24px; color: #16856b; }
+.drawer-list {
+    display: flex; flex-direction: column; gap: 9px;
+}
+.drawer-empty {
+    text-align: center; padding: 36px 14px; color: var(--muted); font-size: 12.5px;
+}
+.drawer-footer {
+    padding: 12px 16px; border-top: 1px solid var(--border);
+    background: #f8fafc;
+}
+
+/* Alert Card inside Drawer */
+.drawer-alert-card {
+    padding: 11px 13px; border-radius: 9px;
+    border: 1px solid var(--border); background: #ffffff;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    display: flex; flex-direction: column; gap: 5px;
+    text-decoration: none; color: inherit;
+    position: relative;
+}
+.drawer-alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(15, 23, 42, .08);
+    border-color: #16856b;
+}
+.drawer-alert-header {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.drawer-alert-code {
+    font-size: 12px; font-weight: 800; font-family: monospace; color: #16856b;
+    display: flex; align-items: center; gap: 5px;
+}
+.drawer-alert-badge {
+    font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 99px;
+    text-transform: uppercase;
+}
+.drawer-alert-badge.critique { background: #fee2e2; color: #991b1b; }
+.drawer-alert-badge.eleve { background: #ffedd5; color: #9a3412; }
+.drawer-alert-badge.modere { background: #fef3c7; color: #92400e; }
+.drawer-alert-badge.faible { background: #dcfce7; color: #166534; }
+.drawer-alert-resume {
+    font-size: 11px; color: var(--text); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.drawer-alert-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10px; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 4px; margin-top: 2px;
+}
+
+/* ── Sélecteur de couches (Tile Switcher) ── */
+.tile-switcher-group {
+    display: inline-flex;
+    border: 1px solid #dbe4ea;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+}
+.tile-switch-btn {
+    border: none; background: transparent; padding: 6px 9px;
+    font: inherit; font-size: 11px; font-weight: 700; color: #475569;
+    display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+    transition: background .15s, color .15s;
+    border-right: 1px solid #e2e8f0;
+}
+.tile-switch-btn:last-child { border-right: none; }
+.tile-switch-btn:hover { background: #f1f5f9; color: #1e293b; }
+.tile-switch-btn.active, .tile-switch-btn[aria-pressed="true"] {
+    background: #e6f5ef; color: #0f766e;
+}
+
+/* ── MarkerCluster — style GEI cohérent ── */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large { background: transparent !important; }
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div { background: transparent !important; }
+.leaflet-marker-icon.marker-cluster { background: none !important; }
 
 /* ── Popup Leaflet — style GEI clair ── */
 .leaflet-popup-content-wrapper {
@@ -227,12 +527,22 @@
     font-size: 12px; font-weight: 600; color: #16856b;
     text-decoration: none;
     transition: background .15s;
+    cursor: pointer;
 }
 .popup-btn:hover { background: #e6f5ef; }
+.map-controls {
+    position: absolute; z-index: 1000; top: 14px; left: 14px; right: 14px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+    pointer-events: none;
+}
+.map-controls > * { position: relative; inset: auto; pointer-events: auto; }
+.map-controls .category-targets { order: 0; }
+.map-controls .map-tools { order: 1; }
 .map-tools {
-    position: absolute; z-index: 1000; top: 14px; right: 14px;
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding: 7px; border: 1px solid rgba(148,163,184,.28); border-radius: 12px;
+    position: relative; top: auto; right: auto; left: auto;
+    display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+    justify-content: flex-end; max-width: calc(100% - 300px);
+    padding: 6px 8px; border: 1px solid rgba(148,163,184,.28); border-radius: 12px;
     background: rgba(255,255,255,.96); box-shadow: 0 5px 18px rgba(15,23,42,.15);
     backdrop-filter: blur(8px);
 }
@@ -247,11 +557,23 @@
 }
 .map-tools button:disabled { opacity: .45; cursor: not-allowed; }
 .category-targets {
-    position: absolute; z-index: 1000; top: 14px; left: 14px;
+    position: relative; top: auto; left: auto; flex: 0 1 290px;
     width: min(290px, calc(100% - 28px));
     border: 1px solid rgba(148,163,184,.35); border-radius: 12px;
     background: rgba(255,255,255,.97); color: #334155;
     box-shadow: 0 5px 18px rgba(15,23,42,.14); backdrop-filter: blur(8px);
+}
+@media(max-width: 1100px) {
+    .map-controls {
+        top: 8px; left: 8px; right: 8px;
+        flex-direction: column; align-items: stretch; gap: 6px;
+    }
+    .map-controls .category-targets { width: min(290px, 100%); flex: 0 0 auto; }
+    .map-controls .map-tools { width: fit-content; max-width: 100%; align-self: flex-end; }
+    .category-target-list { max-height: 130px; }
+}
+@media(max-width: 560px) {
+    .map-controls .map-tools { width: auto; align-self: stretch; }
 }
 .category-targets summary {
     display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 12px;
@@ -287,6 +609,20 @@ body.dark .map-tools button { background: var(--navy-800); border-color: var(--b
 body.dark .map-tools button:hover, body.dark .map-tools button[aria-pressed="true"] {
     background: rgba(22,133,107,.22); color: #6ee7b7;
 }
+body.dark .tile-switcher-group { border-color: var(--border); background: var(--navy-800); }
+body.dark .tile-switch-btn { color: var(--muted); border-right-color: var(--border); }
+body.dark .tile-switch-btn:hover { background: var(--navy-700); color: var(--text); }
+body.dark .tile-switch-btn.active, body.dark .tile-switch-btn[aria-pressed="true"] {
+    background: rgba(22,133,107,.25); color: #6ee7b7;
+}
+body.dark .carte-alerts-drawer { background: var(--navy-900); border-left-color: var(--border); }
+body.dark .drawer-header { background: var(--navy-800); border-bottom-color: var(--border); }
+body.dark .drawer-close-btn { background: var(--navy-900); border-color: var(--border); color: var(--muted); }
+body.dark .drawer-search-bar { background: var(--navy-900); border-bottom-color: var(--border); }
+body.dark .drawer-count-chip { background: var(--navy-800); color: var(--muted); }
+body.dark .drawer-footer { background: var(--navy-800); border-top-color: var(--border); }
+body.dark .drawer-alert-card { background: var(--navy-800); border-color: var(--border); }
+body.dark .drawer-alert-card:hover { border-color: #10b981; }
 body.dark .category-targets { background: rgba(15,23,42,.97); border-color: var(--border); color: var(--text); }
 body.dark .category-targets[open] summary { border-bottom-color: var(--border); }
 body.dark .category-targets summary::after,
@@ -355,6 +691,8 @@ body.dark .category-target[aria-pressed="true"] { background: rgba(22,133,107,.2
     }
     .carte-legend #carteLegendBody {
         display: none;
+        max-height: min(34dvh, 210px);
+        overflow-y: auto;
     }
     .carte-legend.legend-expanded #carteLegendBody {
         display: block;
@@ -376,6 +714,31 @@ body.dark .category-target[aria-pressed="true"] { background: rgba(22,133,107,.2
 .carte-loading.visible { display: block; }
 
 /* ── Dark mode support ── */
+body.dark .z-marker { border-color: rgba(255, 255, 255, .85); }
+body.dark .z-marker.critique {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+    border-color: #f87171;
+    color: #fef2f2;
+    box-shadow: 0 0 14px rgba(239, 68, 68, .55);
+}
+body.dark .z-marker.eleve {
+    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%);
+    border-color: #fb923c;
+    color: #fff7ed;
+    box-shadow: 0 0 12px rgba(249, 115, 22, .45);
+}
+body.dark .z-marker.modere {
+    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    border-color: #fbbf24;
+    color: #fffbeb;
+    box-shadow: 0 0 12px rgba(245, 158, 11, .4);
+}
+body.dark .z-marker.faible {
+    background: linear-gradient(135deg, #14532d 0%, #166534 100%);
+    border-color: #4ade80;
+    color: #f0fdf4;
+    box-shadow: 0 0 12px rgba(34, 197, 94, .4);
+}
 body.dark .carte-side { background: var(--navy-900); border-right-color: var(--border); }
 body.dark .pays-card { border-bottom-color: var(--border); }
 body.dark .pays-card:hover { background: var(--navy-800); }
@@ -564,16 +927,67 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     <div style="position:relative;display:flex;flex-direction:column;height:100%;">
         <div id="map" style="flex:1;width:100%;min-height:0;"></div>
 
+        {# ── TIROIR D'ALERTES LATÉRAL (DRAWER) ── #}
+        <aside class="carte-alerts-drawer" id="carteAlertsDrawer" aria-hidden="true">
+            <div class="drawer-header">
+                <div style="min-width:0;flex:1;">
+                    <div class="drawer-badge-prio" id="drawerPrioBadge">ZONE OPÉRATIONNELLE</div>
+                    <h3 class="drawer-title" id="drawerTitle">Bénin</h3>
+                    <div class="drawer-subtitle" id="drawerSubtitle">0 alerte filtrée</div>
+                </div>
+                <button type="button" class="drawer-close-btn" id="drawerCloseBtn" aria-label="Fermer le volet">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="drawer-search-bar">
+                <i class="bi bi-search text-muted"></i>
+                <input type="text" id="drawerSearchInput" placeholder="Filtrer (code, mot-clé, corridor...)" class="drawer-input">
+                <span class="drawer-count-chip" id="drawerFilteredCount">0</span>
+            </div>
+            <div class="drawer-body" id="drawerBody">
+                <div class="drawer-loading" id="drawerLoading">
+                    <i class="bi bi-arrow-repeat bi-spin"></i>
+                    <span>Chargement des alertes…</span>
+                </div>
+                <div class="drawer-list" id="drawerAlertsList"></div>
+            </div>
+            <div class="drawer-footer" id="drawerFooter">
+                <a href="#" id="drawerOpenRegisterBtn" target="_blank" rel="noopener noreferrer" class="db-btn db-btn-amber w-100" style="justify-content:center;font-size:12px;">
+                    <i class="bi bi-box-arrow-up-right me-1.5"></i>Ouvrir dans le registre complet
+                </a>
+            </div>
+        </aside>
+
+        <div class="map-controls">
         <div class="map-tools" role="group" aria-label="Outils de carte">
+            {# Sélecteur de fond de carte #}
+            <div class="tile-switcher-group" role="group" aria-label="Fond cartographique">
+                <button type="button" class="tile-switch-btn active" data-tile-mode="plan" title="Plan de rues OpenStreetMap" aria-pressed="true">
+                    <i class="bi bi-map"></i><span>Plan</span>
+                </button>
+                <button type="button" class="tile-switch-btn" data-tile-mode="satellite" title="Imagerie satellite quotidienne NASA" aria-pressed="false">
+                    <i class="bi bi-clouds"></i><span>Satellite</span>
+                </button>
+                <button type="button" class="tile-switch-btn" data-tile-mode="sombre" title="Plan de rues sombre" aria-pressed="false">
+                    <i class="bi bi-moon-stars"></i><span>Sombre</span>
+                </button>
+            </div>
+
             <span class="map-tools-count" id="routeCount" aria-live="polite">0 parcours indicatif</span>
-            <button type="button" id="routeToggle" aria-label="Afficher ou masquer les trajets indicatifs" title="Trajets indicatifs" aria-pressed="true" disabled>
-                <i class="bi bi-bezier2"></i>Trajets indicatifs
+            <button type="button" id="marketToggle" aria-label="Afficher ou masquer les alertes par marché" title="Alertes par marché" aria-pressed="true">
+                <i class="bi bi-geo-alt"></i>Alertes
             </button>
-            <button type="button" id="routeFit" aria-label="Cadrer les trajets indicatifs" title="Voir les trajets" disabled>
-                <i class="bi bi-arrows-fullscreen"></i>Voir les trajets
+            <button type="button" id="routeToggle" aria-label="Afficher ou masquer les parcours transfrontaliers" title="Parcours transfrontaliers" aria-pressed="false" disabled>
+                <i class="bi bi-bezier2"></i>Parcours
+            </button>
+            <button type="button" id="routeFit" aria-label="Cadrer les parcours indicatifs" title="Cadrer les parcours" disabled>
+                <i class="bi bi-crosshair2"></i>Cadrer
             </button>
             <button type="button" id="mapReset" aria-label="Recentrer la carte sur l'Afrique" title="Vue Afrique">
                 <i class="bi bi-globe-africa"></i>Vue Afrique
+            </button>
+            <button type="button" id="mapFullscreen" aria-label="Plein écran" title="Plein écran">
+                <i class="bi bi-arrows-fullscreen" id="fsIcon"></i>
             </button>
         </div>
 
@@ -584,6 +998,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             </div>
             <p class="category-target-note">Zones indicatives agrégées par marché ; le halo n'est pas une frontière ni une localisation précise.</p>
         </details>
+        </div>
 
         {# Légende enrichie ── #}
         <div class="carte-legend" id="carteLegend">
@@ -596,6 +1011,11 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 </button>
             </div>
             <div id="carteLegendBody">
+                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Couches de la carte</p>
+                    <span class="legend-label"><i class="bi bi-geo-alt-fill me-1" style="color:#16856b"></i>Alertes par marché</span><br>
+                    <span class="legend-label"><i class="bi bi-bezier2 me-1" style="color:#2563eb"></i>Parcours transfrontaliers</span>
+                </div>
                 <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
                     <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Volume : taille du point</p>
                     <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F9A825;font-size:9px"></i>1–5 alertes</span><br>
@@ -656,23 +1076,36 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 {% block javascripts %}
 {{ parent() }}
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
 <script>
 (function() {
     'use strict';
 
     let map, markersLayer, targetZonesLayer, routeLayer, currentTileLayer;
     let allZones = [];
+    let activeLoadController = null;
     const marketInputs = document.querySelectorAll('#fMarche input[name="marche[]"]');
     const marketCount = document.getElementById('carteMarketSelectionCount');
     const AFRICA_BOUNDS = [[-37, -25], [38, 55]];
     const CATEGORY_COLORS = ['#0f766e', '#2563eb', '#7c3aed', '#d97706', '#be123c', '#0891b2', '#4d7c0f'];
+
+    let debounceTimer = null;
+    function debouncedLoadZones(delay = 250) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            loadZones();
+        }, delay);
+    }
 
     function updateMarketCount() {
         const selected = [...marketInputs].filter(input => input.checked).length;
         marketCount.textContent = selected ? `${selected} marché${selected > 1 ? 's' : ''} sélectionné${selected > 1 ? 's' : ''}` : 'Tous les marchés';
     }
 
-    marketInputs.forEach(input => input.addEventListener('change', updateMarketCount));
+    marketInputs.forEach(input => input.addEventListener('change', () => {
+        updateMarketCount();
+        debouncedLoadZones(280);
+    }));
     updateMarketCount();
 
     function categoryColor(value) {
@@ -681,29 +1114,67 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         return CATEGORY_COLORS[hash % CATEGORY_COLORS.length];
     }
 
-    function setTileLayer(isDark) {
-        if (!map) return;
-        const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const attr = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
-        document.getElementById('map')?.classList.toggle('map-dark-tiles', isDark);
+    let currentTileMode = 'plan'; // 'plan' | 'satellite' | 'sombre'
+    const TILE_CONFIG = {
+        plan: {
+            url: 'https://tiles.maps.eox.at/wmts/1.0.0/osm_3857/default/g/{z}/{y}/{x}.png',
+            subdomains: '',
+            attr: 'Données &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap et autres</a>, rendu &copy; <a href="https://eox.at" target="_blank" rel="noopener noreferrer">EOX</a> (<a href="https://maps.eox.at/#data" target="_blank" rel="noopener noreferrer">données</a>)',
+            maxZoom: 19,
+            maxNativeZoom: 19,
+        },
+        satellite: {
+            url: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${new Date(Date.now() - 86400000).toISOString().slice(0, 10)}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`,
+            subdomains: '',
+            attr: 'Imagerie quotidienne VIIRS &copy; <a href="https://earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs" target="_blank" rel="noopener noreferrer">NASA EOSDIS GIBS</a>',
+            maxZoom: 18,
+            maxNativeZoom: 9,
+        },
+        sombre: {
+            url: 'https://tiles.maps.eox.at/wmts/1.0.0/osm_3857/default/g/{z}/{y}/{x}.png',
+            subdomains: '',
+            attr: 'Données &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap et autres</a>, rendu &copy; <a href="https://eox.at" target="_blank" rel="noopener noreferrer">EOX</a> (<a href="https://maps.eox.at/#data" target="_blank" rel="noopener noreferrer">données</a>)',
+            maxZoom: 19,
+            maxNativeZoom: 19,
+        },
+    };
+
+    function setTileMode(mode) {
+        if (!map || !TILE_CONFIG[mode]) return;
+        currentTileMode = mode;
+        const cfg = TILE_CONFIG[mode];
 
         if (currentTileLayer && map.hasLayer(currentTileLayer)) {
             map.removeLayer(currentTileLayer);
         }
-        currentTileLayer = L.tileLayer(tileUrl, {
-            attribution: attr,
-            maxZoom: 18,
+        currentTileLayer = L.tileLayer(cfg.url, {
+            attribution: cfg.attr,
+            subdomains: cfg.subdomains,
+            maxZoom: cfg.maxZoom,
+            maxNativeZoom: cfg.maxNativeZoom,
+            keepBuffer: 1,
+            updateWhenIdle: true,
+            crossOrigin: true,
         }).addTo(map);
 
         currentTileLayer.on('tileerror', () => document.getElementById('map')?.classList.add('map-tiles-unavailable'));
         currentTileLayer.on('load', () => document.getElementById('map')?.classList.remove('map-tiles-unavailable'));
 
-        if (markersLayer && typeof markersLayer.bringToFront === 'function') {
-            markersLayer.bringToFront();
-        }
+        document.getElementById('map')?.classList.toggle('map-dark-tiles', mode === 'sombre');
+
+        document.querySelectorAll('.tile-switch-btn').forEach(btn => {
+            const active = btn.dataset.tileMode === mode;
+            btn.classList.toggle('active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        if (targetZonesLayer && typeof targetZonesLayer.bringToBack === 'function') targetZonesLayer.bringToBack();
+        if (markersLayer && typeof markersLayer.bringToFront === 'function') markersLayer.bringToFront();
     }
 
     function destroyMap() {
+        activeLoadController?.abort();
+        activeLoadController = null;
         if (map) {
             try { map.remove(); } catch(e) {}
             map = null;
@@ -728,16 +1199,41 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             center: [5, 20],
             zoom: 4,
             minZoom: 2,
-            maxZoom: 14,
+            maxZoom: 18,
             zoomControl: false,
         });
 
-        L.control.zoom({ position: 'bottomright' }).addTo(map);
+        L.control.zoom({
+            position: 'bottomright',
+            zoomInTitle: 'Zoom avant',
+            zoomOutTitle: 'Zoom arrière',
+        }).addTo(map);
 
-        markersLayer = L.layerGroup().addTo(map);
+        markersLayer = (typeof L.markerClusterGroup === 'function')
+            ? L.markerClusterGroup({
+                maxClusterRadius: 45,
+                spiderfyOnMaxZoom: true,
+                showCoverageOnHover: false,
+                zoomToBoundsOnClick: true,
+                iconCreateFunction: function(cluster) {
+                    const count = cluster.getChildCount();
+                    let size = 36, cls = 'faible';
+                    if (count > 50) { size = 52; cls = 'critique'; }
+                    else if (count > 20) { size = 46; cls = 'eleve'; }
+                    else if (count > 5) { size = 40; cls = 'modere'; }
+                    return L.divIcon({
+                        html: `<div class="z-marker ${cls}" style="width:${size}px;height:${size}px;font-size:13px;border-width:3px;">${count > 99 ? '99+' : count}</div>`,
+                        className: '',
+                        iconSize: [size, size],
+                        iconAnchor: [size/2, size/2],
+                    });
+                },
+            }).addTo(map)
+            : L.layerGroup().addTo(map);
         targetZonesLayer = L.layerGroup().addTo(map);
-        routeLayer = L.featureGroup().addTo(map);
-        setTileLayer(isDark);
+        routeLayer = L.featureGroup();
+
+        setTileMode(isDark ? 'sombre' : 'plan');
 
         map.fitBounds(AFRICA_BOUNDS, { padding: [10, 10] });
 
@@ -750,10 +1246,18 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             e.preventDefault();
             loadZones();
         });
+        document.getElementById('marketToggle').addEventListener('click', toggleMarkets);
         document.getElementById('routeToggle').addEventListener('click', toggleRoutes);
         document.getElementById('routeFit').addEventListener('click', fitRoutes);
         document.getElementById('mapReset').addEventListener('click', () => {
             map.fitBounds(AFRICA_BOUNDS, { padding: [20, 20] });
+        });
+        document.getElementById('mapFullscreen')?.addEventListener('click', toggleFullscreen);
+
+        document.querySelectorAll('.tile-switch-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setTileMode(btn.dataset.tileMode || 'plan');
+            });
         });
     }
 
@@ -761,7 +1265,30 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     document.addEventListener('dark-mode-changed', (e) => {
         if (!map) return;
         const isDark = e.detail?.dark ?? (document.body.classList.contains('dark') || localStorage.getItem('gei-dark') === '1');
-        setTileLayer(isDark);
+        if (currentTileMode !== 'satellite') {
+            setTileMode(isDark ? 'sombre' : 'plan');
+        }
+    });
+
+    function toggleFullscreen() {
+        const shell = document.querySelector('.carte-shell');
+        const icon = document.getElementById('fsIcon');
+        if (!document.fullscreenElement) {
+            shell?.requestFullscreen().then(() => {
+                if (icon) icon.className = 'bi bi-fullscreen-exit';
+                setTimeout(() => map?.invalidateSize(), 150);
+            }).catch(() => {});
+        } else {
+            document.exitFullscreen().then(() => {
+                if (icon) icon.className = 'bi bi-arrows-fullscreen';
+                setTimeout(() => map?.invalidateSize(), 150);
+            }).catch(() => {});
+        }
+    }
+    document.addEventListener('fullscreenchange', () => {
+        const icon = document.getElementById('fsIcon');
+        if (icon) icon.className = document.fullscreenElement ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen';
+        setTimeout(() => map?.invalidateSize(), 150);
     });
 
     window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
@@ -776,6 +1303,9 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
     function loadZones() {
         const loading = document.getElementById('carteLoading');
+        activeLoadController?.abort();
+        const controller = new AbortController();
+        activeLoadController = controller;
         loading.classList.add('visible');
 
         const params = new URLSearchParams();
@@ -785,27 +1315,29 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         // Mise à jour dynamique des badges de filtres dans la légende
         updateLegendFilters(params);
 
-        fetch('/carte/api/zones?' + params.toString(), { credentials: 'same-origin' })
+        const requestOptions = { credentials: 'same-origin', signal: controller.signal };
+        const zonesRequest = fetch('/carte/api/zones?' + params.toString(), requestOptions)
             .then(r => {
                 if (!r.ok || r.redirected || !r.headers.get('content-type')?.includes('application/json')) {
                     throw new Error('La session a expiré ou les données cartographiques sont indisponibles.');
                 }
                 return r.json();
-            })
-            .then(zones => {
+            });
+        const routesRequest = fetch('/carte/api/parcours?' + params.toString(), requestOptions)
+            .then(response => response.ok ? response.json() : []);
+
+        Promise.all([zonesRequest, routesRequest])
+            .then(([zones, routes]) => {
                 allZones = zones;
                 updateCategoryTargets(zones);
                 renderMarkers(zones);
                 renderSidePanel(zones);
                 updateStats(zones);
-                return fetch('/carte/api/parcours?' + params.toString(), { credentials: 'same-origin' })
-                    .then(response => response.ok ? response.json() : [])
-                    .then(routes => renderRoutes(routes));
-            })
-            .then(() => {
+                renderRoutes(routes);
                 history.replaceState(null, '', '/carte?' + params.toString());
             })
             .catch(error => {
+                if (error.name === 'AbortError') return;
                 const container = document.getElementById('paysListContainer');
                 if (container) {
                     container.innerHTML = `<div style="padding:28px 16px;text-align:center;color:var(--muted);font-size:12.5px;">
@@ -817,7 +1349,12 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     </div>`;
                 }
             })
-            .finally(() => { loading.classList.remove('visible'); });
+            .finally(() => {
+                if (activeLoadController === controller) {
+                    loading.classList.remove('visible');
+                    activeLoadController = null;
+                }
+            });
     }
 
     function updateLegendFilters(params) {
@@ -832,7 +1369,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 '8': 'Guinée', '9': 'Burkina Faso',
             };
             marcheValues.forEach(v => {
-                chips.push(`Marche : ${escHtml(chipMap[v] || 'Marche ' + v)}`);
+                chips.push(`Marché : ${escHtml(chipMap[v] || 'Marché ' + v)}`);
             });
         }
         if (params.get('categorie')) chips.push(`Cat : ${params.get('categorie')}`);
@@ -871,42 +1408,43 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             const categories = Object.entries(zone.categories || {}).sort((a, b) => Number(b[1]) - Number(a[1]));
             const dominantCategory = categories[0]?.[0] || '';
             const targetColor = dominantCategory ? categoryColor(dominantCategory) : '#16856b';
-            const targetRadius = Math.min(34, 13 + Math.sqrt(count) * 2.2);
+            const targetRadius = Math.min(36, 14 + Math.sqrt(count) * 2.2);
+
             const targetZone = L.circleMarker([lat, lng], {
                 radius: targetRadius,
                 color: targetColor,
                 weight: 1.5,
                 fillColor: targetColor,
-                opacity: 0.72,
+                opacity: 0.75,
                 fillOpacity: 0.2,
                 className: 'target-zone',
                 interactive: false,
             }).addTo(targetZonesLayer);
+
             targetZone.bindTooltip(
                 `${escHtml(zone.nom)} · ${count} alerte${count > 1 ? 's' : ''} · ${escHtml(dominantCategory ? categorieLabel(dominantCategory) : 'toutes catégories')}`,
                 { className: 'target-zone-tooltip', direction: 'top', offset: [0, -targetRadius] }
             );
 
-            // Double dimension visuelle :
-            // 1) Taille et dégradé orange de bordure selon le volume
-            let size = 30;
+            // Double dimension visuelle : taille selon le volume
+            let size = 32;
             let fontSize = 11;
             let volClass = 'vol-faible';
             if (count > 50) {
-                size = 42;
-                fontSize = 12;
+                size = 46;
+                fontSize = 13;
                 volClass = 'vol-critique';
             } else if (count > 20) {
-                size = 38;
+                size = 40;
                 fontSize = 12;
                 volClass = 'vol-eleve';
             } else if (count > 5) {
-                size = 34;
+                size = 35;
                 fontSize = 12;
                 volClass = 'vol-modere';
             }
             if (window.matchMedia('(max-width: 560px)').matches) {
-                size = Math.round(size * 0.72);
+                size = Math.round(size * 0.75);
                 fontSize = Math.max(9, Math.round(fontSize * 0.85));
             }
 
@@ -924,6 +1462,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
             const marker = L.marker([lat, lng], { icon })
                 .addTo(markersLayer);
+            marker.zoneId = zone.id;
 
             const cats = zone.categories || {};
             const catHtml = Object.entries(cats).slice(0, 5).map(([k, v]) => {
@@ -936,7 +1475,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 return `<span class="popup-corridor">${escHtml(k)} <strong>${v}</strong></span>`;
             }).join('');
             const corridorTitleHtml = Object.keys(corridors).length > 0
-                ? `<div class="popup-corridors"><div class="popup-corridor-title">Corridors / Ports</div>${corridorHtml}</div>`
+                ? `<div class="popup-corridors"><div class="popup-corridor-title">Corridors et ports</div>${corridorHtml}</div>`
                 : '';
 
             const popupHtml = `
@@ -952,8 +1491,8 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     ${catHtml ? `<div class="popup-cats">${catHtml}</div>` : ''}
                     ${corridorTitleHtml}
                 </div>
-                <a class="popup-btn" href="#" onclick="loadAlertesList(${zone.id}, '${escHtml(zone.nom)}'); return false;">
-                    <i class="bi bi-list me-1"></i>Voir les alertes
+                <a class="popup-btn" href="#" onclick="openDrawerForMarket(${zone.marketId || zone.id}, '${escHtml(zone.nom)}', '${escHtml(zone.codeIso3 || '')}'); return false;">
+                    <i class="bi bi-layout-sidebar-reverse me-1"></i>Voir les alertes du marché
                 </a>`;
 
             marker.bindPopup(popupHtml, { maxWidth: 300, className: '' });
@@ -961,6 +1500,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         });
 
         // ── Choroplèthe : polygones de zone par intensité d'alertes ──
+        // Important : ajoutés sur targetZonesLayer pour ne pas perturber MarkerCluster
         zones.forEach(zone => {
             const count = parseInt(zone.alertCount) || 0;
             if (!zone.polygonWkt || count <= 0) return;
@@ -975,10 +1515,18 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             const polygon = L.polygon(coords, {
                 fillColor: fillColor,
                 color: fillColor,
-                weight: 2,
-                opacity: 0.8,
-                fillOpacity: 0.18,
-            }).addTo(markersLayer);
+                weight: 1.8,
+                opacity: 0.75,
+                fillOpacity: 0.16,
+                smoothFactor: 1.2,
+            }).addTo(targetZonesLayer);
+
+            polygon.on('mouseover', function() {
+                this.setStyle({ weight: 2.8, fillOpacity: 0.32 });
+            });
+            polygon.on('mouseout', function() {
+                this.setStyle({ weight: 1.8, fillOpacity: 0.16 });
+            });
 
             polygon.bindPopup(
                 `<strong>${escHtml(zone.nom)}</strong><br>Zone indicative — ${count} alerte${count > 1 ? 's' : ''}`
@@ -996,56 +1544,240 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         }
     }
 
+    // ── Calcul de trajectoire courbe (Bézier quadratique géodésique) ──
+    function getCurvedSegment(p1, p2, curveFactor = 0.16, flip = false) {
+        const lat1 = p1[0], lng1 = p1[1];
+        const lat2 = p2[0], lng2 = p2[1];
+        const dLat = lat2 - lat1;
+        const dLng = lng2 - lng1;
+        const dist = Math.hypot(dLat, dLng);
+        if (dist < 0.05) return [p1, p2];
+
+        const midLat = (lat1 + lat2) / 2;
+        const midLng = (lng1 + lng2) / 2;
+        const normLat = -dLng / dist;
+        const normLng = dLat / dist;
+
+        const sign = flip ? -1 : 1;
+        const ctrlLat = midLat + normLat * dist * curveFactor * sign;
+        const ctrlLng = midLng + normLng * dist * curveFactor * sign;
+
+        const steps = Math.max(16, Math.min(36, Math.round(dist * 6)));
+        const pts = [];
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            const invT = 1 - t;
+            const lat = invT * invT * lat1 + 2 * invT * t * ctrlLat + t * t * lat2;
+            const lng = invT * invT * lng1 + 2 * invT * t * ctrlLng + t * t * lng2;
+            pts.push([lat, lng]);
+        }
+        return pts;
+    }
+
     function renderRoutes(routes) {
         if (!routeLayer) return;
         routeLayer.clearLayers();
+
         const uniqueRoutes = new Map();
         routes.forEach(route => {
-            const key = (route.markets || []).join('|');
+            const key = (route.markets || []).join(' → ');
             if (!uniqueRoutes.has(key)) {
-                uniqueRoutes.set(key, { ...route, occurrences: 0 });
+                uniqueRoutes.set(key, {
+                    ...route,
+                    occurrences: 0,
+                    corridors: new Set(),
+                    categories: new Set(),
+                    alerts: [],
+                    maxPriority: 'faible',
+                });
             }
-            uniqueRoutes.get(key).occurrences += 1;
-        });
-        const validRoutes = [...uniqueRoutes.values()].filter(route => Array.isArray(route.points) && route.points.length > 1);
-        validRoutes.forEach(route => {
-            if (!Array.isArray(route.points) || route.points.length < 2) return;
-            const line = L.polyline(route.points, {
-                color: '#0f8069',
-                weight: 4,
-                opacity: 0.9,
-                dashArray: '2 9',
-                lineCap: 'round',
-            }).addTo(routeLayer);
-            line.bindTooltip(
-                `<strong>Parcours indicatif</strong><br>${escHtml((route.markets || []).join(' → '))}<br><small>${route.occurrences} alerte(s)</small>`,
-                { sticky: true }
-            );
-            route.points.forEach((point, index) => {
-                L.circleMarker(point, {
-                    radius: index === 0 ? 6 : 4,
-                    color: '#fff',
-                    weight: 2,
-                    fillColor: '#0f8069',
-                    fillOpacity: 1,
-                }).bindTooltip(escHtml(route.markets[index] || 'Étape du parcours')).addTo(routeLayer);
+            const item = uniqueRoutes.get(key);
+            item.occurrences += 1;
+            if (route.portCorridor && route.portCorridor !== '—') item.corridors.add(route.portCorridor);
+            if (route.categorie) item.categories.add(route.categorie);
+            item.alerts.push({
+                id: route.id,
+                codeGei: route.codeGei,
+                priorite: route.priorite,
+                portCorridor: route.portCorridor,
             });
-            for (let index = 0; index < route.points.length - 1; index++) {
-                const start = map.latLngToLayerPoint(route.points[index]);
-                const end = map.latLngToLayerPoint(route.points[index + 1]);
-                const midpoint = map.layerPointToLatLng(start.add(end).divideBy(2));
-                const angle = Math.atan2(end.y - start.y, end.x - start.x) * 180 / Math.PI;
-                L.marker(midpoint, {
+            const prioRanks = { critique: 4, eleve: 3, modere: 2, faible: 1 };
+            if ((prioRanks[route.priorite] || 1) > (prioRanks[item.maxPriority] || 1)) {
+                item.maxPriority = route.priorite;
+            }
+        });
+
+        const validRoutes = [...uniqueRoutes.values()].filter(route => Array.isArray(route.points) && route.points.length > 1);
+
+        const prioStyles = {
+            critique: { line: '#ef4444', glow: '#f87171', wave: '#ef4444', label: 'Critique' },
+            eleve:    { line: '#ea580c', glow: '#fb923c', wave: '#f97316', label: 'Élevé' },
+            modere:   { line: '#d97706', glow: '#fde68a', wave: '#f59e0b', label: 'Modéré' },
+            faible:   { line: '#0f766e', glow: '#34d399', wave: '#10b981', label: 'Faible' },
+        };
+
+        validRoutes.forEach((route, rIndex) => {
+            if (!Array.isArray(route.points) || route.points.length < 2) return;
+            const prio = route.maxPriority || 'faible';
+            const style = prioStyles[prio] || prioStyles.faible;
+
+            // Déterminer la courbure (alternance pour un rendu fluide et sans collision)
+            const flip = rIndex % 2 === 1;
+            const curveFactor = 0.15 + (rIndex % 3) * 0.04;
+
+            // Assemblage des coordonnées courbes
+            const allCurvedPoints = [];
+            for (let i = 0; i < route.points.length - 1; i++) {
+                const seg = getCurvedSegment(route.points[i], route.points[i + 1], curveFactor, flip);
+                if (i > 0) seg.shift();
+                allCurvedPoints.push(...seg);
+            }
+
+            // 1. Halo lumineux d'arrière-plan (lueur corridor)
+            const glowLine = L.polyline(allCurvedPoints, {
+                color: style.glow,
+                weight: 10,
+                opacity: 0.32,
+                lineCap: 'round',
+                lineJoin: 'round',
+                interactive: false,
+            }).addTo(routeLayer);
+
+            // 2. Tracé dynamique animé avec tirets fluides
+            const line = L.polyline(allCurvedPoints, {
+                color: style.line,
+                weight: 3.8,
+                opacity: 0.95,
+                dashArray: '8 8',
+                className: 'route-flow-line',
+                lineCap: 'round',
+                lineJoin: 'round',
+            }).addTo(routeLayer);
+
+            const corridorNames = [...route.corridors].join(', ');
+            const catsList = [...route.categories].slice(0, 4).map(c => `<span class="popup-cat">${escHtml(categorieLabel(c))}</span>`).join('');
+            const routeLabel = (route.markets || []).join(' ➔ ');
+
+            const tooltipHtml = `
+                <div style="font-size:11.5px;line-height:1.45;padding:2px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;">
+                        <span class="corridor-badge-prio ${prio}">${style.label}</span>
+                        <span style="font-size:10px;color:#64748b;font-weight:700;">${route.occurrences} alerte${route.occurrences > 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="font-weight:800;color:${style.line};"><i class="bi bi-geo-alt-fill me-1"></i>${escHtml(routeLabel)}</div>
+                    ${corridorNames ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;"><i class="bi bi-bezier2 me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                </div>`;
+
+            line.bindTooltip(tooltipHtml, { sticky: true });
+
+            const popupHtml = `
+                <div class="corridor-popup-card">
+                    <div class="corridor-popup-badge-row">
+                        <span class="corridor-badge-prio ${prio}">${style.label}</span>
+                        <span class="corridor-badge-count">${route.occurrences} alerte${route.occurrences > 1 ? 's' : ''} associée${route.occurrences > 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="corridor-popup-title">
+                        <i class="bi bi-arrow-right-circle text-emerald-600"></i>
+                        <span>${escHtml(routeLabel)}</span>
+                    </div>
+                    ${corridorNames ? `<div class="corridor-popup-sub"><i class="bi bi-signpost-split me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                    ${catsList ? `<div class="corridor-popup-cats">${catsList}</div>` : ''}
+                    <button type="button" class="corridor-popup-btn" onclick="openDrawerForCorridorGroup(${rIndex}); return false;">
+                        <i class="bi bi-layout-sidebar-reverse"></i>Voir les alertes de ce transit
+                    </button>
+                </div>`;
+
+            line.bindPopup(popupHtml, { maxWidth: 320 });
+
+            line.on('mouseover', function() {
+                this.setStyle({ weight: 5.5, opacity: 1 });
+                glowLine.setStyle({ weight: 15, opacity: 0.6 });
+            });
+            line.on('mouseout', function() {
+                this.setStyle({ weight: 3.8, opacity: 0.95 });
+                glowLine.setStyle({ weight: 10, opacity: 0.32 });
+            });
+
+            // 3. Flèche d'orientation vectorielle positionnée au milieu de la courbe
+            if (allCurvedPoints.length > 4) {
+                const midIdx = Math.floor(allCurvedPoints.length / 2);
+                const pPrev = map.latLngToLayerPoint(allCurvedPoints[midIdx - 1]);
+                const pNext = map.latLngToLayerPoint(allCurvedPoints[midIdx + 1]);
+                const midLatLng = allCurvedPoints[midIdx];
+                const angle = Math.atan2(pNext.y - pPrev.y, pNext.x - pPrev.x) * 180 / Math.PI;
+
+                L.marker(midLatLng, {
                     interactive: false,
                     icon: L.divIcon({
                         className: 'route-arrow-icon',
-                        html: `<span style="transform:rotate(${angle}deg)">➜</span>`,
-                        iconSize: [18, 18],
-                        iconAnchor: [9, 9],
+                        html: `<svg width="22" height="22" viewBox="0 0 24 24" style="transform:rotate(${angle}deg);display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.35));"><path d="M5 12h14M13 5l7 7-7 7" fill="none" stroke="${style.line}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+                        iconSize: [22, 22],
+                        iconAnchor: [11, 11],
                     }),
                 }).addTo(routeLayer);
             }
+
+            // 4. Balises d'étapes le long du parcours
+            route.points.forEach((point, index) => {
+                const isStart = index === 0;
+                const isEnd = index === route.points.length - 1;
+                const marketName = route.markets[index] || '';
+
+                if (isStart) {
+                    L.marker(point, {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<div class="route-origin-beacon" style="color:${style.wave}">
+                                <div class="route-beacon-wave"></div>
+                                <div class="route-beacon-wave route-beacon-wave-2"></div>
+                                <div class="route-beacon-core" style="background:${style.line}">
+                                    <div class="route-beacon-core-dot"></div>
+                                </div>
+                            </div>`,
+                            iconSize: [26, 26],
+                            iconAnchor: [13, 13],
+                        }),
+                        zIndexOffset: 600,
+                    }).bindTooltip(
+                        `<div style="font-size:11px;"><strong>Point de départ</strong> : ${escHtml(marketName)}</div>`,
+                        { direction: 'top', offset: [0, -12] }
+                    ).addTo(routeLayer);
+                } else if (isEnd) {
+                    L.marker(point, {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<div class="route-dest-beacon">
+                                <div class="route-dest-core" style="background:${style.line}">
+                                    <div class="route-dest-target"></div>
+                                </div>
+                            </div>`,
+                            iconSize: [22, 22],
+                            iconAnchor: [11, 11],
+                        }),
+                        zIndexOffset: 600,
+                    }).bindTooltip(
+                        `<div style="font-size:11px;"><strong>Destination finale</strong> : ${escHtml(marketName)}</div>`,
+                        { direction: 'top', offset: [0, -11] }
+                    ).addTo(routeLayer);
+                } else {
+                    L.marker(point, {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<div class="route-step-beacon" style="background:${style.line}"></div>`,
+                            iconSize: [12, 12],
+                            iconAnchor: [6, 6],
+                        }),
+                        zIndexOffset: 500,
+                    }).bindTooltip(
+                        `<div style="font-size:11px;"><strong>Étape ${index + 1}</strong> : ${escHtml(marketName)}</div>`,
+                        { direction: 'top', offset: [0, -6] }
+                    ).addTo(routeLayer);
+                }
+            });
         });
+
+        window.currentCorridorGroups = validRoutes;
+
         const count = validRoutes.length;
         const countLabel = document.getElementById('routeCount');
         const toggle = document.getElementById('routeToggle');
@@ -1059,6 +1791,21 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             routeLayer.addTo(map);
             toggle.setAttribute('aria-pressed', 'true');
         }
+    }
+
+    function toggleMarkets() {
+        if (!map || !markersLayer || !targetZonesLayer) return;
+        const button = document.getElementById('marketToggle');
+        const visible = button?.getAttribute('aria-pressed') === 'true';
+        const layers = [markersLayer, targetZonesLayer];
+        layers.forEach(layer => {
+            if (visible) {
+                map.removeLayer(layer);
+            } else {
+                layer.addTo(map);
+            }
+        });
+        button?.setAttribute('aria-pressed', visible ? 'false' : 'true');
     }
 
     function toggleRoutes() {
@@ -1175,17 +1922,34 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     function focusZone(zoneId, lat, lng) {
         const fLat = parseFloat(lat);
         const fLng = parseFloat(lng);
-        if (!isNaN(fLat) && !isNaN(fLng)) {
-            map.setView([fLat, fLng], 7, { animate: true });
-        }
         highlightPaysCard(zoneId);
 
+        let targetMarker = null;
         markersLayer.eachLayer(layer => {
-            const pos = layer.getLatLng();
-            if (Math.abs(pos.lat - fLat) < 0.01 && Math.abs(pos.lng - fLng) < 0.01) {
-                layer.openPopup();
+            if (layer.zoneId === zoneId) {
+                targetMarker = layer;
+            } else if (layer.getLatLng) {
+                const pos = layer.getLatLng();
+                if (Math.abs(pos.lat - fLat) < 0.01 && Math.abs(pos.lng - fLng) < 0.01) {
+                    targetMarker = layer;
+                }
             }
         });
+
+        if (targetMarker) {
+            if (typeof markersLayer.zoomToShowLayer === 'function') {
+                markersLayer.zoomToShowLayer(targetMarker, () => {
+                    targetMarker.openPopup();
+                });
+            } else {
+                if (!isNaN(fLat) && !isNaN(fLng)) {
+                    map.setView([fLat, fLng], 7, { animate: true });
+                }
+                targetMarker.openPopup();
+            }
+        } else if (!isNaN(fLat) && !isNaN(fLng)) {
+            map.setView([fLat, fLng], 7, { animate: true });
+        }
     }
 
     function highlightPaysCard(zoneId) {
@@ -1197,12 +1961,154 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         }
     }
 
-    function loadAlertesList(zoneId, zoneName) {
+    // ── Gestion du Tiroir Latéral d'Alertes (Drawer) ──
+    let currentDrawerAlerts = [];
+    const drawer = document.getElementById('carteAlertsDrawer');
+    const drawerLoading = document.getElementById('drawerLoading');
+    const drawerList = document.getElementById('drawerAlertsList');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerSubtitle = document.getElementById('drawerSubtitle');
+    const drawerPrioBadge = document.getElementById('drawerPrioBadge');
+    const drawerSearch = document.getElementById('drawerSearchInput');
+    const drawerCountChip = document.getElementById('drawerFilteredCount');
+    const drawerRegisterBtn = document.getElementById('drawerOpenRegisterBtn');
+
+    function collapseMapPanels() {
+        const categoryTargets = document.querySelector('.category-targets');
+        if (categoryTargets) categoryTargets.open = false;
+        const legend = document.getElementById('carteLegend');
+        const icon = document.getElementById('legendToggleIcon');
+        legend?.classList.remove('legend-expanded');
+        if (icon) icon.style.transform = 'rotate(-90deg)';
+    }
+
+    function openDrawerForMarket(marketId, marketName, iso3 = '') {
+        if (!drawer) return;
+        collapseMapPanels();
+        drawer.classList.add('is-open');
+        drawer.setAttribute('aria-hidden', 'false');
+        drawerTitle.textContent = (iso3 ? iso3 + ' · ' : '') + marketName;
+        drawerSubtitle.textContent = 'Chargement des alertes...';
+        drawerPrioBadge.textContent = 'MARCHÉ SÉLECTIONNÉ';
+        drawerPrioBadge.className = 'drawer-badge-prio';
+        if (drawerLoading) drawerLoading.style.display = 'flex';
+        if (drawerList) drawerList.innerHTML = '';
+        if (drawerSearch) drawerSearch.value = '';
+
         const params = new URLSearchParams();
-        params.set('marketId', zoneId);
+        params.set('marketId', marketId);
         const fForm = document.getElementById('carteFiltersForm');
-        new FormData(fForm).forEach((v, k) => { if (v) params.append(k, v); });
-        window.open('/alert/?' + params.toString(), '_blank');
+        new FormData(fForm).forEach((v, k) => { if (v && k !== 'marche[]') params.append(k, v); });
+
+        if (drawerRegisterBtn) drawerRegisterBtn.href = '/alert/?' + params.toString();
+
+        fetch('/carte/api/alertes?' + params.toString(), { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : [])
+            .then(alerts => {
+                currentDrawerAlerts = alerts;
+                drawerSubtitle.textContent = `${alerts.length} alerte${alerts.length > 1 ? 's' : ''} filtrée${alerts.length > 1 ? 's' : ''}`;
+                renderDrawerAlerts(alerts);
+            })
+            .catch(() => {
+                if (drawerList) drawerList.innerHTML = '<div class="drawer-empty"><i class="bi bi-exclamation-triangle text-amber-500 mb-2" style="font-size:24px;display:block;"></i>Impossible de charger les alertes.</div>';
+            })
+            .finally(() => {
+                if (drawerLoading) drawerLoading.style.display = 'none';
+            });
+    }
+
+    function openDrawerForCorridorGroup(groupIndex) {
+        const group = (window.currentCorridorGroups || [])[groupIndex];
+        if (!group || !drawer) return;
+        collapseMapPanels();
+        drawer.classList.add('is-open');
+        drawer.setAttribute('aria-hidden', 'false');
+        drawerTitle.innerHTML = `<i class="bi bi-bezier2 text-emerald-600 me-1"></i>${escHtml((group.markets || []).join(' ➔ '))}`;
+        drawerSubtitle.textContent = `${group.occurrences} alerte${group.occurrences > 1 ? 's' : ''} de transit`;
+        drawerPrioBadge.textContent = 'CORRIDOR DE TRANSIT';
+        drawerPrioBadge.className = `drawer-badge-prio ${group.maxPriority || 'faible'}`;
+        if (drawerLoading) drawerLoading.style.display = 'flex';
+        if (drawerList) drawerList.innerHTML = '';
+        if (drawerSearch) drawerSearch.value = '';
+
+        const params = new URLSearchParams();
+        if (group.principalId) params.set('marketId', group.principalId);
+        const fForm = document.getElementById('carteFiltersForm');
+        new FormData(fForm).forEach((v, k) => { if (v && k !== 'marche[]') params.append(k, v); });
+
+        if (drawerRegisterBtn) drawerRegisterBtn.href = '/alert/?' + params.toString();
+
+        fetch('/carte/api/alertes?' + params.toString(), { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : [])
+            .then(alerts => {
+                const routeAlertIds = new Set((group.alerts || []).map(a => a.id));
+                let filtered = alerts.filter(a => routeAlertIds.has(a.id));
+                if (filtered.length === 0) filtered = alerts;
+                currentDrawerAlerts = filtered;
+                drawerSubtitle.textContent = `${filtered.length} alerte${filtered.length > 1 ? 's' : ''} associée${filtered.length > 1 ? 's' : ''}`;
+                renderDrawerAlerts(filtered);
+            })
+            .catch(() => {
+                if (drawerList) drawerList.innerHTML = '<div class="drawer-empty"><i class="bi bi-exclamation-triangle text-amber-500 mb-2" style="font-size:24px;display:block;"></i>Impossible de charger les alertes.</div>';
+            })
+            .finally(() => {
+                if (drawerLoading) drawerLoading.style.display = 'none';
+            });
+    }
+
+    function closeDrawer() {
+        if (!drawer) return;
+        drawer.classList.remove('is-open');
+        drawer.setAttribute('aria-hidden', 'true');
+    }
+
+    function renderDrawerAlerts(alerts) {
+        if (!drawerList) return;
+        if (drawerCountChip) drawerCountChip.textContent = alerts.length;
+        if (!alerts || alerts.length === 0) {
+            drawerList.innerHTML = '<div class="drawer-empty"><i class="bi bi-inbox text-slate-400 mb-2" style="font-size:28px;display:block;"></i>Aucune alerte pour cette sélection.</div>';
+            return;
+        }
+
+        drawerList.innerHTML = alerts.map(a => {
+            const prio = a.niveauPriorite || 'faible';
+            return `<a href="/alert/${a.id}" target="_blank" rel="noopener noreferrer" class="drawer-alert-card">
+                <div class="drawer-alert-header">
+                    <span class="drawer-alert-code"><i class="bi bi-shield-fill-exclamation"></i>${escHtml(a.codeGei)}</span>
+                    <span class="drawer-alert-badge ${prio}">${escHtml(a.prioriteLabel || prio)}</span>
+                </div>
+                ${a.resumeExecutif ? `<div class="drawer-alert-resume">${escHtml(a.resumeExecutif)}</div>` : ''}
+                <div class="drawer-alert-meta">
+                    <span>${escHtml(a.categorieLabel || a.categorie || '—')}</span>
+                    ${a.portCorridor && a.portCorridor !== '—' ? `<span style="color:#0f766e;"><i class="bi bi-geo-alt me-0.5"></i>${escHtml(a.portCorridor)}</span>` : ''}
+                    <span><i class="bi bi-calendar3 me-1"></i>${escHtml(a.dateCreation || '')}</span>
+                </div>
+            </a>`;
+        }).join('');
+    }
+
+    if (drawerSearch) {
+        drawerSearch.addEventListener('input', () => {
+            const q = drawerSearch.value.trim().toLowerCase();
+            if (!q) {
+                renderDrawerAlerts(currentDrawerAlerts);
+                return;
+            }
+            const filtered = currentDrawerAlerts.filter(a => {
+                return (a.codeGei && a.codeGei.toLowerCase().includes(q)) ||
+                       (a.resumeExecutif && a.resumeExecutif.toLowerCase().includes(q)) ||
+                       (a.categorie && a.categorie.toLowerCase().includes(q)) ||
+                       (a.portCorridor && a.portCorridor.toLowerCase().includes(q)) ||
+                       (a.statutLabel && a.statutLabel.toLowerCase().includes(q));
+            });
+            renderDrawerAlerts(filtered);
+        });
+    }
+
+    document.getElementById('drawerCloseBtn')?.addEventListener('click', closeDrawer);
+
+    function loadAlertesList(zoneId, zoneName) {
+        openDrawerForMarket(zoneId, zoneName);
     }
 
     function escHtml(str) {
@@ -1260,10 +2166,13 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             return val;
         }
         // Otherwise, try to map from legacy enum value
-        return catLabels[val] || val;
+        return catLabels[val] || val.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
     window.loadAlertesList = loadAlertesList;
+    window.openDrawerForMarket = openDrawerForMarket;
+    window.openDrawerForCorridorGroup = openDrawerForCorridorGroup;
+    window.closeDrawer     = closeDrawer;
     window.focusZone       = focusZone;
     window.toggleLegend    = function() {
         const legend = document.getElementById('carteLegend');
@@ -1272,10 +2181,19 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             legend.classList.remove('legend-expanded');
             if (icon) icon.style.transform = 'rotate(-90deg)';
         } else {
+            const categoryTargets = document.querySelector('.category-targets');
+            if (categoryTargets) categoryTargets.open = false;
             legend.classList.add('legend-expanded');
             if (icon) icon.style.transform = 'rotate(0deg)';
         }
     };
+    document.querySelector('.category-targets')?.addEventListener('toggle', event => {
+        if (!event.currentTarget.open) return;
+        const legend = document.getElementById('carteLegend');
+        const icon = document.getElementById('legendToggleIcon');
+        legend?.classList.remove('legend-expanded');
+        if (icon) icon.style.transform = 'rotate(-90deg)';
+    });
 })();
 </script>
 {% endblock %}

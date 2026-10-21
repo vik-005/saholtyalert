@@ -124,21 +124,12 @@ class AlertRepository extends ServiceEntityRepository
 
         // Enforcement de la portée selon le rôle :
         if ($user->getRole() === \App\Enum\UserRoleEnum::EMETTEUR_TERRAIN) {
-            // AGENT : ses propres alertes uniquement
+            // AGENT TERRAIN : voit uniquement ses propres alertes (espace dédié)
             $qb->andWhere('a.emetteur = :currentUser')
                ->setParameter('currentUser', $user);
-        } elseif ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            // MANAGER : alertes de ses marchés gérés
-            $managedMarkets = $user->getAllManagedMarkets();
-            if (!empty($managedMarkets)) {
-                $qb->leftJoin('a.alertMarkets', 'amRole')
-                   ->andWhere('a.market IN (:managedMarkets) OR amRole.market IN (:managedMarkets)')
-                   ->setParameter('managedMarkets', $managedMarkets);
-            } else {
-                $qb->andWhere('1 = 0');
-            }
         }
-        // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → toutes les alertes (pas de filtre)
+        // Pour tout utilisateur ayant au moins le rôle MANAGER (PFT, SAHOLTY, SUPERADMIN, COMITE_AIT, SECRETARIAT_GEI) :
+        // Visibilité globale sur les alertes de tous les agents (avec filtrage dynamique possible via les filtres du registre).
 
         // Filtres multiples
         if (!empty($filters['statut'])) {
@@ -439,9 +430,12 @@ class AlertRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $debut = (new \DateTime())->modify("-{$days} days")->format('Y-m-d');
 
-        $emetteurFilter = ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN)
-            ? 'AND a.emetteur_id = ' . (int) $user->getId()
-            : '';
+        $params = ['debut' => $debut];
+        $emetteurFilter = '';
+        if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
+            $emetteurFilter = 'AND a.emetteur_id = :emetteurId';
+            $params['emetteurId'] = (int) $user->getId();
+        }
 
         $rows = $conn->fetchAllAssociative(
             "SELECT DATE(a.date_creation) AS jour, COUNT(*) AS nb
@@ -450,7 +444,7 @@ class AlertRepository extends ServiceEntityRepository
              {$emetteurFilter}
              GROUP BY DATE(a.date_creation)
              ORDER BY jour ASC",
-            ['debut' => $debut]
+            $params
         );
 
         $nouvellesMap = [];
@@ -465,7 +459,7 @@ class AlertRepository extends ServiceEntityRepository
              {$emetteurFilter}
              GROUP BY DATE(a.date_creation)
              ORDER BY jour ASC",
-            ['debut' => $debut]
+            $params
         );
 
         $transmisesMap = [];
