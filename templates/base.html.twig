@@ -261,7 +261,7 @@ async function pollNotifications() {
             data.notifications.forEach(n => {
                 if (!_seenNotifIds.has(n.id)) {
                     _seenNotifIds.add(n.id);
-                    showToast(n.contenu, n.type, n.alertId);
+                    showToast(n.contenu, n.type, n.alertToken || n.alertId);
                 }
             });
         }
@@ -347,7 +347,7 @@ async function initializeRealtimeNotifications() {
     }
 }
 
-function showToast(contenu, type, alertId) {
+function showToast(contenu, type, alertRef) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
@@ -355,8 +355,7 @@ function showToast(contenu, type, alertId) {
     const toast = document.createElement('div');
     toast.className = `gei-toast toast-${type || 'info'}`;
     const icon = is72h ? 'bi-clock-history' : type === 'urgence' ? 'bi-exclamation-triangle' : type === 'tache' ? 'bi-clipboard-check' : type === 'escalade' ? 'bi-arrow-up-right-square' : type === 'validation' ? 'bi-check-circle' : type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
-    const safeAlertId = alertId ? parseInt(alertId, 10) : null;
-    const href = (safeAlertId && safeAlertId > 0) ? `/alert/${safeAlertId}` : '/notifications';
+    const href = alertRef ? `/alert/${encodeURIComponent(alertRef)}` : '/notifications';
     toast.innerHTML = `
         <a href="${href}" class="gei-toast-link">
             <span class="gei-toast-icon"><i class="bi ${icon}"></i></span>
@@ -610,9 +609,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     rejectBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            const alertId = btn.getAttribute('data-alert-id');
+            const alertToken = btn.getAttribute('data-alert-token') || btn.getAttribute('data-alert-id');
             if (rejectForm) {
-                rejectForm.action = `/alert/${alertId}/qualify`;
+                rejectForm.action = `/alert/${encodeURIComponent(alertToken)}/qualify`;
             }
             if (rejectModal) rejectModal.classList.remove('hidden');
             if (rejectCommentaire) rejectCommentaire.focus();

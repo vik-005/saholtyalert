@@ -1,4 +1,4 @@
-﻿{% extends 'base.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}Dashboard GEI — Opérationnel{% endblock %}
 {% block header_title %}Dashboard{% endblock %}
@@ -294,6 +294,7 @@
                             {% set rowClass = 'row-eleve' %}
                         {% endif %}
 
+                        {% set alertToken = encrypt_id(alert.id, 'alert') %}
                         <tr class="db-tr {{ rowClass }}" id="row-{{ alert.id }}">
                             <td>
                                 <button type="button" data-toggle-row="{{ alert.id }}" class="row-expand-btn" id="expbtn-{{ alert.id }}" title="Afficher les détails" aria-expanded="false">
@@ -301,7 +302,7 @@
                                 </button>
                             </td>
                             <td>
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="code-gei-link">
+                                <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="code-gei-link">
                                     {{ alert.codeGei ?? 'BROUILLON' }}
                                 </a>
                                 {% if alert.surveillanceRenforcee %}
@@ -369,17 +370,17 @@
                             </td>
                             <td class="text-right whitespace-nowrap">
                                 <div class="table-actions">
-                                    <a href="{{ path('app_alert_show', {id: alert.id}) }}"
+                                    <a href="{{ path('app_alert_show', {token: alertToken}) }}"
                                        class="tbl-btn tbl-btn-ghost" title="Voir la fiche">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     {% if is_granted('ALERT_QUALIFY', alert) %}
-                                    <a href="{{ path('app_alert_qualify', {id: alert.id}) }}"
+                                    <a href="{{ path('app_alert_qualify', {token: alertToken}) }}"
                                        class="tbl-btn tbl-btn-amber" title="Qualifier">
                                         <i class="bi bi-star-half"></i>
                                     </a>
                                     {% endif %}
-                                    <a href="{{ path('app_alert_pdf', {id: alert.id}) }}"
+                                    <a href="{{ path('app_alert_pdf', {token: alertToken}) }}"
                                        class="tbl-btn tbl-btn-red" title="PDF">
                                         <i class="bi bi-file-earmark-pdf"></i>
                                     </a>
@@ -574,7 +575,7 @@
                         </div>
                         <div class="activity-body">
                             <p class="activity-title">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="hover:text-amber-400 transition">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(alert.id, 'alert')}) }}" class="hover:text-amber-400 transition">
                                     {{ alert.codeGei ?? 'Brouillon' }}
                                 </a>
                                 — {{ alert.market.nom }}
@@ -599,7 +600,7 @@
                         </div>
                         <div class="activity-body">
                             <p class="activity-title">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="hover:text-amber-400 transition">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(alert.id, 'alert')}) }}" class="hover:text-amber-400 transition">
                                     {{ alert.codeGei ?? 'Brouillon' }}
                                 </a>
                             </p>

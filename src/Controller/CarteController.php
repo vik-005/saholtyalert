@@ -12,6 +12,7 @@ use App\Repository\AlertRepository;
 use App\Repository\ListeReferenceValeurRepository;
 use App\Repository\MarketRepository;
 use App\Repository\ZoneGeoRepository;
+use App\Service\CryptoService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,6 +27,11 @@ use Symfony\Contracts\Cache\ItemInterface;
 #[IsGranted('ROLE_PFT')]
 class CarteController extends AbstractController
 {
+    public function __construct(
+        private readonly CryptoService $crypto,
+    ) {
+    }
+
     #[Route('/', name: 'app_carte_index', methods: ['GET'])]
     public function index(
         Request          $request,
@@ -215,6 +221,7 @@ class CarteController extends AbstractController
 
         return new JsonResponse(array_map(fn(Alert $a) => [
             'id'             => $a->getId(),
+            'token'          => $this->crypto->encryptId($a->getId(), 'alert'),
             'codeGei'        => $a->getCodeGei() ?? 'BROUILLON',
             'statut'         => $a->getStatut()?->value ?? 'nouveau',
             'statutLabel'    => $a->getStatut()?->label() ?? '—',

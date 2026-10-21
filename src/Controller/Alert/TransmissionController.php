@@ -7,6 +7,8 @@ use App\Entity\Alert;
 use App\Entity\AlertTransmission;
 use App\Enum\AlertStatut;
 use App\Form\TransmissionType;
+use App\Repository\AlertRepository;
+use App\Service\CryptoService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,12 +21,31 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class TransmissionController extends AbstractController
 {
-    #[Route('/{id}/transmit', name: 'app_alert_transmit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
+    public function __construct(
+        private readonly CryptoService $crypto,
+    ) {}
+
+    private function resolveAlertToken(string $token, AlertRepository $repo): Alert
+    {
+        $id = $this->crypto->decryptId($token, 'alert');
+        if ($id === null) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        $alert = $repo->find($id);
+        if (!$alert instanceof Alert) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        return $alert;
+    }
+
+    #[Route('/{token}/transmit', name: 'app_alert_transmit', methods: ['GET', 'POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
     public function transmit(
+        string $token,
         Request $request,
-        Alert $alert,
+        AlertRepository $alertRepository,
         EntityManagerInterface $em,
     ): Response {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::TRANSMIT, $alert);
 
         if ($alert->getStatut() !== AlertStatut::VALIDEE) {
@@ -58,12 +79,12 @@ class TransmissionController extends AbstractController
 
             $this->addFlash('success', 'Transmission enregistrée avec succès.');
 
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         return $this->render('alert/transmission.html.twig', [
             'alert' => $alert,
-            'form' => $form,
+            'form'  => $form,
         ]);
     }
 
@@ -103,11 +124,11 @@ class TransmissionController extends AbstractController
             ->getQuery()->getSingleScalarResult();
 
         return $this->render('alert/transmission_list.html.twig', [
-            'transmissions' => $transmissions,
+            'transmissions'  => $transmissions,
             'current_filter' => $statutFilter,
-            'nb_en_cours' => $nbEnCours,
-            'nb_clotures' => $nbClotures,
-            'total' => $nbEnCours + $nbClotures,
+            'nb_en_cours'    => $nbEnCours,
+            'nb_clotures'    => $nbClotures,
+            'total'          => $nbEnCours + $nbClotures,
         ]);
     }
 

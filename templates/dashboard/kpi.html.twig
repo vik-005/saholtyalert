@@ -1,4 +1,4 @@
-﻿{% extends 'base.html.twig' %}
+{% extends 'base.html.twig' %}
 {% block title %}KPI Stratégiques — Comité AIT{% endblock %}
 {% block header_title %}KPI Stratégiques{% endblock %}
 
@@ -202,7 +202,7 @@
                     {% for alert in alertes_recentes %}
                     <tr class="db-tr">
                         <td>
-                            <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="code-gei-link">
+                            <a href="{{ path('app_alert_show', {token: encrypt_id(alert.id, 'alert')}) }}" class="code-gei-link">
                                 {{ alert.codeGei ?? 'BROUILLON' }}
                             </a>
                         </td>

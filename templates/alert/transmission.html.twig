@@ -4,6 +4,7 @@
 {% block header_title %}Décision de Transmission{% endblock %}
 
 {% block body %}
+{% set alertToken = encrypt_id(alert.id, 'alert') %}
 <div class="db-wrapper">
 
     {# ── En-tête ── #}
@@ -15,7 +16,7 @@
             <h2 class="page-title">Transmettre {{ alert.codeGei }}</h2>
             <p class="page-subtitle">Transmettre l'information qualifiée aux autorités compétentes.</p>
         </div>
-        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+        <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
             <i class="bi bi-arrow-left me-1.5"></i>Retour à la fiche
         </a>
     </div>
@@ -53,7 +54,7 @@
                 </div>
 
                 <div class="form-actions" style="margin-bottom:0; border-radius: 0 0 var(--r) var(--r);">
-                    <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                    <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
                         <i class="bi bi-x-circle me-1.5"></i>Annuler
                     </a>
                     <button type="submit" class="db-btn db-btn-amber">

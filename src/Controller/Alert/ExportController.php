@@ -6,6 +6,7 @@ use App\Entity\AccessLog;
 use App\Entity\Alert;
 use App\Entity\User;
 use App\Repository\AlertRepository;
+use App\Service\CryptoService;
 use App\Service\ExportService;
 use App\Service\ExportStatsService;
 use App\Service\PdfExportService;
@@ -20,6 +21,22 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class ExportController extends AbstractController
 {
+    public function __construct(
+        private readonly CryptoService $crypto,
+    ) {}
+
+    private function resolveAlertToken(string $token, AlertRepository $repo): Alert
+    {
+        $id = $this->crypto->decryptId($token, 'alert');
+        if ($id === null) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        $alert = $repo->find($id);
+        if (!$alert instanceof Alert) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        return $alert;
+    }
     /**
      * Export du registre en Excel.
      * Les filtres actifs (statut, priorité, pays, recherche…) sont transmis par l'URL
@@ -46,11 +63,12 @@ class ExportController extends AbstractController
     }
 
     /**
-     * Export d'une fiche individuelle en PDF.
+     * Export d'une fiche individuelle en PDF via token opaque (ID non devinable).
      */
-    #[Route('/alert/{id}/pdf', name: 'app_alert_pdf', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function exportAlertPdf(Alert $alert, PdfExportService $pdfService): Response
+    #[Route('/alert/{token}/pdf', name: 'app_alert_pdf', methods: ['GET'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
+    public function exportAlertPdf(string $token, AlertRepository $alertRepository, PdfExportService $pdfService): Response
     {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::EXPORT, $alert);
 
         $pdfContent = $pdfService->generateAlertPdf($alert);

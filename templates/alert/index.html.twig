@@ -195,6 +195,7 @@
 
                 {# Classe de ligne selon priorité pour l'indicateur latéral #}
                 {% set rowPrio = prio ? prio.value : 'none' %}
+                {% set alertToken = encrypt_id(alert.id, 'alert') %}
 
                 <tr class="reg-row reg-row-{{ rowPrio }}"
                     data-id="{{ alert.id }}"
@@ -216,7 +217,7 @@
 
                     {# Code GEI #}
                     <td class="reg-td">
-                        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="reg-code-link">
+                        <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="reg-code-link">
                             {{ alert.codeGei ?? 'BROUILLON' }}
                         </a>
                         {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
@@ -305,26 +306,15 @@
                         {% endif %}
                     </td>
 
-                    {# Agent — masqué sur tablette #}
-                    <td class="reg-td reg-col-hide-md">
-                        {% if alert.emetteur %}
-                            <span class="reg-agent">
-                                <i class="bi bi-person-fill me-1 opacity-40"></i>{{ alert.emetteur.nomComplet }}
-                            </span>
-                        {% else %}
-                            <span class="reg-empty">—</span>
-                        {% endif %}
-                    </td>
-
-                    {# Actions #}
+                          {# Actions #}
                     <td class="reg-td reg-col-actions">
                         <div class="reg-actions">
-                            <a href="{{ path('app_alert_show', {id: alert.id}) }}"
+                            <a href="{{ path('app_alert_show', {token: alertToken}) }}"
                                class="reg-action-btn" title="Consulter">
                                 <i class="bi bi-eye"></i>
                             </a>
                             {% if is_granted('ALERT_QUALIFY', alert) %}
-                            <a href="{{ path('app_alert_qualify', {id: alert.id}) }}"
+                            <a href="{{ path('app_alert_qualify', {token: alertToken}) }}"
                                class="reg-action-btn reg-action-qualify" title="Qualifier">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
@@ -361,18 +351,18 @@
                                         <span><strong>Sensibilité :</strong> {{ alert.sensibilite.label() }}</span>
                                         {% if alert.validatedBy %}
                                         <span><strong>Manager :</strong>
-                                            <i class="bi bi-shield-check me-1 text-emerald-400"></i>{{ alert.validatedBy.nomComplet }}
+                                             <i class="bi bi-shield-check me-1 text-emerald-400"></i>{{ alert.validatedBy.nomComplet }}
                                         </span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
                             <div class="reg-detail-footer">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost" style="font-size:11px;padding:5px 12px">
+                                <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost" style="font-size:11px;padding:5px 12px">
                                     <i class="bi bi-arrow-right me-1"></i>Voir la fiche complète
                                 </a>
                                 {% if is_granted('ALERT_QUALIFY', alert) %}
-                                <a href="{{ path('app_alert_qualify', {id: alert.id}) }}" class="db-btn db-btn-amber" style="font-size:11px;padding:5px 12px">
+                                <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="db-btn db-btn-amber" style="font-size:11px;padding:5px 12px">
                                     <i class="bi bi-pencil-square me-1"></i>Qualifier
                                 </a>
                                 {% endif %}

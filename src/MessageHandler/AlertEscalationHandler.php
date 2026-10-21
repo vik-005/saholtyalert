@@ -8,6 +8,7 @@ use App\Enum\UserRoleEnum;
 use App\Message\AlertEscalationMessage;
 use App\Repository\AlertRepository;
 use App\Repository\UserRepository;
+use App\Service\CryptoService;
 use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -45,6 +46,7 @@ class AlertEscalationHandler
         private readonly MailerInterface       $mailer,
         private readonly Environment           $twig,
         private readonly WebPushService        $webPushService,
+        private readonly CryptoService         $crypto,
     ) {}
 
     public function __invoke(AlertEscalationMessage $message): void
@@ -243,12 +245,13 @@ class AlertEscalationHandler
             return;
         }
 
+        $alertToken = $this->crypto->encryptId($alert->getId(), 'alert');
         $html = $this->twig->render('emails/alerte_critique.html.twig', [
             'codeGei'  => $alert->getCodeGei() ?? '#' . $alert->getId(),
             'score'    => $score,
             'market'   => $alert->getMarket()?->getNom() ?? '—',
             'priorite' => \App\Enum\NiveauPriorite::fromScore($score)->label(),
-            'url'      => sprintf('%s/alert/%d', rtrim($_SERVER['APP_URL'] ?? 'http://localhost'), $alert->getId()),
+            'url'      => sprintf('%s/alert/%s', rtrim($_SERVER['APP_URL'] ?? 'http://localhost'), $alertToken),
         ]);
 
         $email = (new Email())

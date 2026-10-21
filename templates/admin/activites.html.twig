@@ -204,7 +204,7 @@
                             </td>
                             <td>
                                 {% if log.alert %}
-                                    <a href="{{ path('app_alert_show', {id: log.alert.id}) }}"
+                                    <a href="{{ path('app_alert_show', {token: encrypt_id(log.alert.id, 'alert')}) }}"
                                        class="font-mono hover:underline text-xs" style="color:var(--amber)"
                                        onclick="event.stopPropagation()">
                                         {{ log.alert.codeGei ?? '#' ~ log.alert.id }}

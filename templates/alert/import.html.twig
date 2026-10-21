@@ -189,7 +189,7 @@
                             </div>
                         </div>
                         {% if li.alert_id is defined %}
-                        <a href="{{ path('app_alert_qualify', {id: li.alert_id}) }}"
+                        <a href="{{ path('app_alert_qualify', {token: encrypt_id(li.alert_id, 'alert')}) }}"
                            class="import-complete-btn">
                             <i class="bi bi-pencil-square me-1.5"></i>Qualifier
                         </a>

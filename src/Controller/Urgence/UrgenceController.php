@@ -6,6 +6,8 @@ use App\Entity\Alert;
 use App\Entity\Urgence72hCase;
 use App\Entity\Urgence72hPhase;
 use App\Enum\PhaseUrgence;
+use App\Repository\AlertRepository;
+use App\Service\CryptoService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,14 +20,35 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_PFT')]
 class UrgenceController extends AbstractController
 {
-    #[Route('/activate/{id}', name: 'app_urgence_activate', methods: ['POST'])]
-    public function activate(Request $request, Alert $alert, EntityManagerInterface $em): Response
+    public function __construct(
+        private readonly CryptoService $crypto,
+    ) {
+    }
+
+    private function resolveAlertToken(string $token, AlertRepository $repo): Alert
     {
+        $id = $this->crypto->decryptId($token, 'alert');
+        if ($id === null) {
+            throw $this->createNotFoundException('Alerte introuvable ou jeton invalide.');
+        }
+
+        $alert = $repo->find($id);
+        if (!$alert) {
+            throw $this->createNotFoundException('Alerte introuvable.');
+        }
+
+        return $alert;
+    }
+
+    #[Route('/activate/{token}', name: 'app_urgence_activate', methods: ['POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
+    public function activate(Request $request, string $token, AlertRepository $alertRepository, EntityManagerInterface $em): Response
+    {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         if (!$this->isCsrfTokenValid('activate-urgence-' . $alert->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         if ($alert->getStatut() !== \App\Enum\AlertStatut::VALIDEE) {
@@ -37,13 +60,13 @@ class UrgenceController extends AbstractController
 
         if ($alert->getUrgence72hCase()) {
             $this->addFlash('warning', 'Procédure Urgence 72h déjà active pour cette alerte.');
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         $justification = $request->request->get('justification');
         if (empty($justification)) {
             $this->addFlash('danger', 'Une justification est obligatoire pour l\'activation manuelle.');
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         $case = new Urgence72hCase();

@@ -637,7 +637,7 @@
                                     </td>
                                     <td class="col-actions">
                                         {% if row.id %}
-                                            <a href="{{ path('app_alert_show', {id: row.id}) }}"
+                                            <a href="{{ path('app_alert_show', {token: encrypt_id(row.id, 'alert')}) }}"
                                                class="action-btn action-view"
                                                title="Voir l'alerte">
                                                 <i class="bi bi-eye"></i>

@@ -9,6 +9,8 @@ use App\Enum\AlertStatut;
 use App\Enum\NiveauPriorite;
 use App\Form\ManagerDecisionType;
 use App\Form\QualificationType;
+use App\Repository\AlertRepository;
+use App\Service\CryptoService;
 use App\Service\NotificationService;
 use App\Service\ScoreCalculatorService;
 use App\Voter\AlertVoter;
@@ -24,6 +26,23 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_USER')]
 class QualificationController extends AbstractController
 {
+    public function __construct(
+        private readonly CryptoService $crypto,
+    ) {}
+
+    private function resolveAlertToken(string $token, AlertRepository $repo): Alert
+    {
+        $id = $this->crypto->decryptId($token, 'alert');
+        if ($id === null) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        $alert = $repo->find($id);
+        if (!$alert instanceof Alert) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+        return $alert;
+    }
+
     /**
      * Point d'entrée unique de qualification/validation.
      *
@@ -34,14 +53,16 @@ class QualificationController extends AbstractController
      * La variable canDecide = true quand l'alerte est prête pour décision Manager
      * (statut A_VALIDER_SAHOLTY) et que l'utilisateur courant a le droit de décider.
      */
-    #[Route('/{id}/qualify', name: 'app_alert_qualify', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
+    #[Route('/{token}/qualify', name: 'app_alert_qualify', methods: ['GET', 'POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
     public function qualify(
+        string $token,
         Request $request,
-        Alert $alert,
+        AlertRepository $alertRepository,
         ScoreCalculatorService $scoreCalculator,
         EntityManagerInterface $em,
         NotificationService $notificationService,
     ): Response {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         /** @var User|null $currentUser */
@@ -66,14 +87,14 @@ class QualificationController extends AbstractController
         if ($isReject && $canDecide) {
             if (!$this->isCsrfTokenValid('qualify-' . $alert->getId(), $request->request->get('_token'))) {
                 $this->addFlash('danger', 'Jeton de sécurité invalide.');
-                return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+                return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
             }
 
             $commentaireRejet = trim((string) $request->request->get('commentaire_rejet', ''));
 
             if ($commentaireRejet === '') {
                 $this->addFlash('danger', 'Un commentaire est obligatoire pour rejeter une fiche.');
-                return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+                return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
             }
 
             $ancienStatut = $alert->getStatut();
@@ -117,7 +138,7 @@ class QualificationController extends AbstractController
             }
 
             $this->addFlash('info', 'Fiche rejetée. L\'Agent doit compléter et resoumettre.');
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         // ── Formulaire Agent (qualification) ou Manager (décision via QualificationType) ──
@@ -216,7 +237,7 @@ class QualificationController extends AbstractController
                 $alert->getNiveauPriorite()?->label() ?? 'N/A'
             ));
 
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         return $this->render('alert/qualification.html.twig', [
@@ -230,30 +251,32 @@ class QualificationController extends AbstractController
      * Surcharge manuelle du score/priorité par un Manager (avec justification obligatoire).
      * Accessible uniquement via ROLE_PFT ou ROLE_SAHOLTY.
      */
-    #[Route('/{id}/override-score', name: 'app_alert_override_score', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[Route('/{token}/override-score', name: 'app_alert_override_score', methods: ['POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
     public function overrideScore(
+        string $token,
         Request $request,
-        Alert $alert,
+        AlertRepository $alertRepository,
         EntityManagerInterface $em,
         ScoreCalculatorService $scoreCalculator,
     ): Response
     {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         if ($alert->getStatut() !== AlertStatut::VALIDEE) {
-            throw $this->createAccessDeniedException('La surcharge d’un score n’est possible qu’après validation Manager.');
+            throw $this->createAccessDeniedException("La surcharge d'un score n'est possible qu'après validation Manager.");
         }
 
         if (!$this->isCsrfTokenValid('override-' . $alert->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
-            return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
         }
 
         $justification = trim((string) $request->request->get('justification_surcharge', ''));
 
         if ($justification === '') {
             $this->addFlash('danger', 'Une justification est obligatoire pour surcharger manuellement le score/priorité.');
-            return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
         }
 
         $oldEffectiveScore = $alert->getEffectiveScore();
@@ -269,7 +292,7 @@ class QualificationController extends AbstractController
             $scoreInt = (int) $score;
             if ($scoreInt < 1 || $scoreInt > 25) {
                 $this->addFlash('danger', 'Le score surchargé doit être compris entre 1 et 25.');
-                return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+                return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
             }
             $alert->setScoreSurcharge($scoreInt);
         } else {
@@ -282,7 +305,7 @@ class QualificationController extends AbstractController
                 $alert->setNiveauPrioriteSurcharge(NiveauPriorite::from($prioriteVal));
             } catch (\ValueError) {
                 $this->addFlash('danger', 'Niveau de priorité invalide.');
-                return $this->redirectToRoute('app_alert_qualify', ['id' => $alert->getId()]);
+                return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
             }
         } else {
             $alert->setNiveauPrioriteSurcharge(null);
@@ -301,7 +324,7 @@ class QualificationController extends AbstractController
         $em->flush();
 
         $this->addFlash('success', 'Surcharge manuelle enregistrée.');
-        return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+        return $this->redirectToRoute('app_alert_show', ['token' => $token]);
     }
 
     /**

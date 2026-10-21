@@ -1,4 +1,4 @@
-﻿{% extends 'base.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}Dashboard Général — GEI{% endblock %}
 {% block header_title %}Dashboard Général{% endblock %}
@@ -139,7 +139,7 @@
                         <span class="notif-meta">
                             {{ notif.createdAt|date('d/m/Y H:i') }}
                             {% if notif.alert %}
-                                <a href="{{ path('app_alert_show', {id: notif.alert.id}) }}" class="notif-link-alert">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(notif.alert.id, 'alert')}) }}" class="notif-link-alert">
                                     <i class="bi bi-link-45deg"></i>
                                 </a>
                             {% endif %}
@@ -282,7 +282,7 @@
                             </div>
                             <div class="activity-body">
                                 <p class="activity-title">
-                                    <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="hover:text-amber-400 transition">
+                                    <a href="{{ path('app_alert_show', {token: encrypt_id(alert.id, 'alert')}) }}" class="hover:text-amber-400 transition">
                                         {{ alert.codeGei ?? 'Brouillon' }}
                                     </a>
                                     — {{ alert.market.nom }}
@@ -368,8 +368,9 @@
                         : score >= 14 ? 'score-eleve'
                         : score >= 10 ? 'score-modere'
                         : 'score-faible' %}
+                    {% set alertToken = encrypt_id(alert.id, 'alert') %}
                     <tr class="db-tr">
-                        <td><a href="{{ path('app_alert_show', {id: alert.id}) }}" class="code-gei-link">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
+                        <td><a href="{{ path('app_alert_show', {token: alertToken}) }}" class="code-gei-link">{{ alert.codeGei ?? 'BROUILLON' }}</a></td>
                         <td class="text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
                         <td class="text-sm">{{ alert.market.nom }}</td>
                         <td class="text-xs">{{ alert.categorie ?: '—' }}</td>
@@ -399,9 +400,9 @@
                         </td>
                         <td class="text-right whitespace-nowrap">
                             <div class="table-actions">
-                                <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="tbl-btn tbl-btn-ghost" title="Voir"><i class="bi bi-eye"></i></a>
+                                <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="tbl-btn tbl-btn-ghost" title="Voir"><i class="bi bi-eye"></i></a>
                                 {% if is_granted('ALERT_DECIDE', alert) %}
-                                <form method="post" action="{{ path('app_alert_delete', {id: alert.id}) }}" style="display:inline" onsubmit="return confirm('Archiver cette alerte ?');">
+                                <form method="post" action="{{ path('app_alert_delete', {token: alertToken}) }}" style="display:inline" onsubmit="return confirm('Archiver cette alerte ?');">
                                     <input type="hidden" name="_token" value="{{ csrf_token('delete') }}">
                                     <button type="submit" class="tbl-btn tbl-btn-danger" title="Supprimer"><i class="bi bi-trash3"></i></button>
                                 </form>

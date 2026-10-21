@@ -16,17 +16,18 @@ use App\Enum\Recommandation;
 use App\Enum\TypeAlerte;
 use App\Repository\ListeReferenceValeurRepository;
 use App\Repository\MarketRepository;
-use App\Service\AlertCodeGeneratorService;
-use App\Service\ScoreCalculatorService;
-use App\Service\NotificationService;
 use App\Service\AlertAttachmentStorageService;
-use Symfony\Component\Intl\Countries;
+use App\Service\AlertCodeGeneratorService;
+use App\Service\CryptoService;
+use App\Service\NotificationService;
+use App\Service\ScoreCalculatorService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Intl\Countries;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -58,6 +59,7 @@ class WizardController extends AbstractController
         private readonly ListeReferenceValeurRepository $listeReferenceRepository,
         private readonly NotificationService $notificationService,
         private readonly AlertAttachmentStorageService $attachmentStorage,
+        private readonly CryptoService $crypto,
     ) {}
 
     #[Route('/new', name: 'app_wizard_new', methods: ['GET', 'POST'])]
@@ -508,7 +510,8 @@ class WizardController extends AbstractController
 
         $this->addFlash('success', sprintf('Alerte %s soumise avec succès.', $alert->getCodeGei()));
 
-        return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+        $alertToken = $this->crypto->encryptId($alert->getId(), 'alert');
+        return $this->redirectToRoute('app_alert_show', ['token' => $alertToken]);
     }
 
     /**

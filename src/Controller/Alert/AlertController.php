@@ -8,6 +8,7 @@ use App\Entity\AlertAttachment;
 use App\Repository\AlertRepository;
 use App\Repository\MarketRepository;
 use App\Service\AlertAttachmentStorageService;
+use App\Service\CryptoService;
 use App\Service\StatistiquesService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -27,7 +28,29 @@ class AlertController extends AbstractController
 {
     public function __construct(
         private readonly RequestStack $requestStack,
+        private readonly CryptoService $crypto,
     ) {}
+
+    // ── Helper : résolution du token → entité Alert ─────────────────────────
+
+    /**
+     * Déchiffre un token URL-safe en ID d'alerte, charge et retourne l'entité.
+     * Lance une 404 si le token est invalide, altéré ou si l'entité est introuvable.
+     */
+    private function resolveAlertToken(string $token, AlertRepository $repo): Alert
+    {
+        $id = $this->crypto->decryptId($token, 'alert');
+        if ($id === null) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+
+        $alert = $repo->find($id);
+        if (!$alert instanceof Alert) {
+            throw $this->createNotFoundException('Fiche d\'alerte introuvable.');
+        }
+
+        return $alert;
+    }
 
     #[Route('/', name: 'app_alert_index', methods: ['GET'])]
     public function index(Request $request, AlertRepository $alertRepository, MarketRepository $marketRepository): Response
@@ -90,9 +113,14 @@ class AlertController extends AbstractController
         return $this->redirectToRoute('app_wizard_new');
     }
 
-    #[Route('/{id}', name: 'app_alert_show', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show(Alert $alert, EntityManagerInterface $em): Response
+    /**
+     * Consultation d'une fiche alerte via token opaque (ID non devinable).
+     * Le token est chiffré avec libsodium (XSalsa20-Poly1305) et lié au contexte 'alert'.
+     */
+    #[Route('/{token}', name: 'app_alert_show', methods: ['GET'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
+    public function show(string $token, AlertRepository $alertRepository, EntityManagerInterface $em): Response
     {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::VIEW, $alert);
 
         // Log de consultation avec flush dédié
@@ -100,19 +128,31 @@ class AlertController extends AbstractController
         $em->flush();
 
         return $this->render('alert/show.html.twig', [
-            'alert' => $alert,
+            'alert'        => $alert,
             'countryNames' => Countries::getNames('fr'),
         ]);
     }
 
-    #[Route('/{id}/piece-jointe/{attachmentId}', name: 'app_alert_attachment_download', methods: ['GET'], requirements: ['id' => '\d+', 'attachmentId' => '\d+'])]
+    /**
+     * Téléchargement d'une pièce jointe via token opaque d'alerte + token opaque de pièce jointe.
+     * Double validation : le token d'alerte doit correspondre à l'alerte parente de la pièce jointe.
+     */
+    #[Route('/{token}/piece-jointe/{attachToken}', name: 'app_alert_attachment_download', methods: ['GET'], requirements: ['token' => '[A-Za-z0-9_-]+', 'attachToken' => '[A-Za-z0-9_-]+'])]
     public function downloadAttachment(
-        Alert $alert,
-        int $attachmentId,
+        string $token,
+        string $attachToken,
+        AlertRepository $alertRepository,
         EntityManagerInterface $em,
         AlertAttachmentStorageService $attachmentStorage,
     ): Response {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::VIEW, $alert);
+
+        // Déchiffrer le token de pièce jointe
+        $attachmentId = $this->crypto->decryptId($attachToken, 'attachment');
+        if ($attachmentId === null) {
+            throw $this->createNotFoundException('Justificatif introuvable.');
+        }
 
         $attachment = $em->getRepository(AlertAttachment::class)->find($attachmentId);
         if (!$attachment instanceof AlertAttachment || $attachment->getAlert()?->getId() !== $alert->getId()) {
@@ -139,9 +179,10 @@ class AlertController extends AbstractController
         return $response;
     }
 
-    #[Route('/{id}/edit', name: 'app_alert_edit', methods: ['GET', 'POST'], requirements: ['id' => '\d+'])]
-    public function edit(Request $request, Alert $alert): Response
+    #[Route('/{token}/edit', name: 'app_alert_edit', methods: ['GET', 'POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
+    public function edit(string $token, Request $request, AlertRepository $alertRepository): Response
     {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::EDIT_COLLECTE, $alert);
 
         $user = $this->getUser();
@@ -189,20 +230,22 @@ class AlertController extends AbstractController
         return $data;
     }
 
-    #[Route('/{id}/delete', name: 'app_alert_delete', methods: ['POST'], requirements: ['id' => '\d+'])]
+    #[Route('/{token}/delete', name: 'app_alert_delete', methods: ['POST'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
     public function delete(
+        string $token,
         Request $request,
-        Alert $alert,
+        AlertRepository $alertRepository,
         EntityManagerInterface $em,
         StatistiquesService $statistiquesService,
         \App\Service\AlertCodeGeneratorService $codeGenerator,
         AlertAttachmentStorageService $attachmentStorage,
     ): Response {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         if (!$this->isCsrfTokenValid('delete', $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
-            return $this->redirectToRoute('app_alert_show', ['id' => $alert->getId()]);
+            return $this->redirectToRoute('app_alert_show', ['token' => $token]);
         }
 
         $codeGei = $alert->getCodeGei() ?? '#' . $alert->getId();

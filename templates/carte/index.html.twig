@@ -2072,7 +2072,8 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
         drawerList.innerHTML = alerts.map(a => {
             const prio = a.niveauPriorite || 'faible';
-            return `<a href="/alert/${a.id}" target="_blank" rel="noopener noreferrer" class="drawer-alert-card">
+            const alertRef = a.token || a.id;
+            return `<a href="/alert/${encodeURIComponent(alertRef)}" target="_blank" rel="noopener noreferrer" class="drawer-alert-card">
                 <div class="drawer-alert-header">
                     <span class="drawer-alert-code"><i class="bi bi-shield-fill-exclamation"></i>${escHtml(a.codeGei)}</span>
                     <span class="drawer-alert-badge ${prio}">${escHtml(a.prioriteLabel || prio)}</span>

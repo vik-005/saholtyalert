@@ -7,6 +7,7 @@ use App\Entity\Notification;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
+use App\Service\CryptoService;
 use App\Service\WebPushService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -38,6 +39,7 @@ class NotificationController extends AbstractController
         private readonly NotificationRepository $notifRepo,
         private readonly EntityManagerInterface $em,
         private readonly WebPushService $webPushService,
+        private readonly CryptoService $crypto,
     ) {}
 
     /**
@@ -61,8 +63,9 @@ class NotificationController extends AbstractController
         $this->em->flush();
 
         if ($notification->getAlert()) {
+            $alertToken = $this->crypto->encryptId($notification->getAlert()->getId(), 'alert');
             return $this->redirectToRoute('app_alert_show', [
-                'id' => $notification->getAlert()->getId(),
+                'token' => $alertToken,
             ]);
         }
 
@@ -109,15 +112,16 @@ class NotificationController extends AbstractController
         return $this->json([
             'count' => $count,
             'notifications' => array_map(fn(Notification $n) => [
-                'id'      => $n->getId(),
-                'type'    => $n->getType(),
-                'contenu' => $n->getContenu(),
-                'alertId' => $n->getAlert()?->getId(),
-                'codeGei' => $n->getAlert()?->getCodeGei(),
-                'urgence' => $n->getAlert()?->getUrgence()?->value,
-                'priorite' => $n->getPriorite(),
-                'lu'      => $n->isLu(),
-                'date'    => $n->getCreatedAt()->format('d/m H:i'),
+                'id'         => $n->getId(),
+                'type'       => $n->getType(),
+                'contenu'    => $n->getContenu(),
+                'alertId'    => $n->getAlert()?->getId(),
+                'alertToken' => $n->getAlert() ? $this->crypto->encryptId($n->getAlert()->getId(), 'alert') : null,
+                'codeGei'    => $n->getAlert()?->getCodeGei(),
+                'urgence'    => $n->getAlert()?->getUrgence()?->value,
+                'priorite'   => $n->getPriorite(),
+                'lu'         => $n->isLu(),
+                'date'       => $n->getCreatedAt()->format('d/m H:i'),
             ], $recent),
         ]);
     }

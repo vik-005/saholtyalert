@@ -91,7 +91,7 @@
                         {# Alerte #}
                         <td data-label="Alerte">
                             <div style="font-weight:700">
-                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="code-gei-link" style="font-size:13px">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(t.alert.id, 'alert')}) }}" class="code-gei-link" style="font-size:13px">
                                     {{ t.alert.codeGei ?? ('#GEI-' ~ t.alert.id) }}
                                 </a>
                             </div>
@@ -164,7 +164,7 @@
                         {# Actions #}
                         <td data-label="Actions" class="transmission-action-cell">
                             <div class="transmission-row-actions">
-                                <a href="{{ path('app_alert_show', {id: t.alert.id}) }}" class="transmission-view-btn" title="Consulter la fiche alerte">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(t.alert.id, 'alert')}) }}" class="transmission-view-btn" title="Consulter la fiche alerte">
                                     <i class="bi bi-eye"></i><span>Voir l’alerte</span>
                                 </a>
                                 {% if not t.isCloture %}

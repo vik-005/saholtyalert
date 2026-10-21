@@ -127,7 +127,7 @@
                             </td>
                             <td class="font-mono text-center" style="font-size:11px">
                                 {% if tr.alert %}
-                                    <a href="{{ path('app_alert_show', {id: tr.alert.id}) }}" class="code-gei-link">
+                                    <a href="{{ path('app_alert_show', {token: encrypt_id(tr.alert.id, 'alert')}) }}" class="code-gei-link">
                                         {{ tr.alert.codeGei }}
                                     </a>
                                 {% else %}

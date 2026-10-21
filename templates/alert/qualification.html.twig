@@ -3,6 +3,7 @@
 {% block header_title %}{{ canDecide ? 'Validation Manager' : 'Qualification GEI' }}{% endblock %}
 
 {% block body %}
+{% set alertToken = encrypt_id(alert.id, 'alert') %}
 <div class="db-wrapper">
 
     {# ── EN-TÊTE ────────────────────────────────────────────────────────────── #}
@@ -35,7 +36,7 @@
                 {% endif %}
             </p>
         </div>
-        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+        <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
             <i class="bi bi-arrow-left me-1.5"></i>Retour à la fiche
         </a>
     </div>
@@ -260,7 +261,7 @@
 
                     {# Boutons Manager : Rejeter (modal) + Valider #}
                     <div class="form-actions">
-                        <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                        <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
                             <i class="bi bi-ban me-1.5"></i>Annuler
                         </a>
                         <button type="button" class="db-btn db-btn-danger" id="openRejectModal">
@@ -293,7 +294,7 @@
                             <strong>Un commentaire est obligatoire.</strong>
                         </p>
                         <form id="rejectForm" method="post"
-                              action="{{ path('app_alert_qualify', {id: alert.id}) }}"
+                              action="{{ path('app_alert_qualify', {token: alertToken}) }}"
                               class="space-y-4 mt-4"
                               novalidate>
                             <input type="hidden" name="_token" value="{{ csrf_token('qualify-' ~ alert.id) }}">
@@ -419,7 +420,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <a href="{{ path('app_alert_show', {id: alert.id}) }}" class="db-btn db-btn-ghost">
+                    <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
                         <i class="bi bi-ban me-1.5"></i>Annuler
                     </a>
                     <button type="submit" class="auth-submit-btn" style="width:auto;padding:0 28px;">
@@ -500,7 +501,7 @@
                     À utiliser uniquement avec justification. Le score calculé reste affiché en parallèle.
                 </p>
                 <form method="post"
-                      action="{{ path('app_alert_override_score', {id: alert.id}) }}"
+                      action="{{ path('app_alert_override_score', {token: alertToken}) }}"
                       class="space-y-3">
                     <input type="hidden" name="_token" value="{{ csrf_token('override-' ~ alert.id) }}">
                     <div class="qualify-field">
