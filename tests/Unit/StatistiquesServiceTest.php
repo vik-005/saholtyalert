@@ -121,6 +121,36 @@ class StatistiquesServiceTest extends TestCase
         $this->service->getVolumeParPays('2026-01-01', '2026-01-31', [1]);
     }
 
+    public function testGetParcoursStatsUsesCountriesStoredOnAlertWhenAssociationsAreMissing(): void
+    {
+        $this->conn->expects($this->exactly(2))
+            ->method('fetchAllAssociative')
+            ->willReturnOnConsecutiveCalls(
+                [[
+                    'id' => 12,
+                    'principalId' => 1,
+                    'principal' => 'Bénin',
+                    'parcoursCountries' => '["BJ","TG"]',
+                    'associeId' => null,
+                    'associe' => null,
+                    'ordre' => null,
+                ]],
+                [
+                    ['id' => 1, 'nom' => 'Bénin', 'codeIso3' => 'BEN'],
+                    ['id' => 2, 'nom' => 'Togo', 'codeIso3' => 'TGO'],
+                ]
+            );
+
+        $result = $this->service->getParcoursStats('2026-01-01', '2026-12-31');
+
+        self::assertSame(1, $result['total_alertes']);
+        self::assertSame(1, $result['avec_parcours']);
+        self::assertSame(0, $result['sans_parcours']);
+        self::assertSame([
+            ['trajet' => 'Bénin → Togo', 'nb' => 1],
+        ], $result['routes']);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // 2. getScoreMoyenParPays
     // ─────────────────────────────────────────────────────────────────────────

@@ -119,45 +119,110 @@ class StatistiquesService
      */
     public function getParcoursStats(string $debut, string $fin, array $marketIds = []): array
     {
-        $key = 'stat_parcours_v2_' . md5($debut . $fin . implode(',', $marketIds));
+        $key = 'stat_parcours_v3_' . md5($debut . $fin . implode(',', $marketIds));
         return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds): array {
             $item->expiresAfter(self::TTL);
-            $whereClause = 'AND a.deleted_at IS NULL';
-            if (!empty($marketIds)) {
-                $ids = implode(',', array_map('intval', $marketIds));
-                $whereClause .= " AND (a.market_id IN ({$ids}) OR am.market_id IN ({$ids}))";
-            }
             $rows = $this->conn()->fetchAllAssociative(
-                "SELECT a.id, principal.nom AS principal,
-                        GROUP_CONCAT(associe.nom ORDER BY am.ordre SEPARATOR ' → ') AS etapes
+                "SELECT a.id, a.market_id AS principalId, principal.nom AS principal,
+                        a.parcours_countries AS parcoursCountries,
+                        am.market_id AS associeId, associe.nom AS associe, am.ordre AS ordre
                  FROM alert a
                  JOIN market principal ON principal.id = a.market_id
-                 JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
-                 JOIN market associe ON associe.id = am.market_id
-                 WHERE a.date_creation BETWEEN :debut AND :fin {$whereClause}
-                 GROUP BY a.id, principal.nom
+                 LEFT JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
+                 LEFT JOIN market associe ON associe.id = am.market_id
+                 WHERE a.deleted_at IS NULL
+                   AND a.date_creation BETWEEN :debut AND :fin
                  ORDER BY a.id",
                 ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
             );
 
-            $routes = [];
+            $marketRows = $this->conn()->fetchAllAssociative(
+                'SELECT id, nom, code_iso3 AS codeIso3 FROM market'
+            );
+            $marketsById = [];
+            $marketIdsByCode = [];
+            foreach ($marketRows as $market) {
+                $marketId = (int) $market['id'];
+                $code = strtoupper((string) $market['codeIso3']);
+                $marketsById[$marketId] = (string) $market['nom'];
+                $marketIdsByCode[$code] = $marketId;
+            }
+
+            $alerts = [];
             foreach ($rows as $row) {
-                $route = $row['principal'] . ' → ' . $row['etapes'];
+                $alertId = (int) $row['id'];
+                if (!isset($alerts[$alertId])) {
+                    $alerts[$alertId] = [
+                        'principalId' => (int) $row['principalId'],
+                        'principal' => (string) $row['principal'],
+                        'parcoursCountries' => $row['parcoursCountries'],
+                        'associated' => [],
+                    ];
+                }
+                if ($row['associeId'] !== null) {
+                    $alerts[$alertId]['associated'][] = [
+                        'id' => (int) $row['associeId'],
+                        'nom' => (string) $row['associe'],
+                        'ordre' => $row['ordre'] !== null ? (int) $row['ordre'] : PHP_INT_MAX,
+                    ];
+                }
+            }
+
+            $routes = [];
+            $selectedMarketIds = array_fill_keys(array_map('intval', $marketIds), true);
+            $total = 0;
+            $withParcours = 0;
+            foreach ($alerts as $alert) {
+                $associated = $alert['associated'];
+                usort($associated, static fn(array $left, array $right): int => $left['ordre'] <=> $right['ordre']);
+
+                $storedCountries = $alert['parcoursCountries'];
+                if (is_string($storedCountries)) {
+                    $storedCountries = json_decode($storedCountries, true);
+                }
+
+                $pathMarketIds = [];
+                $pathNames = [];
+                if (is_array($storedCountries)) {
+                    foreach ($storedCountries as $countryCode) {
+                        $code = strtoupper(trim((string) $countryCode));
+                        if (strlen($code) === 2 && \Symfony\Component\Intl\Countries::exists($code)) {
+                            $code = \Symfony\Component\Intl\Countries::getAlpha3Code($code);
+                        }
+                        $pathMarketId = $marketIdsByCode[$code] ?? null;
+                        if ($pathMarketId === null || $pathMarketId === $alert['principalId']) {
+                            continue;
+                        }
+                        $pathMarketIds[] = $pathMarketId;
+                        $pathNames[] = $marketsById[$pathMarketId];
+                    }
+                }
+                if ($pathNames === []) {
+                    $pathMarketIds = array_column($associated, 'id');
+                    $pathNames = array_column($associated, 'nom');
+                }
+
+                if ($selectedMarketIds !== []
+                    && !isset($selectedMarketIds[$alert['principalId']])
+                    && array_intersect_key(array_fill_keys($pathMarketIds, true), $selectedMarketIds) === []) {
+                    continue;
+                }
+
+                $total++;
+                if ($pathNames === []) {
+                    continue;
+                }
+
+                $withParcours++;
+                $route = $alert['principal'] . ' → ' . implode(' → ', $pathNames);
                 $routes[$route] = ($routes[$route] ?? 0) + 1;
             }
             arsort($routes);
 
-            $totalWhere = $this->whereClause($marketIds);
-            $total = (int) $this->conn()->fetchOne(
-                "SELECT COUNT(a.id) FROM alert a
-                 WHERE a.date_creation BETWEEN :debut AND :fin {$totalWhere}",
-                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
-            );
-
             return [
                 'total_alertes' => $total,
-                'avec_parcours' => count($rows),
-                'sans_parcours' => max(0, $total - count($rows)),
+                'avec_parcours' => $withParcours,
+                'sans_parcours' => max(0, $total - $withParcours),
                 'routes' => array_map(
                     static fn(string $trajet, int $nb): array => ['trajet' => $trajet, 'nb' => $nb],
                     array_keys($routes),
