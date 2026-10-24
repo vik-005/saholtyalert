@@ -18,6 +18,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Intl\Countries;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Contracts\Cache\CacheInterface;
@@ -265,9 +266,8 @@ class CarteController extends AbstractController
             return new JsonResponse([]);
         }
 
-        $placeholders = implode(',', array_fill(0, count($mainIds), '?'));
-        $whereClauses = ["a.deleted_at IS NULL", "(a.market_id IN ({$placeholders}) OR am.market_id IN ({$placeholders}))"];
-        $params = array_merge($mainIds, $mainIds);
+        $whereClauses = ['a.deleted_at IS NULL'];
+        $params = [];
 
         if ($cat = $request->query->get('categorie')) {
             $whereClauses[] = "a.categorie = ?";
@@ -313,7 +313,7 @@ class CarteController extends AbstractController
         $whereSql = implode(' AND ', $whereClauses);
 
         $rows = $em->getConnection()->fetchAllAssociative(
-            "SELECT a.id, a.code_gei, a.port_corridor, a.categorie,
+            "SELECT a.id, a.code_gei, a.port_corridor, a.categorie, a.parcours_countries,
                     COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS niveau_priorite,
                     COALESCE(a.score_surcharge, a.score_gei) AS score,
                     principal.id AS principal_id, principal.nom AS principal, principal.code_iso3 AS principal_iso3,
@@ -330,18 +330,8 @@ class CarteController extends AbstractController
                         WHEN 'NGA' THEN 8.6753 WHEN 'CMR' THEN 12.3547 WHEN 'COD' THEN 21.7587
                         WHEN 'AGO' THEN 17.8739 ELSE 2.0000 END) AS principal_lng,
                     am.ordre, associe.id AS associe_id, associe.nom AS associe, associe.code_iso3 AS associe_iso3,
-                    COALESCE(NULLIF(associe_zone.latitude, 0), CASE associe.code_iso3
-                        WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195 WHEN 'GHA' THEN 7.9465
-                        WHEN 'BFA' THEN 12.2383 WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
-                        WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400 WHEN 'GIN' THEN 9.9456
-                        WHEN 'NGA' THEN 9.0820 WHEN 'CMR' THEN 7.3697 WHEN 'COD' THEN -4.0383
-                        WHEN 'AGO' THEN -11.2027 ELSE NULL END) AS associe_lat,
-                    COALESCE(NULLIF(associe_zone.longitude, 0), CASE associe.code_iso3
-                        WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248 WHEN 'GHA' THEN -1.0232
-                        WHEN 'BFA' THEN -1.5616 WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
-                        WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 WHEN 'GIN' THEN -9.6966
-                        WHEN 'NGA' THEN 8.6753 WHEN 'CMR' THEN 12.3547 WHEN 'COD' THEN 21.7587
-                        WHEN 'AGO' THEN 17.8739 ELSE NULL END) AS associe_lng
+                    associe_zone.latitude AS associe_lat,
+                    associe_zone.longitude AS associe_lng
              FROM alert a
              JOIN market principal ON principal.id = a.market_id
              LEFT JOIN (
@@ -350,8 +340,8 @@ class CarteController extends AbstractController
                  WHERE latitude IS NOT NULL AND latitude != 0
                  GROUP BY market_id
              ) principal_zone ON principal_zone.market_id = principal.id
-             JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
-             JOIN market associe ON associe.id = am.market_id
+             LEFT JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
+             LEFT JOIN market associe ON associe.id = am.market_id
              LEFT JOIN (
                  SELECT market_id, AVG(latitude) AS latitude, AVG(longitude) AS longitude
                  FROM zone_geo
@@ -359,14 +349,43 @@ class CarteController extends AbstractController
                  GROUP BY market_id
              ) associe_zone ON associe_zone.market_id = associe.id
              WHERE {$whereSql}
+               AND (
+                   am.id IS NOT NULL
+                   OR (a.parcours_countries IS NOT NULL AND JSON_LENGTH(a.parcours_countries) > 0)
+               )
              ORDER BY a.id, am.ordre",
             $params
         );
 
+        $marketRows = $em->getConnection()->fetchAllAssociative(
+            'SELECT m.id, m.nom, m.code_iso3,
+                    AVG(NULLIF(z.latitude, 0)) AS latitude,
+                    AVG(NULLIF(z.longitude, 0)) AS longitude
+             FROM market m
+             LEFT JOIN zone_geo z ON z.market_id = m.id
+             WHERE m.actif = 1
+             GROUP BY m.id, m.nom, m.code_iso3'
+        );
+        $marketData = [];
+        foreach ($marketRows as $marketRow) {
+            [$fallbackLat, $fallbackLng] = self::fallbackMarketCoordinates((string) $marketRow['code_iso3']);
+            $marketData[(int) $marketRow['id']] = [
+                'nom' => (string) $marketRow['nom'],
+                'iso3' => strtoupper((string) $marketRow['code_iso3']),
+                'latitude' => $marketRow['latitude'] !== null ? (float) $marketRow['latitude'] : $fallbackLat,
+                'longitude' => $marketRow['longitude'] !== null ? (float) $marketRow['longitude'] : $fallbackLng,
+            ];
+        }
+
+        $marketLookup = self::buildMarketLookup($marketData);
         $routes = [];
         foreach ($rows as $row) {
             $id = (int) $row['id'];
             if (!isset($routes[$id])) {
+                $storedCountries = $row['parcours_countries'];
+                if (is_string($storedCountries)) {
+                    $storedCountries = json_decode($storedCountries, true);
+                }
                 $routes[$id] = [
                     'id'            => $id,
                     'codeGei'       => $row['code_gei'] ?? 'BROUILLON',
@@ -377,20 +396,147 @@ class CarteController extends AbstractController
                     'principalId'   => (int) $row['principal_id'],
                     'principal'     => $row['principal'],
                     'principalIso3' => $row['principal_iso3'],
-                    'points'        => [[(float) $row['principal_lat'], (float) $row['principal_lng']]],
-                    'markets'       => [$row['principal']],
-                    'marketIds'     => [(int) $row['principal_id']],
-                    'iso3s'         => [$row['principal_iso3']],
+                    'principalCoordinates' => [(float) $row['principal_lat'], (float) $row['principal_lng']],
+                    'storedCountries' => is_array($storedCountries) ? $storedCountries : [],
+                    'associatedMarkets' => [],
                 ];
             }
-            if ($row['associe_lat'] !== null && $row['associe_lng'] !== null) {
-                $routes[$id]['points'][] = [(float) $row['associe_lat'], (float) $row['associe_lng']];
-                $routes[$id]['markets'][] = $row['associe'];
-                $routes[$id]['marketIds'][] = (int) $row['associe_id'];
-                $routes[$id]['iso3s'][] = $row['associe_iso3'];
+            if ($row['associe_id'] !== null) {
+                $routes[$id]['associatedMarkets'][] = [
+                    'id' => (int) $row['associe_id'],
+                    'ordre' => $row['ordre'] !== null ? (int) $row['ordre'] : PHP_INT_MAX,
+                ];
             }
         }
 
-        return new JsonResponse(array_values($routes));
+        $result = [];
+        foreach ($routes as $route) {
+            $path = self::resolveRouteMarkets(
+                $route['storedCountries'],
+                $route['associatedMarkets'],
+                $marketLookup,
+                $marketData,
+                $route['principalId'],
+            );
+            $routeMarketIds = array_merge([$route['principalId']], array_column($path, 'id'));
+            if (array_intersect($routeMarketIds, $mainIds) === []) {
+                continue;
+            }
+
+            $route['points'] = [$route['principalCoordinates']];
+            $route['markets'] = [$route['principal']];
+            $route['marketIds'] = [$route['principalId']];
+            $route['iso3s'] = [$route['principalIso3']];
+            foreach ($path as $pathMarket) {
+                $market = $marketData[$pathMarket['id']] ?? null;
+                if ($market === null || $market['latitude'] === null || $market['longitude'] === null) {
+                    continue;
+                }
+                $route['points'][] = [$market['latitude'], $market['longitude']];
+                $route['markets'][] = $market['nom'];
+                $route['marketIds'][] = $pathMarket['id'];
+                $route['iso3s'][] = $market['iso3'];
+            }
+
+            unset($route['principalCoordinates'], $route['storedCountries'], $route['associatedMarkets']);
+            if (count($route['points']) > 1) {
+                $result[] = $route;
+            }
+        }
+
+        return new JsonResponse($result);
+    }
+
+    private static function fallbackMarketCoordinates(string $iso3): array
+    {
+        return match (strtoupper($iso3)) {
+            'BEN' => [9.3077, 2.3158],
+            'TGO' => [8.6195, 0.8248],
+            'GHA' => [7.9465, -1.0232],
+            'BFA' => [12.2383, -1.5616],
+            'MLI' => [17.5707, -3.9962],
+            'NER' => [17.6078, 8.0817],
+            'SEN' => [14.4974, -14.4524],
+            'CIV' => [7.5400, -5.5471],
+            'GIN' => [9.9456, -9.6966],
+            'NGA' => [9.0820, 8.6753],
+            'CMR' => [7.3697, 12.3547],
+            'COD' => [-4.0383, 21.7587],
+            'AGO' => [-11.2027, 17.8739],
+            default => [null, null],
+        };
+    }
+
+    private static function buildMarketLookup(array $marketData): array
+    {
+        $lookup = [];
+        foreach ($marketData as $marketId => $market) {
+            $lookup['iso3:' . $market['iso3']] = (int) $marketId;
+            $lookup['name:' . self::normalizeCountryName($market['nom'])] = (int) $marketId;
+            try {
+                $lookup['iso2:' . Countries::getAlpha2Code($market['iso3'])] = (int) $marketId;
+            } catch (\Symfony\Component\Intl\Exception\MissingResourceException) {
+                // Some configured markets may use a non-standard ISO3 code.
+            }
+        }
+
+        return $lookup;
+    }
+
+    private static function normalizeCountryName(string $name): string
+    {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+        return preg_replace('/[^a-z0-9]/', '', strtolower($ascii === false ? $name : $ascii)) ?? '';
+    }
+
+    private static function resolveRouteMarkets(
+        array $storedCountries,
+        array $associatedMarkets,
+        array $marketLookup,
+        array $marketData,
+        int $principalId,
+    ): array {
+        $path = [];
+        foreach ($storedCountries as $country) {
+            $value = trim((string) $country);
+            if ($value === '') {
+                continue;
+            }
+
+            $upper = strtoupper($value);
+            $marketId = null;
+            if (strlen($upper) === 3) {
+                $marketId = $marketLookup['iso3:' . $upper] ?? null;
+            } elseif (strlen($upper) === 2) {
+                $marketId = $marketLookup['iso2:' . $upper] ?? null;
+                if ($marketId === null) {
+                    try {
+                        $iso3 = Countries::getAlpha3Code($upper);
+                        $marketId = $marketLookup['iso3:' . $iso3] ?? null;
+                    } catch (\Symfony\Component\Intl\Exception\MissingResourceException) {
+                        $marketId = null;
+                    }
+                }
+            }
+            $marketId ??= $marketLookup['name:' . self::normalizeCountryName($value)] ?? null;
+
+            if ($marketId !== null && $marketId !== $principalId && isset($marketData[$marketId])) {
+                $path[$marketId] = ['id' => $marketId];
+            }
+        }
+
+        if ($path !== []) {
+            return array_values($path);
+        }
+
+        usort($associatedMarkets, static fn(array $left, array $right): int => $left['ordre'] <=> $right['ordre']);
+        foreach ($associatedMarkets as $associatedMarket) {
+            $marketId = $associatedMarket['id'];
+            if ($marketId !== $principalId && isset($marketData[$marketId])) {
+                $path[$marketId] = ['id' => $marketId];
+            }
+        }
+
+        return array_values($path);
     }
 }
