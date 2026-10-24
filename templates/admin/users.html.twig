@@ -143,6 +143,18 @@
                                    class="tbl-btn tbl-btn-ghost" title="Éditer">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
+                                {% if isSuperadmin and u.id != app.user.id %}
+                                    <form method="post" action="{{ path('app_admin_user_toggle', {id: u.id}) }}" style="display:inline">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle-user-' ~ u.id) }}">
+                                        <button type="submit"
+                                                class="tbl-btn {{ u.actif ? 'tbl-btn-red' : 'tbl-btn-ghost' }}"
+                                                title="{{ u.actif ? 'Désactiver ce profil' : 'Activer ce profil' }}"
+                                                aria-label="{{ u.actif ? 'Désactiver' : 'Activer' }} le profil de {{ u.nomComplet }}">
+                                            <i class="bi bi-power"></i>
+                                            {{ u.actif ? 'OFF' : 'ON' }}
+                                        </button>
+                                    </form>
+                                {% endif %}
                                 <button type="button"
                                         class="delete-trigger tbl-btn tbl-btn-red"
                                         title="Supprimer"

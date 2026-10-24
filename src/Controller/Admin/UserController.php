@@ -2,6 +2,7 @@
 
 namespace App\Controller\Admin;
 
+use App\Entity\AccessLog;
 use App\Entity\User;
 use App\Enum\UserRoleEnum;
 use App\Form\UserType;
@@ -43,6 +44,40 @@ class UserController extends AbstractController
             'users' => $users,
             'isSuperadmin' => $currentUser->getRole() === UserRoleEnum::SUPERADMIN,
         ]);
+    }
+
+    #[Route('/{id}/toggle', name: 'app_admin_user_toggle', methods: ['POST'])]
+    public function toggle(
+        Request $request,
+        User $user,
+        EntityManagerInterface $em,
+        AdminAuditLogger $auditLogger,
+    ): Response {
+        $currentUser = $this->getUser();
+        if (!$currentUser instanceof User || $currentUser->getRole() !== UserRoleEnum::SUPERADMIN) {
+            throw $this->createAccessDeniedException();
+        }
+
+        if (!$this->isCsrfTokenValid('toggle-user-' . $user->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_admin_user_index');
+        }
+
+        if ($user->getId() === $currentUser->getId()) {
+            $this->addFlash('error', 'Vous ne pouvez pas désactiver votre propre profil.');
+            return $this->redirectToRoute('app_admin_user_index');
+        }
+
+        $user->setActif(!$user->isActif());
+        $auditLogger->log(AccessLog::ACTION_MODIFICATION, 'user_status', $user->getId());
+        $em->flush();
+
+        $this->addFlash(
+            'success',
+            sprintf('Le profil de %s a été %s.', $user->getNomComplet(), $user->isActif() ? 'activé' : 'désactivé')
+        );
+
+        return $this->redirectToRoute('app_admin_user_index');
     }
 
     #[Route('/new', name: 'app_admin_user_new', methods: ['GET', 'POST'])]
