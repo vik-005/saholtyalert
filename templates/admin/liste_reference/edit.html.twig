@@ -19,6 +19,7 @@
     <div class="db-card" style="max-width: 600px;">
         <div class="db-card-body">
             <form method="post" action="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('edit-lrv-' ~ item.id) }}">
                 <div class="form-field mb-4">
                     <label class="form-label">Type de liste</label>
                     <input type="text" class="form-input" value="{{ item.typeListe == 'categorie' ? 'Catégorie' : 'Type de source' }}" disabled>

@@ -57,6 +57,44 @@
     </div>
     {% endif %}
 
+    {# ── BANDEAU REQUALIFICATIONS RESTANTES (Manager PFT uniquement) ─────────── #}
+    {% if canDecide and is_granted('ROLE_PFT') and not is_granted('ROLE_SAHOLTY') %}
+        {% set requalRestantes = 3 - alert.requalificationCount %}
+        {% if requalRestantes <= 1 %}
+        <div class="workflow-banner" style="background: rgba(251,191,36,0.1); border-color: rgba(251,191,36,0.3);">
+            <i class="bi bi-exclamation-triangle text-amber-400 fa-lg flex-shrink-0"></i>
+            <div>
+                <p class="workflow-banner-title" style="color: rgb(251,191,36);">
+                    {% if requalRestantes == 0 %}
+                        ⚠️ LIMITE ATTEINTE — Aucune requalification restante
+                    {% else %}
+                        ⚠️ DERNIÈRE REQUALIFICATION — {{ requalRestantes }} modification restante
+                    {% endif %}
+                </p>
+                <p class="workflow-banner-sub">
+                    {% if requalRestantes == 0 %}
+                        Cette alerte a été requalifiée 3 fois. Seul un administrateur (SAHOLTY/SUPERADMIN) peut continuer à la modifier.
+                    {% else %}
+                        Cette alerte a été requalifiée {{ alert.requalificationCount }} fois. Après la prochaine modification, seul un administrateur pourra intervenir.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% elseif alert.requalificationCount > 0 %}
+        <div class="workflow-banner" style="background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3);">
+            <i class="bi bi-info-circle text-blue-400 fa-lg flex-shrink-0"></i>
+            <div>
+                <p class="workflow-banner-title" style="color: rgb(59,130,246);">
+                    Requalifications : {{ alert.requalificationCount }}/3 effectuées
+                </p>
+                <p class="workflow-banner-sub">
+                    Il vous reste {{ requalRestantes }} requalifications possibles pour cette alerte. Les administrateurs peuvent modifier sans limite.
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+
     {# ── LAYOUT 2 COLONNES ─────────────────────────────────────────────────── #}
     <div class="qualify-layout">
 

@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\AccessLog;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
@@ -190,6 +192,7 @@ final class AccountController extends AbstractController
             || !preg_match('/^[A-Z2-7]+=*$/i', $existingSecret);
 
         if ($needNewSecret) {
+            $user->setTotpEnabled(false);
             $secret = $this->totpAuthenticator->generateSecret();
             $user->setTotpSecret($secret);
             $em->flush();
@@ -230,7 +233,7 @@ final class AccountController extends AbstractController
     // ── 2FA TOTP : activation ─────────────────────────────────────────────────
 
     #[Route('/securite/2fa/activer', name: 'app_2fa_enable', methods: ['POST'])]
-    public function twoFactorEnable(Request $request, EntityManagerInterface $em): Response
+    public function twoFactorEnable(Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -246,10 +249,13 @@ final class AccountController extends AbstractController
 
         if ($this->totpAuthenticator->checkCode($user, $code)) {
             $user->setTotpEnabled(true);
+            $auditLogger->log(AccessLog::ACTION_MODIFICATION, 'user_2fa_enabled', $user->getId());
             $em->flush();
-            $this->addFlash('success', '✅ Authentification à deux facteurs activée avec succès. Votre compte est maintenant protégé.');
+            $request->getSession()->invalidate();
+            $this->addFlash('success', 'Authentification à deux facteurs activée. Reconnectez-vous pour la vérifier.');
+            return $this->redirectToRoute('app_login');
         } else {
-            $this->addFlash('error', '❌ Code invalide. Vérifiez l\'heure de votre appareil et réessayez.');
+            $this->addFlash('error', 'Code invalide. Vérifiez l\'heure de votre appareil et réessayez.');
         }
 
         return $this->redirectToRoute('app_2fa_settings');
@@ -258,11 +264,15 @@ final class AccountController extends AbstractController
     // ── 2FA TOTP : désactivation ──────────────────────────────────────────────
 
     #[Route('/securite/2fa/desactiver', name: 'app_2fa_disable', methods: ['POST'])]
-    public function twoFactorDisable(Request $request, EntityManagerInterface $em): Response
+    public function twoFactorDisable(Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();
+        }
+
+        if ($user->getRole()->requiresTwoFactor()) {
+            throw $this->createAccessDeniedException('Le 2FA est obligatoire pour ce rôle.');
         }
 
         if (!$this->isCsrfTokenValid('disable_2fa', (string) $request->request->get('_token'))) {
@@ -272,6 +282,7 @@ final class AccountController extends AbstractController
 
         $user->setTotpEnabled(false);
         $user->setTotpSecret(null);
+        $auditLogger->log(AccessLog::ACTION_MODIFICATION, 'user_2fa_disabled', $user->getId());
         $em->flush();
 
         $this->addFlash('success', 'L\'authentification à deux facteurs a été désactivée.');

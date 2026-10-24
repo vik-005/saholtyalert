@@ -6,6 +6,10 @@
 parameters:
     app.encryption_key: '%env(APP_ENCRYPTION_KEY)%'
     app.empty_string: ''
+    app.default_base_url: 'http://127.0.0.1:8000'
+    app.base_url: '%env(default:app.default_base_url:APP_BASE_URL)%'
+    app.default_mailer_from: 'no-reply@gei-platform.invalid'
+    app.mailer_from: '%env(default:app.default_mailer_from:MAILER_FROM)%'
 
 services:
     # default configuration for services in *this* file

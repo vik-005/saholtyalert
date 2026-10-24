@@ -113,9 +113,7 @@ class AuditController extends AbstractController
             'agents'      => $userRepo->findByRole(UserRoleEnum::EMETTEUR_TERRAIN),
             'managers'    => $userRepo->findByRole(UserRoleEnum::SUPERADMIN),
             'isSuperadmin' => $this->isGranted('ROLE_SUPERADMIN'),
-            'markets'     => $user->getRole() === UserRoleEnum::PFT
-                ? $user->getAllManagedMarkets()
-                : $marketRepo->findActifs(),
+            'markets'     => $marketRepo->findActifs(),
         ]);
     }
 
@@ -232,7 +230,7 @@ class AuditController extends AbstractController
         $response = new Response($pdfContent);
         $response->headers->set('Content-Type', 'application/pdf');
         $response->headers->set('Content-Disposition', sprintf(
-            'attachment; filename="Audit_GEI_%s.pdf"',
+            'inline; filename="Audit_GEI_%s.pdf"',
             (new \DateTime())->format('Y-m-d_His')
         ));
         $response->headers->set('Cache-Control', 'max-age=0');

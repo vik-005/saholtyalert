@@ -45,6 +45,37 @@ class StatistiquesService
         return (int) $row;
     }
 
+    public function getLegalStatusCounts(string $debut, string $fin, array $marketIds = []): array
+    {
+        $where = $this->whereClause($marketIds);
+
+        $rows = $this->conn()->fetchAllAssociative(
+            "SELECT a.legal_status AS legalStatus, COUNT(a.id) AS nb
+             FROM alert a
+             WHERE a.deleted_at IS NULL
+               AND a.date_creation BETWEEN :debut AND :fin {$where}
+             GROUP BY a.legal_status
+             ORDER BY a.legal_status ASC",
+            ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+        );
+
+        $counts = ['licite' => 0, 'illicite' => 0, 'non_renseigne' => 0];
+        foreach ($rows as $row) {
+            $key = match ($row['legalStatus'] ?? null) {
+                'licite' => 'licite',
+                'illicite' => 'illicite',
+                default => 'non_renseigne',
+            };
+            $counts[$key] = (int) $row['nb'];
+        }
+
+        return [
+            ['legalStatus' => 'licite', 'nb' => $counts['licite']],
+            ['legalStatus' => 'illicite', 'nb' => $counts['illicite']],
+            ['legalStatus' => null, 'nb' => $counts['non_renseigne']],
+        ];
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // A.1 — STATISTIQUES PAR PAYS
     // ─────────────────────────────────────────────────────────────────────────
@@ -88,10 +119,14 @@ class StatistiquesService
      */
     public function getParcoursStats(string $debut, string $fin, array $marketIds = []): array
     {
-        $key = 'stat_parcours_' . md5($debut . $fin . implode(',', $marketIds));
+        $key = 'stat_parcours_v2_' . md5($debut . $fin . implode(',', $marketIds));
         return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds): array {
             $item->expiresAfter(self::TTL);
-            $where = $this->whereClause($marketIds);
+            $whereClause = 'AND a.deleted_at IS NULL';
+            if (!empty($marketIds)) {
+                $ids = implode(',', array_map('intval', $marketIds));
+                $whereClause .= " AND (a.market_id IN ({$ids}) OR am.market_id IN ({$ids}))";
+            }
             $rows = $this->conn()->fetchAllAssociative(
                 "SELECT a.id, principal.nom AS principal,
                         GROUP_CONCAT(associe.nom ORDER BY am.ordre SEPARATOR ' → ') AS etapes
@@ -99,7 +134,7 @@ class StatistiquesService
                  JOIN market principal ON principal.id = a.market_id
                  JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
                  JOIN market associe ON associe.id = am.market_id
-                 WHERE a.date_creation BETWEEN :debut AND :fin {$where}
+                 WHERE a.date_creation BETWEEN :debut AND :fin {$whereClause}
                  GROUP BY a.id, principal.nom
                  ORDER BY a.id",
                 ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
@@ -112,9 +147,10 @@ class StatistiquesService
             }
             arsort($routes);
 
+            $totalWhere = $this->whereClause($marketIds);
             $total = (int) $this->conn()->fetchOne(
                 "SELECT COUNT(a.id) FROM alert a
-                 WHERE a.date_creation BETWEEN :debut AND :fin {$where}",
+                 WHERE a.date_creation BETWEEN :debut AND :fin {$totalWhere}",
                 ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
             );
 
@@ -709,4 +745,3 @@ class StatistiquesService
         return "{$base} AND a.market_id IN ({$ids})";
     }
 }
-

@@ -1,9 +1,9 @@
 {% include 'bundles/TwigBundle/Exception/_page.html.twig' with {
     code: 403,
-    eyebrow: 'Accès sécurisé',
-    heading: 'Vous n’avez pas accès à cette page',
-    description: 'Les autorisations associées à votre compte ne permettent pas d’accéder à cette ressource. Revenez au tableau de bord pour continuer.',
+    eyebrow: 'Accès refusé',
+    heading: 'Vous n\'avez pas les droits nécessaires',
+    description: 'Les autorisations associées à votre compte ne permettent pas d\'accéder à cette ressource. Si vous pensez qu\'il s\'agit d\'une erreur, contactez votre administrateur.',
     visual: 'forbidden',
-    action_label: 'Retour au tableau de bord',
-    action_route: 'app_dashboard_operationnel'
+    action_label: 'Retour au registre',
+    action_route: 'app_alert_index'
 } only %}

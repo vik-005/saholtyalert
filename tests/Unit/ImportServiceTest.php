@@ -6,6 +6,7 @@ use App\Entity\Alert;
 use App\Entity\User;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
 use App\Enum\Recommandation;
@@ -84,6 +85,7 @@ class ImportServiceTest extends TestCase
 
         [$columnMap, $errors] = $this->invokePrivate($service, 'detectColumns', [$headerRow]);
         self::assertSame([], $errors);
+        self::assertSame('AN', $columnMap['legal_status']);
 
         $values = [
             'Date' => '16/10/2026',
@@ -105,6 +107,7 @@ class ImportServiceTest extends TestCase
             'Décision GEI' => 'Décision importée',
             'Parcours pays' => 'BJ, TG',
             'Dernière MAJ' => '15/10/2026 18:42',
+            'Statut juridique' => AlertLegality::ILLICITE->label(),
         ];
         foreach ($values as $header => $value) {
             $column = array_search($header, ExportService::COLUMNS, true);
@@ -126,6 +129,7 @@ class ImportServiceTest extends TestCase
         self::assertSame('Historique importé', $alert->getHistoriqueSource());
         self::assertSame('Décision importée', $alert->getDecisionGei());
         self::assertSame(['BJ', 'TG'], $alert->getParcoursCountries());
+        self::assertSame(AlertLegality::ILLICITE, $alert->getLegalStatus());
         self::assertSame('2026-10-15 18:42:00', $alert->getUpdatedAt()->format('Y-m-d H:i:s'));
 
         $alert->onPrePersist();

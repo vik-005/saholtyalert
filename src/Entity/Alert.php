@@ -259,7 +259,16 @@ class Alert
     #[ORM\Column(type: 'datetime', nullable: true)]
     private ?\DateTime $deletedAt = null;
 
+    /**
+     * Compteur de requalifications effectuées par les Managers (PFT).
+     * Limité à 3 pour les Managers, illimité pour SUPERADMIN et SAHOLTY.
+     * Incrémenté à chaque validation Manager après modification des critères.
+     */
+    #[ORM\Column(type: 'integer')]
+    private int $requalificationCount = 0;
+
     #[ORM\OneToMany(mappedBy: 'alert', targetEntity: AlertMarket::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['ordre' => 'ASC'])]
     private Collection $alertMarkets;
 
     #[ORM\Column(type: 'json', nullable: true)]
@@ -886,6 +895,43 @@ class Alert
     {
         $this->dateValidation = $dateValidation;
         return $this;
+    }
+
+    public function getRequalificationCount(): int
+    {
+        return $this->requalificationCount;
+    }
+
+    public function setRequalificationCount(int $count): static
+    {
+        $this->requalificationCount = $count;
+        return $this;
+    }
+
+    public function incrementRequalificationCount(): static
+    {
+        $this->requalificationCount++;
+        return $this;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut encore requalifier cette alerte.
+     * SUPERADMIN et SAHOLTY : toujours autorisés (illimité)
+     * PFT (Manager) : limité à 3 requalifications
+     */
+    public function canBeRequalifiedBy(User $user): bool
+    {
+        // SUPERADMIN et SAHOLTY : pas de limite
+        if (in_array($user->getRole(), [UserRoleEnum::SUPERADMIN, UserRoleEnum::SAHOLTY], true)) {
+            return true;
+        }
+
+        // PFT (Manager) : limite de 3 requalifications
+        if ($user->getRole() === UserRoleEnum::PFT) {
+            return $this->requalificationCount < 3;
+        }
+
+        return false;
     }
 
     /**

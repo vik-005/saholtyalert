@@ -1,6 +1,8 @@
 # see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
+    trusted_proxies: '%env(default:app.empty_string:TRUSTED_PROXIES)%'
+    trusted_headers: [x-forwarded-for, x-forwarded-proto, x-forwarded-port, x-forwarded-prefix]
 
     # Note that the session will be started ONLY if you read or write from it.
     session:
@@ -12,6 +14,11 @@ framework:
         gc_maxlifetime: 28800   # Doit correspondre à cookie_lifetime pour éviter la perte de session
         storage_factory_id: 'session.storage.factory.native'
         save_path: '%kernel.project_dir%/var/sessions/%kernel.environment%'
+
+when@prod:
+    framework:
+        session:
+            cookie_secure: true
 
     #esi: true
     #fragments: true

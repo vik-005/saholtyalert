@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_USER')]
+#[IsGranted('ROLE_PFT')]
 class GeneralDashboardController extends AbstractController
 {
     #[Route('/dashboard/general', name: 'app_dashboard_general')]

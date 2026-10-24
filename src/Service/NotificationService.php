@@ -78,7 +78,7 @@ class NotificationService
     }
 
     /**
-     * Notifie tous les Managers (PFT + SAHOLTY) responsables d'un marché.
+     * Notifie tous les Managers (PFT, SAHOLTY et SUPERADMIN), indépendamment du marché assigné.
      * - Si score critique (type='urgence') → priorite=1 (rouge, tête de liste)
      * - Sinon → priorite=0 (notification normale)
      * Anti-duplication de 10 minutes inclus.
@@ -95,20 +95,17 @@ class NotificationService
             ->select('u')
             ->from(User::class, 'u')
             ->where('u.role IN (:roles)')
-            ->setParameter('roles', [UserRoleEnum::PFT->value, UserRoleEnum::SAHOLTY->value])
+            ->setParameter('roles', [
+                UserRoleEnum::PFT->value,
+                UserRoleEnum::SAHOLTY->value,
+                UserRoleEnum::SUPERADMIN->value,
+            ])
             ->getQuery()
             ->getResult();
 
         $notifications = [];
         foreach ($managers as $manager) {
             /** @var User $manager */
-            $isSaholty = $manager->getRole() === UserRoleEnum::SAHOLTY;
-            $inMarket  = in_array($market, $manager->getAllManagedMarkets(), true);
-
-            if (!$isSaholty && !$inMarket) {
-                continue;
-            }
-
             if ($this->findExistingRecent($manager, $type, $alert)) {
                 continue;
             }
@@ -133,7 +130,7 @@ class NotificationService
     }
 
     /**
-     * Crée une notification urgente pour tous les Managers d'un marché.
+     * Crée une notification urgente pour tous les Managers, quel que soit le marché assigné.
      * Raccourci pour les cas critiques (score ≥ 18, SLA dépassé).
      */
     public function notifyUrgentManagersOfMarket(

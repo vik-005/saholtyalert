@@ -259,7 +259,7 @@ class AlertAuditRepository
     private function buildBaseSql(
         AuditFilterDTO $dto,
         User $user,
-        string $select = 'a.id, a.code_gei AS codeGei, a.date_creation AS dateCreation, a.port_corridor AS portCorridor, a.categorie, a.type_source AS typeSource, a.anonymisation, a.fiabilite_source AS fiabiliteSource, a.credibilite_contenu AS credibiliteContenu, a.urgence, a.impact, a.exploitabilite, a.statut, a.transmission, a.actions_en_cours AS actionsEnCours, a.pieces_disponibles AS piecesDisponibles, a.reference_documentaire AS referenceDocumentaire, a.sensibilite, a.commentaires, a.score_gei AS scoreGei, COALESCE(a.score_surcharge, a.score_gei) AS score, a.niveau_priorite AS niveauPriorite, COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS priorite, a.score_surcharge AS scoreSurcharge, a.niveau_priorite_surcharge AS niveauPrioriteSurcharge, a.origine, a.type_alerte AS typeAlerte, a.historique_source AS historiqueSource, a.emetteur_texte AS emetteurTexte, a.pieces_type AS piecesType, a.commentaire_rejet AS commentaireRejet, a.marque, a.operateur_acteur AS operateurActeur, a.decision_gei AS decisionGei, a.emetteur_id AS emetteur_id, a.market_id AS market_id, m.nom AS pays, m.code_iso3 AS codeIso3, CONCAT(e.prenom, \' \', e.nom) AS agent, a.resume_executif AS resumeExecutif'
+        string $select = 'a.id, a.code_gei AS codeGei, a.date_creation AS dateCreation, a.port_corridor AS portCorridor, a.categorie, a.type_source AS typeSource, a.anonymisation, a.fiabilite_source AS fiabiliteSource, a.credibilite_contenu AS credibiliteContenu, a.urgence, a.impact, a.exploitabilite, a.statut, a.transmission, a.actions_en_cours AS actionsEnCours, a.pieces_disponibles AS piecesDisponibles, a.reference_documentaire AS referenceDocumentaire, a.sensibilite, a.commentaires, a.score_gei AS scoreGei, COALESCE(a.score_surcharge, a.score_gei) AS score, a.niveau_priorite AS niveauPriorite, COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS priorite, a.score_surcharge AS scoreSurcharge, a.niveau_priorite_surcharge AS niveauPrioriteSurcharge,         a.origine, a.type_alerte AS typeAlerte, a.historique_source AS historiqueSource, a.emetteur_texte AS emetteurTexte, a.pieces_type AS piecesType, a.commentaire_rejet AS commentaireRejet, a.marque, a.operateur_acteur AS operateurActeur, a.decision_gei AS decisionGei, a.legal_status AS legalStatus, a.emetteur_id AS emetteur_id, a.market_id AS market_id, m.nom AS pays, m.code_iso3 AS codeIso3, CONCAT(e.prenom, \' \', e.nom) AS agent, a.resume_executif AS resumeExecutif'
     ): array {
         $params = [];
         $types  = [];
@@ -274,18 +274,6 @@ class AlertAuditRepository
         if ($user->getRole() === \App\Enum\UserRoleEnum::EMETTEUR_TERRAIN) {
             $sql .= ' AND a.emetteur_id = :currentUserId';
             $params['currentUserId'] = $user->getId();
-        } elseif ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            if (!empty($managedMarkets)) {
-                $managedIds = array_map('intval', array_map(fn($m) => $m->getId(), $managedMarkets));
-                $sql .= ' AND (a.market_id IN (' . implode(', ', array_map(static fn($id) => ':managedMarketIds_' . $id, $managedIds)) . ')'
-                    . ' OR EXISTS (SELECT 1 FROM alert_market am_scope WHERE am_scope.alert_id = a.id AND am_scope.market_id IN ('
-                    . implode(', ', array_map(static fn($id) => ':managedMarketIds_' . $id, $managedIds)) . '))';
-                foreach ($managedIds as $id) {
-                    $params['managedMarketIds_' . $id] = $id;
-                }
-                $sql .= ')';
-            }
         }
         // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → pas de filtre scope
 

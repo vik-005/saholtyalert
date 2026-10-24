@@ -122,6 +122,7 @@ class AuditExcelExportService
             'Code GEI', 'Pays', 'Corridor', 'Date', 'Catégorie',
             'Type', 'Priorité', 'Score', 'Statut', 'Urgence',
             'Impact', 'Exploitabilité', 'Agent', 'Résumé',
+            'Statut juridique',
         ];
 
         $col = 'A';
@@ -151,6 +152,11 @@ class AuditExcelExportService
                 $this->labelExploitabilite($r['exploitabilite'] ?? ''),
                 $r['agent'] ?? '',
                 mb_substr($r['resumeExecutif'] ?? '', 0, 200),
+                match (mb_strtolower((string) ($r['legalStatus'] ?? ''))) {
+                    'licite' => 'Licite',
+                    'illicite' => 'Illicite',
+                    default => '',
+                },
             ];
 
             foreach ($values as $value) {

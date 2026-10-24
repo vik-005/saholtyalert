@@ -80,18 +80,31 @@
                data-turbo="false">
                 <i class="bi bi-file-earmark-arrow-up me-1.5"></i>Importation Excel
             </a>
-            {% endif %}
             <a href="{{ path('app_export_registre') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_export_registre' %}active{% endif %}"
                data-turbo="false">
                 <i class="bi bi-file-earmark-arrow-down me-1.5"></i>Exporter le registre
             </a>
+            {% endif %}
 
         </div>
 
         {# ════════════════════════════════════════════════════
-           Groupe 2 — Tableaux de bord
+           Groupe 2 — Tableau de bord personnel (Agents uniquement)
         ════════════════════════════════════════════════════ #}
+        {% if app.user and app.user.role.value == 'ROLE_EMETTEUR_TERRAIN' %}
+        <a href="{{ path('app_agent_dashboard') }}" rel="noopener"
+           class="sidebar-link {% if route == 'app_agent_dashboard' %}active{% endif %}"
+           data-turbo="false">
+            <span class="sidebar-link-icon"><i class="bi bi-graph-up"></i></span>
+            <span class="sidebar-link-text">Mon Tableau de Bord</span>
+        </a>
+        {% endif %}
+
+        {# ════════════════════════════════════════════════════
+           Groupe 3 — Tableaux de bord (Managers et plus uniquement)
+        ════════════════════════════════════════════════════ #}
+        {% if is_granted('ROLE_PFT') or is_granted('ROLE_COMITE_AIT') %}
         <button type="button" class="sidebar-link sidebar-submenu-toggle sidebar-submenu-btn {% if isStatsActive %}active{% endif %}"
                 onclick="toggleSubmenu('submenu-statistiques')"
                 title="Afficher les sous-menus des tableaux de bord" aria-controls="submenu-statistiques"
@@ -116,15 +129,14 @@
                data-turbo="false">
                 <i class="bi bi-geo-alt-fill me-1.5"></i>Carte des alertes
             </a>
-            {% endif %}
-
             <a href="{{ path('app_dashboard_corridors') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_corridors' %}active{% endif %}"
                data-turbo="false">
                 <i class="bi bi-map me-1.5"></i>Statistics corridor
             </a>
+            {% endif %}
 
-            {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') or is_granted('ROLE_SECRETARIAT_GEI') %}
+            {% if is_granted('ROLE_PFT') %}
             <a href="{{ path('app_dashboard_statistiques') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_statistiques' %}active{% endif %}"
                data-turbo="false">
@@ -140,7 +152,7 @@
             </a>
             {% endif %}
 
-            {% if is_granted('ROLE_PFT') or is_granted('ROLE_SUPERADMIN') or is_granted('ROLE_SAHOLTY') or is_granted('ROLE_COMITE_AIT') or is_granted('ROLE_SECRETARIAT_GEI') %}
+            {% if is_granted('ROLE_PFT') %}
             <a href="{{ path('app_dashboard_general') }}" rel="noopener"
                class="sidebar-sublink {% if route == 'app_dashboard_general' %}active{% endif %}"
                data-turbo="false">
@@ -149,6 +161,7 @@
             {% endif %}
 
         </div>
+        {% endif %}
 
         {# ════════════════════════════════════════════════════
            Groupe 3 — Administration

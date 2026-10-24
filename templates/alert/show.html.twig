@@ -87,7 +87,7 @@
                     </button>
                 </form>
             {% endif %}
-            <a href="{{ path('app_alert_pdf', {token: alertToken}) }}" class="db-btn db-btn-ghost">
+            <a href="{{ path('app_alert_pdf', {token: alertToken}) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="db-btn db-btn-ghost">
                 <i class="bi bi-file-earmark-pdf me-1.5 text-red-500"></i>PDF
             </a>
         </div>

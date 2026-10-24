@@ -23,6 +23,7 @@ class AccessLog
     public const ACTION_LOGIN_FAILED = 'login_failed';
     public const ACTION_LOGIN_SUSPICIOUS = 'login_suspicious';
     public const ACTION_LOGOUT = 'logout';
+    public const ACTION_PASSWORD_RESET_REQUESTED = 'password_reset_requested';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]

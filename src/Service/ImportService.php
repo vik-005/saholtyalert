@@ -7,6 +7,7 @@ use App\Entity\Market;
 use App\Entity\User;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
@@ -64,6 +65,7 @@ class ImportService
         'urgence'         => ['urgence'],
         'impact'          => ['impact'],
         'exploitabilite'  => ['exploitabilité', 'exploitabilite'],
+        'legal_status'    => ['statut juridique', 'legal status', 'legality'],
         'statut'          => ['statut'],
         'transmission'    => ['transmission'],
         'actions'         => ['actions en cours', 'actions'],
@@ -723,6 +725,16 @@ class ImportService
         $alert->setExploitabilite($exp);
         if (null === $exp) {
             $manquants[] = 'exploitabilite';
+        }
+
+        // ── Statut juridique ───────────────────────────────────────────────────
+        $legalStatusRaw = $get('legal_status');
+        $legalStatus = $this->matchEnumWithAliases(AlertLegality::class, $legalStatusRaw);
+        if ($legalStatus !== null) {
+            $alert->setLegalStatus($legalStatus);
+        }
+        if ($legalStatusRaw !== '' && $legalStatus === null) {
+            $manquants[] = 'legalStatus';
         }
 
         // ── Statut ───────────────────────────────────────────────────────────────

@@ -173,6 +173,25 @@ class ExportStatsService
             $debut, $fin
         );
 
+        // ── Feuille 10 : Statut juridique ───────────────────────────────────
+        $sheet10 = $spreadsheet->createSheet()->setTitle('Statut juridique');
+        $this->writeSheet(
+            $sheet10,
+            ['Statut juridique', 'Nombre d\'alertes'],
+            array_map(
+                static fn(array $row) => [
+                    match ($row['legalStatus'] ?? null) {
+                        'licite' => 'Licite',
+                        'illicite' => 'Illicite',
+                        default => 'Non renseigné',
+                    },
+                    (int) $row['nb'],
+                ],
+                $this->stats->getLegalStatusCounts($debut, $fin, $marketIds)
+            ),
+            $debut, $fin
+        );
+
         // Activer la première feuille
         $spreadsheet->setActiveSheetIndex(0);
 

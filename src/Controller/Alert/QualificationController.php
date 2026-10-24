@@ -81,6 +81,13 @@ class QualificationController extends AbstractController
             throw $this->createAccessDeniedException('Cette alerte ne peut pas être décidée à cette étape.');
         }
 
+        // ── VÉRIFICATION DE LA LIMITE DE REQUALIFICATIONS ──────────────────────────
+        // Manager (PFT) : limité à 3 requalifications
+        // SUPERADMIN et SAHOLTY : illimité
+        if ($currentUser instanceof User && !$alert->canBeRequalifiedBy($currentUser)) {
+            return $this->redirectToRoute('app_alert_requalification_limit', ['token' => $token]);
+        }
+
         $isReject = $request->request->has('action_rejet');
 
         // ── REJET Manager — formulaire séparé sans les champs de qualification ──────
@@ -185,6 +192,13 @@ class QualificationController extends AbstractController
                     // Traçabilité nominative (Partie B) + horodatage (Partie D)
                     $alert->setValidatedBy($currentUser instanceof User ? $currentUser : null);
                     $alert->setDateValidation(new \DateTime());
+
+                    // ── INCRÉMENTATION DU COMPTEUR DE REQUALIFICATIONS ──────────────
+                    // Uniquement si le Manager (PFT) a modifié des critères (score a changé)
+                    // Cela compte comme une requalification
+                    if ($scoreBeforeManagerEdit !== null && $scoreBeforeManagerEdit !== $alert->getScoreGei()) {
+                        $alert->incrementRequalificationCount();
+                    }
 
                     $history->setNouveauStatut($alert->getStatut());
                     $history->setTransitionName('valider');
@@ -325,6 +339,32 @@ class QualificationController extends AbstractController
 
         $this->addFlash('success', 'Surcharge manuelle enregistrée.');
         return $this->redirectToRoute('app_alert_show', ['token' => $token]);
+    }
+
+    /**
+     * Page dédiée affichée quand un Manager a atteint la limite de 3 requalifications.
+     * Accessible uniquement via token opaque (ID non devinable).
+     */
+    #[Route('/{token}/requalification-limit', name: 'app_alert_requalification_limit', methods: ['GET'], requirements: ['token' => '[A-Za-z0-9_-]+'])]
+    public function requalificationLimit(
+        string $token,
+        AlertRepository $alertRepository,
+    ): Response {
+        $alert = $this->resolveAlertToken($token, $alertRepository);
+
+        /** @var User|null $currentUser */
+        $currentUser = $this->getUser();
+
+        // Si l'utilisateur peut encore requalifier, on le redirige vers la qualification normale
+        if ($currentUser instanceof User && $alert->canBeRequalifiedBy($currentUser)) {
+            return $this->redirectToRoute('app_alert_qualify', ['token' => $token]);
+        }
+
+        return $this->render('alert/requalification_limit.html.twig', [
+            'alert'      => $alert,
+            'alertToken' => $token,
+            'count'      => $alert->getRequalificationCount(),
+        ]);
     }
 
     /**

@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_USER')]
+#[IsGranted('ROLE_PFT')]
 class StatistiquesController extends AbstractController
 {
     #[Route('/statistiques', name: 'app_dashboard_statistiques', methods: ['GET'])]
@@ -45,12 +45,7 @@ class StatistiquesController extends AbstractController
             $marketIds = [];
         }
 
-        // Restreindre aux marchés gérés si Manager
         $allMarkets = $marketRepo->findBy(['actif' => true]);
-        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $allowedMarketIds = array_map(fn($m) => $m->getId(), $user->getAllManagedMarkets() ?? []);
-            $marketIds = $marketIds === [] ? $allowedMarketIds : array_values(array_intersect($marketIds, $allowedMarketIds));
-        }
 
         // --- Filtre DTO pour compatibilité avec AlertFilterService ---
         $filterDto = new AlertFilterDTO();
@@ -67,6 +62,7 @@ class StatistiquesController extends AbstractController
             'selected_markets' => $marketIds,
             'all_markets'    => $allMarkets,
             'total_alertes_periode' => $stats->getTotalAlertes($debut, $fin, $marketIds),
+            'legal_status_counts' => $stats->getLegalStatusCounts($debut, $fin, $marketIds),
             'parcours_stats'     => $stats->getParcoursStats($debut, $fin, $marketIds),
 
             // A.1 — Par pays
@@ -110,11 +106,6 @@ class StatistiquesController extends AbstractController
         } else {
             $marketIds = [];
         }
-        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $allowedMarketIds = array_map(fn($m) => $m->getId(), $user->getAllManagedMarkets() ?? []);
-            $marketIds = $marketIds === [] ? $allowedMarketIds : array_values(array_intersect($marketIds, $allowedMarketIds));
-        }
-
         return $this->json([
             'volume_par_pays'       => $stats->getVolumeParPays($debut, $fin, $marketIds),
             'parcours_stats'        => $stats->getParcoursStats($debut, $fin, $marketIds),
@@ -129,6 +120,7 @@ class StatistiquesController extends AbstractController
             'activite_agents'       => $stats->getActiviteParAgent($debut, $fin, $marketIds),
             'delai_moyen'           => $stats->getDelaiMoyenTraitement($debut, $fin, $marketIds),
             'evolution'             => $stats->getEvolutionTemporelle($debut, $fin, $marketIds),
+            'legal_status_counts'   => $stats->getLegalStatusCounts($debut, $fin, $marketIds),
         ]);
     }
 }

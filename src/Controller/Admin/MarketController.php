@@ -6,6 +6,7 @@ use App\Entity\Market;
 use App\Entity\ZoneGeo;
 use App\Repository\MarketRepository;
 use App\Repository\ZoneGeoRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,8 +25,9 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class MarketController extends AbstractController
 {
     #[Route('/', name: 'app_admin_market_index', methods: ['GET'])]
-    public function index(MarketRepository $repo): Response
+    public function index(MarketRepository $repo, AdminAuditLogger $auditLogger): Response
     {
+        $auditLogger->logAndFlush(\App\Entity\AccessLog::ACTION_LECTURE, 'markets');
         $markets = $repo->findBy([], ['nom' => 'ASC']);
 
         return $this->render('admin/market/index.html.twig', [
@@ -39,6 +41,7 @@ class MarketController extends AbstractController
         EntityManagerInterface $em,
         ZoneGeoRepository $zoneGeoRepo,
         ValidatorInterface $validator,
+        AdminAuditLogger $auditLogger,
     ): Response {
         if ($request->isMethod('POST')) {
             if (!$this->isCsrfTokenValid('market_new', (string) $request->request->get('_token'))) {
@@ -67,6 +70,8 @@ class MarketController extends AbstractController
                 $market->setRegion($region);
                 $market->setActif(true);
                 $em->persist($market);
+                $em->flush();
+                $auditLogger->log(\App\Entity\AccessLog::ACTION_CREATION, 'market', $market->getId());
                 $em->flush();
 
                 // Créer automatiquement la zone_geo si coordonnées fournies
@@ -109,6 +114,7 @@ class MarketController extends AbstractController
         Market $market,
         EntityManagerInterface $em,
         ZoneGeoRepository $zoneGeoRepo,
+        AdminAuditLogger $auditLogger,
     ): Response {
         $zone = $zoneGeoRepo->findOneBy(['market' => $market]);
 
@@ -117,6 +123,8 @@ class MarketController extends AbstractController
                 $this->addFlash('danger', 'Jeton CSRF invalide.');
                 return $this->redirectToRoute('app_admin_market_edit', ['id' => $market->getId()]);
             }
+
+            $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'market', $market->getId());
 
             $nom    = trim($request->request->get('nom', ''));
             $region = trim($request->request->get('region', $market->getRegion()));
@@ -162,7 +170,7 @@ class MarketController extends AbstractController
     }
 
     #[Route('/{id}/toggle', name: 'app_admin_market_toggle', methods: ['POST'])]
-    public function toggle(Request $request, Market $market, EntityManagerInterface $em): Response
+    public function toggle(Request $request, Market $market, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('toggle-market-' . $market->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
@@ -170,6 +178,7 @@ class MarketController extends AbstractController
         }
 
         $market->setActif(!$market->isActif());
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'market_status', $market->getId());
         $em->flush();
 
         $etat = $market->isActif() ? 'activé' : 'désactivé';
@@ -179,7 +188,7 @@ class MarketController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'app_admin_market_delete', methods: ['POST'])]
-    public function delete(Request $request, Market $market, EntityManagerInterface $em): Response
+    public function delete(Request $request, Market $market, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('delete-market-' . $market->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
@@ -201,6 +210,7 @@ class MarketController extends AbstractController
         }
 
         $nom = $market->getNom();
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_SUPPRESSION, 'market', $market->getId());
         $em->remove($market);
         $em->flush();
 

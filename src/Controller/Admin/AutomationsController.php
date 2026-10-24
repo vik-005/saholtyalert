@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\RuleConfig;
 use App\Repository\AccessLogRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,8 +17,10 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class AutomationsController extends AbstractController
 {
     #[Route('/', name: 'app_admin_automations', methods: ['GET'])]
-    public function index(EntityManagerInterface $em, AccessLogRepository $logRepository): Response
+    public function index(EntityManagerInterface $em, AccessLogRepository $logRepository, AdminAuditLogger $auditLogger): Response
     {
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_LECTURE, 'automations');
+        $em->flush();
         $rules = $em->getRepository(RuleConfig::class)->findAll();
         
         // Logs d'escalades et automatisations récentes
@@ -37,7 +40,7 @@ class AutomationsController extends AbstractController
     }
 
     #[Route('/rule/{id}/toggle', name: 'app_admin_automation_rule_toggle', methods: ['POST'])]
-    public function toggleRule(Request $request, RuleConfig $rule, EntityManagerInterface $em): Response
+    public function toggleRule(Request $request, RuleConfig $rule, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('toggle-rule-' . $rule->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
@@ -45,6 +48,7 @@ class AutomationsController extends AbstractController
         }
 
         $rule->setActif(!$rule->isActif());
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'automation_status', $rule->getId());
         $em->flush();
 
         $this->addFlash('success', sprintf('Automatisation "%s" %s avec succès.', $rule->getCle(), $rule->isActif() ? 'activée' : 'désactivée'));
@@ -53,7 +57,7 @@ class AutomationsController extends AbstractController
     }
 
     #[Route('/rule/{id}/update', name: 'app_admin_automation_rule_update', methods: ['POST'])]
-    public function updateRule(Request $request, RuleConfig $rule, EntityManagerInterface $em): Response
+    public function updateRule(Request $request, RuleConfig $rule, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('update-rule-' . $rule->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton de sécurité invalide.');
@@ -63,6 +67,7 @@ class AutomationsController extends AbstractController
         $valeur = $request->request->get('valeur');
         if ($valeur !== null) {
             $rule->setValeur(trim($valeur));
+            $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'automation_rule', $rule->getId());
             $em->flush();
 
             $this->addFlash('success', sprintf('Seuil de la règle "%s" mis à jour : %s', $rule->getCle(), $valeur));

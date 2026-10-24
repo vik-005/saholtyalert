@@ -10,7 +10,7 @@ class ExportImportColumnsTest extends TestCase
     public function testExportServiceColumnsCount(): void
     {
         $columns = ExportService::COLUMNS;
-        $this->assertCount(39, $columns);
+        $this->assertCount(40, $columns);
         $this->assertContains('Hypothèses analytiques', $columns);
         $this->assertContains('Éléments factuels', $columns);
         $this->assertContains('Marque', $columns);
@@ -21,5 +21,6 @@ class ExportImportColumnsTest extends TestCase
         $this->assertContains('Historique de la source', $columns);
         $this->assertContains('Décision GEI', $columns);
         $this->assertContains('Parcours pays', $columns);
+        $this->assertContains('Statut juridique', $columns);
     }
 }

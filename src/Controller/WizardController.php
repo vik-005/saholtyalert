@@ -515,20 +515,22 @@ class WizardController extends AbstractController
     }
 
     /**
-     * Crée les notifications pour les managers du marché concerné.
+     * Crée les notifications pour les managers, quel que soit le marché de l'alerte.
      * Les entités sont persistées mais pas flushées — le flush global viendra
      * dans la transaction parente.
      */
     private function createManagerNotifications(Alert $alert, EntityManagerInterface $em, bool $isEdit, \App\Entity\User $agent): void
     {
-        $markets = $alert->getMarket() ? [$alert->getMarket()] : [];
-
-        // PFT managers + SAHOLTY (tous) + SUPERADMIN — via la même logique que notifyManagersOfMarket
+        // Tous les managers peuvent traiter une alerte, même hors de leurs marchés assignés.
         $qb = $em->createQueryBuilder();
         $qb->select('u')
             ->from(\App\Entity\User::class, 'u')
             ->where('u.role IN (:roles)')
-            ->setParameter('roles', [\App\Enum\UserRoleEnum::PFT->value, \App\Enum\UserRoleEnum::SAHOLTY->value]);
+            ->setParameter('roles', [
+                \App\Enum\UserRoleEnum::PFT->value,
+                \App\Enum\UserRoleEnum::SAHOLTY->value,
+                \App\Enum\UserRoleEnum::SUPERADMIN->value,
+            ]);
 
         $managers = $qb->getQuery()->getResult();
 
@@ -537,41 +539,36 @@ class WizardController extends AbstractController
 
         foreach ($managers as $manager) {
             /** @var \App\Entity\User $manager */
-            $isSaholty = $manager->getRole() === \App\Enum\UserRoleEnum::SAHOLTY;
-            $managesMarket = in_array($alert->getMarket(), $manager->getAllManagedMarkets(), true);
-
-            if ($isSaholty || $managesMarket) {
-                // Anti-duplication : ne pas recréer une notification identique dans les 10 dernières minutes
-                if ($alert->getId() !== null) {
-                    $existing = $this->notificationService->findExistingRecent(
-                        $manager, 'new_alert', $alert
-                    );
-                    if ($existing) {
-                        continue;
-                    }
+            // Anti-duplication : ne pas recréer une notification identique dans les 10 dernières minutes
+            if ($alert->getId() !== null) {
+                $existing = $this->notificationService->findExistingRecent(
+                    $manager, 'new_alert', $alert
+                );
+                if ($existing) {
+                    continue;
                 }
-
-                $notif = new \App\Entity\Notification();
-                $notif->setDestinataire($manager);
-                $notif->setAlert($alert);
-                $notif->setType('new_alert');
-                $notif->setContenu(sprintf(
-                    '%s' . PHP_EOL .
-                    'Code GEI : %s' . PHP_EOL .
-                    'Marché : %s' . PHP_EOL .
-                    'Score GEI : %d/25 (%s)' . PHP_EOL .
-                    'Résumé : %s' . PHP_EOL .
-                    'Agent : %s',
-                    $isEdit ? 'Alerte modifiée et resoupée' : 'Nouvelle alerte soumise',
-                    $alert->getCodeGei() ?? 'BROUILLON',
-                    $alert->getMarket()->getNom(),
-                    $score,
-                    $priorite,
-                    mb_strimwidth($alert->getResumeExecutif() ?? '', 0, 80, '...'),
-                    $agent->getNomComplet()
-                ));
-                $em->persist($notif);
             }
+
+            $notif = new \App\Entity\Notification();
+            $notif->setDestinataire($manager);
+            $notif->setAlert($alert);
+            $notif->setType('new_alert');
+            $notif->setContenu(sprintf(
+                '%s' . PHP_EOL .
+                'Code GEI : %s' . PHP_EOL .
+                'Marché : %s' . PHP_EOL .
+                'Score GEI : %d/25 (%s)' . PHP_EOL .
+                'Résumé : %s' . PHP_EOL .
+                'Agent : %s',
+                $isEdit ? 'Alerte modifiée et resoupée' : 'Nouvelle alerte soumise',
+                $alert->getCodeGei() ?? 'BROUILLON',
+                $alert->getMarket()->getNom(),
+                $score,
+                $priorite,
+                mb_strimwidth($alert->getResumeExecutif() ?? '', 0, 80, '...'),
+                $agent->getNomComplet()
+            ));
+            $em->persist($notif);
         }
     }
 
@@ -769,7 +766,64 @@ class WizardController extends AbstractController
         $selectedCountries = array_values(array_intersect($selectedCountries, array_keys(Countries::getNames('fr'))));
         $alert->setParcoursCountries($selectedCountries);
 
-        // Les anciennes associations alert_market sont conservées pour ne pas
-        // modifier les statistiques et filtres historiques.
+        $alpha3Codes = [];
+        foreach ($selectedCountries as $countryCode) {
+            try {
+                $alpha3Codes[] = Countries::getAlpha3Code($countryCode);
+            } catch (\Throwable) {
+                continue;
+            }
+        }
+
+        $marketsByCode = [];
+        if ($alpha3Codes !== []) {
+            foreach ($em->getRepository(\App\Entity\Market::class)->findBy([
+                'codeIso3' => array_values(array_unique($alpha3Codes)),
+                'actif' => true,
+            ]) as $market) {
+                $marketsByCode[$market->getCodeIso3()] = $market;
+            }
+        }
+
+        $principalId = $alert->getMarket()?->getId();
+        $selectedMarkets = [];
+        foreach ($selectedCountries as $index => $countryCode) {
+            try {
+                $market = $marketsByCode[Countries::getAlpha3Code($countryCode)] ?? null;
+            } catch (\Throwable) {
+                $market = null;
+            }
+            if ($market === null || $market->getId() === $principalId) {
+                continue;
+            }
+
+            $selectedMarkets[(int) $market->getId()] = [
+                'market' => $market,
+                'order' => $index + 1,
+            ];
+        }
+
+        $existingMarketIds = [];
+        foreach ($alert->getAlertMarkets() as $association) {
+            if ($association->getRole() !== 'associe') {
+                continue;
+            }
+
+            $marketId = (int) $association->getMarket()?->getId();
+            if (!isset($selectedMarkets[$marketId])) {
+                $alert->getAlertMarkets()->removeElement($association);
+                $em->remove($association);
+                continue;
+            }
+
+            $association->setOrdre($selectedMarkets[$marketId]['order']);
+            $existingMarketIds[$marketId] = true;
+        }
+
+        foreach ($selectedMarkets as $marketId => $selectedMarket) {
+            if (!isset($existingMarketIds[$marketId])) {
+                $alert->addMarketAssociation($selectedMarket['market'], 'associe', $selectedMarket['order']);
+            }
+        }
     }
 }

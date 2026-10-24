@@ -87,8 +87,7 @@ class AlertVoter extends Voter
     {
         // MANAGER (PFT) : Droit d'édition sur les alertes
         if ($user->getRole() === UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
+            return true;
         }
 
         // AGENT : Uniquement ses propres alertes ET si statut brouillon/nouveau/a_completer
@@ -104,8 +103,7 @@ class AlertVoter extends Voter
     {
         // MANAGER (PFT) : Qualification des alertes
         if ($user->getRole() === UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
+            return true;
         }
 
         return false;
@@ -118,16 +116,14 @@ class AlertVoter extends Voter
             return false;
         }
 
-        $managedMarkets = $user->getAllManagedMarkets();
-        return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
+        return true;
     }
 
     private function canDecide(Alert $alert, User $user): bool
     {
         // Le Manager (PFT) valide et décide des actions et de l'urgence 72h
         if ($user->getRole() === UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            return empty($managedMarkets) || in_array($alert->getMarket(), $managedMarkets, true);
+            return true;
         }
 
         return in_array($user->getRole(), [UserRoleEnum::SAHOLTY, UserRoleEnum::SUPERADMIN], true);

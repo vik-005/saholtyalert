@@ -35,6 +35,11 @@ enum UserRoleEnum: string
         };
     }
 
+    public function requiresTwoFactor(): bool
+    {
+        return in_array($this, [self::SUPERADMIN, self::SAHOLTY, self::PFT], true);
+    }
+
     public static function choices(): array
     {
         $choices = [];

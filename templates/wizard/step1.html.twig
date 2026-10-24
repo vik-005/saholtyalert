@@ -152,6 +152,16 @@ const countryPicker = document.getElementById('countryPicker');
 const countryPickerSelected = document.getElementById('countryPickerSelected');
 const countryPickerOptions = document.getElementById('countryPickerOptions');
 
+// ── CONSERVATION DE L'ORDRE DE SAISIE ───────────────────────────────────────
+// Tableau qui conserve l'ordre exact de sélection par l'utilisateur
+// (le <select> natif trie automatiquement ses options par ordre DOM)
+let selectionOrder = [];
+
+// Initialiser l'ordre avec les pays déjà sélectionnés (lors d'un brouillon/modification)
+if (parcoursSelect) {
+    selectionOrder = Array.from(parcoursSelect.selectedOptions).map(option => option.value);
+}
+
 function updateLabel() {
     const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
     if (!selected) {
@@ -227,7 +237,12 @@ function renderCountryPicker() {
         empty.textContent = 'Aucun pays sélectionné';
         countryPickerSelected.appendChild(empty);
     }
-    Array.from(parcoursSelect.selectedOptions).forEach(option => {
+    // ── AFFICHER LES PAYS DANS L'ORDRE DE SÉLECTION (pas alphabétique) ─────────
+    // Utiliser selectionOrder au lieu de parcoursSelect.selectedOptions
+    selectionOrder.forEach(countryCode => {
+        const option = Array.from(parcoursSelect.options).find(opt => opt.value === countryCode);
+        if (!option || !selected.has(countryCode)) return;
+        
         const tag = document.createElement('span');
         tag.className = 'country-picker-tag';
         tag.textContent = option.textContent.trim();
@@ -238,6 +253,8 @@ function renderCountryPicker() {
         remove.textContent = '×';
         remove.addEventListener('click', () => {
             option.selected = false;
+            // Retirer du tableau d'ordre
+            selectionOrder = selectionOrder.filter(code => code !== countryCode);
             renderCountryPicker();
             parcoursSearch?.focus();
         });
@@ -263,7 +280,13 @@ function filterCountryPicker() {
 countryPickerOptions?.querySelectorAll('.country-picker-option').forEach(button => {
     button.addEventListener('click', () => {
         const option = Array.from(parcoursSelect.options).find(item => item.value === button.dataset.countryCode);
-        if (option) option.selected = true;
+        if (option) {
+            option.selected = true;
+            // Ajouter à la fin du tableau d'ordre si pas déjà présent
+            if (!selectionOrder.includes(button.dataset.countryCode)) {
+                selectionOrder.push(button.dataset.countryCode);
+            }
+        }
         parcoursSearch.value = '';
         renderCountryPicker();
         filterCountryPicker();
@@ -288,7 +311,13 @@ parcoursSearch?.addEventListener('keydown', event => {
         filterCountryPicker();
     }
     if (event.key === 'Backspace' && parcoursSearch.value === '' && parcoursSelect.selectedOptions.length > 0) {
-        parcoursSelect.selectedOptions[parcoursSelect.selectedOptions.length - 1].selected = false;
+        // Retirer le dernier pays sélectionné (selon l'ordre de saisie)
+        const lastCountryCode = selectionOrder[selectionOrder.length - 1];
+        const lastOption = Array.from(parcoursSelect.options).find(opt => opt.value === lastCountryCode);
+        if (lastOption) {
+            lastOption.selected = false;
+            selectionOrder.pop(); // Retirer du tableau d'ordre
+        }
         renderCountryPicker();
     }
 });

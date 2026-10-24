@@ -203,14 +203,15 @@ php bin/console messenger:consume async -vv
 ## 5. Sécurité Implémentée
 
 ### Authentification
-- **Formulaire** (login/password) + CSRF + remember_me (7 jours) + throttling (5 essais / 15 min).
-- **JWT** (Lexik) pour API — clés RSA 4096, passphrase dans `.env.local`.
-- **2FA TOTP** (Scheb) — obligatoire selon config `scheb_2fa.yaml` :
-  - `totp_secret` stocké **chiffré** via `EncryptedType` (libsodium `secretbox`).
-  - `totpEnabled` booléen par utilisateur.
+- **Formulaire** (login/mot de passe) avec CSRF et throttling à 5 essais par 15 minutes.
+- **2FA TOTP** (Scheb) — enrôlement obligatoire pour les rôles PFT, SAHOLTY et SUPERADMIN. La session est fermée après activation afin d’imposer un nouveau login avec code TOTP.
+  - Le secret TOTP est stocké chiffré via `EncryptedType` (libsodium `secretbox`).
+  - Ces rôles ne peuvent pas désactiver le 2FA depuis l’interface.
+- **Mot de passe oublié** — jeton aléatoire à usage unique, seul son hash est conservé, expiration après une heure et limitation à 5 demandes par IP et par heure. Configurez `APP_BASE_URL`, `MAILER_FROM` et un `MAILER_DSN` opérationnel.
+- **Session** — huit heures, cookie `HttpOnly` et `SameSite=Lax`; `Secure` est imposé en production. Derrière un reverse proxy HTTPS, renseignez les adresses fiables dans `TRUSTED_PROXIES`.
 
 ### Mots de passe
-- Hash **auto** (PHP `password_hash` — argon2id par défaut Symfony 7.3).
+- Hash **auto** via le hasher Symfony ; l’algorithme concret dépend des extensions PHP disponibles sur le serveur.
 - Cost réduit en test (`cost: 4`, `time_cost: 3`, `memory_cost: 10`).
 
 ### Autorisations (Voters)
@@ -277,6 +278,8 @@ php bin/console messenger:consume async -vv
 | `/urgence` | GET | `Urgence72hDashboardController` | PFT | Dashboard cas 72h actifs |
 | `/audit/*` | GET | `AuditController` | PFT | Module audit + graphiques |
 | `/admin/*` | GET/POST | `Admin/*Controller` | PFT/SUPERADMIN | Gestion marchés, users, règles, listes |
+
+Les exports sont servis par des routes authentifiées : Excel utilise `Content-Disposition: attachment` pour lancer le téléchargement, tandis que les PDF utilisent `inline` et s’ouvrent dans un nouvel onglet. Les exports Excel du registre, de l’audit et des statistiques présentent le statut juridique Licite/Illicite ; le statut du registre est également réimportable. Dans la PWA, les exports nécessitent une connexion réseau ; le service worker gère les notifications Push mais n’intercepte ni ne met en cache les exports. Le téléchargement et l’ouverture des PDF dépendent ensuite du navigateur et du système de l’appareil.
 
 > **API Platform** : installé (`api-platform/symfony`, `api-platform/doctrine-orm`) mais **aucune ressource exposée** (`src/ApiResource/` vide).
 

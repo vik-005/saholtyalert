@@ -1,43 +1,54 @@
 {% set code = status_code|default(500) %}
 {% set eyebrow = 'Service' %}
 {% set heading = 'Une difficulté est survenue' %}
-{% set description = 'La demande n’a pas pu aboutir. Vous pouvez retourner à une page disponible et poursuivre votre navigation.' %}
+{% set description = 'La demande n\'a pas pu aboutir. Vous pouvez retourner au registre et poursuivre votre navigation.' %}
 {% set visual = 'service' %}
-{% set action_label = 'Retour au tableau de bord' %}
-{% set action_route = 'app_dashboard_operationnel' %}
+{% set action_label = 'Retour au registre' %}
+{% set action_route = 'app_alert_index' %}
 
 {% if code == 400 %}
-    {% set eyebrow = 'Demande' %}
+    {% set eyebrow = 'Demande invalide' %}
     {% set heading = 'Cette demande ne peut pas être traitée' %}
     {% set description = 'Les informations transmises ne permettent pas de traiter cette demande. Vérifiez-les puis réessayez.' %}
 {% elseif code == 401 %}
-    {% set eyebrow = 'Authentification' %}
+    {% set eyebrow = 'Authentification requise' %}
     {% set heading = 'Connectez-vous pour continuer' %}
-    {% set description = 'Cette page est réservée aux utilisateurs connectés. Identifiez-vous pour poursuivre.' %}
+    {% set description = 'Cette page est réservée aux utilisateurs connectés. Identifiez-vous pour poursuivre votre travail.' %}
     {% set action_label = 'Se connecter' %}
     {% set action_route = 'app_login' %}
+{% elseif code == 403 %}
+    {% set eyebrow = 'Accès refusé' %}
+    {% set heading = 'Vous n\'avez pas les droits nécessaires' %}
+    {% set description = 'Les autorisations associées à votre compte ne permettent pas d\'accéder à cette ressource.' %}
+    {% set visual = 'forbidden' %}
+{% elseif code == 404 %}
+    {% set eyebrow = 'Page introuvable' %}
+    {% set heading = 'Cette page n\'existe plus' %}
+    {% set description = 'La ressource demandée n\'a pas pu être localisée. Elle a peut-être été déplacée ou supprimée.' %}
+    {% set visual = 'not-found' %}
 {% elseif code == 405 %}
-    {% set eyebrow = 'Navigation' %}
-    {% set heading = 'Cette action n’est pas disponible ici' %}
-    {% set description = 'Cette page ne peut pas répondre à cette action. Revenez au tableau de bord pour continuer.' %}
+    {% set eyebrow = 'Méthode non autorisée' %}
+    {% set heading = 'Cette action n\'est pas disponible ici' %}
+    {% set description = 'Cette page ne peut pas répondre à cette action. Revenez au registre pour continuer.' %}
 {% elseif code == 422 %}
-    {% set eyebrow = 'Vérification' %}
+    {% set eyebrow = 'Vérification requise' %}
     {% set heading = 'Certaines informations doivent être vérifiées' %}
-    {% set description = 'Les informations transmises n’ont pas pu être validées. Revenez au formulaire et vérifiez les champs saisis.' %}
+    {% set description = 'Les informations transmises n\'ont pas pu être validées. Revenez au formulaire et vérifiez les champs saisis.' %}
 {% elseif code == 429 %}
-    {% set eyebrow = 'Patientez' %}
+    {% set eyebrow = 'Trop de requêtes' %}
     {% set heading = 'Un instant, veuillez réessayer' %}
     {% set description = 'Trop de demandes ont été envoyées en peu de temps. Veuillez patienter avant de réessayer.' %}
     {% set visual = 'rate-limit' %}
-{% elseif code == 502 %}
+{% elseif code == 500 %}
+    {% set eyebrow = 'Erreur serveur' %}
+    {% set heading = 'Une difficulté technique est survenue' %}
+    {% set description = 'La demande n\'a pas pu aboutir. L\'équipe technique en a été informée. Veuillez réessayer plus tard.' %}
+    {% set visual = 'server' %}
+{% elseif code == 502 or code == 503 or code == 504 %}
+    {% set eyebrow = 'Service indisponible' %}
     {% set heading = 'Le service rencontre un problème temporaire' %}
-    {% set description = 'La demande n’a pas pu aboutir pour le moment. Revenez au tableau de bord et réessayez plus tard.' %}
-{% elseif code == 503 %}
-    {% set heading = 'Le service est temporairement indisponible' %}
-    {% set description = 'Le service est momentanément indisponible. Veuillez réessayer plus tard.' %}
-{% elseif code == 504 %}
-    {% set heading = 'La réponse prend plus de temps que prévu' %}
-    {% set description = 'La demande n’a pas reçu de réponse à temps. Revenez au tableau de bord avant de réessayer.' %}
+    {% set description = 'Le service est momentanément indisponible. Veuillez réessayer dans quelques instants.' %}
+    {% set visual = 'server' %}
 {% endif %}
 
 {% include 'bundles/TwigBundle/Exception/_page.html.twig' with {

@@ -40,6 +40,23 @@ class AlertVoterTest extends TestCase
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
     }
 
+    public function testManagerCanViewAndQualifyAlertsOutsideManagedMarkets(): void
+    {
+        $voter = new AlertVoter();
+
+        $manager = new User();
+        $manager->setRole(UserRoleEnum::PFT);
+
+        $alert = new Alert();
+        $alert->setMarket(new Market());
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($manager);
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $voter->vote($token, $alert, [AlertVoter::VIEW]));
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $voter->vote($token, $alert, [AlertVoter::QUALIFY]));
+    }
+
     public function testAgentCannotEditQualificationFields(): void
     {
         $voter = new AlertVoter();

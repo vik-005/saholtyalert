@@ -1,9 +1,9 @@
 {% include 'bundles/TwigBundle/Exception/_page.html.twig' with {
     code: 404,
-    eyebrow: 'Navigation',
-    heading: 'Cette page semble introuvable',
-    description: 'La page demandée n’existe pas ou n’est plus disponible. Vous pouvez revenir au tableau de bord pour poursuivre votre navigation.',
+    eyebrow: 'Page introuvable',
+    heading: 'Cette page n\'existe plus',
+    description: 'La ressource demandée n\'a pas pu être localisée. Elle a peut-être été déplacée, supprimée, ou le lien que vous avez suivi est incorrect.',
     visual: 'not-found',
-    action_label: 'Retour au tableau de bord',
-    action_route: 'app_dashboard_operationnel'
+    action_label: 'Retour à l\'accueil',
+    action_route: 'app_alert_index'
 } only %}

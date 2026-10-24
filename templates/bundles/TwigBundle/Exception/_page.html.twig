@@ -1,247 +1,390 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title>{{ heading }} — GEI Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
         :root {
-            color-scheme: light dark;
-            --error-bg: #f1f5f9;
-            --error-surface: #ffffff;
-            --error-soft: #ecfdf5;
-            --error-border: #dbe5e0;
-            --error-text: #0f172a;
-            --error-muted: #475569;
-            --error-dim: #64748b;
-            --error-primary: #047857;
-            --error-primary-hover: #065f46;
-            --error-art: #059669;
+            --bg:         #0b1612;
+            --surface:    #12221b;
+            --surface2:   #182e25;
+            --border:     #213d31;
+            --border2:    #2c5242;
+            --green:      #34d399;
+            --green-hover:#10b981;
+            --green-bg:   rgba(52,211,153,.10);
+            --green-bd:   rgba(52,211,153,.25);
+            --text:       #e6f2ec;
+            --muted:      #a6c7b9;
+            --dim:        #85a697;
+            --red:        #f87171;
+            --amber-warn: #fbbf24;
+            --shadow:     0 4px 24px rgba(0,0,0,.45);
         }
 
-        * { box-sizing: border-box; }
-
-        body {
-            display: grid;
-            min-width: 320px;
+        html, body {
             min-height: 100vh;
-            min-height: 100svh;
-            margin: 0;
-            padding: clamp(16px, 5vw, 64px);
-            place-items: center;
-            background: var(--error-bg);
-            color: var(--error-text);
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
-        .error-page {
-            width: min(100%, 1000px);
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(20px, 5vw, 60px) clamp(16px, 4vw, 40px);
+            background:
+                radial-gradient(ellipse 80% 60% at 20% -10%, rgba(16,185,129,.09) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 50% at 80% 110%, rgba(7,40,32,.8) 0%, transparent 60%),
+                var(--bg);
         }
 
-        .error-brand {
-            display: inline-flex;
+        /* ── Brand ────────────────────────────────────────────────────── */
+        .ep-brand {
+            display: flex;
             align-items: center;
             gap: 10px;
-            margin: 0 0 18px 4px;
-            color: var(--error-text);
-            font-size: 14px;
-            font-weight: 750;
-            letter-spacing: .01em;
+            margin-bottom: 28px;
+            text-decoration: none;
+            color: var(--text);
         }
 
-        .error-brand-mark {
+        .ep-brand-mark {
+            width: 34px;
+            height: 34px;
             display: grid;
-            width: 30px;
-            height: 30px;
             place-items: center;
-            border-radius: 8px;
-            background: #45e3b8;
-            color: #07352b;
-            font-size: 12px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #10b981, #047857);
+            box-shadow: 0 0 0 1px rgba(52,211,153,.3), 0 4px 12px rgba(0,0,0,.4);
+            font-size: 11px;
             font-weight: 850;
+            color: #fff;
+            letter-spacing: -.01em;
         }
 
-        .error-panel {
+        .ep-brand-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .ep-brand-sub {
+            display: block;
+            font-size: 10px;
+            font-weight: 400;
+            color: var(--muted);
+            letter-spacing: .02em;
+        }
+
+        /* ── Card ─────────────────────────────────────────────────────── */
+        .ep-card {
+            width: min(100%, 960px);
             display: grid;
-            grid-template-columns: minmax(260px, .85fr) minmax(0, 1.15fr);
+            grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+            border-radius: 18px;
             overflow: hidden;
-            border: 1px solid var(--error-border);
-            border-radius: 16px;
-            background: var(--error-surface);
+            border: 1px solid var(--border2);
+            background: var(--surface);
+            box-shadow: var(--shadow);
         }
 
-        .error-visual {
+        /* ── Visual side ──────────────────────────────────────────────── */
+        .ep-visual {
             display: grid;
-            min-height: 390px;
-            padding: 36px;
             place-items: center;
-            border-right: 1px solid var(--error-border);
-            background: var(--error-soft);
+            padding: 40px 32px;
+            background:
+                radial-gradient(ellipse 120% 80% at 50% 60%, rgba(16,185,129,.06) 0%, transparent 70%),
+                var(--surface2);
+            border-right: 1px solid var(--border);
         }
 
-        .error-illustration {
-            width: min(100%, 260px);
+        .ep-illo {
+            width: min(100%, 280px);
             height: auto;
             overflow: visible;
         }
 
-        .error-illustration .art-outline {
-            fill: var(--error-surface);
-            stroke: var(--error-art);
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-width: 3;
+        /* SVG illustration classes */
+        .il-body-fill   { fill: #1a3329; }
+        .il-green       { fill: #10b981; }
+        .il-green-light { fill: #34d399; }
+        .il-green-dark  { fill: #065f46; }
+        .il-amber       { fill: #fbbf24; }
+        .il-red         { fill: #f87171; }
+        .il-muted       { fill: #2c5242; }
+        .il-surface     { fill: #12221b; }
+        .il-border      { fill: none; stroke: #2c5242; stroke-width: 1.5; }
+        .il-line-green  { fill: none; stroke: #34d399; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .il-line-muted  { fill: none; stroke: #2c5242; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .il-skin        { fill: #b7e3c9; }
+        .il-char        { fill: #1a3329; }
+        .il-char-dark   { fill: #0d2319; }
+        .il-hat         { fill: #fbbf24; }
+        .il-shoe        { fill: #f8fafc; }
+        .il-box         { fill: #2c5242; }
+        .il-box-dark    { fill: #1a3329; }
+        .il-glow        { fill: none; stroke: #34d399; stroke-width: 1; opacity: .4; }
+
+        /* ── Animations ───────────────────────────────────────────────── */
+        .anim-float {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: float 4.5s ease-in-out infinite;
         }
 
-        .error-illustration .art-line {
-            fill: none;
-            stroke: var(--error-art);
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-width: 3;
+        .anim-float-slow {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: float 6s ease-in-out infinite;
         }
 
-        .error-illustration .art-muted {
-            fill: none;
-            stroke: var(--error-dim);
-            stroke-dasharray: 5 8;
-            stroke-linecap: round;
-            stroke-width: 2;
+        .anim-float-r {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: float 4.5s ease-in-out infinite reverse;
         }
 
-        .error-copy {
-            align-self: center;
-            padding: clamp(28px, 5vw, 56px);
+        .anim-bob {
+            transform-box: fill-box;
+            transform-origin: bottom center;
+            animation: bob 3s ease-in-out infinite;
         }
 
-        .error-eyebrow {
-            margin: 0 0 12px;
-            color: var(--error-primary);
-            font-size: 12px;
-            font-weight: 750;
-            letter-spacing: .12em;
+        .anim-pulse {
+            animation: pulse-ring 2.5s ease-out infinite;
+        }
+
+        .anim-spin-slow {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: spin 12s linear infinite;
+        }
+
+        .anim-blink {
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .anim-shake {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: shake 5s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-8px); }
+        }
+
+        @keyframes bob {
+            0%, 100% { transform: rotate(-2deg); }
+            50%       { transform: rotate(2deg); }
+        }
+
+        @keyframes pulse-ring {
+            0%   { opacity: .6; transform: scale(1); }
+            100% { opacity: 0;  transform: scale(1.6); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes blink {
+            0%, 90%, 100% { opacity: 1; }
+            95%            { opacity: 0; }
+        }
+
+        @keyframes shake {
+            0%, 85%, 100%  { transform: rotate(0); }
+            87%             { transform: rotate(-5deg); }
+            91%             { transform: rotate(5deg); }
+            94%             { transform: rotate(-3deg); }
+            97%             { transform: rotate(3deg); }
+        }
+
+        /* ── Copy side ────────────────────────────────────────────────── */
+        .ep-copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(28px, 5vw, 52px);
+            gap: 0;
+        }
+
+        .ep-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .14em;
             text-transform: uppercase;
+            color: var(--green);
+            margin-bottom: 14px;
         }
 
-        .error-code {
-            margin: 0 0 12px;
-            color: var(--error-dim);
-            font-size: clamp(46px, 7vw, 68px);
-            font-variant-numeric: tabular-nums;
+        .ep-eyebrow-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            flex-shrink: 0;
+        }
+
+        .ep-code {
+            font-size: clamp(52px, 8vw, 80px);
+            font-weight: 900;
+            letter-spacing: -.06em;
+            line-height: .9;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #34d399 20%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .ep-code--warn {
+            background: linear-gradient(135deg, #fbbf24 20%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .ep-code--danger {
+            background: linear-gradient(135deg, #f87171 20%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h1.ep-heading {
+            font-size: clamp(22px, 3vw, 32px);
             font-weight: 800;
-            letter-spacing: -.075em;
-            line-height: .95;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: clamp(24px, 3vw, 34px);
-            font-weight: 720;
             letter-spacing: -.04em;
-            line-height: 1.18;
+            line-height: 1.15;
+            color: var(--text);
+            margin-bottom: 12px;
         }
 
-        .error-description {
-            max-width: 48ch;
-            margin: 14px 0 0;
-            color: var(--error-muted);
+        .ep-desc {
             font-size: 15px;
             line-height: 1.7;
+            color: var(--muted);
+            max-width: 44ch;
+            margin-bottom: 28px;
         }
 
-        .error-actions {
+        /* ── Actions ──────────────────────────────────────────────────── */
+        .ep-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            margin-top: 28px;
         }
 
-        .error-action {
+        .ep-btn {
             display: inline-flex;
-            min-height: 44px;
             align-items: center;
             justify-content: center;
-            padding: 0 17px;
-            border: 1px solid transparent;
-            border-radius: 8px;
+            gap: 7px;
+            min-height: 44px;
+            padding: 0 20px;
+            border-radius: 9px;
             font-size: 14px;
             font-weight: 650;
-            text-align: center;
             text-decoration: none;
-            transition: background-color .15s ease, border-color .15s ease;
+            border: 1px solid transparent;
+            transition: background .15s, border-color .15s, transform .1s;
+            cursor: pointer;
         }
 
-        .error-action--primary {
-            background: var(--error-primary);
-            color: #ffffff;
+        .ep-btn:active { transform: scale(.97); }
+
+        .ep-btn-primary {
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(16,185,129,.25);
         }
 
-        .error-action--primary:hover {
-            background: var(--error-primary-hover);
+        .ep-btn-primary:hover {
+            background: linear-gradient(135deg, #34d399, #059669);
         }
 
-        .error-action:focus-visible {
-            outline: 3px solid #34d399;
-            outline-offset: 3px;
+        .ep-btn-ghost {
+            background: var(--surface2);
+            color: var(--muted);
+            border-color: var(--border2);
         }
 
-        .art-float {
-            transform-box: fill-box;
-            transform-origin: center;
-            animation: error-float 4s ease-in-out infinite;
+        .ep-btn-ghost:hover {
+            background: var(--border);
+            color: var(--text);
         }
 
-        @keyframes error-float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
+        /* ── Divider ──────────────────────────────────────────────────── */
+        .ep-divider {
+            width: 40px;
+            height: 3px;
+            border-radius: 99px;
+            background: var(--green-bg);
+            margin-bottom: 20px;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --error-bg: #0b1612;
-                --error-surface: #12221b;
-                --error-soft: #182e25;
-                --error-border: #294638;
-                --error-text: #e6f2ec;
-                --error-muted: #a6c7b9;
-                --error-dim: #85a697;
-                --error-primary: #10b981;
-                --error-primary-hover: #059669;
-                --error-art: #34d399;
-            }
-
-            .error-action--primary { color: #062c21; }
+        /* ── Tags / meta ──────────────────────────────────────────────── */
+        .ep-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
         }
 
+        .ep-meta-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--green-bg);
+            border: 1px solid var(--green-bd);
+            color: var(--green);
+            border-radius: 99px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ── Responsive ───────────────────────────────────────────────── */
         @media (max-width: 680px) {
-            body { padding: 22px 16px; }
-
-            .error-brand { margin-left: 2px; }
-
-            .error-panel { grid-template-columns: 1fr; }
-
-            .error-visual {
-                min-height: 190px;
-                padding: 22px;
-                border-right: 0;
-                border-bottom: 1px solid var(--error-border);
+            .ep-card {
+                grid-template-columns: 1fr;
             }
-
-            .error-illustration { width: 180px; }
-
-            .error-copy { padding: 28px 24px 30px; }
+            .ep-visual {
+                min-height: 200px;
+                padding: 28px 20px;
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+            .ep-illo { width: min(100%, 180px); }
+            .ep-copy { padding: 28px 22px 32px; }
         }
 
         @media (max-width: 420px) {
-            .error-actions { display: grid; }
-            .error-action { width: 100%; }
+            .ep-actions { flex-direction: column; }
+            .ep-btn { width: 100%; }
         }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
-                scroll-behavior: auto !important;
                 animation-duration: .01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: .01ms !important;
@@ -250,73 +393,322 @@
     </style>
 </head>
 <body>
-    <main class="error-page" aria-labelledby="error-heading">
-        <div class="error-brand" aria-label="GEI Platform">
-            <span class="error-brand-mark" aria-hidden="true">GEI</span>
-            <span>GEI Platform</span>
+<main aria-labelledby="ep-heading">
+
+    <a href="/" class="ep-brand" aria-label="GEI Platform — Accueil">
+        <span class="ep-brand-mark" aria-hidden="true">GEI</span>
+        <span>
+            <span class="ep-brand-label">GEI Platform</span>
+            <span class="ep-brand-sub">Renseignement Opérationnel</span>
+        </span>
+    </a>
+
+    <div class="ep-card">
+
+        {# ── Illustration ─────────────────────────────────────────────── #}
+        <div class="ep-visual" aria-hidden="true">
+            <svg class="ep-illo" viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" focusable="false">
+
+                {% if visual == 'not-found' %}
+                {# ── 404 : Personnage qui fouille dans une boîte ── #}
+                {# Fond sol #}
+                <ellipse cx="150" cy="230" rx="110" ry="14" class="il-muted" opacity=".5"/>
+
+                {# Boîte carton #}
+                <g class="anim-float-slow">
+                    <path d="M80 155 L80 230 L220 230 L220 155 L150 140 Z" class="il-box"/>
+                    <path d="M80 155 L150 140 L220 155" fill="none" stroke="#3d6e5a" stroke-width="2"/>
+                    <path d="M80 155 L80 230" class="il-line-muted"/>
+                    <path d="M220 155 L220 230" class="il-line-muted"/>
+                    {# Rabats boîte ouverts #}
+                    <path d="M80 155 Q100 135 130 148 L150 140 L130 155" class="il-box-dark"/>
+                    <path d="M220 155 Q200 135 170 148 L150 140 L170 155" class="il-box"/>
+                    {# Reflet boîte #}
+                    <path d="M90 165 L90 220" stroke="#3d6e5a" stroke-width="1" stroke-opacity=".6"/>
+                </g>
+
+                {# Personnage qui plonge dans la boîte #}
+                <g class="anim-bob">
+                    {# Corps / tronc #}
+                    <rect x="132" y="100" width="36" height="50" rx="8" class="il-char"/>
+                    {# Veste - reflet #}
+                    <rect x="132" y="100" width="18" height="50" rx="8" class="il-char-dark" opacity=".4"/>
+                    {# Jambes #}
+                    <rect x="134" y="145" width="13" height="38" rx="5" class="il-char-dark"/>
+                    <rect x="152" y="145" width="13" height="38" rx="5" class="il-char"/>
+                    {# Chaussures #}
+                    <ellipse cx="140" cy="185" rx="10" ry="6" class="il-shoe"/>
+                    <ellipse cx="158" cy="185" rx="10" ry="6" class="il-shoe"/>
+                    {# Chapeau visible au fond #}
+                    <ellipse cx="150" cy="108" rx="22" ry="8" class="il-hat" opacity=".7"/>
+                </g>
+
+                {# Particules de recherche flottantes #}
+                <g class="anim-float">
+                    <circle cx="65" cy="120" r="4" class="il-green-light" opacity=".6"/>
+                </g>
+                <g class="anim-float-r">
+                    <circle cx="245" cy="140" r="3" class="il-green" opacity=".5"/>
+                </g>
+                <g class="anim-float-slow">
+                    <path d="M55 165 L65 165 M60 160 L60 170" stroke="#34d399" stroke-width="2" stroke-linecap="round" opacity=".4"/>
+                </g>
+
+                {# Loupe flottante #}
+                <g class="anim-float" style="animation-delay:.8s">
+                    <circle cx="248" cy="95" r="18" class="il-surface" stroke="#34d399" stroke-width="2"/>
+                    <circle cx="248" cy="95" r="11" fill="none" stroke="#34d399" stroke-width="2"/>
+                    <path d="M257 104 L265 112" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+                </g>
+
+                {# Interrogation #}
+                <g class="anim-float-r" style="animation-delay:.4s">
+                    <text x="52" y="88" font-family="Inter,sans-serif" font-size="28" font-weight="800" fill="#34d399" opacity=".4">?</text>
+                </g>
+
+
+                {% elseif visual == 'forbidden' %}
+                {# ── 403 : Bouclier avec cadenas ── #}
+                <ellipse cx="150" cy="234" rx="90" ry="11" class="il-muted" opacity=".4"/>
+
+                {# Halo pulsant #}
+                <circle cx="150" cy="130" r="75" class="anim-pulse" fill="none" stroke="#f87171" stroke-width="1.5" opacity=".3"/>
+
+                {# Bouclier principal #}
+                <g class="anim-float">
+                    {# Corps du bouclier #}
+                    <path d="M150 35 L215 60 L215 115 C215 160 185 190 150 210 C115 190 85 160 85 115 L85 60 Z" class="il-surface" stroke="#2c5242" stroke-width="2"/>
+                    {# Reflet gauche bouclier #}
+                    <path d="M150 38 L95 61 L95 115 C95 155 118 182 150 200 L150 38 Z" class="il-muted" opacity=".08"/>
+                    {# Liseré vert intérieur #}
+                    <path d="M150 46 L208 69 L208 116 C208 155 181 183 150 201 C119 183 92 155 92 116 L92 69 Z" fill="none" stroke="#2c5242" stroke-width="1.5"/>
+
+                    {# Croix refus au centre du bouclier #}
+                    <circle cx="150" cy="125" r="32" fill="rgba(248,113,113,.10)" stroke="#f87171" stroke-width="2"/>
+                    <path d="M137 112 L163 138 M163 112 L137 138" stroke="#f87171" stroke-width="3.5" stroke-linecap="round"/>
+                </g>
+
+                {# Éclair en bas à droite #}
+                <g class="anim-float-r" style="animation-delay:.6s">
+                    <path d="M230 55 L220 80 L228 80 L218 105" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity=".7"/>
+                </g>
+
+                {# Points décoratifs #}
+                <circle cx="62" cy="90" r="4" class="il-green-light" opacity=".4"/>
+                <circle cx="248" cy="75" r="3" class="il-green" opacity=".3"/>
+
+
+                {% elseif visual == 'limit' %}
+                {# ── Limite requalification : Jauge / Compteur à 3 ── #}
+                <ellipse cx="150" cy="234" rx="85" ry="10" class="il-muted" opacity=".4"/>
+
+                {# Halo pulsant amber #}
+                <circle cx="150" cy="128" r="70" class="anim-pulse" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity=".35" style="animation-delay:.4s"/>
+
+                <g class="anim-float">
+                    {# Tableau/panneau principal #}
+                    <rect x="80" y="55" width="140" height="155" rx="14" class="il-surface" stroke="#2c5242" stroke-width="2"/>
+                    <rect x="80" y="55" width="140" height="40" rx="14" fill="rgba(251,191,36,.12)" stroke="none"/>
+                    <rect x="80" y="80" width="140" height="15" fill="rgba(251,191,36,.12)" stroke="none"/>
+
+                    {# Titre panneau #}
+                    <text x="150" y="82" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#fbbf24" letter-spacing="1">REQUALIFICATION</text>
+
+                    {# Barres de progression : 3 / 3 toutes pleines #}
+                    {# Barre 1 #}
+                    <rect x="98" y="110" width="104" height="16" rx="4" fill="rgba(52,211,153,.1)" stroke="#2c5242" stroke-width="1"/>
+                    <rect x="98" y="110" width="104" height="16" rx="4" fill="url(#bar1)"/>
+                    {# Barre 2 #}
+                    <rect x="98" y="134" width="104" height="16" rx="4" fill="rgba(52,211,153,.1)" stroke="#2c5242" stroke-width="1"/>
+                    <rect x="98" y="134" width="104" height="16" rx="4" fill="url(#bar2)"/>
+                    {# Barre 3 #}
+                    <rect x="98" y="158" width="104" height="16" rx="4" fill="rgba(52,211,153,.1)" stroke="#2c5242" stroke-width="1"/>
+                    <rect x="98" y="158" width="104" height="16" rx="4" fill="url(#bar3)"/>
+
+                    {# Étiquettes #}
+                    <text x="103" y="122" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#065f46">Requalification 1</text>
+                    <text x="188" y="122" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fff">✓</text>
+                    <text x="103" y="146" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#065f46">Requalification 2</text>
+                    <text x="188" y="146" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fff">✓</text>
+                    <text x="103" y="170" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#065f46">Requalification 3</text>
+                    <text x="188" y="170" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fff">✓</text>
+
+                    {# Icône stop / limite #}
+                    <circle cx="150" cy="200" r="12" fill="rgba(251,191,36,.15)" stroke="#fbbf24" stroke-width="2"/>
+                    <text x="150" y="205" text-anchor="middle" font-family="Inter,sans-serif" font-size="13" fill="#fbbf24">!</text>
+                </g>
+
+                {# Gradients pour les barres #}
+                <defs>
+                    <linearGradient id="bar1" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stop-color="#34d399"/>
+                        <stop offset="100%" stop-color="#059669"/>
+                    </linearGradient>
+                    <linearGradient id="bar2" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stop-color="#fbbf24"/>
+                        <stop offset="100%" stop-color="#d97706"/>
+                    </linearGradient>
+                    <linearGradient id="bar3" x1="0" x2="1" y1="0" y2="0">
+                        <stop offset="0%" stop-color="#f87171"/>
+                        <stop offset="100%" stop-color="#dc2626"/>
+                    </linearGradient>
+                </defs>
+
+                {# Éléments décoratifs #}
+                <g class="anim-float-r" style="animation-delay:.5s">
+                    <path d="M62 95 L72 95 M67 90 L67 100" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+                </g>
+                <circle cx="245" cy="165" r="4" fill="#fbbf24" opacity=".3" class="anim-float" style="animation-delay:.3s"/>
+
+
+                {% elseif visual == 'server' %}
+                {# ── 500 : Serveur en erreur ── #}
+                <ellipse cx="150" cy="234" rx="95" ry="12" class="il-muted" opacity=".4"/>
+
+                {# Rack serveur #}
+                <g class="anim-float">
+                    {# Bâti #}
+                    <rect x="75" y="55" width="150" height="160" rx="10" class="il-surface" stroke="#2c5242" stroke-width="1.5"/>
+                    {# Unité 1 — OK #}
+                    <rect x="85" y="68" width="130" height="34" rx="6" class="il-muted" opacity=".4"/>
+                    <rect x="85" y="68" width="130" height="34" rx="6" fill="none" stroke="#2c5242" stroke-width="1"/>
+                    <circle cx="102" cy="85" r="5" fill="#34d399"/>
+                    <circle cx="102" cy="85" r="8" fill="none" stroke="rgba(52,211,153,.3)" stroke-width="1" class="anim-pulse" style="animation-delay:0s"/>
+                    <rect x="113" y="79" width="60" height="5" rx="2" fill="#2c5242"/>
+                    <rect x="113" y="88" width="40" height="4" rx="2" fill="#2c5242"/>
+                    {# Unité 2 — ERREUR #}
+                    <rect x="85" y="110" width="130" height="34" rx="6" fill="rgba(248,113,113,.08)" stroke="#f87171" stroke-width="1"/>
+                    <circle cx="102" cy="127" r="5" fill="#f87171" class="anim-blink"/>
+                    <rect x="113" y="121" width="60" height="5" rx="2" fill="rgba(248,113,113,.4)"/>
+                    <rect x="113" y="130" width="40" height="4" rx="2" fill="rgba(248,113,113,.3)"/>
+                    {# Unité 3 — OK #}
+                    <rect x="85" y="152" width="130" height="34" rx="6" class="il-muted" opacity=".4"/>
+                    <rect x="85" y="152" width="130" height="34" rx="6" fill="none" stroke="#2c5242" stroke-width="1"/>
+                    <circle cx="102" cy="169" r="5" fill="#34d399"/>
+                    <rect x="113" y="163" width="60" height="5" rx="2" fill="#2c5242"/>
+                    <rect x="113" y="172" width="40" height="4" rx="2" fill="#2c5242"/>
+                </g>
+
+                {# Triangle d'alerte flottant #}
+                <g class="anim-float-r" style="animation-delay:.6s">
+                    <path d="M225 45 L245 75 L205 75 Z" fill="rgba(248,113,113,.15)" stroke="#f87171" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M225 55 L225 65 M225 68 L225 70" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+                </g>
+
+                {# Points décoratifs #}
+                <circle cx="58" cy="120" r="3" fill="#34d399" opacity=".4" class="anim-float" style="animation-delay:.2s"/>
+                <circle cx="258" cy="140" r="4" fill="#2c5242" class="anim-float-r" style="animation-delay:.7s"/>
+
+
+                {% elseif visual == 'rate-limit' %}
+                {# ── 429 : Horloge / Sablier ── #}
+                <ellipse cx="150" cy="234" rx="85" ry="11" class="il-muted" opacity=".4"/>
+
+                <g class="anim-float">
+                    {# Sablier body #}
+                    <path d="M100 45 L200 45 L165 130 L200 215 L100 215 L135 130 Z" class="il-surface" stroke="#2c5242" stroke-width="2"/>
+                    {# Cadre top #}
+                    <rect x="95" y="38" width="110" height="16" rx="5" class="il-muted" opacity=".7"/>
+                    {# Cadre bottom #}
+                    <rect x="95" y="206" width="110" height="16" rx="5" class="il-muted" opacity=".7"/>
+                    {# Sable en haut — presque vide #}
+                    <path d="M108 55 L192 55 L170 105 L130 105 Z" fill="rgba(251,191,36,.25)"/>
+                    {# Fil de sable au milieu #}
+                    <line x1="150" y1="105" x2="150" y2="155" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+                    {# Sable en bas — accumulé #}
+                    <path d="M124 205 L176 205 L162 160 L138 160 Z" fill="rgba(251,191,36,.4)"/>
+                    {# Reflet sablier #}
+                    <path d="M105 50 L135 130 L105 210" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="15"/>
+                </g>
+
+                {# Étoile de rotation #}
+                <g class="anim-spin-slow" style="transform-origin:237px 88px">
+                    <path d="M237 75 L240 83 L248 83 L242 88 L244 96 L237 91 L230 96 L232 88 L226 83 L234 83 Z" fill="rgba(251,191,36,.4)"/>
+                </g>
+
+                {# Particules #}
+                <circle cx="65" cy="100" r="3" fill="#fbbf24" opacity=".35" class="anim-float"/>
+                <circle cx="248" cy="165" r="4" fill="#2c5242" class="anim-float-r" style="animation-delay:.5s"/>
+
+
+                {% else %}
+                {# ── Générique / service ── #}
+                <ellipse cx="150" cy="234" rx="95" ry="12" class="il-muted" opacity=".4"/>
+
+                <g class="anim-float">
+                    {# Appareil / écran #}
+                    <rect x="70" y="55" width="160" height="120" rx="12" class="il-surface" stroke="#2c5242" stroke-width="2"/>
+                    <rect x="70" y="55" width="160" height="38" rx="12" fill="rgba(16,185,129,.07)"/>
+                    <rect x="70" y="80" width="160" height="13" fill="rgba(16,185,129,.07)"/>
+
+                    {# Boutons barre titre #}
+                    <circle cx="87" cy="73" r="4" fill="#f87171" opacity=".7"/>
+                    <circle cx="101" cy="73" r="4" fill="#fbbf24" opacity=".7"/>
+                    <circle cx="115" cy="73" r="4" fill="#34d399" opacity=".7"/>
+
+                    {# Lignes de code fictives #}
+                    <rect x="86" y="100" width="85" height="6" rx="3" fill="#2c5242"/>
+                    <rect x="86" y="113" width="60" height="6" rx="3" fill="#2c5242"/>
+                    <rect x="86" y="126" width="75" height="6" rx="3" fill="#2c5242"/>
+                    <rect x="86" y="139" width="45" height="6" rx="3" fill="rgba(52,211,153,.3)"/>
+
+                    {# Coche validation #}
+                    <circle cx="185" cy="125" r="18" fill="rgba(52,211,153,.10)" stroke="#34d399" stroke-width="1.5"/>
+                    <path d="M176 125 L183 132 L195 118" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+                    {# Pied d'écran #}
+                    <rect x="130" y="175" width="40" height="10" rx="3" class="il-muted" opacity=".5"/>
+                    <rect x="110" y="183" width="80" height="8" rx="3" class="il-muted" opacity=".4"/>
+                </g>
+
+                <circle cx="60" cy="105" r="4" fill="#34d399" opacity=".35" class="anim-float"/>
+                <circle cx="252" cy="130" r="3" fill="#2c5242" class="anim-float-r" style="animation-delay:.6s"/>
+                {% endif %}
+
+            </svg>
         </div>
 
-        <section class="error-panel">
-            <div class="error-visual">
-                <svg class="error-illustration" viewBox="0 0 260 230" aria-hidden="true" focusable="false">
-                    {% if visual == 'not-found' %}
-                        <path class="art-muted" d="M24 181c28-25 41-22 61-4s34 16 53-4 43-24 72 4" />
-                        <g class="art-float">
-                            <path class="art-outline" d="M72 34h76l38 38v91a12 12 0 0 1-12 12H72a12 12 0 0 1-12-12V46a12 12 0 0 1 12-12Z" />
-                            <path class="art-line" d="M148 35v28a10 10 0 0 0 10 10h27M88 96h68M88 116h44" />
-                            <circle class="art-outline" cx="164" cy="151" r="22" />
-                            <path class="art-line" d="m180 167 17 17" />
-                        </g>
-                    {% elseif visual == 'forbidden' %}
-                        <path class="art-muted" d="M34 186h192" />
-                        <g class="art-float">
-                            <path class="art-outline" d="m130 28 64 24v48c0 43-27 72-64 91-37-19-64-48-64-91V52l64-24Z" />
-                            <rect class="art-outline" x="105" y="99" width="50" height="39" rx="7" />
-                            <path class="art-line" d="M115 99V86a15 15 0 0 1 30 0v13m-15 16v8" />
-                        </g>
-                    {% elseif visual == 'server' %}
-                        <path class="art-muted" d="M31 191h198" />
-                        <g class="art-float">
-                            <rect class="art-outline" x="52" y="40" width="156" height="48" rx="9" />
-                            <rect class="art-outline" x="52" y="101" width="156" height="48" rx="9" />
-                            <circle cx="75" cy="64" r="5" fill="var(--error-art)" />
-                            <circle cx="75" cy="125" r="5" fill="var(--error-art)" />
-                            <path class="art-line" d="M94 64h78m-78 61h49" />
-                            <path class="art-outline" d="m182 144 23 39h-46l23-39Z" />
-                            <path class="art-line" d="M182 158v10m0 7h.1" />
-                        </g>
-                    {% elseif visual == 'rate-limit' %}
-                        <path class="art-muted" d="M31 181h198" />
-                        <g class="art-float">
-                            <circle class="art-outline" cx="130" cy="108" r="66" />
-                            <path class="art-line" d="M130 69v42l28 17" />
-                            <path class="art-line" d="M85 54 69 40m106 14 16-14" />
-                            <circle cx="130" cy="108" r="5" fill="var(--error-art)" />
-                        </g>
-                    {% else %}
-                        <path class="art-muted" d="M28 177c25 0 34-30 58-30s33 30 57 30 33-30 57-30 26 30 32 30" />
-                        <g class="art-float">
-                            <rect class="art-outline" x="54" y="47" width="152" height="104" rx="12" />
-                            <path class="art-line" d="M54 75h152" />
-                            <circle cx="72" cy="61" r="3" fill="var(--error-art)" />
-                            <circle cx="84" cy="61" r="3" fill="var(--error-art)" />
-                            <path class="art-line" d="m104 111 14 14 31-32" />
-                            <path class="art-line" d="M103 138h54" />
-                        </g>
-                    {% endif %}
-                </svg>
+        {# ── Copy ─────────────────────────────────────────────────────── #}
+        <div class="ep-copy">
+            <p class="ep-eyebrow">
+                <span class="ep-eyebrow-dot" aria-hidden="true"></span>
+                {{ eyebrow }}
+            </p>
+
+            {% if code is defined %}
+            <p class="ep-code {% if visual == 'limit' %}ep-code--warn{% elseif visual == 'server' or visual == 'forbidden' %}ep-code--danger{% endif %}" aria-hidden="true">{{ code }}</p>
+            {% else %}
+            <p class="ep-code ep-code--warn" aria-hidden="true">⚠</p>
+            {% endif %}
+
+            <h1 class="ep-heading" id="ep-heading">{{ heading }}</h1>
+            <div class="ep-divider"></div>
+            <p class="ep-desc">{{ description }}</p>
+
+            <div class="ep-actions">
+                <a class="ep-btn ep-btn-primary" href="{{ path(action_route) }}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M19 12H5M12 5l-7 7 7 7"/>
+                    </svg>
+                    {{ action_label }}
+                </a>
+                {% if app.user %}
+                <a class="ep-btn ep-btn-ghost" href="{{ path('app_alert_index') }}">
+                    Registre des alertes
+                </a>
+                {% endif %}
             </div>
 
-            <div class="error-copy">
-                <p class="error-eyebrow">{{ eyebrow }}</p>
-                <p class="error-code" aria-hidden="true">{{ code }}</p>
-                <h1 id="error-heading">{{ heading }}</h1>
-                <p class="error-description">{{ description }}</p>
-                <div class="error-actions">
-                    <a class="error-action error-action--primary" href="{{ path(action_route) }}">{{ action_label }}</a>
-                </div>
+            <div class="ep-meta">
+                <span class="ep-meta-badge">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    GEI Platform
+                </span>
+                <span style="font-size:11px;color:var(--dim)">Renseignement Opérationnel Douanier</span>
             </div>
-        </section>
-    </main>
+        </div>
+
+    </div>
+</main>
 </body>
 </html>

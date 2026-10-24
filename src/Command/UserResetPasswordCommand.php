@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Service\PasswordResetManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -24,6 +25,7 @@ class UserResetPasswordCommand extends Command
         private readonly UserRepository $userRepository,
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $passwordHasher,
+        private readonly PasswordResetManager $passwordResetManager,
     ) {
         parent::__construct();
     }
@@ -64,17 +66,21 @@ class UserResetPasswordCommand extends Command
             $question->setHidden(true);
             $question->setHiddenFallback(false);
             $question->setValidator(function ($value) {
-                if (empty($value) || strlen($value) < 8) {
-                    throw new \RuntimeException('Le mot de passe doit comporter au moins 8 caractères.');
+                if (!is_string($value) || strlen($value) < 12 || !preg_match('/[A-Z]/', $value) || !preg_match('/[a-z]/', $value) || !preg_match('/\d/', $value)) {
+                    throw new \RuntimeException('Le mot de passe doit respecter la politique de 12 caractères, majuscule, minuscule et chiffre.');
                 }
                 return $value;
             });
             $password = $io->askQuestion($question);
         }
 
-        $hashedPassword = $this->passwordHasher->hashPassword($user, (string) $password);
-        $user->setPassword($hashedPassword);
-        $this->em->flush();
+        if (strlen((string) $password) < 12 || !preg_match('/[A-Z]/', (string) $password) || !preg_match('/[a-z]/', (string) $password) || !preg_match('/\d/', (string) $password)) {
+            $io->error('Le mot de passe doit respecter la politique de 12 caractères, majuscule, minuscule et chiffre.');
+            return Command::FAILURE;
+        }
+
+        $user->setPassword($this->passwordHasher->hashPassword($user, (string) $password));
+        $this->passwordResetManager->revoke($user);
 
         $io->success(sprintf('Le mot de passe de %s (%s) a été mis à jour avec succès.', $user->getNomComplet(), $user->getEmail()));
 

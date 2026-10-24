@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-#[IsGranted('ROLE_USER')]
+#[IsGranted('ROLE_PFT')]
 class ExportController extends AbstractController
 {
     public function __construct(
@@ -99,7 +99,7 @@ class ExportController extends AbstractController
 
         return new Response($pdfContent, 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => sprintf('attachment; filename="Registre_GEI_%s.pdf"', date('Y-m-d')),
+            'Content-Disposition' => sprintf('inline; filename="Registre_GEI_%s.pdf"', date('Y-m-d')),
         ]);
     }
 
@@ -142,6 +142,5 @@ class ExportController extends AbstractController
         ], fn($v) => $v !== null && $v !== '');
     }
 }
-
 
 

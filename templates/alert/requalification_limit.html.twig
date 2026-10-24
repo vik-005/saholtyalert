@@ -1,0 +1,464 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Limite de requalification atteinte — GEI Platform{% endblock %}
+{% block header_title %}Limite de requalification{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ── PAGE ERREUR LIMITE REQUALIFICATION ─────────────────────────────────── #}
+    <style>
+        /* ── Variables locales alignées avec le design GEI ── */
+        .rql-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 160px);
+            padding: 40px 20px;
+        }
+
+        .rql-card {
+            width: min(100%, 900px);
+            display: grid;
+            grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--border2);
+            background: var(--card);
+            box-shadow: var(--shadow-card);
+        }
+
+        /* ── Côté illustration ── */
+        .rql-visual {
+            display: grid;
+            place-items: center;
+            padding: 40px 28px;
+            background:
+                radial-gradient(ellipse 100% 80% at 50% 50%, rgba(251,191,36,.06) 0%, transparent 70%),
+                var(--card2);
+            border-right: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rql-visual::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 40% at 50% 110%, rgba(251,191,36,.05), transparent);
+        }
+
+        .rql-illo {
+            width: min(100%, 260px);
+            height: auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Animations */
+        .rql-float {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: rql-float 4.5s ease-in-out infinite;
+        }
+
+        .rql-float-r {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: rql-float 5s ease-in-out infinite reverse;
+        }
+
+        .rql-pulse {
+            animation: rql-pulse 2.8s ease-out infinite;
+        }
+
+        .rql-blink {
+            animation: rql-blink 1.8s ease-in-out infinite;
+        }
+
+        @keyframes rql-float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-8px); }
+        }
+
+        @keyframes rql-pulse {
+            0%   { opacity: .5; transform: scale(1); }
+            100% { opacity: 0;  transform: scale(1.7); }
+        }
+
+        @keyframes rql-blink {
+            0%, 80%, 100% { opacity: 1; }
+            90%            { opacity: .2; }
+        }
+
+        /* ── Côté texte ── */
+        .rql-copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: clamp(24px, 5vw, 48px);
+        }
+
+        .rql-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--amber);
+            margin-bottom: 14px;
+        }
+
+        .rql-eyebrow-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--amber);
+            flex-shrink: 0;
+            animation: rql-blink 2s ease-in-out infinite;
+        }
+
+        .rql-code {
+            font-size: clamp(48px, 7vw, 72px);
+            font-weight: 900;
+            letter-spacing: -.06em;
+            line-height: .9;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fbbf24 20%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .rql-heading {
+            font-size: clamp(20px, 2.8vw, 30px);
+            font-weight: 800;
+            letter-spacing: -.04em;
+            line-height: 1.15;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .rql-divider {
+            width: 40px;
+            height: 3px;
+            border-radius: 99px;
+            background: rgba(251,191,36,.3);
+            margin-bottom: 18px;
+        }
+
+        .rql-desc {
+            font-size: 14.5px;
+            line-height: 1.7;
+            color: var(--muted);
+            max-width: 44ch;
+            margin-bottom: 24px;
+        }
+
+        /* Compteur visuel 3/3 */
+        .rql-counter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            padding: 14px 16px;
+            background: rgba(251,191,36,.07);
+            border: 1px solid rgba(251,191,36,.2);
+            border-radius: 10px;
+        }
+
+        .rql-counter-pips {
+            display: flex;
+            gap: 6px;
+        }
+
+        .rql-pip {
+            width: 28px;
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        .rql-pip-full {
+            background: linear-gradient(90deg, #fbbf24, #d97706);
+        }
+
+        .rql-pip-empty {
+            background: var(--border2);
+        }
+
+        .rql-counter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--amber);
+            margin-left: 4px;
+        }
+
+        /* Info admin */
+        .rql-info-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            margin-bottom: 24px;
+        }
+
+        .rql-info-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            background: rgba(96,165,250,.10);
+            border: 1px solid rgba(96,165,250,.2);
+            display: grid;
+            place-items: center;
+            font-size: 13px;
+            flex-shrink: 0;
+            color: #60a5fa;
+        }
+
+        .rql-info-text {
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: var(--muted);
+        }
+
+        .rql-info-text strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        /* Actions */
+        .rql-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Meta bas */
+        .rql-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 22px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border);
+        }
+
+        .rql-meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--amber-bg);
+            border: 1px solid var(--amber-bd);
+            color: var(--amber);
+            border-radius: 99px;
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .rql-meta-code {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        /* Responsive */
+        @media (max-width: 680px) {
+            .rql-card { grid-template-columns: 1fr; }
+            .rql-visual {
+                min-height: 200px;
+                padding: 24px 20px;
+                border-right: 0;
+                border-bottom: 1px solid var(--border);
+            }
+            .rql-illo { width: min(100%, 180px); }
+            .rql-copy { padding: 24px 20px 28px; }
+        }
+
+        @media (max-width: 420px) {
+            .rql-actions { flex-direction: column; }
+            .rql-actions .db-btn { width: 100%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: .01ms !important;
+            }
+        }
+    </style>
+
+    <div class="rql-page">
+        <div class="rql-card">
+
+            {# ── Illustration SVG ─────────────────────────────────────────────── #}
+            <div class="rql-visual" aria-hidden="true">
+                <svg class="rql-illo" viewBox="0 0 280 250" xmlns="http://www.w3.org/2000/svg" focusable="false">
+
+                    {# Sol / ombre #}
+                    <ellipse cx="140" cy="238" rx="90" ry="10" fill="rgba(44,82,66,.5)"/>
+
+                    {# Halo pulsant amber derrière le tableau #}
+                    <circle cx="140" cy="120" r="72" class="rql-pulse" fill="none" stroke="rgba(251,191,36,.25)" stroke-width="2"/>
+
+                    {# Tableau principal — panneau de contrôle #}
+                    <g class="rql-float">
+                        {# Corps du panneau #}
+                        <rect x="68" y="40" width="144" height="175" rx="14" fill="#12221b" stroke="#2c5242" stroke-width="1.5"/>
+                        {# En-tête panneau #}
+                        <rect x="68" y="40" width="144" height="42" rx="14" fill="rgba(251,191,36,.10)"/>
+                        <rect x="68" y="68" width="144" height="14" fill="rgba(251,191,36,.10)"/>
+
+                        {# Titre #}
+                        <text x="140" y="57" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#fbbf24" letter-spacing="1.5">REQUALIFICATION</text>
+                        <text x="140" y="69" text-anchor="middle" font-family="Inter,sans-serif" font-size="7.5" font-weight="500" fill="#85a697" letter-spacing=".8">LIMITE ATTEINTE</text>
+
+                        {# ── Barre 1 : COMPLÈTE (vert) ── #}
+                        <rect x="84" y="90" width="112" height="18" rx="5" fill="rgba(52,211,153,.07)" stroke="#213d31" stroke-width="1"/>
+                        <rect x="84" y="90" width="112" height="18" rx="5" fill="url(#rql-g1)"/>
+                        <text x="90" y="103" font-family="Inter,sans-serif" font-size="8.5" font-weight="600" fill="#065f46">Requalification 1</text>
+                        <text x="184" y="103" font-family="Inter,sans-serif" font-size="10" font-weight="800" fill="#fff">✓</text>
+
+                        {# ── Barre 2 : COMPLÈTE (orange) ── #}
+                        <rect x="84" y="116" width="112" height="18" rx="5" fill="rgba(251,191,36,.07)" stroke="#213d31" stroke-width="1"/>
+                        <rect x="84" y="116" width="112" height="18" rx="5" fill="url(#rql-g2)"/>
+                        <text x="90" y="129" font-family="Inter,sans-serif" font-size="8.5" font-weight="600" fill="#78350f">Requalification 2</text>
+                        <text x="184" y="129" font-family="Inter,sans-serif" font-size="10" font-weight="800" fill="#fff">✓</text>
+
+                        {# ── Barre 3 : COMPLÈTE (rouge) ── #}
+                        <rect x="84" y="142" width="112" height="18" rx="5" fill="rgba(248,113,113,.07)" stroke="rgba(248,113,113,.3)" stroke-width="1"/>
+                        <rect x="84" y="142" width="112" height="18" rx="5" fill="url(#rql-g3)"/>
+                        <text x="90" y="155" font-family="Inter,sans-serif" font-size="8.5" font-weight="600" fill="#7f1d1d">Requalification 3</text>
+                        <text x="184" y="155" font-family="Inter,sans-serif" font-size="10" font-weight="800" fill="#fff">✓</text>
+
+                        {# ── Séparateur ── #}
+                        <line x1="84" y1="172" x2="196" y2="172" stroke="#213d31" stroke-width="1"/>
+
+                        {# ── Badge BLOQUÉ ── #}
+                        <rect x="100" y="179" width="80" height="22" rx="6" fill="rgba(251,191,36,.12)" stroke="rgba(251,191,36,.35)" stroke-width="1.5"/>
+                        <text x="140" y="194" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fbbf24">⛔ ACCÈS BLOQUÉ</text>
+                    </g>
+
+                    {# Cadenas flottant en haut à droite #}
+                    <g class="rql-float-r" style="animation-delay:.5s">
+                        <circle cx="223" cy="55" r="18" fill="rgba(251,191,36,.10)" stroke="rgba(251,191,36,.3)" stroke-width="1.5"/>
+                        <rect x="216" y="56" width="14" height="11" rx="2.5" fill="rgba(251,191,36,.2)" stroke="#fbbf24" stroke-width="1.5"/>
+                        <path d="M219 56 Q219 49 223 49 Q227 49 227 56" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
+                        <circle cx="223" cy="62" r="1.5" fill="#fbbf24"/>
+                    </g>
+
+                    {# Étoile alerte en bas à gauche #}
+                    <g class="rql-float" style="animation-delay:1s">
+                        <path d="M48 175 L51 183 L59 183 L53 188 L55 196 L48 191 L41 196 L43 188 L37 183 L45 183 Z"
+                              fill="rgba(251,191,36,.15)" stroke="rgba(251,191,36,.5)" stroke-width="1.2"/>
+                        <text x="48" y="191" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" fill="#fbbf24">!</text>
+                    </g>
+
+                    {# Points déco #}
+                    <circle cx="56" cy="75" r="3.5" fill="rgba(251,191,36,.35)" class="rql-blink" style="animation-delay:.3s"/>
+                    <circle cx="240" cy="160" r="3" fill="rgba(52,211,153,.3)" class="rql-float" style="animation-delay:.8s"/>
+                    <circle cx="55" cy="130" r="2.5" fill="rgba(52,211,153,.2)" class="rql-float-r" style="animation-delay:.2s"/>
+
+                    {# Gradients #}
+                    <defs>
+                        <linearGradient id="rql-g1" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0%" stop-color="#34d399"/>
+                            <stop offset="100%" stop-color="#059669"/>
+                        </linearGradient>
+                        <linearGradient id="rql-g2" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0%" stop-color="#fbbf24"/>
+                            <stop offset="100%" stop-color="#d97706"/>
+                        </linearGradient>
+                        <linearGradient id="rql-g3" x1="0" x2="1" y1="0" y2="0">
+                            <stop offset="0%" stop-color="#f87171"/>
+                            <stop offset="100%" stop-color="#dc2626"/>
+                        </linearGradient>
+                    </defs>
+
+                </svg>
+            </div>
+
+            {# ── Contenu texte ─────────────────────────────────────────────────── #}
+            <div class="rql-copy">
+
+                <p class="rql-eyebrow">
+                    <span class="rql-eyebrow-dot" aria-hidden="true"></span>
+                    Limite de requalification
+                </p>
+
+                <p class="rql-code" aria-hidden="true">3/3</p>
+
+                <h1 class="rql-heading">Limite de requalification atteinte</h1>
+
+                <div class="rql-divider"></div>
+
+                <p class="rql-desc">
+                    Cette alerte a été requalifiée
+                    <strong style="color:var(--text)">{{ count }} fois sur 3 autorisées</strong>
+                    pour votre rôle. La limite de modifications Manager a été atteinte pour la fiche
+                    {% if alert.codeGei %}
+                        <code style="color:var(--amber);background:var(--amber-bg);padding:2px 6px;border-radius:5px;font-size:13px">{{ alert.codeGei }}</code>.
+                    {% else %}
+                        sélectionnée.
+                    {% endif %}
+                </p>
+
+                {# Compteur visuel ── #}
+                <div class="rql-counter" role="status" aria-label="3 requalifications sur 3 utilisées">
+                    <div class="rql-counter-pips" aria-hidden="true">
+                        <div class="rql-pip rql-pip-full"></div>
+                        <div class="rql-pip rql-pip-full"></div>
+                        <div class="rql-pip rql-pip-full"></div>
+                    </div>
+                    <span class="rql-counter-label">3 / 3 requalifications utilisées</span>
+                </div>
+
+                {# Info admin ── #}
+                <div class="rql-info-box" role="note">
+                    <span class="rql-info-icon" aria-hidden="true">
+                        <i class="bi bi-info-circle-fill"></i>
+                    </span>
+                    <p class="rql-info-text">
+                        <strong>Seul un administrateur (SAHOLTY ou SUPERADMIN)</strong> peut effectuer des
+                        modifications supplémentaires sur cette alerte. Contactez votre responsable pour continuer.
+                    </p>
+                </div>
+
+                {# Boutons d'action ── #}
+                <div class="rql-actions">
+                    <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-amber">
+                        <i class="bi bi-eye-fill me-1.5"></i>Voir la fiche
+                    </a>
+                    <a href="{{ path('app_alert_index') }}" class="db-btn db-btn-ghost">
+                        <i class="bi bi-card-list me-1.5"></i>Registre GEI
+                    </a>
+                </div>
+
+                {# Meta bas ── #}
+                <div class="rql-meta">
+                    {% if alert.codeGei %}
+                    <span class="rql-meta-pill">
+                        <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                        {{ alert.codeGei }}
+                    </span>
+                    {% endif %}
+                    <span class="rql-meta-code">
+                        <i class="bi bi-shield-lock me-1" style="color:var(--amber)"></i>
+                        Règle Métier — Max 3 requalifications Manager
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

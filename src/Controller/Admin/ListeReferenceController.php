@@ -4,6 +4,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\ListeReferenceValeur;
 use App\Repository\ListeReferenceValeurRepository;
+use App\Service\AdminAuditLogger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,8 +21,9 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ListeReferenceController extends AbstractController
 {
     #[Route('/', name: 'app_admin_liste_reference_index', methods: ['GET'])]
-    public function index(ListeReferenceValeurRepository $repo): Response
+    public function index(ListeReferenceValeurRepository $repo, AdminAuditLogger $auditLogger): Response
     {
+        $auditLogger->logAndFlush(\App\Entity\AccessLog::ACTION_LECTURE, 'reference_lists');
         $categories = $repo->findAllByType('categorie');
         $typeSources = $repo->findAllByType('type_source');
 
@@ -32,7 +34,7 @@ class ListeReferenceController extends AbstractController
     }
 
     #[Route('/new', name: 'app_admin_liste_reference_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $em): Response
+    public function new(Request $request, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $user = $this->getUser();
 
@@ -72,6 +74,8 @@ class ListeReferenceController extends AbstractController
                 $item->setCreePar($user);
                 $em->persist($item);
                 $em->flush();
+                $auditLogger->log(\App\Entity\AccessLog::ACTION_CREATION, 'reference_value', $item->getId());
+                $em->flush();
 
                 $this->addFlash('success', sprintf('« %s » ajouté à la liste %s.', $libelle, $typeListe));
                 return $this->redirectToRoute('app_admin_liste_reference_index');
@@ -86,7 +90,7 @@ class ListeReferenceController extends AbstractController
     }
 
     #[Route('/{id}/toggle', name: 'app_admin_liste_reference_toggle', methods: ['POST'])]
-    public function toggle(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em): Response
+    public function toggle(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('toggle-lrv-' . $item->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
@@ -94,6 +98,7 @@ class ListeReferenceController extends AbstractController
         }
 
         $item->setActif(!$item->isActif());
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'reference_status', $item->getId());
         $em->flush();
 
         $etat = $item->isActif() ? 'activé' : 'désactivé';
@@ -103,7 +108,7 @@ class ListeReferenceController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'app_admin_liste_reference_delete', methods: ['POST'])]
-    public function delete(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em): Response
+    public function delete(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if (!$this->isCsrfTokenValid('delete-lrv-' . $item->getId(), $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
@@ -112,6 +117,7 @@ class ListeReferenceController extends AbstractController
 
         // Sécurité : ne pas supprimer si la valeur est utilisée par des alertes existantes
         $libelle = $item->getLibelle();
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_SUPPRESSION, 'reference_value', $item->getId());
         $em->remove($item);
         $em->flush();
 
@@ -120,9 +126,13 @@ class ListeReferenceController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'app_admin_liste_reference_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em): Response
+    public function edit(Request $request, ListeReferenceValeur $item, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         if ($request->isMethod('POST')) {
+            if (!$this->isCsrfTokenValid('edit-lrv-' . $item->getId(), (string) $request->request->get('_token'))) {
+                throw $this->createAccessDeniedException('Jeton CSRF invalide.');
+            }
+
             $libelle = trim($request->request->get('libelle', ''));
             $ordre   = (int) $request->request->get('ordre_affichage', 0);
 
@@ -145,6 +155,7 @@ class ListeReferenceController extends AbstractController
                 } else {
                     $item->setLibelle($libelle);
                     $item->setOrdreAffichage($ordre);
+                    $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'reference_value', $item->getId());
                     $em->flush();
                     $this->addFlash('success', 'Modification enregistrée.');
                     return $this->redirectToRoute('app_admin_liste_reference_index');

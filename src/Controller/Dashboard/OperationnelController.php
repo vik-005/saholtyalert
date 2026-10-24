@@ -30,6 +30,16 @@ class OperationnelController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        if ($user->getRole() === \App\Enum\UserRoleEnum::EMETTEUR_TERRAIN) {
+            return $this->redirectToRoute('app_agent_dashboard');
+        }
+        if ($user->getRole() === \App\Enum\UserRoleEnum::COMITE_AIT) {
+            return $this->redirectToRoute('app_dashboard_kpi');
+        }
+        if ($user->getRole() === \App\Enum\UserRoleEnum::SECRETARIAT_GEI) {
+            return $this->redirectToRoute('app_alert_index');
+        }
+
         // --- Filtres multi-critères (normalisés) ---
         $market = $request->query->get('market');
         if (is_array($market)) {

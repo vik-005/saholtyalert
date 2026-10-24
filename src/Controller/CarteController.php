@@ -266,8 +266,8 @@ class CarteController extends AbstractController
         }
 
         $placeholders = implode(',', array_fill(0, count($mainIds), '?'));
-        $params = $mainIds;
-        $whereClauses = ["a.deleted_at IS NULL", "a.market_id IN ({$placeholders})"];
+        $whereClauses = ["a.deleted_at IS NULL", "(a.market_id IN ({$placeholders}) OR am.market_id IN ({$placeholders}))"];
+        $params = array_merge($mainIds, $mainIds);
 
         if ($cat = $request->query->get('categorie')) {
             $whereClauses[] = "a.categorie = ?";
@@ -317,22 +317,47 @@ class CarteController extends AbstractController
                     COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS niveau_priorite,
                     COALESCE(a.score_surcharge, a.score_gei) AS score,
                     principal.id AS principal_id, principal.nom AS principal, principal.code_iso3 AS principal_iso3,
-                    COALESCE(principal_zone.latitude, CASE principal.code_iso3
+                    COALESCE(NULLIF(principal_zone.latitude, 0), CASE principal.code_iso3
                         WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195 WHEN 'GHA' THEN 7.9465
                         WHEN 'BFA' THEN 12.2383 WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
-                        WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400 ELSE 8.0000 END) AS principal_lat,
-                    COALESCE(principal_zone.longitude, CASE principal.code_iso3
+                        WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400 WHEN 'GIN' THEN 9.9456
+                        WHEN 'NGA' THEN 9.0820 WHEN 'CMR' THEN 7.3697 WHEN 'COD' THEN -4.0383
+                        WHEN 'AGO' THEN -11.2027 ELSE 8.0000 END) AS principal_lat,
+                    COALESCE(NULLIF(principal_zone.longitude, 0), CASE principal.code_iso3
                         WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248 WHEN 'GHA' THEN -1.0232
                         WHEN 'BFA' THEN -1.5616 WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
-                        WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 ELSE 2.0000 END) AS principal_lng,
+                        WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 WHEN 'GIN' THEN -9.6966
+                        WHEN 'NGA' THEN 8.6753 WHEN 'CMR' THEN 12.3547 WHEN 'COD' THEN 21.7587
+                        WHEN 'AGO' THEN 17.8739 ELSE 2.0000 END) AS principal_lng,
                     am.ordre, associe.id AS associe_id, associe.nom AS associe, associe.code_iso3 AS associe_iso3,
-                    associe_zone.latitude AS associe_lat, associe_zone.longitude AS associe_lng
+                    COALESCE(NULLIF(associe_zone.latitude, 0), CASE associe.code_iso3
+                        WHEN 'BEN' THEN 9.3077 WHEN 'TGO' THEN 8.6195 WHEN 'GHA' THEN 7.9465
+                        WHEN 'BFA' THEN 12.2383 WHEN 'MLI' THEN 17.5707 WHEN 'NER' THEN 17.6078
+                        WHEN 'SEN' THEN 14.4974 WHEN 'CIV' THEN 7.5400 WHEN 'GIN' THEN 9.9456
+                        WHEN 'NGA' THEN 9.0820 WHEN 'CMR' THEN 7.3697 WHEN 'COD' THEN -4.0383
+                        WHEN 'AGO' THEN -11.2027 ELSE NULL END) AS associe_lat,
+                    COALESCE(NULLIF(associe_zone.longitude, 0), CASE associe.code_iso3
+                        WHEN 'BEN' THEN 2.3158 WHEN 'TGO' THEN 0.8248 WHEN 'GHA' THEN -1.0232
+                        WHEN 'BFA' THEN -1.5616 WHEN 'MLI' THEN -3.9962 WHEN 'NER' THEN 8.0817
+                        WHEN 'SEN' THEN -14.4524 WHEN 'CIV' THEN -5.5471 WHEN 'GIN' THEN -9.6966
+                        WHEN 'NGA' THEN 8.6753 WHEN 'CMR' THEN 12.3547 WHEN 'COD' THEN 21.7587
+                        WHEN 'AGO' THEN 17.8739 ELSE NULL END) AS associe_lng
              FROM alert a
              JOIN market principal ON principal.id = a.market_id
-             LEFT JOIN zone_geo principal_zone ON principal_zone.market_id = principal.id
+             LEFT JOIN (
+                 SELECT market_id, AVG(latitude) AS latitude, AVG(longitude) AS longitude
+                 FROM zone_geo
+                 WHERE latitude IS NOT NULL AND latitude != 0
+                 GROUP BY market_id
+             ) principal_zone ON principal_zone.market_id = principal.id
              JOIN alert_market am ON am.alert_id = a.id AND am.role = 'associe'
              JOIN market associe ON associe.id = am.market_id
-             LEFT JOIN zone_geo associe_zone ON associe_zone.market_id = associe.id
+             LEFT JOIN (
+                 SELECT market_id, AVG(latitude) AS latitude, AVG(longitude) AS longitude
+                 FROM zone_geo
+                 WHERE latitude IS NOT NULL AND latitude != 0
+                 GROUP BY market_id
+             ) associe_zone ON associe_zone.market_id = associe.id
              WHERE {$whereSql}
              ORDER BY a.id, am.ordre",
             $params

@@ -5,6 +5,8 @@ namespace App\Controller\Admin;
 use App\Entity\AccessLog;
 use App\Repository\AccessLogRepository;
 use App\Repository\UserRepository;
+use App\Service\AdminAuditLogger;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,11 +23,14 @@ class ActivityController extends AbstractController
         Request $request,
         AccessLogRepository $logRepo,
         UserRepository $userRepo,
+        AdminAuditLogger $auditLogger,
     ): Response {
         $user = $this->getUser();
         if (!$user instanceof \App\Entity\User) {
             throw $this->createAccessDeniedException();
         }
+
+        $auditLogger->logAndFlush(AccessLog::ACTION_LECTURE, 'activity_log');
 
         $filters = [
             'userId'    => $request->query->get('userId'),
@@ -64,6 +69,7 @@ class ActivityController extends AbstractController
                 AccessLog::ACTION_LOGIN_FAILED  => 'Échec de connexion',
                 AccessLog::ACTION_LOGIN_SUSPICIOUS => 'Activité suspecte',
                 AccessLog::ACTION_LOGOUT        => 'Déconnexion',
+                'password_reset_requested' => 'Réinitialisation demandée',
                 AccessLog::ACTION_VUE_SOURCE    => 'Vue source',
             ],
         ]);
@@ -73,6 +79,8 @@ class ActivityController extends AbstractController
     public function export(
         Request $request,
         AccessLogRepository $logRepo,
+        AdminAuditLogger $auditLogger,
+        EntityManagerInterface $em,
     ): StreamedResponse {
         $this->denyAccessUnlessGranted('ROLE_PFT');
 
@@ -86,6 +94,8 @@ class ActivityController extends AbstractController
 
         $result = $logRepo->findFiltered($filters, 1, 10000);
         $logs   = $result['logs'];
+        $auditLogger->log(AccessLog::ACTION_EXPORT, 'activity_log');
+        $em->flush();
 
         $response = new StreamedResponse(function () use ($logs) {
             $handle = fopen('php://output', 'w');

@@ -18,6 +18,7 @@
         <p class="page-subtitle">{{ total ?? alerts|length }} alerte{{ (total ?? alerts|length) > 1 ? 's' : '' }} enregistrée{{ (total ?? alerts|length) > 1 ? 's' : '' }}</p>
     </div>
     <div class="reg-header-actions">
+        {% if is_granted('ROLE_PFT') %}
         <a href="{{ path('app_alert_import') }}" class="db-btn db-btn-ghost">
             <i class="bi bi-file-arrow-up me-1.5"></i><span class="btn-label">Importer</span>
         </a>
@@ -37,9 +38,10 @@
                 market:   filters.market          ?? '',
                 search:   filters.search          ?? '',
                 categorie: filters.categorie      ?? ''
-            }) }}" class="db-btn db-btn-ghost">
+            }) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="db-btn db-btn-ghost">
             <i class="bi bi-file-earmark-pdf me-1.5 text-red-400"></i><span class="btn-label">PDF</span>
         </a>
+        {% endif %}
         <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
             <i class="bi bi-plus-lg me-1.5"></i><span>Nouvelle alerte</span>
         </a>

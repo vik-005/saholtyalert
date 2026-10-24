@@ -1,4 +1,4 @@
-﻿{% extends 'base.html.twig' %}
+{% extends 'base.html.twig' %}
 {% block title %}Statistiques GEI{% endblock %}
 {% block header_title %}Statistiques{% endblock %}
 
@@ -58,6 +58,25 @@
     <i class="bi bi-info-circle me-1"></i>
     <strong>{{ total_alertes_periode }}</strong> alerte{{ total_alertes_periode > 1 ? 's' : '' }} sur la période sélectionnée
     ({{ debut|date('d/m/Y') }} au {{ fin|date('d/m/Y') }}). Le registre global peut contenir d'autres périodes.
+</div>
+
+<div class="stats-card" style="margin-top:16px;">
+    <div class="db-card-header">
+        <div>
+            <p class="db-card-eyebrow"><i class="bi bi-shield-check me-1.5"></i>Qualification juridique</p>
+            <p class="db-card-title">Alertes licites et illicites sur la période</p>
+        </div>
+    </div>
+    <div class="stats-row-2col">
+        {% for legal_status in legal_status_counts %}
+            <div class="stats-scope-note" role="status">
+                <strong>
+                    {{ legal_status.legalStatus == 'licite' ? 'Licite' : (legal_status.legalStatus == 'illicite' ? 'Illicite' : 'Non renseigné') }}
+                </strong>
+                <span>{{ legal_status.nb }} alerte{{ legal_status.nb != 1 ? 's' : '' }}</span>
+            </div>
+        {% endfor %}
+    </div>
 </div>
 
 {# ═══════════════════════════════════════════════════════════════════════════
@@ -167,25 +186,31 @@
     <div class="db-card-header">
         <div>
             <p class="db-card-eyebrow"><i class="bi bi-signpost-2 me-1.5"></i>Analyse des parcours</p>
-            <p class="db-card-title">Les trajets sont analysés séparément, sans doubler le volume principal</p>
+            <p class="db-card-title">Trajets transfrontaliers analysés séparément du volume principal</p>
         </div>
         <div style="display:flex;gap:18px;font-size:12px;color:var(--muted);">
             <span><strong style="color:var(--text)">{{ parcours_stats.avec_parcours }}</strong> avec parcours</span>
             <span><strong style="color:var(--text)">{{ parcours_stats.sans_parcours }}</strong> sans parcours</span>
         </div>
     </div>
-    <canvas id="chartParcours" height="120"></canvas>
     {% if parcours_stats.routes|length > 0 %}
-    <div class="stats-route-list" aria-label="Liste des parcours">
+    <div style="position:relative;min-height:120px;">
+        <canvas id="chartParcours" style="width:100%;min-height:120px;"></canvas>
+    </div>
+    <div class="stats-route-list" aria-label="Liste des parcours" style="margin-top:12px;">
         {% for route in parcours_stats.routes|slice(0, 10) %}
             <div class="stats-route-row">
-                <span><i class="bi bi-signpost-2 me-1.5 text-emerald-400"></i>{{ route.trajet }}</span>
+                <span><i class="bi bi-signpost-2 me-1.5" style="color:#34d399"></i>{{ route.trajet }}</span>
                 <strong>{{ route.nb }} alerte{{ route.nb > 1 ? 's' : '' }}</strong>
             </div>
         {% endfor %}
     </div>
     {% else %}
-    <p class="stats-empty-route">Aucun parcours enregistré sur la période et les marchés sélectionnés.</p>
+    <div style="text-align:center;padding:32px 16px;color:var(--muted);">
+        <i class="bi bi-signpost-2" style="font-size:32px;display:block;margin-bottom:10px;opacity:.35;"></i>
+        <p style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;">Aucun parcours multi-marchés</p>
+        <p style="font-size:12px;">Les alertes doivent avoir au moins un marché associé pour générer un parcours transfrontalier.</p>
+    </div>
     {% endif %}
 </div>
 
@@ -492,23 +517,69 @@ buildGauge('gaugeExploitables', DATA.exploitables.taux ?? 0, expColor);
 
 // ─── 4 bis. Parcours les plus fréquents ───────────────────────────────────
 (function() {
-    const ctx = document.getElementById('chartParcours')?.getContext('2d');
-    if (!ctx || !DATA.parcours.routes?.length) return;
-    const routes = DATA.parcours.routes.slice(0, 10);
+    const canvas = document.getElementById('chartParcours');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const routes = Array.isArray(DATA.parcours?.routes) ? DATA.parcours.routes.slice(0, 10) : [];
+    if (!routes.length) return;
+
+    // Hauteur dynamique selon le nombre de barres
+    const dynamicHeight = Math.max(120, routes.length * 36);
+    canvas.style.height = dynamicHeight + 'px';
+    canvas.height = dynamicHeight;
+
+    // Palette dégradée vert→cyan pour distinguer les parcours
+    const palette = routes.map((_, i) => {
+        const t = routes.length > 1 ? i / (routes.length - 1) : 0;
+        const r = Math.round(52  + t * (34  - 52));
+        const g = Math.round(211 + t * (211 - 211));
+        const b = Math.round(153 + t * (238 - 153));
+        return `rgba(${r},${g},${b},0.82)`;
+    });
+
     new Chart(ctx, {
         type: 'bar',
-        data: { labels: routes.map(r => r.trajet), datasets: [{
-            label: 'Alertes avec ce parcours', data: routes.map(r => r.nb),
-            backgroundColor: C.emerald + 'CC', borderColor: C.emerald,
-            borderWidth: 1, borderRadius: 5
-        }] },
+        data: {
+            labels: routes.map(r => {
+                const lbl = String(r.trajet || '');
+                return lbl.length > 45 ? lbl.slice(0, 45) + '…' : lbl;
+            }),
+            datasets: [{
+                label: 'Alertes avec ce parcours',
+                data: routes.map(r => Number(r.nb)),
+                backgroundColor: palette,
+                borderColor: palette.map(c => c.replace('0.82)', '1)')),
+                borderWidth: 1, borderRadius: 6,
+            }]
+        },
         options: {
-            indexAxis: 'y', responsive: true,
-            plugins: { legend: { display: false }, tooltip: TOOLTIP },
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    ...TOOLTIP,
+                    callbacks: {
+                        title: items => String(DATA.parcours.routes[items[0].dataIndex]?.trajet || items[0].label),
+                        label: item => ` ${item.parsed.x} alerte${item.parsed.x > 1 ? 's' : ''}`,
+                    },
+                },
+            },
             scales: {
-                x: { beginAtZero: true, ticks: { color: C.slate }, grid: { color: 'rgba(148,163,184,0.06)' } },
-                y: { ticks: { color: C.text }, grid: { display: false } }
-            }
+                x: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148,163,184,0.06)' },
+                    ticks: { color: C.slate, precision: 0 },
+                    border: { display: false },
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: C.text, font: { size: 10 } },
+                    border: { display: false },
+                },
+            },
         }
     });
 })();

@@ -6,6 +6,7 @@ use App\Entity\User;
 use App\Enum\UserRoleEnum;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Service\AdminAuditLogger;
 use App\Voter\UserVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,12 +21,14 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class UserController extends AbstractController
 {
     #[Route('/', name: 'app_admin_user_index', methods: ['GET'])]
-    public function index(UserRepository $userRepository): Response
+    public function index(UserRepository $userRepository, AdminAuditLogger $auditLogger): Response
     {
         $currentUser = $this->getUser();
         if (!$currentUser instanceof User) {
             throw $this->createAccessDeniedException();
         }
+
+        $auditLogger->logAndFlush(\App\Entity\AccessLog::ACTION_LECTURE, 'user_directory');
 
         if ($currentUser->getRole() === UserRoleEnum::SUPERADMIN) {
             $users = $userRepository->findAll();
@@ -47,6 +50,7 @@ class UserController extends AbstractController
         Request $request,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $hasher,
+        AdminAuditLogger $auditLogger,
     ): Response {
         $currentUser = $this->getUser();
         if (!$currentUser instanceof User) {
@@ -133,6 +137,8 @@ class UserController extends AbstractController
 
             $em->persist($user);
             $em->flush();
+            $auditLogger->log(\App\Entity\AccessLog::ACTION_CREATION, 'user', $user->getId());
+            $em->flush();
 
             $this->addFlash('success', sprintf('Utilisateur %s créé avec succès.', $user->getNomComplet()));
 
@@ -152,6 +158,7 @@ class UserController extends AbstractController
         User $user,
         EntityManagerInterface $em,
         UserPasswordHasherInterface $hasher,
+        AdminAuditLogger $auditLogger,
     ): Response {
         $currentUser = $this->getUser();
         if (!$currentUser instanceof User) {
@@ -190,6 +197,7 @@ class UserController extends AbstractController
                 $user->setPassword($hasher->hashPassword($user, $plainPassword));
             }
 
+            $auditLogger->log(\App\Entity\AccessLog::ACTION_MODIFICATION, 'user', $user->getId());
             $em->flush();
 
             $this->addFlash('success', sprintf('Utilisateur %s mis à jour.', $user->getNomComplet()));
@@ -205,7 +213,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'app_admin_user_delete', methods: ['POST'])]
-    public function delete(Request $request, User $user, EntityManagerInterface $em): Response
+    public function delete(Request $request, User $user, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $this->denyAccessUnlessGranted(UserVoter::DELETE, $user);
 
@@ -216,6 +224,7 @@ class UserController extends AbstractController
             return $this->redirectToRoute('app_admin_user_index');
         }
 
+        $auditLogger->log(\App\Entity\AccessLog::ACTION_SUPPRESSION, 'user', $user->getId());
         $em->remove($user);
         $em->flush();
 

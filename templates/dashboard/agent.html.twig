@@ -1,0 +1,478 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mon Tableau de Bord — GEI Platform{% endblock %}
+{% block header_title %}Mon Tableau de Bord{% endblock %}
+
+{% block body %}
+<div class="db-wrapper">
+
+    {# ═══════════════════════════════════════════════════════════════════════════
+       EN-TÊTE : Bienvenue + Statistiques rapides
+    ═════════════════════════════════════════════════════════════════════════ #}
+    <div class="agent-header">
+        <div>
+            <p class="page-eyebrow">
+                <i class="bi bi-person-check me-1.5 text-emerald-400"></i>
+                Dashboard Personnel
+            </p>
+            <h1 class="page-title">Bienvenue {{ app.user.prenom|default('') }}</h1>
+            <p class="page-subtitle">
+                Tableau de bord de vos alertes soumises — retrouvez ici vos statistiques et activité pour rédiger vos rapports d'activité.
+            </p>
+        </div>
+        <a href="{{ path('app_wizard_new') }}" class="db-btn db-btn-amber">
+            <i class="bi bi-plus-lg me-1.5"></i>
+            <span>Nouvelle alerte</span>
+        </a>
+    </div>
+
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    {# LIGNE 1 : KPIs PRINCIPAUX (5 cards) #}
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    <div class="db-kpi-row">
+        {# Total alertes soumises #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Alertes Soumises',
+            value: kpis.total,
+            icon: 'bi-file-earmark-text',
+            color: 'teal'
+        } %}
+
+        {# Taux de validation #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Taux de Validation',
+            value: tauxValidation.taux_validation ~ '%',
+            icon: 'bi-check-circle',
+            color: 'emerald',
+            trend_val: tauxValidation.validee ~ '/' ~ tauxValidation.total,
+            trend_label: 'Validées / Total',
+            trend_dir: 'up'
+        } %}
+
+        {# Score GEI moyen #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Score GEI Moyen',
+            value: kpis.scoreMoyen,
+            icon: 'bi-star-half',
+            color: (kpis.scoreMoyen >= 18 ? 'red' : (kpis.scoreMoyen >= 14 ? 'amber' : (kpis.scoreMoyen >= 10 ? 'blue' : 'teal'))),
+            trend_val: (kpis.scoreMoyen >= 18 ? 'Critique' : (kpis.scoreMoyen >= 14 ? 'Élevé' : (kpis.scoreMoyen >= 10 ? 'Modéré' : 'Faible'))),
+            trend_dir: 'neutral'
+        } %}
+
+        {# Alertes en attente de validation #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'En Attente',
+            value: tauxValidation.en_cours + tauxValidation.nouveau,
+            icon: 'bi-hourglass-split',
+            color: 'amber',
+            trend_val: tauxValidation.en_cours ~ ' en validation',
+            trend_dir: 'neutral'
+        } %}
+
+        {# Délai moyen traitement #}
+        {% include 'components/_stat_card.html.twig' with {
+            title: 'Délai Moyen',
+            value: (kpis.delaiMoyenH is not null ? kpis.delaiMoyenH ~ 'h' : 'N/A'),
+            icon: 'bi-clock',
+            color: 'slate',
+            trend_val: 'Soumission → Validation',
+            trend_dir: 'neutral'
+        } %}
+    </div>
+
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    {# LIGNE 2 : GRAPHIQUES (Évolution + Distribution scores) #}
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    <div class="db-mid-row">
+
+        {# Évolution mensuelle #}
+        <div class="db-chart-card db-chart-lg">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Votre Activité</p>
+                    <p class="db-card-title">Soumissions et Validations</p>
+                </div>
+                <span class="db-live-indicator"><span></span>12 derniers mois</span>
+            </div>
+            <div class="db-chart-area">
+                <canvas id="evolutionMensuelleChart" height="90"></canvas>
+            </div>
+        </div>
+
+        {# Distribution des scores #}
+        <div class="db-chart-card db-chart-sm">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1.5"></i>Qualité</p>
+                    <p class="db-card-title">Distribution Scores</p>
+                </div>
+            </div>
+            <div class="donut-wrap">
+                <canvas id="scoreDistributionChart" width="160" height="160"></canvas>
+                <div class="donut-center">
+                    <span class="donut-total">{{ kpis.total }}</span>
+                    <span class="donut-total-label">Total</span>
+                </div>
+            </div>
+            <div class="donut-legend">
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#ef4444;"></span>
+                    <span class="donut-legend-label">Critique (18+)</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.critique }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#f97316;"></span>
+                    <span class="donut-legend-label">Élevé (14-17)</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.eleve }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#f59e0b;"></span>
+                    <span class="donut-legend-label">Modéré (10-13)</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.modere }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#10b981;"></span>
+                    <span class="donut-legend-label">Faible (1-9)</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.faible }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    {# LIGNE 3 : RÉPARTITIONS (Catégories + Urgences) #}
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    <div class="db-row">
+
+        {# Catégories #}
+        <div class="db-chart-card">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-tags me-1.5"></i>Par Catégorie</p>
+                    <p class="db-card-title">Répartition des Alertes</p>
+                </div>
+            </div>
+            {% if catStats|length > 0 %}
+            <div class="db-chart-area" style="height: 220px;">
+                <canvas id="categorieChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-center text-slate-500 py-8">Aucune alerte catégorisée pour le moment</p>
+            {% endif %}
+        </div>
+
+        {# Urgences #}
+        <div class="db-chart-card">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-exclamation-circle me-1.5"></i>Par Urgence</p>
+                    <p class="db-card-title">Niveaux d'Urgence</p>
+                </div>
+            </div>
+            {% if urgenceStats|length > 0 %}
+            <div class="db-chart-area" style="height: 220px;">
+                <canvas id="urgenceChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-center text-slate-500 py-8">Aucune donnée d'urgence</p>
+            {% endif %}
+        </div>
+
+        {# Priorités (donut) #}
+        <div class="db-chart-card">
+            <div class="db-card-header">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-flag me-1.5"></i>Par Priorité</p>
+                    <p class="db-card-title">Répartition Calculée</p>
+                </div>
+            </div>
+            <div class="donut-wrap" style="margin: 12px auto;">
+                <canvas id="priorityChart" width="140" height="140"></canvas>
+            </div>
+            <div class="donut-legend">
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#ef4444;"></span>
+                    <span class="donut-legend-label">Critique</span>
+                    <span class="donut-legend-val">{{ kpis.critique }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#f97316;"></span>
+                    <span class="donut-legend-label">Élevé</span>
+                    <span class="donut-legend-val">{{ kpis.eleve }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#f59e0b;"></span>
+                    <span class="donut-legend-label">Modéré</span>
+                    <span class="donut-legend-val">{{ kpis.modere }}</span>
+                </div>
+                <div class="donut-legend-item">
+                    <span class="donut-dot" style="background:#10b981;"></span>
+                    <span class="donut-legend-label">Faible</span>
+                    <span class="donut-legend-val">{{ kpis.faible }}</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    {# LIGNE 4 : ALERTES RÉCENTES #}
+    {# ─────────────────────────────────────────────────────────────────────── #}
+    <div class="db-card">
+        <div class="db-card-header">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-clock-history me-1.5"></i>Activité Récente</p>
+                <p class="db-card-title">8 Dernières Alertes Soumises</p>
+            </div>
+            <a href="{{ path('app_alert_index') }}" class="db-link">
+                Voir le registre complet <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        {% if alertesRecentes|length > 0 %}
+        <div class="db-table-wrap">
+            <table class="db-table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-hash me-1 opacity-50"></i>Code</th>
+                        <th><i class="bi bi-calendar me-1 opacity-50"></i>Date</th>
+                        <th><i class="bi bi-tag me-1 opacity-50"></i>Catégorie</th>
+                        <th><i class="bi bi-exclamation me-1 opacity-50"></i>Urgence</th>
+                        <th class="text-center"><i class="bi bi-star-half me-1 opacity-50"></i>Score</th>
+                        <th><i class="bi bi-circle-dot me-1 opacity-50"></i>Statut</th>
+                        <th class="text-right"><i class="bi bi-three-dots me-1 opacity-50"></i>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for alert in alertesRecentes %}
+                    {% set alertToken = encrypt_id(alert.id, 'alert') %}
+                    {% set rowClass = alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'critique' ? 'row-critique' : (alert.effectiveNiveauPriorite and alert.effectiveNiveauPriorite.value == 'eleve' ? 'row-eleve' : '') %}
+                    <tr class="db-tr {{ rowClass }}">
+                        <td>
+                            <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="code-gei-link">
+                                {{ alert.codeGei ?? 'BROUILLON' }}
+                            </a>
+                        </td>
+                        <td class="text-slate-400 text-sm">{{ alert.dateCreation|date('d/m/Y') }}</td>
+                        <td class="text-sm">{{ alert.categorie ?: '—' }}</td>
+                        <td class="text-sm">
+                            {% if alert.urgence %}
+                                <span class="urgence-badge urgence-{{ alert.urgence.value|lower }}">{{ alert.urgence.label() }}</span>
+                            {% else %}
+                                <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% set score = alert.effectiveScore ?? 0 %}
+                            <span class="score-badge {% if score >= 18 %}score-critique{% elseif score >= 14 %}score-eleve{% elseif score >= 10 %}score-modere{% else %}score-faible{% endif %}">
+                                {{ score }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ alert.statut.value|lower|replace('_', '-') }}">
+                                {{ alert.statut.label() }}
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-icon-btn" title="Voir la fiche">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-slate-500 py-12">
+            <i class="bi bi-inbox block text-2xl mb-2"></i>
+            Vous n'avez pas encore soumis d'alerte
+        </p>
+        {% endif %}
+    </div>
+
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════════
+   SCRIPTS Chart.js
+═════════════════════════════════════════════════════════════════════════ #}
+<script>
+if (typeof Chart !== 'undefined') {
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(148,163,184,0.08)';
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+    Chart.defaults.font.size = 11;
+
+    // ─── Évolution mensuelle ───
+    const evolutionCtx = document.getElementById('evolutionMensuelleChart')?.getContext('2d');
+    if (evolutionCtx) {
+        Chart.getChart(evolutionCtx)?.destroy();
+
+        const gradTeal = evolutionCtx.createLinearGradient(0, 0, 0, 200);
+        gradTeal.addColorStop(0, 'rgba(22,133,107,0.16)');
+        gradTeal.addColorStop(1, 'rgba(22,133,107,0.01)');
+
+        const gradBlue = evolutionCtx.createLinearGradient(0, 0, 0, 200);
+        gradBlue.addColorStop(0, 'rgba(59,130,246,0.15)');
+        gradBlue.addColorStop(1, 'rgba(59,130,246,0.01)');
+
+        new Chart(evolutionCtx, {
+            type: 'line',
+            data: {
+                labels: {{ evolutionMensuelle.labels|json_encode|raw }},
+                datasets: [
+                    {
+                        label: 'Soumises',
+                        data: {{ evolutionMensuelle.soumises|json_encode|raw }},
+                        borderColor: '#16856b',
+                        backgroundColor: gradTeal,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#16856b',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.35,
+                        fill: true,
+                    },
+                    {
+                        label: 'Validées',
+                        data: {{ evolutionMensuelle.validees|json_encode|raw }},
+                        borderColor: '#059669',
+                        backgroundColor: gradBlue,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#059669',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.35,
+                        fill: true,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { color: '#a8c4b8' } },
+                    x: { ticks: { color: '#a8c4b8' } }
+                }
+            }
+        });
+    }
+
+    // ─── Distribution des scores ───
+    const scoreDistCtx = document.getElementById('scoreDistributionChart')?.getContext('2d');
+    if (scoreDistCtx) {
+        Chart.getChart(scoreDistCtx)?.destroy();
+        const total = {{ scoreDistribution.critique }} + {{ scoreDistribution.eleve }} + {{ scoreDistribution.modere }} + {{ scoreDistribution.faible }};
+        new Chart(scoreDistCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
+                datasets: [{
+                    data: [{{ scoreDistribution.critique }}, {{ scoreDistribution.eleve }}, {{ scoreDistribution.modere }}, {{ scoreDistribution.faible }}],
+                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
+                    borderColor: 'rgba(18,34,29,0.6)',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
+    // ─── Priorités ───
+    const priorityCtx = document.getElementById('priorityChart')?.getContext('2d');
+    if (priorityCtx) {
+        Chart.getChart(priorityCtx)?.destroy();
+        new Chart(priorityCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
+                datasets: [{
+                    data: [{{ kpis.critique }}, {{ kpis.eleve }}, {{ kpis.modere }}, {{ kpis.faible }}],
+                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
+                    borderColor: 'rgba(18,34,29,0.6)',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+            }
+        });
+    }
+
+    // ─── Catégories ───
+    const catCtx = document.getElementById('categorieChart')?.getContext('2d');
+    if (catCtx) {
+        Chart.getChart(catCtx)?.destroy();
+        const categories = {{ catStats|json_encode|raw }};
+        if (Array.isArray(categories) && categories.length > 0) {
+            new Chart(catCtx, {
+                type: 'bar',
+                data: {
+                    labels: categories.map(c => c.categorie || 'Sans catégorie'),
+                    datasets: [{
+                        label: 'Alertes',
+                        data: categories.map(c => c.count),
+                        backgroundColor: '#059669',
+                        borderColor: 'rgba(5,150,105,0.3)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { color: '#a8c4b8' } }, y: { ticks: { color: '#a8c4b8' } } }
+                }
+            });
+        }
+    }
+
+    // ─── Urgences ───
+    const urgenceCtx = document.getElementById('urgenceChart')?.getContext('2d');
+    if (urgenceCtx) {
+        Chart.getChart(urgenceCtx)?.destroy();
+        const urgences = {{ urgenceStats|json_encode|raw }};
+        if (Array.isArray(urgences) && urgences.length > 0) {
+            const colors = {
+                'immediate': '#ef4444',
+                '24h': '#f97316',
+                '72h': '#fbbf24',
+                'routine': '#10b981'
+            };
+            new Chart(urgenceCtx, {
+                type: 'bar',
+                data: {
+                    labels: urgences.map(u => u.urgence || 'Sans'),
+                    datasets: [{
+                        label: 'Alertes',
+                        data: urgences.map(u => u.count),
+                        backgroundColor: urgences.map(u => colors[u.urgence] || '#94a3b8'),
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { color: '#a8c4b8' } }, y: { ticks: { color: '#a8c4b8' } } }
+                }
+            });
+        }
+    }
+}
+</script>
+
+{% endblock %}

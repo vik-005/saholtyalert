@@ -977,7 +977,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             <button type="button" id="marketToggle" aria-label="Afficher ou masquer les alertes par marché" title="Alertes par marché" aria-pressed="true">
                 <i class="bi bi-geo-alt"></i>Alertes
             </button>
-            <button type="button" id="routeToggle" aria-label="Afficher ou masquer les parcours transfrontaliers" title="Parcours transfrontaliers" aria-pressed="false" disabled>
+            <button type="button" id="routeToggle" aria-label="Afficher ou masquer les parcours transfrontaliers" title="Parcours transfrontaliers" aria-pressed="true" disabled>
                 <i class="bi bi-bezier2"></i>Parcours
             </button>
             <button type="button" id="routeFit" aria-label="Cadrer les parcours indicatifs" title="Cadrer les parcours" disabled>
@@ -1785,11 +1785,15 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         if (countLabel) countLabel.textContent = `${count} parcours indicatif${count > 1 ? 's' : ''}`;
         if (toggle) toggle.disabled = count === 0;
         if (fit) fit.disabled = count === 0;
-        if (toggle && count === 0) toggle.setAttribute('aria-pressed', 'false');
-        if (count === 0 && map?.hasLayer(routeLayer)) map.removeLayer(routeLayer);
-        if (count > 0 && toggle?.getAttribute('aria-pressed') !== 'false' && !map?.hasLayer(routeLayer)) {
-            routeLayer.addTo(map);
-            toggle.setAttribute('aria-pressed', 'true');
+        if (count === 0) {
+            if (toggle) toggle.setAttribute('aria-pressed', 'false');
+            if (map?.hasLayer(routeLayer)) map.removeLayer(routeLayer);
+        } else {
+            // Afficher automatiquement les parcours dès qu'ils existent
+            if (!map?.hasLayer(routeLayer)) {
+                routeLayer.addTo(map);
+            }
+            if (toggle) toggle.setAttribute('aria-pressed', 'true');
         }
     }
 

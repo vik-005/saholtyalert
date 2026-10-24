@@ -1,9 +1,9 @@
 {% include 'bundles/TwigBundle/Exception/_page.html.twig' with {
     code: 500,
-    eyebrow: 'Service',
+    eyebrow: 'Erreur serveur',
     heading: 'Une difficulté technique est survenue',
-    description: 'La demande n’a pas pu aboutir. Vous pouvez retourner au tableau de bord et réessayer plus tard.',
+    description: 'La demande n\'a pas pu aboutir suite à une erreur interne. L\'équipe technique en a été informée. Veuillez réessayer dans quelques instants.',
     visual: 'server',
-    action_label: 'Retour au tableau de bord',
-    action_route: 'app_dashboard_operationnel'
+    action_label: 'Retour au registre',
+    action_route: 'app_alert_index'
 } only %}

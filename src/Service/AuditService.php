@@ -25,18 +25,6 @@ class AuditService
             return $dto;
         }
 
-        // Manager : limiter à ses marchés gérés (sauf si filtre marché explicite hors scope)
-        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            if (!empty($managedMarkets)) {
-                $managedIds = array_map(fn($m) => $m->getId(), $managedMarkets);
-                // Si l'utilisateur a filtré des marchés, ne garder que ceux dans son scope
-                if (!empty($dto->markets)) {
-                    $dto->markets = array_values(array_intersect($dto->markets, $managedIds));
-                }
-            }
-        }
-
         return $dto;
     }
 
@@ -148,15 +136,6 @@ class AuditService
         $qb = $this->em->createQueryBuilder()
             ->select('u.id, u.prenom, u.nom, u.email')
             ->from(\App\Entity\User::class, 'u');
-
-        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $managedMarkets = $user->getAllManagedMarkets();
-            if (!empty($managedMarkets)) {
-                $managedIds = array_map(fn($m) => $m->getId(), $managedMarkets);
-                $qb->where('u.market IN (:markets)')
-                   ->setParameter('markets', $managedMarkets);
-            }
-        }
 
         $qb->andWhere('u.actif = :actif')
            ->setParameter('actif', true)

@@ -31,7 +31,7 @@
                    class="db-btn db-btn-ghost">
                     <i class="bi bi-filetype-csv me-1.5 text-emerald-400"></i>CSV
                 </a>
-                <form method="post" action="{{ path('app_audit_export_excel') }}" class="d-inline">
+                <form id="auditExportExcelForm" method="post" action="{{ path('app_audit_export_excel') }}" class="d-inline">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('app_audit_export_excel') }}">
                     {% for key, value in app.request.query.all %}
                         {% if key != '_export' %}
@@ -48,7 +48,7 @@
                         <i class="bi bi-filetype-xls me-1.5 text-emerald-400"></i>Excel
                     </button>
                 </form>
-                <form method="post" action="{{ path('app_audit_export_pdf') }}" class="d-inline">
+                <form id="auditExportPdfForm" method="post" action="{{ path('app_audit_export_pdf') }}" target="_blank" data-turbo="false" class="d-inline">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('app_audit_export_pdf') }}">
                     {% for key, value in app.request.query.all %}
                         {% if key != '_export' %}
@@ -534,10 +534,10 @@
                         {{ total }} alerte{{ total != 1 ? 's' : '' }} trouvée{{ total != 1 ? 's' : '' }}
                     </p>
                     <div class="db-card-actions">
-                        <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('pdf')">
+                        <button type="submit" form="auditExportPdfForm" class="db-btn db-btn-ghost db-btn-sm">
                             <i class="bi bi-filetype-pdf me-1 text-red-400"></i>PDF
                         </button>
-                        <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="exportCurrentView('excel')">
+                        <button type="submit" form="auditExportExcelForm" class="db-btn db-btn-ghost db-btn-sm">
                             <i class="bi bi-filetype-xls me-1 text-emerald-400"></i>Excel
                         </button>
                     </div>

@@ -128,8 +128,6 @@ class AlertRepository extends ServiceEntityRepository
             $qb->andWhere('a.emetteur = :currentUser')
                ->setParameter('currentUser', $user);
         }
-        // Pour tout utilisateur ayant au moins le rôle MANAGER (PFT, SAHOLTY, SUPERADMIN, COMITE_AIT, SECRETARIAT_GEI) :
-        // Visibilité globale sur les alertes de tous les agents (avec filtrage dynamique possible via les filtres du registre).
 
         // Filtres multiples
         if (!empty($filters['statut'])) {
@@ -356,7 +354,8 @@ class AlertRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a')
             ->select('a.niveauPriorite AS niveau, COUNT(a.id) AS cnt')
-            ->where('a.niveauPriorite IS NOT NULL');
+            ->where('a.niveauPriorite IS NOT NULL')
+            ->andWhere('a.deletedAt IS NULL');
 
         if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
             $qb->andWhere('a.emetteur = :user')->setParameter('user', $user);
@@ -386,7 +385,8 @@ class AlertRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a')
             ->select('m.nom AS nom, COUNT(a.id) AS cnt')
-            ->join('a.market', 'm');
+            ->join('a.market', 'm')
+            ->where('a.deletedAt IS NULL');
 
         if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
             $qb->andWhere('a.emetteur = :user')->setParameter('user', $user);
@@ -408,7 +408,8 @@ class AlertRepository extends ServiceEntityRepository
     {
         $qb = $this->createQueryBuilder('a')
             ->select('AVG(a.scoreGei)')
-            ->where('a.scoreGei IS NOT NULL');
+            ->where('a.scoreGei IS NOT NULL')
+            ->andWhere('a.deletedAt IS NULL');
 
         if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
             $qb->andWhere('a.emetteur = :user')->setParameter('user', $user);
@@ -428,7 +429,7 @@ class AlertRepository extends ServiceEntityRepository
     public function getEvolutionData(int $days = 30, ?User $user = null): array
     {
         $conn = $this->getEntityManager()->getConnection();
-        $debut = (new \DateTime())->modify("-{$days} days")->format('Y-m-d');
+        $debut = (new \DateTime())->modify("-{$days} days")->setTime(0, 0)->format('Y-m-d H:i:s');
 
         $params = ['debut' => $debut];
         $emetteurFilter = '';
@@ -438,9 +439,12 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         $rows = $conn->fetchAllAssociative(
-            "SELECT DATE(a.date_creation) AS jour, COUNT(*) AS nb
+            "SELECT DATE(a.date_creation) AS jour,
+                    COUNT(*) AS nb,
+                    SUM(CASE WHEN a.transmission = 'oui' THEN 1 ELSE 0 END) AS nb_transmises
              FROM alert a
-             WHERE DATE(a.date_creation) >= :debut
+             WHERE a.date_creation >= :debut
+               AND a.deleted_at IS NULL
              {$emetteurFilter}
              GROUP BY DATE(a.date_creation)
              ORDER BY jour ASC",
@@ -448,23 +452,10 @@ class AlertRepository extends ServiceEntityRepository
         );
 
         $nouvellesMap = [];
+        $transmisesMap = [];
         foreach ($rows as $row) {
             $nouvellesMap[$row['jour']] = (int) $row['nb'];
-        }
-
-        $rowsTx = $conn->fetchAllAssociative(
-            "SELECT DATE(a.date_creation) AS jour, COUNT(*) AS nb
-             FROM alert a
-             WHERE DATE(a.date_creation) >= :debut AND a.transmission = 'oui'
-             {$emetteurFilter}
-             GROUP BY DATE(a.date_creation)
-             ORDER BY jour ASC",
-            $params
-        );
-
-        $transmisesMap = [];
-        foreach ($rowsTx as $row) {
-            $transmisesMap[$row['jour']] = (int) $row['nb'];
+            $transmisesMap[$row['jour']] = (int) $row['nb_transmises'];
         }
 
         $labels     = [];
@@ -642,6 +633,14 @@ class AlertRepository extends ServiceEntityRepository
      */
     public function findAgentsForFilter(User $viewer): array
     {
+        if (!in_array($viewer->getRole(), [
+            \App\Enum\UserRoleEnum::PFT,
+            \App\Enum\UserRoleEnum::SAHOLTY,
+            \App\Enum\UserRoleEnum::SUPERADMIN,
+        ], true)) {
+            return [];
+        }
+
         $em = $this->getEntityManager();
         $qb = $em->createQueryBuilder()
             ->select('u')
@@ -649,19 +648,6 @@ class AlertRepository extends ServiceEntityRepository
             ->where('u.role = :role')
             ->setParameter('role', \App\Enum\UserRoleEnum::EMETTEUR_TERRAIN->value)
             ->orderBy('u.nom', 'ASC');
-
-        if ($viewer->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            // Limiter aux Agents rattachés aux marchés du Manager (via agent_marches ou market legacy)
-            $managedIds = array_map(fn($m) => $m->getId(), $viewer->getAllManagedMarkets());
-            if (!empty($managedIds)) {
-                $qb->leftJoin('u.agentMarkets', 'am')
-                   ->andWhere('am.id IN (:mids) OR u.market IN (:mids)')
-                   ->setParameter('mids', $managedIds);
-            } else {
-                $qb->andWhere('1 = 0'); // Aucun marché géré → aucun agent visible
-            }
-        }
-        // SUPERADMIN, SAHOLTY → tous les agents
 
         return $qb->getQuery()->getResult();
     }
@@ -674,6 +660,14 @@ class AlertRepository extends ServiceEntityRepository
      */
     public function findManagersForFilter(User $viewer): array
     {
+        if (!in_array($viewer->getRole(), [
+            \App\Enum\UserRoleEnum::PFT,
+            \App\Enum\UserRoleEnum::SAHOLTY,
+            \App\Enum\UserRoleEnum::SUPERADMIN,
+        ], true)) {
+            return [];
+        }
+
         $em = $this->getEntityManager();
         $qb = $em->createQueryBuilder()
             ->select('u')
@@ -683,17 +677,194 @@ class AlertRepository extends ServiceEntityRepository
             ->where('a.deletedAt IS NULL')
             ->orderBy('u.nom', 'ASC');
 
-        if ($viewer->getRole() === \App\Enum\UserRoleEnum::PFT) {
-            $managedIds = array_map(fn($m) => $m->getId(), $viewer->getAllManagedMarkets());
-            if (!empty($managedIds)) {
-                $qb->join('a.market', 'fm')
-                   ->andWhere('fm.id IN (:mids)')
-                   ->setParameter('mids', $managedIds);
-            } else {
-                $qb->andWhere('1 = 0');
+        return $qb->getQuery()->getResult();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DASHBOARD AGENT — méthodes filtrées strictement par emetteur
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Répartition des alertes par catégorie pour un Agent donné.
+     * Retourne tableau trié par count DESC : [['categorie' => '...', 'count' => n], ...]
+     */
+    public function countByCategorieForAgent(User $agent): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.categorie AS cat, COUNT(a.id) AS cnt')
+            ->where('a.emetteur = :agent')
+            ->andWhere('a.deletedAt IS NULL')
+            ->andWhere('a.categorie IS NOT NULL')
+            ->setParameter('agent', $agent)
+            ->groupBy('a.categorie')
+            ->orderBy('cnt', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(fn($r) => ['categorie' => (string) $r['cat'], 'count' => (int) $r['cnt']], $rows);
+    }
+
+    /**
+     * Taux de validation des alertes soumises par un Agent.
+     * Retourne un tableau avec total, validees, rejetees, en_attente et le taux en %.
+     */
+    public function getTauxValidationAgent(User $agent): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.statut AS statut, COUNT(a.id) AS cnt')
+            ->where('a.emetteur = :agent')
+            ->andWhere('a.deletedAt IS NULL')
+            ->setParameter('agent', $agent)
+            ->groupBy('a.statut')
+            ->getQuery()
+            ->getArrayResult();
+
+        $counts = ['total' => 0, 'validee' => 0, 'a_completer' => 0, 'nouveau' => 0, 'a_valider_saholty' => 0, 'transmis' => 0];
+        foreach ($rows as $row) {
+            $key = $row['statut'] instanceof \App\Enum\AlertStatut ? $row['statut']->value : (string) $row['statut'];
+            $counts['total'] += (int) $row['cnt'];
+            if (isset($counts[$key])) {
+                $counts[$key] = (int) $row['cnt'];
             }
         }
 
-        return $qb->getQuery()->getResult();
+        $counts['taux_validation'] = $counts['total'] > 0
+            ? round(($counts['validee'] / $counts['total']) * 100, 1)
+            : 0.0;
+
+        $counts['en_cours'] = $counts['a_valider_saholty'];
+
+        return $counts;
+    }
+
+    /**
+     * Répartition des alertes par niveau d'urgence pour un Agent.
+     * Retourne [['urgence' => '72h', 'count' => n], ...]
+     */
+    public function countByUrgenceForAgent(User $agent): array
+    {
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.urgence AS urgence, COUNT(a.id) AS cnt')
+            ->where('a.emetteur = :agent')
+            ->andWhere('a.deletedAt IS NULL')
+            ->andWhere('a.urgence IS NOT NULL')
+            ->setParameter('agent', $agent)
+            ->groupBy('a.urgence')
+            ->orderBy('cnt', 'DESC')
+            ->getQuery()
+            ->getArrayResult();
+
+        return array_map(fn($r) => [
+            'urgence' => $r['urgence'] instanceof \App\Enum\AlertUrgence ? $r['urgence']->value : (string) $r['urgence'],
+            'count'   => (int) $r['cnt'],
+        ], $rows);
+    }
+
+    /**
+     * Score GEI moyen (effectif : surcharge ou calculé) pour un Agent.
+     */
+    public function getScoreMoyenAgent(User $agent): float
+    {
+        $avg = $this->createQueryBuilder('a')
+            ->select('AVG(COALESCE(a.scoreSurcharge, a.scoreGei))')
+            ->where('a.emetteur = :agent')
+            ->andWhere('a.deletedAt IS NULL')
+            ->andWhere('a.scoreGei IS NOT NULL')
+            ->setParameter('agent', $agent)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return round((float) $avg, 1);
+    }
+
+    /**
+     * Distribution des scores GEI pour un Agent (par tranches).
+     * Retourne ['1-9' => n, '10-13' => n, '14-17' => n, '18+' => n]
+     */
+    public function getScoreDistributionAgent(User $agent): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        $result = $conn->fetchAllAssociative(
+            "SELECT
+                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 1  AND 9  THEN 1 ELSE 0 END) AS faible,
+                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 10 AND 13 THEN 1 ELSE 0 END) AS modere,
+                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 14 AND 17 THEN 1 ELSE 0 END) AS eleve,
+                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) >= 18             THEN 1 ELSE 0 END) AS critique
+             FROM alert
+             WHERE emetteur_id = :agentId AND deleted_at IS NULL AND score_gei IS NOT NULL",
+            ['agentId' => (int) $agent->getId()]
+        );
+
+        $row = $result[0] ?? [];
+        return [
+            'faible'   => (int) ($row['faible']   ?? 0),
+            'modere'   => (int) ($row['modere']   ?? 0),
+            'eleve'    => (int) ($row['eleve']    ?? 0),
+            'critique' => (int) ($row['critique'] ?? 0),
+        ];
+    }
+
+    /**
+     * Évolution mensuelle des soumissions d'un Agent sur les 12 derniers mois.
+     * Retourne ['labels' => [...], 'soumises' => [...], 'validees' => [...]]
+     */
+    public function getEvolutionMensuelleAgent(User $agent): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $rows = $conn->fetchAllAssociative(
+            "SELECT DATE_FORMAT(date_creation, '%Y-%m') AS mois, COUNT(*) AS nb
+             FROM alert
+             WHERE emetteur_id = :agentId
+               AND deleted_at IS NULL
+               AND date_creation >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+             GROUP BY mois ORDER BY mois ASC",
+            ['agentId' => (int) $agent->getId()]
+        );
+
+        $rowsV = $conn->fetchAllAssociative(
+            "SELECT DATE_FORMAT(date_creation, '%Y-%m') AS mois, COUNT(*) AS nb
+             FROM alert
+             WHERE emetteur_id = :agentId
+               AND deleted_at IS NULL
+               AND statut = 'validee'
+               AND date_creation >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+             GROUP BY mois ORDER BY mois ASC",
+            ['agentId' => (int) $agent->getId()]
+        );
+
+        $soumisesMap = [];
+        foreach ($rows as $r) { $soumisesMap[$r['mois']] = (int) $r['nb']; }
+        $valideesMap = [];
+        foreach ($rowsV as $r) { $valideesMap[$r['mois']] = (int) $r['nb']; }
+
+        $labels = $soumises = $validees = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $dt = (new \DateTime())->modify("-{$i} months");
+            $key = $dt->format('Y-m');
+            $labels[]   = $dt->format('M Y');
+            $soumises[] = $soumisesMap[$key] ?? 0;
+            $validees[] = $valideesMap[$key] ?? 0;
+        }
+
+        return ['labels' => $labels, 'soumises' => $soumises, 'validees' => $validees];
+    }
+
+    /**
+     * Dernières alertes soumises par un Agent (pour l'activité récente).
+     *
+     * @return Alert[]
+     */
+    public function findRecentByAgent(User $agent, int $limit = 8): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.emetteur = :agent')
+            ->andWhere('a.deletedAt IS NULL')
+            ->setParameter('agent', $agent)
+            ->orderBy('a.dateCreation', 'DESC')
+            ->addOrderBy('a.id', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 }

@@ -69,15 +69,6 @@
         </div>
     </div>
 
-    {# Se souvenir #}
-    <div class="auth-checkbox-row">
-        <label class="auth-checkbox-label">
-            <input type="checkbox" name="_remember_me" class="auth-checkbox">
-            <span class="auth-checkbox-custom"></span>
-            <span>Se souvenir de moi</span>
-        </label>
-    </div>
-
     <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
     {# Bouton principal #}
     <button type="submit" class="auth-submit-btn">

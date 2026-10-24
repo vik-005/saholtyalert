@@ -115,25 +115,25 @@
 
             <div class="donut-legend">
                 <div class="donut-legend-item">
-                    <span class="donut-dot donut-dot-red"></span>
+                    <span class="donut-dot donut-dot-red" style="background:#ef4444;"></span>
                     <span class="donut-legend-label">Critique</span>
                     <span class="donut-legend-val">{{ kpis.critiques }}</span>
                     <span class="donut-legend-pct">{{ kpis.total > 0 ? ((kpis.critiques / kpis.total) * 100)|round }}%</span>
                 </div>
                 <div class="donut-legend-item">
-                    <span class="donut-dot donut-dot-amber"></span>
+                    <span class="donut-dot donut-dot-amber" style="background:#f97316;"></span>
                     <span class="donut-legend-label">Élevé</span>
                     <span class="donut-legend-val">{{ kpis.eleve ?? 0 }}</span>
                     <span class="donut-legend-pct">{{ kpis.total > 0 ? (((kpis.eleve ?? 0) / kpis.total) * 100)|round }}%</span>
                 </div>
                 <div class="donut-legend-item">
-                    <span class="donut-dot donut-dot-yellow"></span>
+                    <span class="donut-dot donut-dot-yellow" style="background:#f59e0b;"></span>
                     <span class="donut-legend-label">Modéré</span>
                     <span class="donut-legend-val">{{ kpis.modere ?? 0 }}</span>
                     <span class="donut-legend-pct">{{ kpis.total > 0 ? (((kpis.modere ?? 0) / kpis.total) * 100)|round }}%</span>
                 </div>
                 <div class="donut-legend-item">
-                    <span class="donut-dot donut-dot-emerald"></span>
+                    <span class="donut-dot donut-dot-emerald" style="background:#10b981;"></span>
                     <span class="donut-legend-label">Faible</span>
                     <span class="donut-legend-val">{{ kpis.faible ?? 0 }}</span>
                     <span class="donut-legend-pct">{{ kpis.total > 0 ? (((kpis.faible ?? 0) / kpis.total) * 100)|round }}%</span>
@@ -182,6 +182,7 @@
                     </form>
 
                     <div class="db-card-btn-group">
+                        {% if is_granted('ROLE_PFT') %}
                         <a href="{{ path('app_alert_import') }}" class="db-btn db-btn-emerald" title="Import Excel">
                             <i class="bi bi-file-arrow-up"></i>
                             <span>Import</span>
@@ -201,9 +202,11 @@
                                 priorite: filters.niveauPriorite  ?? '',
                                 statut:   filters.statut          ?? ''
                             }) }}"
+                           target="_blank" rel="noopener noreferrer" data-turbo="false"
                            class="db-btn db-btn-ghost" title="Rapport PDF (données filtrées)">
                             <i class="bi bi-file-earmark-pdf"></i>
                         </a>
+                        {% endif %}
                         <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
                             <i class="bi bi-plus"></i>
                             <span>Nouvelle</span>
@@ -381,6 +384,7 @@
                                     </a>
                                     {% endif %}
                                     <a href="{{ path('app_alert_pdf', {token: alertToken}) }}"
+                                       target="_blank" rel="noopener noreferrer" data-turbo="false"
                                        class="tbl-btn tbl-btn-red" title="PDF">
                                         <i class="bi bi-file-earmark-pdf"></i>
                                     </a>

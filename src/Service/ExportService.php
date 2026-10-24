@@ -66,6 +66,7 @@ class ExportService
         'Historique de la source',            // AK — Historique comportemental
         'Décision GEI',                       // AL — Décision formelle du Manager
         'Parcours pays',                      // AM — Pays traversés
+        'Statut juridique',                  // AN — Licite / Illicite
     ];
 
     /**
@@ -160,6 +161,7 @@ class ExportService
                 (string)($alert->getHistoriqueSource() ?? ''),                    // AK — Historique source
                 (string)($alert->getDecisionGei() ?? ''),                         // AL — Décision GEI
                 implode(', ', $alert->getParcoursCountries() ?? []),              // AM — Parcours pays
+                (string)($alert->getLegalStatus()?->label() ?? ''),               // AN — Statut juridique
             ];
 
             foreach ($row as $colIdx => $value) {
