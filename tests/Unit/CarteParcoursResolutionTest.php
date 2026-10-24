@@ -64,6 +64,26 @@ class CarteParcoursResolutionTest extends TestCase
         self::assertSame([2], array_column($path, 'id'));
     }
 
+    public function testPreservesOrderAndRemovesDuplicateImportedMarkets(): void
+    {
+        $marketData = [
+            1 => ['nom' => 'Bénin', 'iso3' => 'BEN'],
+            2 => ['nom' => 'Togo', 'iso3' => 'TGO'],
+            3 => ['nom' => 'Ghana', 'iso3' => 'GHA'],
+        ];
+        $lookup = $this->invokePrivate('buildMarketLookup', [$marketData]);
+
+        $path = $this->invokePrivate('resolveRouteMarkets', [
+            ['TGO', 'GHA', 'TGO'],
+            [],
+            $lookup,
+            $marketData,
+            1,
+        ]);
+
+        self::assertSame([2, 3], array_column($path, 'id'));
+    }
+
     private function invokePrivate(string $method, array $arguments): mixed
     {
         return (new \ReflectionMethod(CarteController::class, $method))->invoke(null, ...$arguments);
