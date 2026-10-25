@@ -7,7 +7,6 @@ use App\Entity\AlertStatusHistory;
 use App\Entity\User;
 use App\Enum\AlertStatut;
 use App\Enum\NiveauPriorite;
-use App\Form\ManagerDecisionType;
 use App\Form\QualificationType;
 use App\Repository\AlertRepository;
 use App\Service\CryptoService;
@@ -152,6 +151,7 @@ class QualificationController extends AbstractController
         // Le Manager utilise QualificationType pour pouvoir corriger ponctuellement
         // les critères de scoring avant validation (droit de correction ponctuelle établi).
         // En mode canDecide, les champs critères sont rendus en lecture seule côté template.
+        // On capture le score AVANT que handleRequest() ne modifie l'entité via le formulaire.
         $scoreBeforeManagerEdit = $alert->getScoreGei();
         $form = $this->createForm(QualificationType::class, $alert);
         $form->handleRequest($request);
@@ -194,9 +194,11 @@ class QualificationController extends AbstractController
                     $alert->setDateValidation(new \DateTime());
 
                     // ── INCRÉMENTATION DU COMPTEUR DE REQUALIFICATIONS ──────────────
-                    // Uniquement si le Manager (PFT) a modifié des critères (score a changé)
-                    // Cela compte comme une requalification
-                    if ($scoreBeforeManagerEdit !== null && $scoreBeforeManagerEdit !== $alert->getScoreGei()) {
+                    // Chaque validation par un Manager (PFT) consomme une requalification,
+                    // que le score ait changé ou non. SUPERADMIN/SAHOLTY sont illimités
+                    // et n'incrémentent pas le compteur (vérifiable via canBeRequalifiedBy).
+                    if ($currentUser instanceof User
+                        && $currentUser->getRole() === \App\Enum\UserRoleEnum::PFT) {
                         $alert->incrementRequalificationCount();
                     }
 

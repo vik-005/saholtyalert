@@ -682,77 +682,139 @@ class AlertRepository extends ServiceEntityRepository
 
     // ═══════════════════════════════════════════════════════════════════════════
     // DASHBOARD AGENT — méthodes filtrées strictement par emetteur
+    // Toutes les méthodes acceptent un filtre optionnel $days (ex: 30, 90, 365).
+    // $days = null → toutes les données (pas de filtre temporel).
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
-     * Répartition des alertes par catégorie pour un Agent donné.
+     * Agrégation principale : tous les KPIs en UNE seule requête SQL native.
+     *
+     * Retourne un tableau contenant :
+     *   total, validee, rejetee (a_completer), en_cours (a_valider_saholty),
+     *   nouveau, transmis, taux_validation, taux_rejet, taux_transmission,
+     *   score_moyen, delai_moyen_h, faible, modere, eleve, critique
+     *   (distribution scores), en_attente (nouveau + en_cours)
+     */
+    public function getAgentKpiConsolide(User $agent, ?int $days = null): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+
+        $dateFilter = '';
+        $params = ['agentId' => (int) $agent->getId()];
+        if ($days !== null && $days > 0) {
+            $dateFilter = 'AND a.date_creation >= DATE_SUB(NOW(), INTERVAL :days DAY)';
+            $params['days'] = $days;
+        }
+
+        $row = $conn->fetchAssociative(
+            "SELECT
+                COUNT(*)                                                                                      AS total,
+                SUM(a.statut = 'validee')                                                                    AS validee,
+                SUM(a.statut = 'a_completer')                                                                AS rejetee,
+                SUM(a.statut = 'a_valider_saholty')                                                          AS en_cours,
+                SUM(a.statut = 'nouveau')                                                                    AS nouveau,
+                SUM(a.statut = 'transmis')                                                                   AS transmis,
+                ROUND(AVG(CASE WHEN a.score_gei IS NOT NULL THEN COALESCE(a.score_surcharge, a.score_gei) END), 1)
+                                                                                                             AS score_moyen,
+                ROUND(AVG(CASE WHEN a.date_validation IS NOT NULL
+                               THEN TIMESTAMPDIFF(SECOND, a.created_at, a.date_validation) / 3600.0 END), 1) AS delai_moyen_h,
+                SUM(CASE WHEN COALESCE(a.score_surcharge, a.score_gei) BETWEEN 1  AND  9 THEN 1 ELSE 0 END) AS score_faible,
+                SUM(CASE WHEN COALESCE(a.score_surcharge, a.score_gei) BETWEEN 10 AND 13 THEN 1 ELSE 0 END) AS score_modere,
+                SUM(CASE WHEN COALESCE(a.score_surcharge, a.score_gei) BETWEEN 14 AND 17 THEN 1 ELSE 0 END) AS score_eleve,
+                SUM(CASE WHEN COALESCE(a.score_surcharge, a.score_gei) >= 18             THEN 1 ELSE 0 END) AS score_critique,
+                SUM(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'critique')                  AS prio_critique,
+                SUM(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'eleve')                     AS prio_eleve,
+                SUM(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'modere')                    AS prio_modere,
+                SUM(COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'faible')                    AS prio_faible
+             FROM alert a
+             WHERE a.emetteur_id = :agentId
+               AND a.deleted_at IS NULL
+               {$dateFilter}",
+            $params
+        );
+
+        $row = $row ?: [];
+        $total    = (int) ($row['total']    ?? 0);
+        $validee  = (int) ($row['validee']  ?? 0);
+        $rejetee  = (int) ($row['rejetee']  ?? 0);
+        $transmis = (int) ($row['transmis'] ?? 0);
+        $enCours  = (int) ($row['en_cours'] ?? 0);
+        $nouveau  = (int) ($row['nouveau']  ?? 0);
+
+        return [
+            // Volumes
+            'total'        => $total,
+            'validee'      => $validee,
+            'rejetee'      => $rejetee,
+            'en_cours'     => $enCours,
+            'nouveau'      => $nouveau,
+            'transmis'     => $transmis,
+            'en_attente'   => $nouveau + $enCours,
+            // Taux
+            'taux_validation'  => $total > 0 ? round($validee  / $total * 100, 1) : 0.0,
+            'taux_rejet'       => $total > 0 ? round($rejetee  / $total * 100, 1) : 0.0,
+            'taux_transmission'=> $total > 0 ? round($transmis / $total * 100, 1) : 0.0,
+            // Scores
+            'score_moyen'    => $row['score_moyen']    !== null ? round((float) $row['score_moyen'], 1) : null,
+            'delai_moyen_h'  => $row['delai_moyen_h']  !== null ? round((float) $row['delai_moyen_h'], 1) : null,
+            'score_faible'   => (int) ($row['score_faible']   ?? 0),
+            'score_modere'   => (int) ($row['score_modere']   ?? 0),
+            'score_eleve'    => (int) ($row['score_eleve']    ?? 0),
+            'score_critique' => (int) ($row['score_critique'] ?? 0),
+            // Priorités
+            'critique'       => (int) ($row['prio_critique'] ?? 0),
+            'eleve'          => (int) ($row['prio_eleve']    ?? 0),
+            'modere'         => (int) ($row['prio_modere']   ?? 0),
+            'faible'         => (int) ($row['prio_faible']   ?? 0),
+        ];
+    }
+
+    /**
+     * Répartition des alertes par catégorie pour un Agent (filtre dates optionnel).
      * Retourne tableau trié par count DESC : [['categorie' => '...', 'count' => n], ...]
      */
-    public function countByCategorieForAgent(User $agent): array
+    public function countByCategorieForAgent(User $agent, ?int $days = null): array
     {
-        $rows = $this->createQueryBuilder('a')
+        $qb = $this->createQueryBuilder('a')
             ->select('a.categorie AS cat, COUNT(a.id) AS cnt')
             ->where('a.emetteur = :agent')
             ->andWhere('a.deletedAt IS NULL')
             ->andWhere('a.categorie IS NOT NULL')
             ->setParameter('agent', $agent)
             ->groupBy('a.categorie')
-            ->orderBy('cnt', 'DESC')
-            ->getQuery()
-            ->getArrayResult();
+            ->orderBy('cnt', 'DESC');
+
+        if ($days !== null && $days > 0) {
+            $since = (new \DateTime())->modify("-{$days} days");
+            $qb->andWhere('a.dateCreation >= :since')->setParameter('since', $since);
+        }
+
+        $rows = $qb->getQuery()->getArrayResult();
 
         return array_map(fn($r) => ['categorie' => (string) $r['cat'], 'count' => (int) $r['cnt']], $rows);
     }
 
     /**
-     * Taux de validation des alertes soumises par un Agent.
-     * Retourne un tableau avec total, validees, rejetees, en_attente et le taux en %.
-     */
-    public function getTauxValidationAgent(User $agent): array
-    {
-        $rows = $this->createQueryBuilder('a')
-            ->select('a.statut AS statut, COUNT(a.id) AS cnt')
-            ->where('a.emetteur = :agent')
-            ->andWhere('a.deletedAt IS NULL')
-            ->setParameter('agent', $agent)
-            ->groupBy('a.statut')
-            ->getQuery()
-            ->getArrayResult();
-
-        $counts = ['total' => 0, 'validee' => 0, 'a_completer' => 0, 'nouveau' => 0, 'a_valider_saholty' => 0, 'transmis' => 0];
-        foreach ($rows as $row) {
-            $key = $row['statut'] instanceof \App\Enum\AlertStatut ? $row['statut']->value : (string) $row['statut'];
-            $counts['total'] += (int) $row['cnt'];
-            if (isset($counts[$key])) {
-                $counts[$key] = (int) $row['cnt'];
-            }
-        }
-
-        $counts['taux_validation'] = $counts['total'] > 0
-            ? round(($counts['validee'] / $counts['total']) * 100, 1)
-            : 0.0;
-
-        $counts['en_cours'] = $counts['a_valider_saholty'];
-
-        return $counts;
-    }
-
-    /**
-     * Répartition des alertes par niveau d'urgence pour un Agent.
+     * Répartition des alertes par niveau d'urgence pour un Agent (filtre dates optionnel).
      * Retourne [['urgence' => '72h', 'count' => n], ...]
      */
-    public function countByUrgenceForAgent(User $agent): array
+    public function countByUrgenceForAgent(User $agent, ?int $days = null): array
     {
-        $rows = $this->createQueryBuilder('a')
+        $qb = $this->createQueryBuilder('a')
             ->select('a.urgence AS urgence, COUNT(a.id) AS cnt')
             ->where('a.emetteur = :agent')
             ->andWhere('a.deletedAt IS NULL')
             ->andWhere('a.urgence IS NOT NULL')
             ->setParameter('agent', $agent)
             ->groupBy('a.urgence')
-            ->orderBy('cnt', 'DESC')
-            ->getQuery()
-            ->getArrayResult();
+            ->orderBy('cnt', 'DESC');
+
+        if ($days !== null && $days > 0) {
+            $since = (new \DateTime())->modify("-{$days} days");
+            $qb->andWhere('a.dateCreation >= :since')->setParameter('since', $since);
+        }
+
+        $rows = $qb->getQuery()->getArrayResult();
 
         return array_map(fn($r) => [
             'urgence' => $r['urgence'] instanceof \App\Enum\AlertUrgence ? $r['urgence']->value : (string) $r['urgence'],
@@ -761,103 +823,60 @@ class AlertRepository extends ServiceEntityRepository
     }
 
     /**
-     * Score GEI moyen (effectif : surcharge ou calculé) pour un Agent.
+     * Évolution mensuelle des soumissions d'un Agent — UNE seule requête avec UNION.
+     * Retourne ['labels' => [...], 'soumises' => [...], 'validees' => [...], 'mois' => n]
+     *
+     * @param int $mois nombre de mois glissants (défaut 12, utilisé pour filtre dates)
      */
-    public function getScoreMoyenAgent(User $agent): float
-    {
-        $avg = $this->createQueryBuilder('a')
-            ->select('AVG(COALESCE(a.scoreSurcharge, a.scoreGei))')
-            ->where('a.emetteur = :agent')
-            ->andWhere('a.deletedAt IS NULL')
-            ->andWhere('a.scoreGei IS NOT NULL')
-            ->setParameter('agent', $agent)
-            ->getQuery()
-            ->getSingleScalarResult();
-
-        return round((float) $avg, 1);
-    }
-
-    /**
-     * Distribution des scores GEI pour un Agent (par tranches).
-     * Retourne ['1-9' => n, '10-13' => n, '14-17' => n, '18+' => n]
-     */
-    public function getScoreDistributionAgent(User $agent): array
-    {
-        $conn = $this->getEntityManager()->getConnection();
-        $result = $conn->fetchAllAssociative(
-            "SELECT
-                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 1  AND 9  THEN 1 ELSE 0 END) AS faible,
-                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 10 AND 13 THEN 1 ELSE 0 END) AS modere,
-                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) BETWEEN 14 AND 17 THEN 1 ELSE 0 END) AS eleve,
-                SUM(CASE WHEN COALESCE(score_surcharge, score_gei) >= 18             THEN 1 ELSE 0 END) AS critique
-             FROM alert
-             WHERE emetteur_id = :agentId AND deleted_at IS NULL AND score_gei IS NOT NULL",
-            ['agentId' => (int) $agent->getId()]
-        );
-
-        $row = $result[0] ?? [];
-        return [
-            'faible'   => (int) ($row['faible']   ?? 0),
-            'modere'   => (int) ($row['modere']   ?? 0),
-            'eleve'    => (int) ($row['eleve']    ?? 0),
-            'critique' => (int) ($row['critique'] ?? 0),
-        ];
-    }
-
-    /**
-     * Évolution mensuelle des soumissions d'un Agent sur les 12 derniers mois.
-     * Retourne ['labels' => [...], 'soumises' => [...], 'validees' => [...]]
-     */
-    public function getEvolutionMensuelleAgent(User $agent): array
+    public function getEvolutionMensuelleAgent(User $agent, int $mois = 12): array
     {
         $conn = $this->getEntityManager()->getConnection();
 
+        // Une seule requête : soumises + validees par mois via SUM conditionnelle
         $rows = $conn->fetchAllAssociative(
-            "SELECT DATE_FORMAT(date_creation, '%Y-%m') AS mois, COUNT(*) AS nb
+            "SELECT
+                DATE_FORMAT(date_creation, '%Y-%m')       AS mois,
+                COUNT(*)                                   AS nb_soumises,
+                SUM(statut = 'validee')                    AS nb_validees
              FROM alert
              WHERE emetteur_id = :agentId
                AND deleted_at IS NULL
-               AND date_creation >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-             GROUP BY mois ORDER BY mois ASC",
-            ['agentId' => (int) $agent->getId()]
+               AND date_creation >= DATE_SUB(NOW(), INTERVAL :mois MONTH)
+             GROUP BY mois
+             ORDER BY mois ASC",
+            ['agentId' => (int) $agent->getId(), 'mois' => $mois]
         );
 
-        $rowsV = $conn->fetchAllAssociative(
-            "SELECT DATE_FORMAT(date_creation, '%Y-%m') AS mois, COUNT(*) AS nb
-             FROM alert
-             WHERE emetteur_id = :agentId
-               AND deleted_at IS NULL
-               AND statut = 'validee'
-               AND date_creation >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-             GROUP BY mois ORDER BY mois ASC",
-            ['agentId' => (int) $agent->getId()]
-        );
-
-        $soumisesMap = [];
-        foreach ($rows as $r) { $soumisesMap[$r['mois']] = (int) $r['nb']; }
-        $valideesMap = [];
-        foreach ($rowsV as $r) { $valideesMap[$r['mois']] = (int) $r['nb']; }
-
-        $labels = $soumises = $validees = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $dt = (new \DateTime())->modify("-{$i} months");
-            $key = $dt->format('Y-m');
-            $labels[]   = $dt->format('M Y');
-            $soumises[] = $soumisesMap[$key] ?? 0;
-            $validees[] = $valideesMap[$key] ?? 0;
+        $dataMap = [];
+        foreach ($rows as $r) {
+            $dataMap[$r['mois']] = [
+                'soumises' => (int) $r['nb_soumises'],
+                'validees' => (int) $r['nb_validees'],
+            ];
         }
 
-        return ['labels' => $labels, 'soumises' => $soumises, 'validees' => $validees];
+        $labels = $soumises = $validees = [];
+        for ($i = $mois - 1; $i >= 0; $i--) {
+            $dt  = (new \DateTime())->modify("-{$i} months");
+            $key = $dt->format('Y-m');
+            $labels[]   = $dt->format('M Y');
+            $soumises[] = $dataMap[$key]['soumises'] ?? 0;
+            $validees[] = $dataMap[$key]['validees'] ?? 0;
+        }
+
+        return ['labels' => $labels, 'soumises' => $soumises, 'validees' => $validees, 'mois' => $mois];
     }
 
     /**
      * Dernières alertes soumises par un Agent (pour l'activité récente).
+     * Eager-load market pour éviter les N+1 en template.
      *
      * @return Alert[]
      */
-    public function findRecentByAgent(User $agent, int $limit = 8): array
+    public function findRecentByAgent(User $agent, int $limit = 10): array
     {
         return $this->createQueryBuilder('a')
+            ->leftJoin('a.market', 'm')->addSelect('m')
             ->where('a.emetteur = :agent')
             ->andWhere('a.deletedAt IS NULL')
             ->setParameter('agent', $agent)
@@ -866,5 +885,42 @@ class AlertRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Compatibilité : méthodes conservées pour éviter de casser d'éventuels appels existants.
+     * @deprecated Utiliser getAgentKpiConsolide() à la place.
+     */
+    public function getTauxValidationAgent(User $agent): array
+    {
+        $kpi = $this->getAgentKpiConsolide($agent);
+        return [
+            'total'             => $kpi['total'],
+            'validee'           => $kpi['validee'],
+            'a_completer'       => $kpi['rejetee'],
+            'nouveau'           => $kpi['nouveau'],
+            'a_valider_saholty' => $kpi['en_cours'],
+            'transmis'          => $kpi['transmis'],
+            'taux_validation'   => $kpi['taux_validation'],
+            'en_cours'          => $kpi['en_cours'],
+        ];
+    }
+
+    /** @deprecated Utiliser getAgentKpiConsolide() à la place. */
+    public function getScoreMoyenAgent(User $agent): float
+    {
+        return (float) ($this->getAgentKpiConsolide($agent)['score_moyen'] ?? 0.0);
+    }
+
+    /** @deprecated Utiliser getAgentKpiConsolide() à la place. */
+    public function getScoreDistributionAgent(User $agent): array
+    {
+        $kpi = $this->getAgentKpiConsolide($agent);
+        return [
+            'faible'   => $kpi['score_faible'],
+            'modere'   => $kpi['score_modere'],
+            'eleve'    => $kpi['score_eleve'],
+            'critique' => $kpi['score_critique'],
+        ];
     }
 }

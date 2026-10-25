@@ -14,6 +14,7 @@ use App\Enum\Sensibilite;
 use App\Enum\TransmissionStatut;
 use App\Enum\TypeAlerte;
 use App\Enum\TypeLocalisation;
+use App\Enum\UserRoleEnum;
 use App\Repository\AlertRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
