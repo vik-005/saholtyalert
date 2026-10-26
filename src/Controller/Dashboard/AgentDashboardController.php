@@ -75,7 +75,7 @@ class AgentDashboardController extends AbstractController
         }
 
         // ── Clé de cache unique par agent + filtre ───────────────────────────
-        $cacheKey = sprintf('agent_dashboard_%d_%s', $user->getId(), $days ?? 'all');
+        $cacheKey = sprintf('agent_dashboard_v3_%d_%s', $user->getId(), $days ?? 'all');
 
         // ── Agrégations cachées (1h) ─────────────────────────────────────────
         try {
@@ -92,7 +92,28 @@ class AgentDashboardController extends AbstractController
                 $evolutionMensuelle = $alertRepository->getEvolutionMensuelleAgent($user, max(1, $mois));
 
                 return [
-                    'kpi'                => $kpi,
+                    'kpis' => [
+                        'total' => $kpi['total'],
+                        'scoreMoyen' => $kpi['score_moyen'] ?? 0,
+                        'delaiMoyenH' => $kpi['delai_moyen_h'],
+                        'critique' => $kpi['critique'],
+                        'eleve' => $kpi['eleve'],
+                        'modere' => $kpi['modere'],
+                        'faible' => $kpi['faible'],
+                    ],
+                    'tauxValidation' => [
+                        'total' => $kpi['total'],
+                        'validee' => $kpi['validee'],
+                        'en_cours' => $kpi['en_cours'],
+                        'nouveau' => $kpi['nouveau'],
+                        'taux_validation' => $kpi['taux_validation'],
+                    ],
+                    'scoreDistribution' => [
+                        'critique' => $kpi['score_critique'],
+                        'eleve' => $kpi['score_eleve'],
+                        'modere' => $kpi['score_modere'],
+                        'faible' => $kpi['score_faible'],
+                    ],
                     'catStats'           => $catStats,
                     'urgenceStats'       => $urgenceStats,
                     'evolutionMensuelle' => $evolutionMensuelle,
@@ -147,14 +168,15 @@ class AgentDashboardController extends AbstractController
     private function buildEmptyPayload(): array
     {
         return [
-            'kpi' => [
-                'total' => 0, 'validee' => 0, 'rejetee' => 0, 'en_cours' => 0,
-                'nouveau' => 0, 'transmis' => 0, 'en_attente' => 0,
-                'taux_validation' => 0.0, 'taux_rejet' => 0.0, 'taux_transmission' => 0.0,
-                'score_moyen' => null, 'delai_moyen_h' => null,
-                'score_faible' => 0, 'score_modere' => 0, 'score_eleve' => 0, 'score_critique' => 0,
+            'kpis' => [
+                'total' => 0, 'scoreMoyen' => 0, 'delaiMoyenH' => null,
                 'critique' => 0, 'eleve' => 0, 'modere' => 0, 'faible' => 0,
             ],
+            'tauxValidation' => [
+                'total' => 0, 'validee' => 0, 'en_cours' => 0, 'nouveau' => 0,
+                'taux_validation' => 0.0,
+            ],
+            'scoreDistribution' => ['critique' => 0, 'eleve' => 0, 'modere' => 0, 'faible' => 0],
             'catStats'           => [],
             'urgenceStats'       => [],
             'evolutionMensuelle' => ['labels' => [], 'soumises' => [], 'validees' => [], 'mois' => 12],

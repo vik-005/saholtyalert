@@ -203,6 +203,11 @@ class AlertController extends AbstractController
         $data = [
             'market' => $alert->getMarket()?->getId(),
             'portCorridor' => $alert->getPortCorridor(),
+            'typeLocalisation' => $alert->getTypeLocalisation()?->value,
+            'localite' => $alert->getLocalite(),
+            'typeLocalite' => $alert->getTypeLocalite(),
+            'localiteLatitude' => $alert->getLocaliteLatitude(),
+            'localiteLongitude' => $alert->getLocaliteLongitude(),
             'resumeExecutif' => $alert->getResumeExecutif(),
             'elementsFactuels' => $alert->getElementsFactuels(),
             'hypothesesAnalytiques' => $alert->getHypothesesAnalytiques(),

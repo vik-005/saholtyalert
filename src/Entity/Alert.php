@@ -68,6 +68,18 @@ class Alert
     private ?TypeLocalisation $typeLocalisation = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $localite = null;
+
+    #[ORM\Column(type: 'string', length: 20, nullable: true)]
+    private ?string $typeLocalite = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $localiteLatitude = null;
+
+    #[ORM\Column(type: 'float', nullable: true)]
+    private ?float $localiteLongitude = null;
+
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
     private ?string $categorie = null;
 
     #[ORM\Column(type: 'string', length: 150, nullable: true)]
@@ -486,6 +498,51 @@ class Alert
     public function setTypeLocalisation(?TypeLocalisation $typeLocalisation): static
     {
         $this->typeLocalisation = $typeLocalisation;
+        return $this;
+    }
+
+    public function getLocalite(): ?string
+    {
+        return $this->localite;
+    }
+
+    public function setLocalite(?string $localite): static
+    {
+        $localite = $localite !== null ? trim($localite) : null;
+        $this->localite = $localite !== '' ? $localite : null;
+        return $this;
+    }
+
+    public function getTypeLocalite(): ?string
+    {
+        return $this->typeLocalite;
+    }
+
+    public function setTypeLocalite(?string $typeLocalite): static
+    {
+        $this->typeLocalite = $typeLocalite !== '' ? $typeLocalite : null;
+        return $this;
+    }
+
+    public function getLocaliteLatitude(): ?float
+    {
+        return $this->localiteLatitude;
+    }
+
+    public function setLocaliteLatitude(?float $localiteLatitude): static
+    {
+        $this->localiteLatitude = $localiteLatitude;
+        return $this;
+    }
+
+    public function getLocaliteLongitude(): ?float
+    {
+        return $this->localiteLongitude;
+    }
+
+    public function setLocaliteLongitude(?float $localiteLongitude): static
+    {
+        $this->localiteLongitude = $localiteLongitude;
         return $this;
     }
 

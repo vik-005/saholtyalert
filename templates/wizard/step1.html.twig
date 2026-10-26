@@ -59,9 +59,11 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% set parcours = draftData['alert[parcoursCountries]']|default(alert.parcoursCountries|default([])) %}
+                {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
+                <input type="hidden" name="alert[parcoursCountriesOrder]" id="w_parcours_markets_order"
+                       value="{{ draftData['alert[parcoursCountriesOrder]']|default(parcours|json_encode) }}">
                 <select name="alert[parcoursCountries][]" id="w_parcours_markets" class="country-picker-native" multiple tabindex="-1">
-                    {% set parcours = draftData['alert[parcoursCountries]']|default(alert.parcoursCountries|default([])) %}
-                    {% if parcours is not iterable %}{% set parcours = [parcours] %}{% endif %}
                     {% for countryCode, countryName in parcoursCountries %}
                         <option value="{{ countryCode }}" {% if countryCode in parcours %}selected{% endif %}>{{ countryName }}</option>
                     {% endfor %}
@@ -106,23 +108,65 @@
                             </div>
                         </div>
                     </label>
+                    <label class="radio-option {% if currentTypeLoc == 'localite' %}radio-option-active{% endif %}" data-val="localite">
+                        <input type="radio" name="alert[typeLocalisation]" value="localite"
+                               {% if currentTypeLoc == 'localite' %}checked{% endif %}>
+                        <div class="flex items-center gap-3">
+                            <span class="radio-disc"><span class="radio-disc-dot"></span></span>
+                            <div class="flex items-center gap-3">
+                                <span class="radio-option-title">Localité (ville / village)</span>
+                            </div>
+                        </div>
+                    </label>
                 </div>
                 <button type="button" class="wizard-choice-clear" data-clear-radio="typeLocalisationGroup" hidden>
                     Effacer la sélection
                 </button>
-                <p class="form-help">Choisissez s'il s'agit d'un port, d'un corridor de transit ou d'un aéroport.</p>
+                <p class="form-help">Choisissez un port, un corridor, un aéroport ou une localité.</p>
             </div>
 
             {# Champ 4 — Nom (label dynamique) #}
-            <div class="form-field wizard-field-wide">
+            <div class="form-field wizard-field-wide" id="portCorridorField">
                 <label class="form-label" for="w_corridor" id="label_corridor">
                     Nom <span class="text-red-400">*</span>
                 </label>
                 <input type="text" name="alert[portCorridor]" id="w_corridor"
-                       class="form-input" required
+                       class="form-input"
                        placeholder=""
                        value="{{ draftData['alert[portCorridor]']|default(alert.portCorridor|default('')) }}">
                 <p class="form-help" id="help_corridor">Nom du port, corridor ou aéroport concerné.</p>
+            </div>
+
+            <div class="form-field wizard-field-wide" id="localiteFields" hidden>
+                <label class="form-label" for="w_localite">Nom de la localité <span class="text-red-400">*</span></label>
+                <input type="text" name="alert[localite]" id="w_localite" class="form-input"
+                       maxlength="150" placeholder="Ex. Cotonou, Kandi, Dapaong"
+                       value="{{ draftData['alert[localite]']|default(alert.localite|default('')) }}">
+                <p class="form-help">Saisissez librement le nom de la ville ou du village.</p>
+                <div class="wizard-fields-grid">
+                    <div class="form-field">
+                        <label class="form-label" for="w_type_localite">Type de localité <span class="text-red-400">*</span></label>
+                        {% set currentTypeLocalite = draftData['alert[typeLocalite]']|default(alert.typeLocalite|default('')) %}
+                        <select name="alert[typeLocalite]" id="w_type_localite" class="form-select">
+                            <option value="">Sélectionnez</option>
+                            <option value="ville" {% if currentTypeLocalite == 'ville' %}selected{% endif %}>Ville</option>
+                            <option value="village" {% if currentTypeLocalite == 'village' %}selected{% endif %}>Village</option>
+                        </select>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="w_localite_latitude">Latitude (facultative)</label>
+                        <input type="number" name="alert[localiteLatitude]" id="w_localite_latitude" class="form-input"
+                               min="-90" max="90" step="any"
+                               value="{{ draftData['alert[localiteLatitude]']|default(alert.localiteLatitude|default('')) }}">
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="w_localite_longitude">Longitude (facultative)</label>
+                        <input type="number" name="alert[localiteLongitude]" id="w_localite_longitude" class="form-input"
+                               min="-180" max="180" step="any"
+                               value="{{ draftData['alert[localiteLongitude]']|default(alert.localiteLongitude|default('')) }}">
+                    </div>
+                </div>
+                <p class="form-help">Pour afficher la localité précisément sur la carte, renseignez latitude et longitude.</p>
             </div>
 
         </div>
@@ -144,10 +188,15 @@
 const labelEl = document.getElementById('label_corridor');
 const helpEl  = document.getElementById('help_corridor');
 const inputEl = document.getElementById('w_corridor');
+const portCorridorField = document.getElementById('portCorridorField');
+const localiteFields = document.getElementById('localiteFields');
+const localiteInput = document.getElementById('w_localite');
+const typeLocaliteInput = document.getElementById('w_type_localite');
 const radios  = document.querySelectorAll('input[name="alert[typeLocalisation]"]');
 const options = document.querySelectorAll('.radio-option');
 const parcoursSearch = document.getElementById('w_parcours_markets_search');
 const parcoursSelect = document.getElementById('w_parcours_markets');
+const parcoursOrderInput = document.getElementById('w_parcours_markets_order');
 const countryPicker = document.getElementById('countryPicker');
 const countryPickerSelected = document.getElementById('countryPickerSelected');
 const countryPickerOptions = document.getElementById('countryPickerOptions');
@@ -157,13 +206,45 @@ const countryPickerOptions = document.getElementById('countryPickerOptions');
 // (le <select> natif trie automatiquement ses options par ordre DOM)
 let selectionOrder = [];
 
-// Initialiser l'ordre avec les pays déjà sélectionnés (lors d'un brouillon/modification)
+// Le select natif émet ses options dans l'ordre du DOM, pas dans l'ordre de sélection.
 if (parcoursSelect) {
-    selectionOrder = Array.from(parcoursSelect.selectedOptions).map(option => option.value);
+    try {
+        const savedOrder = JSON.parse(parcoursOrderInput?.value || '[]');
+        if (Array.isArray(savedOrder)) {
+            selectionOrder = savedOrder.filter(code =>
+                Array.from(parcoursSelect.selectedOptions).some(option => option.value === code)
+            );
+        }
+    } catch (error) {
+        console.error('Impossible de restaurer l’ordre du parcours enregistré.', error);
+    }
+    Array.from(parcoursSelect.selectedOptions).forEach(option => {
+        if (!selectionOrder.includes(option.value)) selectionOrder.push(option.value);
+    });
+}
+
+function selectedCountryCodes() {
+    return new Set(Array.from(parcoursSelect?.selectedOptions ?? []).map(option => option.value));
+}
+
+function saveSelectionOrder() {
+    if (!parcoursSelect || !parcoursOrderInput) return;
+    const selected = selectedCountryCodes();
+    selectionOrder = selectionOrder.filter(code => selected.has(code));
+    Array.from(parcoursSelect.selectedOptions).forEach(option => {
+        if (!selectionOrder.includes(option.value)) selectionOrder.push(option.value);
+    });
+    parcoursOrderInput.value = JSON.stringify(selectionOrder);
 }
 
 function updateLabel() {
     const selected = document.querySelector('input[name="alert[typeLocalisation]"]:checked');
+    const isLocalite = selected?.value === 'localite';
+    portCorridorField.style.display = isLocalite ? 'none' : '';
+    localiteFields.style.display = isLocalite ? '' : 'none';
+    inputEl.required = !isLocalite;
+    localiteInput.required = isLocalite;
+    typeLocaliteInput.required = isLocalite;
     if (!selected) {
         labelEl.innerHTML = 'Nom <span class="text-red-400">*</span>';
         helpEl.textContent = 'Nom du port, corridor ou aéroport concerné.';
@@ -185,6 +266,11 @@ function updateLabel() {
             labelEl.innerHTML = 'Nom de l\'aéroport <span class="text-red-400">*</span>';
             helpEl.textContent = 'Nom de l\'aéroport concerné.';
             inputEl.placeholder = 'ex. Aéroport de Lomé, Aéroport de Cotonou';
+            break;
+        case 'localite':
+            labelEl.innerHTML = 'Nom de la localité <span class="text-red-400">*</span>';
+            helpEl.textContent = 'Saisissez une ville ou un village dans les champs dédiés.';
+            inputEl.placeholder = '';
             break;
         default:
             labelEl.innerHTML = 'Nom <span class="text-red-400">*</span>';
@@ -223,10 +309,6 @@ radios.forEach(r => {
 updateLabel();
 updateActiveClass();
 
-function selectedCountryCodes() {
-    return new Set(Array.from(parcoursSelect?.selectedOptions ?? []).map(option => option.value));
-}
-
 function renderCountryPicker() {
     if (!parcoursSelect || !countryPickerSelected || !countryPickerOptions) return;
     const selected = selectedCountryCodes();
@@ -255,6 +337,7 @@ function renderCountryPicker() {
             option.selected = false;
             // Retirer du tableau d'ordre
             selectionOrder = selectionOrder.filter(code => code !== countryCode);
+            saveSelectionOrder();
             renderCountryPicker();
             parcoursSearch?.focus();
         });
@@ -287,6 +370,7 @@ countryPickerOptions?.querySelectorAll('.country-picker-option').forEach(button 
                 selectionOrder.push(button.dataset.countryCode);
             }
         }
+        saveSelectionOrder();
         parcoursSearch.value = '';
         renderCountryPicker();
         filterCountryPicker();
@@ -318,6 +402,7 @@ parcoursSearch?.addEventListener('keydown', event => {
             lastOption.selected = false;
             selectionOrder.pop(); // Retirer du tableau d'ordre
         }
+        saveSelectionOrder();
         renderCountryPicker();
     }
 });
@@ -327,6 +412,8 @@ document.addEventListener('click', event => {
         parcoursSearch?.blur();
     }
 });
+
+document.getElementById('wizardForm')?.addEventListener('submit', saveSelectionOrder);
 
 renderCountryPicker();
 filterCountryPicker();

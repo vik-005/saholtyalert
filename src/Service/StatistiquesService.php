@@ -469,9 +469,34 @@ class StatistiquesService
         });
     }
 
+    public function getTopLocalites(string $debut, string $fin, array $marketIds = [], int $limit = 10): array
+    {
+        $key = 'stat_localites_' . md5($debut . $fin . implode(',', $marketIds) . $limit);
+        return $this->cache->get($key, function (ItemInterface $item) use ($debut, $fin, $marketIds, $limit) {
+            $item->expiresAfter(self::TTL);
+            $where = $this->whereClause($marketIds);
+            $limit = max(1, min(100, $limit));
+
+            return $this->conn()->fetchAllAssociative(
+                "SELECT MAX(TRIM(a.localite)) AS localite, a.type_localite AS typeLocalite,
+                        m.nom AS pays, COUNT(a.id) AS nb
+                 FROM alert a
+                 JOIN market m ON m.id = a.market_id
+                 WHERE (a.type_localisation = 'localite' OR (a.type_localisation IS NULL AND a.localite IS NOT NULL))
+                   AND a.localite IS NOT NULL
+                   AND TRIM(a.localite) != ''
+                   AND a.date_creation BETWEEN :debut AND :fin {$where}
+                 GROUP BY LOWER(TRIM(a.localite)), a.type_localite, m.id, m.nom
+                 ORDER BY nb DESC
+                 LIMIT {$limit}",
+                ['debut' => $debut . ' 00:00:00', 'fin' => $fin . ' 23:59:59']
+            );
+        });
+    }
+
     /**
-     * Répartition par type de localisation (Port vs Corridor vs Aéroport).
-     * Retourne [['type' => 'port', 'nb' => 12], ['type' => 'corridor', 'nb' => 8], ['type' => 'aeroport', 'nb' => 3]]
+     * Répartition par type de localisation (Port, Corridor, Aéroport ou Localité).
+     * Retourne un compte par type de localisation renseigné.
      * Si $typeLocalisation est fourni, filtre sur ce type (utile pour cohérence).
      */
     public function getStatsByLocalisationType(string $debut, string $fin, array $marketIds = [], ?string $typeLocalisation = null): array
@@ -495,14 +520,15 @@ class StatistiquesService
                      AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(port|quai|terminal\\s+portuaire|portuaire|harbour|harbor)([^a-z]|$)' THEN 'port'
                 WHEN a.type_localisation IS NULL
                      AND REPLACE(LOWER(a.port_corridor), 'é', 'e') REGEXP '(^|[^a-z])(corridor|axe|route|itineraire|frontiere|transit)([^a-z]|$)' THEN 'corridor'
+                WHEN a.type_localisation IS NULL AND a.localite IS NOT NULL AND a.localite != '' THEN 'localite'
                 ELSE COALESCE(a.type_localisation, 'corridor')
             END";
 
             return $this->conn()->fetchAllAssociative(
                 "SELECT {$typeExpression} AS type, COUNT(a.id) AS nb
                  FROM alert a
-                 WHERE a.port_corridor IS NOT NULL
-                   AND a.port_corridor != ''
+                 WHERE ((a.port_corridor IS NOT NULL AND a.port_corridor != '')
+                    OR (a.localite IS NOT NULL AND a.localite != ''))
                    AND a.date_creation BETWEEN :debut AND :fin {$where} {$typeWhere}
                  GROUP BY {$typeExpression}
                  ORDER BY nb DESC",

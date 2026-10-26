@@ -26,6 +26,24 @@
         </a>
     </div>
 
+    <form method="get" action="{{ path('app_agent_dashboard') }}" class="db-card agent-dashboard-filters">
+        <label class="form-label" for="agentDashboardDays">Période des statistiques</label>
+        <select id="agentDashboardDays" name="days" class="form-select" onchange="this.form.submit()">
+            <option value="all" {% if days is null %}selected{% endif %}>Toute la période</option>
+            {% for period in allowedDays %}
+                <option value="{{ period }}" {% if days == period %}selected{% endif %}>
+                    {{ period }} derniers jours
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    {% if hasError %}
+        <div class="db-card" role="alert">
+            Les statistiques sont momentanément indisponibles. Veuillez réessayer plus tard.
+        </div>
+    {% endif %}
+
     {# ─────────────────────────────────────────────────────────────────────── #}
     {# LIGNE 1 : KPIs PRINCIPAUX (5 cards) #}
     {# ─────────────────────────────────────────────────────────────────────── #}
@@ -92,7 +110,7 @@
                     <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Votre Activité</p>
                     <p class="db-card-title">Soumissions et Validations</p>
                 </div>
-                <span class="db-live-indicator"><span></span>12 derniers mois</span>
+                <span class="db-live-indicator"><span></span>{{ evolutionMensuelle.mois }} derniers mois</span>
             </div>
             <div class="db-chart-area">
                 <canvas id="evolutionMensuelleChart" height="90"></canvas>

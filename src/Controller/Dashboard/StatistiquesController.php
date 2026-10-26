@@ -78,6 +78,7 @@ class StatistiquesController extends AbstractController
             // A.3 — Autres
             'repartition_categorie' => $stats->getRepartitionCategorie($debut, $fin, $marketIds),
             'top_corridors'         => $stats->getTopCorridors($debut, $fin, $marketIds),
+            'top_localites'         => $stats->getTopLocalites($debut, $fin, $marketIds),
             'top_operateurs'        => $stats->getTopOperateurs($debut, $fin, $marketIds),
             'activite_agents'       => $stats->getActiviteParAgent($debut, $fin, $marketIds),
             'delai_moyen'           => $stats->getDelaiMoyenTraitement($debut, $fin, $marketIds),
@@ -116,6 +117,7 @@ class StatistiquesController extends AbstractController
             'jauge_exploitables'    => $stats->getTauxExploitables($debut, $fin, $marketIds),
             'repartition_categorie' => $stats->getRepartitionCategorie($debut, $fin, $marketIds),
             'top_corridors'         => $stats->getTopCorridors($debut, $fin, $marketIds),
+            'top_localites'        => $stats->getTopLocalites($debut, $fin, $marketIds),
             'top_operateurs'        => $stats->getTopOperateurs($debut, $fin, $marketIds),
             'activite_agents'       => $stats->getActiviteParAgent($debut, $fin, $marketIds),
             'delai_moyen'           => $stats->getDelaiMoyenTraitement($debut, $fin, $marketIds),

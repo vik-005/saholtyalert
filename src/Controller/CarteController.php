@@ -169,7 +169,7 @@ class CarteController extends AbstractController
                 if ($marketId === 0) {
                     continue;
                 }
-                $stats = $statsByMarket[$marketId] ?? ['categories' => [], 'corridors' => []];
+                $stats = $statsByMarket[$marketId] ?? ['categories' => [], 'corridors' => [], 'localities' => []];
                 $result[] = [
                     'id'          => (int) $zone['id'],
                     'marketId'    => (int) $zone['marketId'],
@@ -182,6 +182,7 @@ class CarteController extends AbstractController
                     'maxPriority' => $zone['maxPriority'] ?? 'faible',
                     'categories'  => $stats['categories'],
                     'corridors'   => $stats['corridors'],
+                    'localities'  => $stats['localities'],
                 ];
             }
 
@@ -234,6 +235,7 @@ class CarteController extends AbstractController
             'dateCreation'   => $a->getDateCreation()->format('d/m/Y'),
             'resumeExecutif' => mb_substr($a->getResumeExecutif() ?? '', 0, 160),
             'portCorridor'   => $a->getPortCorridor() ?? '—',
+            'localite'       => $a->getLocalite(),
         ], $alerts));
     }
 

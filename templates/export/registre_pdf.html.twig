@@ -259,7 +259,7 @@
                         <td><span class="code-gei">{{ alert.codeGei ?? 'BROUILLON' }}</span></td>
                         <td>{{ alert.dateCreation|date('d/m/Y') }}</td>
                         <td>{{ alert.market.nom }}</td>
-                        <td>{{ alert.portCorridor ?: '-' }}</td>
+                        <td>{{ alert.localite ?: alert.portCorridor ?: '-' }}</td>
                         <td>{{ alert.categorie ?: '-' }}</td>
                         <td style="max-width: 280px;">{{ alert.resumeExecutif|slice(0, 110) }}{% if alert.resumeExecutif|length > 110 %}…{% endif %}</td>
                         <td style="text-align: center;">

@@ -138,6 +138,40 @@ class ImportServiceTest extends TestCase
         self::assertNotSame('2026-10-15 18:42:00', $alert->getUpdatedAt()->format('Y-m-d H:i:s'));
     }
 
+    public function testLocalityTypeAndCoordinatesImportFromExportedColumns(): void
+    {
+        $service = $this->createImportService();
+        $headerRow = [];
+        $row = [];
+        foreach (ExportService::COLUMNS as $index => $header) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $headerRow[$column] = $header;
+            $row[$column] = '';
+        }
+
+        [$columnMap] = $this->invokePrivate($service, 'detectColumns', [$headerRow]);
+        foreach ([
+            'Type de localisation' => 'Localité',
+            'Localité' => 'Kandi',
+            'Type de localité' => 'ville',
+            'Latitude localité' => '11.1342',
+            'Longitude localité' => '2.9386',
+        ] as $header => $value) {
+            $index = array_search($header, ExportService::COLUMNS, true);
+            self::assertNotFalse($index);
+            $row[Coordinate::stringFromColumnIndex($index + 1)] = $value;
+        }
+
+        $alert = new Alert();
+        $this->invokePrivate($service, 'fillAlertFromRow', [$alert, $row, $columnMap, new User()]);
+
+        self::assertSame(TypeLocalisation::LOCALITE, $alert->getTypeLocalisation());
+        self::assertSame('Kandi', $alert->getLocalite());
+        self::assertSame('ville', $alert->getTypeLocalite());
+        self::assertSame(11.1342, $alert->getLocaliteLatitude());
+        self::assertSame(2.9386, $alert->getLocaliteLongitude());
+    }
+
     private function createImportService(): ImportService
     {
         return new ImportService(

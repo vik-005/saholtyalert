@@ -46,7 +46,7 @@
                         {% else %}<span class="text-red-400">Non renseigné</span>{% endif %}
                     </dd>
                     <dt>Nom</dt>
-                    <dd>{{ alert.portCorridor ?: '—' }}</dd>
+                    <dd>{{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '—') }}</dd>
                 </dl>
             </div>
 

@@ -289,8 +289,9 @@
                                 </p>
                                 <span class="activity-meta">
                                     {{ alert.dateCreation|date('d/m/Y') }}
-                                    {% if alert.portCorridor %}
-                                        · {{ alert.portCorridor|slice(0,25) }}{% if alert.portCorridor|length > 25 %}…{% endif %}
+                                    {% if alert.localite or alert.portCorridor %}
+                                        {% set alertPlace = alert.localite ?: alert.portCorridor %}
+                                        · {{ alertPlace|slice(0,25) }}{% if alertPlace|length > 25 %}…{% endif %}
                                     {% endif %}
                                 </span>
                             </div>

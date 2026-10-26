@@ -88,7 +88,8 @@ class AlertFilterService
                 $qb->expr()->orX(
                     $qb->expr()->like($alias . '.codeGei', ':search'),
                     $qb->expr()->like($alias . '.resumeExecutif', ':search'),
-                    $qb->expr()->like($alias . '.portCorridor', ':search')
+                    $qb->expr()->like($alias . '.portCorridor', ':search'),
+                    $qb->expr()->like($alias . '.localite', ':search')
                 )
             )
             ->setParameter('search', '%' . $dto->getSearch() . '%');

@@ -56,6 +56,10 @@
                     <span class="mx-2 text-slate-400">·</span>
                     <i class="bi bi-signpost me-1 opacity-60"></i>{{ alert.portCorridor }}
                 {% endif %}
+                {% if alert.localite %}
+                    <span class="mx-2 text-slate-400">·</span>
+                    <i class="bi bi-geo-alt me-1 opacity-60"></i>{{ alert.localite }} ({{ alert.typeLocalite }})
+                {% endif %}
                 <span class="mx-2 text-slate-400">·</span>
                 <i class="bi bi-calendar3 me-1 opacity-60"></i>{{ alert.dateCreation|date('d/m/Y') }}
                 <span class="mx-2 text-slate-400">·</span>
@@ -334,8 +338,8 @@
                     <span>{{ alert.categorie ?: '—' }}</span>
                     <span class="show-field-label">Zone / Marché</span>
                     <span>{{ alert.market.nom }}</span>
-                    <span class="show-field-label">Corridor</span>
-                    <span>{{ alert.portCorridor ?: '—' }}</span>
+                    <span class="show-field-label">Localisation</span>
+                    <span>{{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '—') }}</span>
                     <span class="show-field-label">Opérateur / Acteur</span>
                     <span>{{ alert.operateurActeur ?: '—' }}</span>
                     <span class="show-field-label">Créé le</span>

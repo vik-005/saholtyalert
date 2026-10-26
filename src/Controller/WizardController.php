@@ -253,12 +253,30 @@ class WizardController extends AbstractController
             return 'Le marché émetteur est obligatoire.';
         }
         if (empty($data['typeLocalisation'])) {
-            return 'Le choix Port / Corridor / Aéroport est obligatoire.';
+            return 'Le choix du type de localisation est obligatoire.';
         }
-        if (!in_array($data['typeLocalisation'], ['port', 'corridor', 'aeroport'], true)) {
-            return 'Le type de localisation doit être Port, Corridor ou Aéroport.';
+        if (!in_array($data['typeLocalisation'], ['port', 'corridor', 'aeroport', 'localite'], true)) {
+            return 'Le type de localisation est invalide.';
         }
-        if (empty($data['portCorridor'])) {
+        if ($data['typeLocalisation'] === 'localite') {
+            if (empty($data['localite'])) {
+                return 'Le nom de la ville ou du village est obligatoire.';
+            }
+            if (!in_array($data['typeLocalite'] ?? null, ['ville', 'village'], true)) {
+                return 'Précisez si la localité est une ville ou un village.';
+            }
+            $latitude = $data['localiteLatitude'] ?? '';
+            $longitude = $data['localiteLongitude'] ?? '';
+            if (($latitude !== '' && $longitude === '') || ($latitude === '' && $longitude !== '')) {
+                return 'Renseignez la latitude et la longitude ensemble pour afficher la localité sur la carte.';
+            }
+            if ($latitude !== '' && (!is_numeric($latitude) || (float) $latitude < -90 || (float) $latitude > 90)) {
+                return 'La latitude doit être comprise entre -90 et 90.';
+            }
+            if ($longitude !== '' && (!is_numeric($longitude) || (float) $longitude < -180 || (float) $longitude > 180)) {
+                return 'La longitude doit être comprise entre -180 et 180.';
+            }
+        } elseif (empty($data['portCorridor'])) {
             return 'Le nom du port ou corridor est obligatoire.';
         }
         return null;
@@ -599,10 +617,17 @@ class WizardController extends AbstractController
         // Merge intelligent : ne jamais écraser une valeur existante non-vide
         // par une valeur vide provenant d'un champ caché absent ou vide (ex. step6 hidden inputs).
         $merged = $existing;
+        $locationFields = [
+            'alert[portCorridor]',
+            'alert[localite]',
+            'alert[typeLocalite]',
+            'alert[localiteLatitude]',
+            'alert[localiteLongitude]',
+        ];
         foreach ($data as $key => $value) {
             $currentValue = $existing[$key] ?? null;
             // Accepter la nouvelle valeur si : pas encore de valeur, ou nouvelle valeur non-vide
-            if ($currentValue === null || $currentValue === '' || ($value !== null && $value !== '')) {
+            if (in_array($key, $locationFields, true) || $currentValue === null || $currentValue === '' || ($value !== null && $value !== '')) {
                 $merged[$key] = $value;
             }
         }
@@ -685,8 +710,8 @@ class WizardController extends AbstractController
         // Champs texte simples
         // Les champs obligatoires (resumeExecutif, elementsFactuels) sont mis à jour dès qu'ils ont une valeur.
         // Les champs optionnels sont mis à jour seulement si non vides (évite d'écraser par null).
-        $champsObligatoires = ['resumeExecutif', 'elementsFactuels', 'portCorridor'];
-        foreach (['portCorridor', 'resumeExecutif', 'elementsFactuels', 'marque', 'operateurActeur', 'hypothesesAnalytiques', 'referenceDocumentaire', 'historiqueSource', 'actionsEnCours', 'commentaires'] as $field) {
+        $champsObligatoires = ['resumeExecutif', 'elementsFactuels'];
+        foreach (['portCorridor', 'localite', 'typeLocalite', 'resumeExecutif', 'elementsFactuels', 'marque', 'operateurActeur', 'hypothesesAnalytiques', 'referenceDocumentaire', 'historiqueSource', 'actionsEnCours', 'commentaires'] as $field) {
             $setter = 'set' . ucfirst($field);
             if (!method_exists($alert, $setter)) {
                 continue;
@@ -730,6 +755,13 @@ class WizardController extends AbstractController
                 } catch (\ValueError) {
                     // Valeur invalide ignorée silencieusement
                 }
+
+                if (array_key_exists('localiteLatitude', $alertData)) {
+                    $alert->setLocaliteLatitude($alertData['localiteLatitude'] === '' ? null : (float) $alertData['localiteLatitude']);
+                }
+                if (array_key_exists('localiteLongitude', $alertData)) {
+                    $alert->setLocaliteLongitude($alertData['localiteLongitude'] === '' ? null : (float) $alertData['localiteLongitude']);
+                }
             }
         }
 
@@ -759,10 +791,26 @@ class WizardController extends AbstractController
             }
         }
 
-        $selectedCountries = array_values(array_unique(array_filter(array_map(
+        $submittedCountries = array_values(array_unique(array_filter(array_map(
             static fn ($code): string => strtoupper(trim((string) $code)),
             (array) ($alertData['parcoursCountries'] ?? [])
         ))));
+        $selectedCountries = $submittedCountries;
+        $submittedOrder = $alertData['parcoursCountriesOrder'] ?? null;
+        if (is_string($submittedOrder) && $submittedOrder !== '') {
+            $decodedOrder = json_decode($submittedOrder, true);
+            if (is_array($decodedOrder)) {
+                $orderedCountries = array_values(array_unique(array_filter(array_map(
+                    static fn ($code): string => strtoupper(trim((string) $code)),
+                    $decodedOrder
+                ))));
+                $selectedCountries = array_values(array_intersect($orderedCountries, $submittedCountries));
+                $selectedCountries = array_merge(
+                    $selectedCountries,
+                    array_values(array_diff($submittedCountries, $selectedCountries))
+                );
+            }
+        }
         $selectedCountries = array_values(array_intersect($selectedCountries, array_keys(Countries::getNames('fr'))));
         $alert->setParcoursCountries($selectedCountries);
 

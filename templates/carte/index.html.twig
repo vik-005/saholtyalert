@@ -1395,6 +1395,25 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         const bounds = [];
 
         zones.forEach(zone => {
+            (zone.localities || []).forEach(locality => {
+                const localityLat = Number(locality.latitude);
+                const localityLng = Number(locality.longitude);
+                if (!Number.isFinite(localityLat) || !Number.isFinite(localityLng)) return;
+
+                bounds.push([localityLat, localityLng]);
+                const localityMarker = L.circleMarker([localityLat, localityLng], {
+                    radius: 7,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: '#f59e0b',
+                    fillOpacity: 0.95,
+                }).addTo(targetZonesLayer);
+                localityMarker.bindPopup(
+                    `<strong>${escHtml(locality.name)}</strong> · ${escHtml(locality.type || 'Localité')}<br>${locality.count} alerte(s)<br>${escHtml(zone.nom)}`,
+                    { maxWidth: 240 }
+                );
+            });
+
             const count = parseInt(zone.alertCount) || 0;
             // RÈGLE STRICTE : les marchés avec 0 alerte disparaissent de la carte
             if (count <= 0) return;
@@ -1497,6 +1516,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
             marker.bindPopup(popupHtml, { maxWidth: 300, className: '' });
             marker.on('click', () => highlightPaysCard(zone.id));
+
         });
 
         // ── Choroplèthe : polygones de zone par intensité d'alertes ──
@@ -2085,7 +2105,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 ${a.resumeExecutif ? `<div class="drawer-alert-resume">${escHtml(a.resumeExecutif)}</div>` : ''}
                 <div class="drawer-alert-meta">
                     <span>${escHtml(a.categorieLabel || a.categorie || '—')}</span>
-                    ${a.portCorridor && a.portCorridor !== '—' ? `<span style="color:#0f766e;"><i class="bi bi-geo-alt me-0.5"></i>${escHtml(a.portCorridor)}</span>` : ''}
+                    ${(a.localite || (a.portCorridor && a.portCorridor !== '—')) ? `<span style="color:#0f766e;"><i class="bi bi-geo-alt me-0.5"></i>${escHtml(a.localite || a.portCorridor)}</span>` : ''}
                     <span><i class="bi bi-calendar3 me-1"></i>${escHtml(a.dateCreation || '')}</span>
                 </div>
             </a>`;
@@ -2103,6 +2123,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 return (a.codeGei && a.codeGei.toLowerCase().includes(q)) ||
                        (a.resumeExecutif && a.resumeExecutif.toLowerCase().includes(q)) ||
                        (a.categorie && a.categorie.toLowerCase().includes(q)) ||
+                       (a.localite && a.localite.toLowerCase().includes(q)) ||
                        (a.portCorridor && a.portCorridor.toLowerCase().includes(q)) ||
                        (a.statutLabel && a.statutLabel.toLowerCase().includes(q));
             });

@@ -67,6 +67,10 @@ class ExportService
         'Décision GEI',                       // AL — Décision formelle du Manager
         'Parcours pays',                      // AM — Pays traversés
         'Statut juridique',                  // AN — Licite / Illicite
+        'Localité',                           // AO — Ville ou village
+        'Type de localité',                   // AP
+        'Latitude localité',                  // AQ
+        'Longitude localité',                 // AR
     ];
 
     /**
@@ -162,6 +166,10 @@ class ExportService
                 (string)($alert->getDecisionGei() ?? ''),                         // AL — Décision GEI
                 implode(', ', $alert->getParcoursCountries() ?? []),              // AM — Parcours pays
                 (string)($alert->getLegalStatus()?->label() ?? ''),               // AN — Statut juridique
+                (string)($alert->getLocalite() ?? ''),                            // AO — Localité
+                (string)($alert->getTypeLocalite() ?? ''),                        // AP — Type de localité
+                $alert->getLocaliteLatitude() !== null ? (string) $alert->getLocaliteLatitude() : '', // AQ
+                $alert->getLocaliteLongitude() !== null ? (string) $alert->getLocaliteLongitude() : '', // AR
             ];
 
             foreach ($row as $colIdx => $value) {

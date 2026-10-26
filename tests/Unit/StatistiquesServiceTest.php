@@ -419,6 +419,23 @@ class StatistiquesServiceTest extends TestCase
         $this->service->getTopCorridors('2026-01-01', '2026-01-31', [1], 10, null);
     }
 
+    public function testGetTopLocalites(): void
+    {
+        $rows = [
+            ['localite' => 'Kandi', 'typeLocalite' => 'ville', 'pays' => 'Bénin', 'nb' => 4],
+        ];
+
+        $this->conn->expects($this->once())
+            ->method('fetchAllAssociative')
+            ->with(
+                $this->stringContains("a.type_localisation = 'localite'"),
+                ['debut' => '2026-01-01 00:00:00', 'fin' => '2026-01-31 23:59:59']
+            )
+            ->willReturn($rows);
+
+        self::assertSame($rows, $this->service->getTopLocalites('2026-01-01', '2026-01-31', [1]));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // 9. getStatsByLocalisationType
     // ─────────────────────────────────────────────────────────────────────────

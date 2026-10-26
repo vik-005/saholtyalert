@@ -383,8 +383,8 @@
                 <td>{{ alert.typeLocalisation ? alert.typeLocalisation.label() : '-' }}</td>
             </tr>
             <tr>
-                <th>Port / Corridor / Aéroport</th>
-                <td>{{ alert.portCorridor ?: '-' }}</td>
+                <th>Localisation</th>
+                <td>{{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '-') }}</td>
                 <th>Parcours / Transit</th>
                 <td>
                     {% if alert.parcoursCountries and alert.parcoursCountries is iterable and alert.parcoursCountries|length > 0 %}

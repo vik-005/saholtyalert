@@ -22,7 +22,7 @@ class AlertRepository extends ServiceEntityRepository
     /**
      * Agrégats cartographiques groupés par marché en deux requêtes au lieu de deux par marché.
      *
-     * @return array<int, array{categories: array<string, int>, corridors: array<string, int>}>
+     * @return array<int, array{categories: array<string, int>, corridors: array<string, int>, localities: array<int, array<string, mixed>>}>
      */
     public function getMapStatsByMarkets(array $marketIds, array $filters = []): array
     {
@@ -104,10 +104,33 @@ class AlertRepository extends ServiceEntityRepository
             $stats[$marketId]['corridors'][trim($row['value'])] = (int) $row['cnt'];
         }
 
+        $localities = $connection->executeQuery(
+            'SELECT a.market_id AS marketId, a.localite AS value, a.type_localite AS typeLocalite,'
+                . ' a.localite_latitude AS latitude, a.localite_longitude AS longitude, COUNT(a.id) AS cnt'
+                . ' FROM alert a WHERE ' . $where
+                . " AND (a.type_localisation = 'localite' OR (a.type_localisation IS NULL AND a.localite IS NOT NULL))"
+                . " AND a.localite IS NOT NULL AND TRIM(a.localite) != ''"
+                . ' GROUP BY a.market_id, a.localite, a.type_localite, a.localite_latitude, a.localite_longitude'
+                . ' ORDER BY a.market_id, cnt DESC',
+            $parameters,
+        )->fetchAllAssociative();
+
+        foreach ($localities as $row) {
+            $marketId = (int) $row['marketId'];
+            $stats[$marketId]['localities'][] = [
+                'name' => trim((string) $row['value']),
+                'type' => (string) ($row['typeLocalite'] ?? ''),
+                'latitude' => $row['latitude'] !== null ? (float) $row['latitude'] : null,
+                'longitude' => $row['longitude'] !== null ? (float) $row['longitude'] : null,
+                'count' => (int) $row['cnt'],
+            ];
+        }
+
         foreach ($marketIds as $marketId) {
-            $stats[$marketId] ??= ['categories' => [], 'corridors' => []];
+            $stats[$marketId] ??= ['categories' => [], 'corridors' => [], 'localities' => []];
             $stats[$marketId]['categories'] ??= [];
             $stats[$marketId]['corridors'] ??= [];
+            $stats[$marketId]['localities'] ??= [];
         }
 
         return $stats;
@@ -167,6 +190,7 @@ class AlertRepository extends ServiceEntityRepository
                ->andWhere($this->normalizedSearchExpression('a.codeGei') . ' LIKE :search'
                    . ' OR ' . $this->normalizedSearchExpression('a.resumeExecutif') . ' LIKE :search'
                    . ' OR ' . $this->normalizedSearchExpression('a.portCorridor') . ' LIKE :search'
+                   . ' OR ' . $this->normalizedSearchExpression('a.localite') . ' LIKE :search'
                    . ' OR ' . $this->normalizedSearchExpression('a.categorie') . ' LIKE :search'
                    . ' OR ' . $this->normalizedSearchExpression('m.nom') . ' LIKE :search'
                    . ' OR ' . $this->normalizedSearchExpression('m.codeIso3') . ' LIKE :search'

@@ -80,6 +80,10 @@ class ImportService
         'elements_factuels'=> ['éléments factuels', 'elements factuels', 'faits', 'description / quantité', 'description / quantite'],
         'hypotheses'      => ['hypothèses analytiques', 'hypotheses analytiques', 'hypothèses', 'hypotheses', 'modus operandi'],
         'type_localisation'=> ['type de localisation', 'type localisation', 'localisation type'],
+        'localite'        => ['nom de la localité', 'nom de la localite', 'localité', 'localite', 'ville ou village'],
+        'type_localite'   => ['type de localité', 'type de localite'],
+        'localite_latitude' => ['latitude localité', 'latitude localite', 'latitude'],
+        'localite_longitude' => ['longitude localité', 'longitude localite', 'longitude'],
         'type_alerte'     => ["type d'alerte", "type d alerte", "type alerte"],
         'recommandation'  => ['recommandation', 'recommandations'],
         'historique_source'=> ['historique de la source', 'historique source'],
@@ -92,6 +96,11 @@ class ImportService
      * Permet de mapper des variantes textuelles vers les valeurs Enum exactes.
      */
     private const ENUM_ALIASES = [
+        TypeLocalisation::class => [
+            'localité' => 'localite',
+            'localite' => 'localite',
+            'ville / village' => 'localite',
+        ],
         // Urgence — "72 h" avec espace vs "72h"
         AlertUrgence::class => [
             '72 h'     => '72h',
@@ -169,6 +178,10 @@ class ImportService
             return null;
         }
 
+        if (preg_match('/\b(localite|ville|village)\b/u', $normalized)) {
+            return TypeLocalisation::LOCALITE;
+        }
+
         if (preg_match('/\b(aeroport|airport|aerodrome|terminal\s+passagers?)\b/u', $normalized)) {
             return TypeLocalisation::AEROPORT;
         }
@@ -188,10 +201,15 @@ class ImportService
     public static function sqlTypeLocalisationFallbackCondition(string $type): string
     {
         $normalizedType = strtolower(trim($type));
+        if ($normalizedType === 'localite') {
+            return "(a.type_localisation = :typeLoc OR (a.type_localisation IS NULL AND a.localite IS NOT NULL AND a.localite != ''))";
+        }
+
         $patterns = [
             'aeroport' => '(aeroport|airport|aerodrome|terminal\\s+passagers?)',
             'port' => '(port|quai|terminal\\s+portuaire|portuaire|harbour|harbor)',
             'corridor' => '(corridor|axe|route|itineraire|frontiere|transit)',
+            'localite' => '(localite|ville|village)',
         ];
 
         if (!isset($patterns[$normalizedType])) {
@@ -663,10 +681,26 @@ class ImportService
             $manquants[] = 'dateCreation';
         }
 
-        // ── Port / Corridor ──────────────────────────────────────────────────────
+        // ── Localité et Port / Corridor ──────────────────────────────────────────
+        $localite = $get('localite') ?: null;
+        $typeLocalisation = $this->matchEnumWithAliases(TypeLocalisation::class, $get('type_localisation'));
         $portCorridor = $get('port') ?: null;
+        if ($typeLocalisation === TypeLocalisation::LOCALITE && $localite === null) {
+            $localite = $portCorridor;
+            $portCorridor = null;
+        }
+        $alert->setLocalite($localite);
+        $alert->setTypeLocalite($get('type_localite') ?: null);
+        $latitude = $get('localite_latitude');
+        $longitude = $get('localite_longitude');
+        $alert->setLocaliteLatitude(is_numeric($latitude) ? (float) $latitude : null);
+        $alert->setLocaliteLongitude(is_numeric($longitude) ? (float) $longitude : null);
+
         $alert->setPortCorridor($portCorridor);
-        $alert->setTypeLocalisation(null !== $portCorridor ? self::detectTypeLocalisation($portCorridor) : null);
+        $alert->setTypeLocalisation(
+            $typeLocalisation
+            ?? ($localite !== null ? TypeLocalisation::LOCALITE : (null !== $portCorridor ? self::detectTypeLocalisation($portCorridor) : null))
+        );
 
         // ── Catégorie ────────────────────────────────────────────────────────────
         $catRaw = trim($get('categorie'));

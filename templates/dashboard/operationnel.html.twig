@@ -318,10 +318,11 @@
                             <td class="text-slate-400 whitespace-nowrap">{{ alert.dateCreation|date('d/m/Y') }}</td>
                             <td>
                                 <span class="table-market">{{ alert.market.nom }}</span>
-                                {% if alert.portCorridor %}
+                                {% if alert.localite or alert.portCorridor %}
                                     <span class="table-corridor">
                                         <i class="bi bi-route bi-xs me-0.5 opacity-50"></i>
-                                        {{ alert.portCorridor|slice(0,28) }}{% if alert.portCorridor|length > 28 %}…{% endif %}
+                                        {% set alertPlace = alert.localite ?: alert.portCorridor %}
+                                        {{ alertPlace|slice(0,28) }}{% if alertPlace|length > 28 %}…{% endif %}
                                     </span>
                                 {% endif %}
                             </td>
@@ -586,8 +587,9 @@
                             </p>
                             <span class="activity-meta">
                                 {{ alert.dateCreation|date('d/m/Y') }}
-                                {% if alert.portCorridor %}
-                                    · {{ alert.portCorridor|slice(0,25) }}{% if alert.portCorridor|length > 25 %}…{% endif %}
+                                {% if alert.localite or alert.portCorridor %}
+                                    {% set alertPlace = alert.localite ?: alert.portCorridor %}
+                                    · {{ alertPlace|slice(0,25) }}{% if alertPlace|length > 25 %}…{% endif %}
                                 {% endif %}
                             </span>
                         </div>

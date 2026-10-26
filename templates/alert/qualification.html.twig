@@ -126,8 +126,11 @@
                     </span>
                     <span class="qualify-recap-label">Marché émetteur</span>
                     <span class="qualify-recap-val">{{ alert.market ? alert.market.nom : '—' }}</span>
-                    <span class="qualify-recap-label">Port / Corridor</span>
-                    <span class="qualify-recap-val">{{ alert.portCorridor ?: '—' }}</span>
+                    <span class="qualify-recap-label">Localisation</span>
+                    <span class="qualify-recap-val">
+                        {{ alert.typeLocalisation ? alert.typeLocalisation.label() : '—' }} ·
+                        {{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '—') }}
+                    </span>
                 </div>
             </div>
 
