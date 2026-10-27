@@ -80,10 +80,10 @@
         {# Alertes en attente de validation #}
         {% include 'components/_stat_card.html.twig' with {
             title: 'En Attente',
-            value: tauxValidation.en_cours + tauxValidation.nouveau,
+            value: (tauxValidation.en_cours ?? 0) + (tauxValidation.nouveau ?? 0),
             icon: 'bi-hourglass-split',
             color: 'amber',
-            trend_val: tauxValidation.en_cours ~ ' en validation',
+            trend_val: (tauxValidation.en_cours ?? 0) ~ ' en validation',
             trend_dir: 'neutral'
         } %}
 
@@ -110,7 +110,7 @@
                     <p class="db-card-eyebrow"><i class="bi bi-graph-up me-1.5"></i>Votre Activité</p>
                     <p class="db-card-title">Soumissions et Validations</p>
                 </div>
-                <span class="db-live-indicator"><span></span>{{ evolutionMensuelle.mois }} derniers mois</span>
+                <span class="db-live-indicator"><span></span>{{ (evolutionMensuelle.mois ?? 12) }} derniers mois</span>
             </div>
             <div class="db-chart-area">
                 <canvas id="evolutionMensuelleChart" height="90"></canvas>
@@ -136,22 +136,22 @@
                 <div class="donut-legend-item">
                     <span class="donut-dot" style="background:#ef4444;"></span>
                     <span class="donut-legend-label">Critique (18+)</span>
-                    <span class="donut-legend-val">{{ scoreDistribution.critique }}</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.critique ?? 0 }}</span>
                 </div>
                 <div class="donut-legend-item">
                     <span class="donut-dot" style="background:#f97316;"></span>
                     <span class="donut-legend-label">Élevé (14-17)</span>
-                    <span class="donut-legend-val">{{ scoreDistribution.eleve }}</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.eleve ?? 0 }}</span>
                 </div>
                 <div class="donut-legend-item">
                     <span class="donut-dot" style="background:#f59e0b;"></span>
                     <span class="donut-legend-label">Modéré (10-13)</span>
-                    <span class="donut-legend-val">{{ scoreDistribution.modere }}</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.modere ?? 0 }}</span>
                 </div>
                 <div class="donut-legend-item">
                     <span class="donut-dot" style="background:#10b981;"></span>
                     <span class="donut-legend-label">Faible (1-9)</span>
-                    <span class="donut-legend-val">{{ scoreDistribution.faible }}</span>
+                    <span class="donut-legend-val">{{ scoreDistribution.faible ?? 0 }}</span>
                 </div>
             </div>
         </div>
@@ -385,13 +385,13 @@ if (typeof Chart !== 'undefined') {
     const scoreDistCtx = document.getElementById('scoreDistributionChart')?.getContext('2d');
     if (scoreDistCtx) {
         Chart.getChart(scoreDistCtx)?.destroy();
-        const total = {{ scoreDistribution.critique }} + {{ scoreDistribution.eleve }} + {{ scoreDistribution.modere }} + {{ scoreDistribution.faible }};
+        const total = ({{ scoreDistribution.critique ?? 0 }}) + ({{ scoreDistribution.eleve ?? 0 }}) + ({{ scoreDistribution.modere ?? 0 }}) + ({{ scoreDistribution.faible ?? 0 }});
         new Chart(scoreDistCtx, {
             type: 'doughnut',
             data: {
                 labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
                 datasets: [{
-                    data: [{{ scoreDistribution.critique }}, {{ scoreDistribution.eleve }}, {{ scoreDistribution.modere }}, {{ scoreDistribution.faible }}],
+                    data: [{{ scoreDistribution.critique ?? 0 }}, {{ scoreDistribution.eleve ?? 0 }}, {{ scoreDistribution.modere ?? 0 }}, {{ scoreDistribution.faible ?? 0 }}],
                     backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
                     borderColor: 'rgba(18,34,29,0.6)',
                     borderWidth: 2,
@@ -414,7 +414,7 @@ if (typeof Chart !== 'undefined') {
             data: {
                 labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
                 datasets: [{
-                    data: [{{ kpis.critique }}, {{ kpis.eleve }}, {{ kpis.modere }}, {{ kpis.faible }}],
+                    data: [{{ kpis.critique ?? 0 }}, {{ kpis.eleve ?? 0 }}, {{ kpis.modere ?? 0 }}, {{ kpis.faible ?? 0 }}],
                     backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
                     borderColor: 'rgba(18,34,29,0.6)',
                     borderWidth: 2,
