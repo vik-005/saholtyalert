@@ -24,18 +24,32 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('lrv_new') }}">
                 <div class="form-field mb-4">
                     <label class="form-label text-center" for="lr_type">Type de liste <span class="text-red-400">*</span></label>
-                    <select name="type_liste" id="lr_type" class="form-select" required>
-                        <option value="">Sélectionnez </option>
-                        <option value="categorie">Catégorie </option>
-                        <option value="type_source">Type de source </option>
+                    <select name="type_liste" id="lr_type" class="form-select" required onchange="toggleLocalityFields(this.value)">
+                        <option value="">Sélectionnez un type…</option>
+                        <option value="categorie">Catégorie de produit / marchandise</option>
+                        <option value="type_source">Type de source d'information</option>
+                        <option value="localite">Localité stratégique (Port, Corridor, Aéroport, Ville)</option>
+                        <option value="institution_transmission">Institution de transition / transmission</option>
                     </select>
                 </div>
 
+                <div class="form-field mb-4" id="field_nature_localite" style="display:none;">
+                    <label class="form-label text-center" for="lr_nature">Type de localité / infrastructure</label>
+                    <select name="nature_localite" id="lr_nature" class="form-select">
+                        <option value="Port">Port maritime / fluvial</option>
+                        <option value="Corridor">Corridor de transit</option>
+                        <option value="Aéroport">Aéroport international</option>
+                        <option value="Frontière">Poste frontalier</option>
+                        <option value="Ville">Ville / Centre logistique</option>
+                    </select>
+                    <p class="form-help text-center">Permet de classifier automatiquement la localité (ex: [Port] Port Autonome de Cotonou).</p>
+                </div>
+
                 <div class="form-field mb-4">
-                    <label class="form-label text-center" for="lr_libelle">Libellé <span class="text-red-400">*</span></label>
+                    <label class="form-label text-center" for="lr_libelle">Nom / Libellé <span class="text-red-400">*</span></label>
                     <input type="text" name="libelle" id="lr_libelle" class="form-input" required
-                           placeholder="ex. Tabac brut, Source terrain…" maxlength="150">
-                    <p class="form-help text-center">Le texte exact qui apparaîtra dans le menu déroulant.</p>
+                           placeholder="ex. Port de Cotonou, Corridor Abidjan-Ouaga, Source terrain…" maxlength="150">
+                    <p class="form-help text-center" id="libelle_help">Le texte exact qui apparaîtra dans les menus déroulants et sélections.</p>
                 </div>
 
                 <div class="form-field mb-4">
@@ -56,4 +70,20 @@
     </div>
 
 </div>
+<script>
+function toggleLocalityFields(val) {
+    const natField = document.getElementById('field_nature_localite');
+    const libelleHelp = document.getElementById('libelle_help');
+    if (val === 'localite') {
+        natField.style.display = 'block';
+        libelleHelp.textContent = 'Nom de l\'infrastructure ou de la ville (ex: Port Autonome de Cotonou). Le type sélectionné ci-dessus sera préfixé automatiquement si nécessaire.';
+    } else if (val === 'institution_transmission') {
+        natField.style.display = 'none';
+        libelleHelp.textContent = 'Nom complet ou sigle de l\'institution de transition/transmission (ex: INTERPOL NCB, DOUANES CI).';
+    } else {
+        natField.style.display = 'none';
+        libelleHelp.textContent = 'Le texte exact qui apparaîtra dans les menus déroulants.';
+    }
+}
+</script>
 {% endblock %}

@@ -755,14 +755,25 @@ class WizardController extends AbstractController
                 } catch (\ValueError) {
                     // Valeur invalide ignorée silencieusement
                 }
-
-                if (array_key_exists('localiteLatitude', $alertData)) {
-                    $alert->setLocaliteLatitude($alertData['localiteLatitude'] === '' ? null : (float) $alertData['localiteLatitude']);
-                }
-                if (array_key_exists('localiteLongitude', $alertData)) {
-                    $alert->setLocaliteLongitude($alertData['localiteLongitude'] === '' ? null : (float) $alertData['localiteLongitude']);
-                }
             }
+        }
+
+        if (array_key_exists('localiteLatitude', $alertData)) {
+            $latitude = trim((string) $alertData['localiteLatitude']);
+            $alert->setLocaliteLatitude($latitude === '' ? null : (float) $latitude);
+        }
+        if (array_key_exists('localiteLongitude', $alertData)) {
+            $longitude = trim((string) $alertData['localiteLongitude']);
+            $alert->setLocaliteLongitude($longitude === '' ? null : (float) $longitude);
+        }
+
+        if ($alert->getTypeLocalisation() === \App\Enum\TypeLocalisation::LOCALITE) {
+            $alert->setPortCorridor(null);
+        } else {
+            $alert->setLocalite(null);
+            $alert->setTypeLocalite(null);
+            $alert->setLocaliteLatitude(null);
+            $alert->setLocaliteLongitude(null);
         }
 
         // Crédibilité (int)

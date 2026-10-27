@@ -6263,3 +6263,17 @@ html:not(.dark) body:not(.dark) .wizard-page .form-textarea:focus {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* ── Icônes personnalisées : Port Maritime (Ancre SVG) & Localité ── */
+.bi-anchor::before,
+.bi-port::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 1em !important;
+  height: 1em !important;
+  vertical-align: -0.125em !important;
+  background-color: currentColor !important;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='5' r='3'/%3E%3Cline x1='12' y1='22' x2='12' y2='8'/%3E%3Cpath d='M5 12H2a10 10 0 0 0 20 0h-3'/%3E%3C/svg%3E") no-repeat center / contain !important;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='5' r='3'/%3E%3Cline x1='12' y1='22' x2='12' y2='8'/%3E%3Cpath d='M5 12H2a10 10 0 0 0 20 0h-3'/%3E%3C/svg%3E") no-repeat center / contain !important;
+}
+

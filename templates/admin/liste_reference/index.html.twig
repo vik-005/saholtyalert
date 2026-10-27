@@ -34,15 +34,6 @@
         </div>
     </div>
     <div class="lrv-kpi-card">
-        <div class="lrv-kpi-icon" style="background:rgba(52,211,153,.1);color:#34d399">
-            <i class="bi bi-check-circle"></i>
-        </div>
-        <div>
-            <p class="lrv-kpi-val">{{ categories|filter(c => c.actif)|length }}</p>
-            <p class="lrv-kpi-label">Catégories actives</p>
-        </div>
-    </div>
-    <div class="lrv-kpi-card">
         <div class="lrv-kpi-icon" style="background:rgba(96,165,250,.1);color:#60a5fa">
             <i class="bi bi-collection"></i>
         </div>
@@ -52,12 +43,21 @@
         </div>
     </div>
     <div class="lrv-kpi-card">
-        <div class="lrv-kpi-icon" style="background:rgba(148,163,184,.08);color:var(--text-muted)">
-            <i class="bi bi-eye-slash"></i>
+        <div class="lrv-kpi-icon" style="background:rgba(52,211,153,.1);color:#34d399">
+            <i class="bi bi-geo-alt"></i>
         </div>
         <div>
-            <p class="lrv-kpi-val">{{ (categories|filter(c => not c.actif)|length) + (typeSources|filter(s => not s.actif)|length) }}</p>
-            <p class="lrv-kpi-label">Valeurs désactivées</p>
+            <p class="lrv-kpi-val">{{ localites|length }}</p>
+            <p class="lrv-kpi-label">Localités &amp; Ports</p>
+        </div>
+    </div>
+    <div class="lrv-kpi-card">
+        <div class="lrv-kpi-icon" style="background:rgba(168,85,247,.1);color:#c084fc">
+            <i class="bi bi-building"></i>
+        </div>
+        <div>
+            <p class="lrv-kpi-val">{{ institutions|length }}</p>
+            <p class="lrv-kpi-label">Institutions transition</p>
         </div>
     </div>
 </div>
@@ -237,6 +237,182 @@
                             <p>Aucun type de source enregistré.</p>
                             <a href="{{ path('app_admin_liste_reference_new') }}" class="db-btn db-btn-amber" style="margin-top:12px;font-size:11px">
                                 <i class="bi bi-plus me-1"></i>Ajouter le premier type
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ══ TABLEAU LOCALITÉS (PORTS, CORRIDORS, AÉROPORTS, VILLES) ══ #}
+<div class="db-table-card">
+    <div class="db-card-header db-card-header-border" style="padding:14px 16px">
+        <div>
+            <p class="db-card-eyebrow"><i class="bi bi-geo-alt me-1.5 text-emerald-400"></i>Gestion des Localités &amp; Ports</p>
+            <p class="db-card-title">{{ localites|length }} localité{{ localites|length > 1 ? 's' : '' }} référencée{{ localites|length > 1 ? 's' : '' }}</p>
+        </div>
+        <a href="{{ path('app_admin_liste_reference_new') }}?type=localite" class="db-btn db-btn-emerald" style="font-size:11px">
+            <i class="bi bi-plus me-1"></i>Ajouter une localité
+        </a>
+    </div>
+    <div class="db-table-wrap">
+        <table class="db-table">
+            <thead>
+                <tr>
+                    <th>Localité / Port / Corridor</th>
+                    <th style="width:130px;text-align:center">Alertes associées</th>
+                    <th style="width:80px;text-align:center">Ordre</th>
+                    <th style="width:120px;text-align:center">Statut</th>
+                    <th style="width:110px">Créé le</th>
+                    <th style="width:180px;text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in localites %}
+                {% set key = item.libelle|lower|trim %}
+                {% set statCount = localiteStats[key]|default(0) %}
+                <tr class="db-tr {% if not item.actif %}lrv-inactive{% endif %}">
+                    <td>
+                        <div class="lrv-label-cell">
+                            <span class="lrv-dot {% if item.actif %}lrv-dot-on{% else %}lrv-dot-off{% endif %}"></span>
+                            <div>
+                                <span class="lrv-libelle {% if not item.actif %}lrv-libelle-off{% endif %}">
+                                    {{ item.libelle }}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="text-align:center">
+                        <span class="status-pill {% if statCount > 0 %}status-active{% else %}status-closed{% endif %}" style="font-size:10px;">
+                            {{ statCount }} alerte{{ statCount > 1 ? 's' : '' }}
+                        </span>
+                    </td>
+                    <td style="text-align:center">
+                        <span class="lrv-order">{{ item.ordreAffichage }}</span>
+                    </td>
+                    <td style="text-align:center">
+                        {% if item.actif %}
+                            <span class="status-pill status-active"><span class="status-dot"></span>Actif</span>
+                        {% else %}
+                            <span class="status-pill status-closed"><span class="status-dot"></span>Désactivé</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted)">
+                        {{ item.createdAt|date('d/m/Y') }}
+                    </td>
+                    <td>
+                        <div class="lrv-actions">
+                            <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}" class="tbl-btn tbl-btn-ghost" title="Modifier">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
+                                <button type="submit" class="tbl-btn tbl-btn-ghost" title="{{ item.actif ? 'Désactiver' : 'Activer' }}">
+                                    <i class="bi bi-{{ item.actif ? 'eye-slash' : 'eye' }}"></i>
+                                </button>
+                            </form>
+                            <button type="button" class="tbl-btn tbl-btn-red delete-trigger" title="Supprimer définitivement"
+                                    data-delete-url="{{ path('app_admin_liste_reference_delete', {id: item.id}) }}"
+                                    data-delete-token="{{ csrf_token('delete-lrv-' ~ item.id) }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6">
+                        <div class="db-empty-state">
+                            <i class="bi bi-geo-alt" style="font-size:28px;color:var(--muted);display:block;margin-bottom:8px"></i>
+                            <p>Aucune localité enregistrée dans la liste de référence.</p>
+                            <a href="{{ path('app_admin_liste_reference_new') }}?type=localite" class="db-btn db-btn-emerald" style="margin-top:12px;font-size:11px">
+                                <i class="bi bi-plus me-1"></i>Ajouter une première localité
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ══ TABLEAU INSTITUTIONS DE TRANSITION / TRANSMISSION ══ #}
+<div class="db-table-card">
+    <div class="db-card-header db-card-header-border" style="padding:14px 16px">
+        <div>
+            <p class="db-card-eyebrow"><i class="bi bi-building me-1.5 text-purple-400"></i>Institutions de Transition / Transmission</p>
+            <p class="db-card-title">{{ institutions|length }} institution{{ institutions|length > 1 ? 's' : '' }} enregistrée{{ institutions|length > 1 ? 's' : '' }}</p>
+        </div>
+        <a href="{{ path('app_admin_liste_reference_new') }}?type=institution_transmission" class="db-btn db-btn-ghost" style="font-size:11px">
+            <i class="bi bi-plus me-1"></i>Ajouter une institution
+        </a>
+    </div>
+    <div class="db-table-wrap">
+        <table class="db-table">
+            <thead>
+                <tr>
+                    <th>Nom de l'Institution</th>
+                    <th style="width:80px;text-align:center">Ordre</th>
+                    <th style="width:120px;text-align:center">Statut</th>
+                    <th style="width:110px">Créé le</th>
+                    <th style="width:180px;text-align:right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in institutions %}
+                <tr class="db-tr {% if not item.actif %}lrv-inactive{% endif %}">
+                    <td>
+                        <div class="lrv-label-cell">
+                            <span class="lrv-dot {% if item.actif %}lrv-dot-on{% else %}lrv-dot-off{% endif %}"></span>
+                            <span class="lrv-libelle {% if not item.actif %}lrv-libelle-off{% endif %}">
+                                <i class="bi bi-building me-1.5 opacity-60"></i>{{ item.libelle }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="text-align:center">
+                        <span class="lrv-order">{{ item.ordreAffichage }}</span>
+                    </td>
+                    <td style="text-align:center">
+                        {% if item.actif %}
+                            <span class="status-pill status-active"><span class="status-dot"></span>Actif</span>
+                        {% else %}
+                            <span class="status-pill status-closed"><span class="status-dot"></span>Désactivé</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:11px;color:var(--text-muted)">
+                        {{ item.createdAt|date('d/m/Y') }}
+                    </td>
+                    <td>
+                        <div class="lrv-actions">
+                            <a href="{{ path('app_admin_liste_reference_edit', {id: item.id}) }}" class="tbl-btn tbl-btn-ghost" title="Modifier">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <form method="post" action="{{ path('app_admin_liste_reference_toggle', {id: item.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle-lrv-' ~ item.id) }}">
+                                <button type="submit" class="tbl-btn tbl-btn-ghost" title="{{ item.actif ? 'Désactiver' : 'Activer' }}">
+                                    <i class="bi bi-{{ item.actif ? 'eye-slash' : 'eye' }}"></i>
+                                </button>
+                            </form>
+                            <button type="button" class="tbl-btn tbl-btn-red delete-trigger" title="Supprimer définitivement"
+                                    data-delete-url="{{ path('app_admin_liste_reference_delete', {id: item.id}) }}"
+                                    data-delete-token="{{ csrf_token('delete-lrv-' ~ item.id) }}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5">
+                        <div class="db-empty-state">
+                            <i class="bi bi-building" style="font-size:28px;color:var(--muted);display:block;margin-bottom:8px"></i>
+                            <p>Aucune institution personnalisée enregistrée.</p>
+                            <a href="{{ path('app_admin_liste_reference_new') }}?type=institution_transmission" class="db-btn db-btn-ghost" style="margin-top:12px;font-size:11px">
+                                <i class="bi bi-plus me-1"></i>Ajouter la première institution
                             </a>
                         </div>
                     </td>

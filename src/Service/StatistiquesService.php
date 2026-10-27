@@ -798,7 +798,7 @@ class StatistiquesService
                 $params
             );
 
-            $kpis = ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0];
+            $kpis = ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0, 'nb_localites' => 0];
             foreach ($kpiRows as $row) {
                 $count = (int) $row['nb'];
                 $kpis['total'] += $count;
@@ -806,9 +806,21 @@ class StatistiquesService
                     'corridor' => $kpis['nb_corridors'] += $count,
                     'port'     => $kpis['nb_ports']     += $count,
                     'aeroport' => $kpis['nb_aeroports'] += $count,
+                    'localite' => $kpis['nb_localites'] += $count,
                     default    => null,
                 };
             }
+
+            // Compte séparé des localités (champ dédié, non port_corridor)
+            $localiteCount = $this->conn()->fetchOne(
+                "SELECT COUNT(a.id) FROM alert a
+                 WHERE (a.type_localisation = 'localite' OR (a.type_localisation IS NULL AND a.localite IS NOT NULL))
+                   AND a.localite IS NOT NULL AND TRIM(a.localite) != ''
+                   AND a.date_creation BETWEEN :debut AND :fin {$where}",
+                $params
+            );
+            $kpis['nb_localites'] = max($kpis['nb_localites'], (int) $localiteCount);
+            $kpis['total'] = $kpis['nb_corridors'] + $kpis['nb_ports'] + $kpis['nb_aeroports'] + $kpis['nb_localites'];
             $kpis['top_element'] = !empty($topLocalisations) ? $topLocalisations[0] : null;
 
             return [

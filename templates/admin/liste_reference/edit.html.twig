@@ -22,7 +22,7 @@
                 <input type="hidden" name="_token" value="{{ csrf_token('edit-lrv-' ~ item.id) }}">
                 <div class="form-field mb-4">
                     <label class="form-label">Type de liste</label>
-                    <input type="text" class="form-input" value="{{ item.typeListe == 'categorie' ? 'Catégorie' : 'Type de source' }}" disabled>
+                    <input type="text" class="form-input" value="{% if item.typeListe == 'categorie' %}Catégorie{% elseif item.typeListe == 'type_source' %}Type de source{% elseif item.typeListe == 'localite' %}Localité (Port, Corridor, Ville){% elseif item.typeListe == 'institution_transmission' %}Institution de transition / transmission{% else %}{{ item.typeListe }}{% endif %}" disabled>
                     <p class="form-help">Le type ne peut pas être modifié après création.</p>
                 </div>
 

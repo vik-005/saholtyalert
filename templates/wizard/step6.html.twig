@@ -47,6 +47,25 @@
                     </dd>
                     <dt>Nom</dt>
                     <dd>{{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '—') }}</dd>
+                    <dt>Parcours / Transit</dt>
+                    <dd>
+                        {% set pList = alert.getOrderedParcours(parcoursCountries|default({})) %}
+                        {% if pList|length > 1 %}
+                            <div class="flex flex-wrap items-center gap-1.5 font-medium text-xs">
+                                {% for step in pList %}
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded {% if step.isPrincipal %}bg-amber-950/60 border border-amber-600/40 text-amber-300 font-bold{% else %}bg-slate-800 border border-slate-700 text-slate-200{% endif %}">
+                                        {% if step.isPrincipal %}<i class="bi bi-geo-alt-fill text-amber-400"></i>{% else %}<span class="text-emerald-400">#{{ loop.index - 1 }}</span>{% endif %}
+                                        {{ step.name }} ({{ step.code }})
+                                    </span>
+                                    {% if not loop.last %}
+                                        <i class="bi bi-arrow-right text-emerald-400"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-slate-500">Marché émetteur national uniquement</span>
+                        {% endif %}
+                    </dd>
                 </dl>
             </div>
 

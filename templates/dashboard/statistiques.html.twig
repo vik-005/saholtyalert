@@ -308,14 +308,67 @@
 
 <div class="stats-row-1col">
     <div class="stats-card">
-        <div class="db-card-header">
+        <div class="db-card-header" style="flex-wrap:wrap;gap:12px;">
             <div>
-                <p class="db-card-eyebrow"><i class="bi bi-geo-alt me-1.5"></i>Top localités</p>
-                <p class="db-card-title">Villes et villages les plus signalés</p>
+                <p class="db-card-eyebrow"><i class="bi bi-pin-map-fill me-1.5" style="color:#fb923c"></i>Localités stratégiques</p>
+                <p class="db-card-title">Ports, corridors, aéroports et localités les plus signalés</p>
             </div>
+            <a href="{{ path('app_dashboard_corridors', {type_loc: 'localite'}) }}" class="db-btn db-btn-ghost" style="font-size:12px">
+                <i class="bi bi-arrow-right me-1"></i>Analyse détaillée
+            </a>
         </div>
-        <div style="overflow-y:auto; max-height:300px;">
-            <canvas id="chartTopLocalites" height="280"></canvas>
+
+        {% if top_localites is not empty %}
+        <div style="overflow-x:auto; margin-bottom:16px;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);color:var(--muted);">
+                        <th style="padding:6px 8px;text-align:left;font-weight:600;">#</th>
+                        <th style="padding:6px 8px;text-align:left;font-weight:600;">Type</th>
+                        <th style="padding:6px 8px;text-align:left;font-weight:600;">Localité</th>
+                        <th style="padding:6px 8px;text-align:left;font-weight:600;">Pays</th>
+                        <th style="padding:6px 8px;text-align:right;font-weight:600;">Alertes</th>
+                        <th style="padding:6px 8px;text-align:right;font-weight:600;">Part</th>
+                        <th style="padding:6px 4px;min-width:80px;font-weight:600;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% set totalLoc = 0 %}
+                {% for item in top_localites %}{% set totalLoc = totalLoc + item.nb %}{% endfor %}
+                {% for item in top_localites|slice(0, 12) %}
+                    {% set pct = totalLoc > 0 ? (item.nb / totalLoc * 100)|round(1) : 0 %}
+                    {% set typIcon = item.typeLocalite == 'Port' ? 'anchor' : (item.typeLocalite == 'Corridor' ? 'signpost-2' : (item.typeLocalite == 'Aéroport' ? 'airplane' : 'pin-map-fill')) %}
+                    {% set typColor = item.typeLocalite == 'Port' ? '#60a5fa' : (item.typeLocalite == 'Corridor' ? '#34d399' : (item.typeLocalite == 'Aéroport' ? '#a78bfa' : '#fb923c')) %}
+                    <tr style="border-bottom:1px solid var(--border2);transition:background 0.15s;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background=''">
+                        <td style="padding:7px 8px;color:var(--muted);font-weight:700;">{{ loop.index }}</td>
+                        <td style="padding:7px 8px;">
+                            <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;background:{{ typColor }}22;color:{{ typColor }};padding:2px 6px;border-radius:4px;font-weight:600;">
+                                <i class="bi bi-{{ typIcon }}" style="font-size:10px;"></i>{{ item.typeLocalite ?: 'Localité' }}
+                            </span>
+                        </td>
+                        <td style="padding:7px 8px;font-weight:600;color:var(--text);">{{ item.localite }}</td>
+                        <td style="padding:7px 8px;color:var(--muted);">{{ item.pays }}</td>
+                        <td style="padding:7px 8px;text-align:right;font-weight:700;color:var(--amber);">{{ item.nb }}</td>
+                        <td style="padding:7px 8px;text-align:right;color:var(--muted);">{{ pct }}%</td>
+                        <td style="padding:7px 4px;">
+                            <div style="background:var(--border2);border-radius:3px;height:6px;overflow:hidden;">
+                                <div style="background:{{ typColor }};height:100%;width:{{ pct }}%;border-radius:3px;transition:width 0.6s ease;"></div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">
+            <i class="bi bi-pin-map" style="font-size:28px;opacity:0.3;display:block;margin-bottom:8px;"></i>
+            Aucune localité enregistrée sur la période.
+        </div>
+        {% endif %}
+
+        <div style="overflow-y:auto; max-height:240px;">
+            <canvas id="chartTopLocalites" height="220"></canvas>
         </div>
     </div>
 </div>

@@ -137,10 +137,24 @@ class AlertFilterService
                ->setParameter('dateFin', new \DateTime($dto->getDateFin() . ' 23:59:59'));
         }
 
-        // Urgence 72h uniquement
+        // Urgence 72h uniquement (inclut urgence 72h/immédiat, dossier actif, ou score critique validé >= 18)
         if ($dto->getUrgence72h() === true) {
-            $qb->andWhere($alias . '.urgence = :urg72h')
-               ->setParameter('urg72h', '72h');
+            $qb->leftJoin($alias . '.urgence72hCase', 'u72case')
+               ->andWhere(
+                   $qb->expr()->orX(
+                       $alias . '.urgence = :urg72h',
+                       $alias . '.urgence = :urgImmediat',
+                       'u72case.id IS NOT NULL',
+                       $qb->expr()->andX(
+                           $alias . '.statut = :statutValidee',
+                           $qb->expr()->gte('COALESCE(' . $alias . '.scoreSurcharge, ' . $alias . '.scoreGei)', ':score72hMin')
+                       )
+                   )
+               )
+               ->setParameter('urg72h', '72h')
+               ->setParameter('urgImmediat', 'immediat')
+               ->setParameter('statutValidee', \App\Enum\AlertStatut::VALIDEE)
+               ->setParameter('score72hMin', 18);
         }
 
         // Agent (émetteur)

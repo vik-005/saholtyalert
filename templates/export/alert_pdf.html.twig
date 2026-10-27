@@ -387,10 +387,13 @@
                 <td>{{ alert.localite ? alert.localite ~ ' (' ~ alert.typeLocalite ~ ')' : (alert.portCorridor ?: '-') }}</td>
                 <th>Parcours / Transit</th>
                 <td>
-                    {% if alert.parcoursCountries and alert.parcoursCountries is iterable and alert.parcoursCountries|length > 0 %}
-                        {{ alert.parcoursCountries|join(' → ') }}
-                    {% elseif alert.alertMarkets and alert.alertMarkets|length > 0 %}
-                        {% for am in alert.alertMarkets %}{{ am.market.nom }}{% if not loop.last %} → {% endif %}{% endfor %}
+                    {% set pPdf = alert.getOrderedParcours(countryNames|default({})) %}
+                    {% if pPdf|length > 1 %}
+                        {% for step in pPdf %}
+                            <strong>{{ step.name }}</strong> ({{ step.code }}){% if step.isPrincipal %} <em>[Origine]</em>{% endif %}{% if not loop.last %} → {% endif %}
+                        {% endfor %}
+                    {% elseif alert.market %}
+                        <strong>{{ alert.market.nom }}</strong> ({{ alert.market.codeIso3 }}) <em>[Origine]</em>
                     {% else %}
                         Marché national émetteur
                     {% endif %}

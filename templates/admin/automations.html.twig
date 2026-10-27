@@ -85,6 +85,103 @@
         </div>
     </div>
 
+    {# ── Institutions de Transition / Transmission ── #}
+    <div class="db-card mb-4">
+        <div class="db-card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-building-check me-1.5 text-emerald-400"></i>Paramètres &amp; Workflow</p>
+                <p class="db-card-title">Institutions de Transition / Transmission ({{ institutions|length }})</p>
+            </div>
+            <button type="button" class="db-btn db-btn-emerald db-btn-sm" onclick="document.getElementById('addInstModal').classList.remove('hidden')">
+                <i class="bi bi-plus-lg me-1"></i>Ajouter une institution
+            </button>
+        </div>
+        <div class="db-card-body">
+            <p style="font-size:12px;color:var(--dim);margin-bottom:16px;">
+                Liste des institutions destinataires configurées manuellement par l'administrateur. Ces autorités apparaissent automatiquement dans le formulaire de transmission des alertes validées.
+            </p>
+
+            <div class="table-scroll">
+                <table class="gei-table">
+                    <thead>
+                        <tr>
+                            <th>Nom de l'Institution</th>
+                            <th class="text-center" style="width:100px;">Ordre</th>
+                            <th class="text-center" style="width:120px;">Statut</th>
+                            <th class="text-center" style="width:130px;">Créée le</th>
+                            <th class="text-end" style="width:120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inst in institutions %}
+                        <tr class="db-tr">
+                            <td style="font-weight:600;color:var(--text);">
+                                <i class="bi bi-building me-2 text-emerald-400"></i>{{ inst.libelle }}
+                            </td>
+                            <td class="text-center font-mono" style="font-size:11px;">{{ inst.ordreAffichage }}</td>
+                            <td class="text-center">
+                                {% if inst.actif %}
+                                    <span class="status-pill status-active" style="font-size:9px"><span class="status-dot"></span>ACTIF</span>
+                                {% else %}
+                                    <span class="status-pill status-inactive" style="font-size:9px"><span class="status-dot"></span>INACTIF</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center font-mono" style="font-size:11px;color:var(--muted);">{{ inst.createdAt|date('d/m/Y') }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{{ path('app_admin_automation_institution_toggle', {id: inst.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_institution_' ~ inst.id) }}">
+                                    <button type="submit" class="tbl-btn tbl-btn-ghost" title="{{ inst.actif ? 'Désactiver' : 'Activer' }}">
+                                        <i class="bi bi-{{ inst.actif ? 'eye-slash' : 'eye' }}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="db-empty-state" style="padding:24px;">
+                                    <i class="bi bi-building text-slate-500 mb-2" style="font-size:24px;display:block;"></i>
+                                    <p>Aucune institution personnalisée enregistrée pour le moment. Vous pouvez en ajouter une ci-dessus.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Modal Ajout Institution ── #}
+    <div id="addInstModal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+        <div class="modal-box" style="max-width:480px;background:var(--navy-900);border:1px solid var(--border);border-radius:12px;padding:24px;">
+            <div class="modal-header d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <p class="modal-eyebrow" style="font-size:11px;color:var(--emerald);margin:0;"><i class="bi bi-plus-circle me-1"></i>Configuration</p>
+                    <h3 class="modal-title" style="font-size:16px;font-weight:700;color:#fff;margin:0;">Ajouter une institution de transition</h3>
+                </div>
+                <button type="button" class="modal-close-btn" onclick="document.getElementById('addInstModal').classList.add('hidden')" aria-label="Fermer" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form method="post" action="{{ path('app_admin_automation_institution_new') }}" class="space-y-4">
+                <input type="hidden" name="_token" value="{{ csrf_token('add_institution_auto') }}">
+                <div class="mb-3">
+                    <label class="form-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Nom complet de l'Institution <span class="text-red-400">*</span></label>
+                    <input type="text" name="libelle" class="form-input" style="width:100%;padding:8px 12px;" placeholder="ex. Haute Autorité Portuaire, Douanes du Niger..." required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Ordre d'affichage (optionnel)</label>
+                    <input type="number" name="ordre_affichage" class="form-input" value="10" min="0" style="width:100%;padding:8px 12px;">
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="document.getElementById('addInstModal').classList.add('hidden')">Annuler</button>
+                    <button type="submit" class="db-btn db-btn-emerald db-btn-sm"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {# ── Historique des Déclenchements ── #}
     <div class="db-card">
         <div class="db-card-header">

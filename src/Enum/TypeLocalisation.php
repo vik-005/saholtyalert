@@ -22,10 +22,15 @@ enum TypeLocalisation: string
     public function icon(): string
     {
         return match ($this) {
-            self::PORT => 'bi-anchor',
-            self::CORRIDOR => 'bi-signpost-figure',
-            self::AEROPORT => 'bi-airplane',
-            self::LOCALITE => 'bi-geo-alt',
+            self::PORT => 'anchor',
+            self::CORRIDOR => 'signpost-2',
+            self::AEROPORT => 'airplane',
+            self::LOCALITE => 'pin-map-fill',
         };
+    }
+
+    public function cssClass(): string
+    {
+        return 'bi bi-' . $this->icon();
     }
 }

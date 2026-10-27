@@ -5,6 +5,7 @@ namespace App\Service;
 use App\Entity\Alert;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Symfony\Component\Intl\Countries;
 use Twig\Environment;
 
 /**
@@ -28,6 +29,7 @@ class PdfExportService
 
         $html = $this->twig->render('export/alert_pdf.html.twig', [
             'alert' => $alert,
+            'countryNames' => Countries::getNames('fr'),
             'date_impression' => new \DateTime(),
             'document_ref' => 'GEI-' . ($alert->getCodeGei() ?? 'DRAFT') . '-v1',
             'platform_name' => 'Plateforme GEI',

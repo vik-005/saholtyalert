@@ -7,6 +7,7 @@ use App\Entity\ListeReferenceValeur;
 use App\Entity\User;
 use App\Enum\AlertExploitabilite;
 use App\Enum\AlertImpact;
+use App\Enum\AlertLegality;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
 use App\Enum\Recommandation;
@@ -46,7 +47,33 @@ class QualificationType extends AbstractType
         $categoriesListe = $this->lrRepo->findActivesByType('categorie');
         $typeSourceListe = $this->lrRepo->findActivesByType('type_source');
 
+        $typeSourceChoices = [];
+        foreach ($typeSourceListe as $ts) {
+            $typeSourceChoices[$ts->getLibelle()] = $ts->getLibelle();
+        }
+
         $builder
+            // Statut juridique : Licite vs Illicite
+            ->add('legalStatus', EnumType::class, [
+                'class'        => AlertLegality::class,
+                'label'        => 'Qualification juridique (Statut)',
+                'choice_label' => fn(AlertLegality $l) => $l->label(),
+                'required'     => false,
+                'placeholder'  => 'Sélectionner le statut juridique',
+                'attr'         => [
+                    'class' => 'form-select js-score-trigger',
+                    'id'    => 'qualification_legalStatus',
+                ],
+                'help' => 'Licite = score fixé à 1 (Faible) ; Illicite = score calculé sur les critères Annexe C.',
+            ])
+            // Type de source ajustable
+            ->add('typeSource', ChoiceType::class, [
+                'choices'     => $typeSourceChoices,
+                'label'       => 'Type de source',
+                'required'    => false,
+                'placeholder' => 'Sélectionner un type de source',
+                'attr'        => ['class' => 'form-select'],
+            ])
             // ── SECTION 5 — Qualification GEI (Annexe C) ────────────────────────────
             // Fiabilité de la source — critique pour le calcul du score
             ->add('fiabiliteSource', EnumType::class, [
@@ -57,6 +84,7 @@ class QualificationType extends AbstractType
                 'choice_label' => fn(FiabiliteSource $f) => $f->value . ' — ' . $f->label(),
                 'attr'         => [
                     'class' => 'form-select js-score-trigger',
+                    'id'    => 'qualification_fiabiliteSource',
                     'title' => 'A = source connue et fiable (score 4) … D = source non vérifiée (score 1)',
                 ],
                 'help' => 'A = source connue et fiable, D = source non vérifiée. Ce champ nourrit le score GEI (Annexe C).',

@@ -394,6 +394,84 @@ class Alert
         return $this->parcoursCountries ?? [];
     }
 
+    public function getOrderedAlertMarkets(): array
+    {
+        $markets = $this->alertMarkets->toArray();
+        usort($markets, static function (AlertMarket $a, AlertMarket $b): int {
+            if ($a->getRole() === 'principal' && $b->getRole() !== 'principal') {
+                return -1;
+            }
+            if ($b->getRole() === 'principal' && $a->getRole() !== 'principal') {
+                return 1;
+            }
+            return ($a->getOrdre() ?? 999) <=> ($b->getOrdre() ?? 999);
+        });
+        return $markets;
+    }
+
+    /**
+     * Retourne la séquence complète ordonnée du parcours : Marché émetteur principal puis pays/marchés traversés.
+     * Respecte rigoureusement l'ordre de saisie.
+     *
+     * @param array<string, string> $countryNames Dictionnaire ISO2 -> Nom français (ex. Countries::getNames('fr'))
+     * @return array<int, array{order: int, role: string, code: string, name: string, isPrincipal: bool}>
+     */
+    public function getOrderedParcours(array $countryNames = []): array
+    {
+        $parcours = [];
+        $order = 1;
+
+        // Marché principal
+        $principal = $this->getMarket();
+        if ($principal !== null) {
+            $parcours[] = [
+                'order' => $order++,
+                'role' => 'principal',
+                'code' => $principal->getCodeIso3() ?? '',
+                'name' => $principal->getNom(),
+                'isPrincipal' => true,
+            ];
+        }
+
+        // Si parcoursCountries est défini (pays saisis dans l'ordre)
+        if (!empty($this->parcoursCountries)) {
+            foreach ($this->parcoursCountries as $countryCode) {
+                $code = strtoupper(trim((string) $countryCode));
+                if ($code === '' || ($principal !== null && (strtoupper($principal->getCodeIso3()) === $code || strtoupper($principal->getCodeIso2() ?? '') === $code))) {
+                    continue;
+                }
+                $name = $countryNames[$code] ?? $code;
+                $parcours[] = [
+                    'order' => $order++,
+                    'role' => 'transit',
+                    'code' => $code,
+                    'name' => $name,
+                    'isPrincipal' => false,
+                ];
+            }
+        } elseif (!$this->alertMarkets->isEmpty()) {
+            // Fallback sur alertMarkets ordonnés
+            foreach ($this->getOrderedAlertMarkets() as $am) {
+                if ($am->getRole() === 'principal') {
+                    continue;
+                }
+                $m = $am->getMarket();
+                if ($m === null) {
+                    continue;
+                }
+                $parcours[] = [
+                    'order' => $order++,
+                    'role' => 'transit',
+                    'code' => $m->getCodeIso3() ?? '',
+                    'name' => $m->getNom(),
+                    'isPrincipal' => false,
+                ];
+            }
+        }
+
+        return $parcours;
+    }
+
     public function setParcoursCountries(array $parcoursCountries): static
     {
         $this->parcoursCountries = array_values(array_unique(array_filter(
@@ -1197,8 +1275,14 @@ class Alert
      */
     public function isEligibleForUrgence72h(): bool
     {
+        if ($this->statut !== AlertStatut::VALIDEE) {
+            return false;
+        }
+
         return $this->urgence === AlertUrgence::SOIXANTE_DOUZE_H
-            && $this->statut === AlertStatut::VALIDEE;
+            || $this->urgence === AlertUrgence::IMMEDIAT
+            || ($this->getEffectiveScore() !== null && $this->getEffectiveScore() >= 18)
+            || $this->getEffectiveNiveauPriorite() === \App\Enum\NiveauPriorite::CRITIQUE;
     }
 
     public function __toString(): string

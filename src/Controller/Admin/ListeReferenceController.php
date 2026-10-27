@@ -21,15 +21,60 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class ListeReferenceController extends AbstractController
 {
     #[Route('/', name: 'app_admin_liste_reference_index', methods: ['GET'])]
-    public function index(ListeReferenceValeurRepository $repo, AdminAuditLogger $auditLogger): Response
+    public function index(ListeReferenceValeurRepository $repo, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
         $auditLogger->logAndFlush(\App\Entity\AccessLog::ACTION_LECTURE, 'reference_lists');
-        $categories = $repo->findAllByType('categorie');
-        $typeSources = $repo->findAllByType('type_source');
+        $categories   = $repo->findAllByType('categorie');
+        $typeSources  = $repo->findAllByType('type_source');
+        $localites    = $repo->findAllByType('localite');
+        $institutions = $repo->findAllByType('institution_transmission');
+
+        // Statistiques d'utilisation réelles par localité, type de source et catégorie
+        $dbal = $em->getConnection();
+
+        $localiteStats = [];
+        try {
+            $rowsLoc = $dbal->fetchAllAssociative(
+                "SELECT LOWER(TRIM(val)) AS k, COUNT(id) AS cnt
+                 FROM (
+                     SELECT id, localite AS val FROM alert WHERE localite IS NOT NULL AND localite != ''
+                     UNION ALL
+                     SELECT id, port_corridor AS val FROM alert WHERE port_corridor IS NOT NULL AND port_corridor != ''
+                 ) t GROUP BY LOWER(TRIM(val))"
+            );
+            foreach ($rowsLoc as $r) {
+                $localiteStats[$r['k']] = (int) $r['cnt'];
+            }
+        } catch (\Throwable) {}
+
+        $sourceStats = [];
+        try {
+            $rowsSrc = $dbal->fetchAllAssociative(
+                "SELECT LOWER(TRIM(type_source)) AS k, COUNT(id) AS cnt FROM alert WHERE type_source IS NOT NULL AND type_source != '' GROUP BY LOWER(TRIM(type_source))"
+            );
+            foreach ($rowsSrc as $r) {
+                $sourceStats[$r['k']] = (int) $r['cnt'];
+            }
+        } catch (\Throwable) {}
+
+        $categorieStats = [];
+        try {
+            $rowsCat = $dbal->fetchAllAssociative(
+                "SELECT LOWER(TRIM(categorie)) AS k, COUNT(id) AS cnt FROM alert WHERE categorie IS NOT NULL AND categorie != '' GROUP BY LOWER(TRIM(categorie))"
+            );
+            foreach ($rowsCat as $r) {
+                $categorieStats[$r['k']] = (int) $r['cnt'];
+            }
+        } catch (\Throwable) {}
 
         return $this->render('admin/liste_reference/index.html.twig', [
-            'categories'  => $categories,
-            'typeSources' => $typeSources,
+            'categories'     => $categories,
+            'typeSources'    => $typeSources,
+            'localites'      => $localites,
+            'institutions'   => $institutions,
+            'localiteStats'  => $localiteStats,
+            'sourceStats'    => $sourceStats,
+            'categorieStats' => $categorieStats,
         ]);
     }
 
@@ -44,12 +89,18 @@ class ListeReferenceController extends AbstractController
                 return $this->redirectToRoute('app_admin_liste_reference_new');
             }
 
-            $typeListe = $request->request->get('type_liste', '');
-            $libelle  = trim($request->request->get('libelle', ''));
-            $ordre    = (int) $request->request->get('ordre_affichage', 0);
+            $typeListe = (string) $request->request->get('type_liste', '');
+            $libelle   = trim((string) $request->request->get('libelle', ''));
+            $ordre     = (int) $request->request->get('ordre_affichage', 0);
+            $nature    = trim((string) $request->request->get('nature_localite', ''));
+
+            // Si c'est une localité avec une nature précisée (ex: Port, Corridor), préfixer ou formater si non présent
+            if ($typeListe === 'localite' && $nature !== '' && !str_starts_with($libelle, '[')) {
+                $libelle = sprintf('[%s] %s', $nature, $libelle);
+            }
 
             $errors = [];
-            if (!in_array($typeListe, ['categorie', 'type_source'], true)) {
+            if (!in_array($typeListe, ['categorie', 'type_source', 'localite', 'institution_transmission'], true)) {
                 $errors[] = 'Le type de liste est invalide.';
             }
             if ($libelle === '') {

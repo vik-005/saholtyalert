@@ -85,9 +85,10 @@
                     <select name="type_loc" class="stats-input" id="filterTypeLoc"
                             onchange="document.getElementById('corridorFilterForm').submit()">
                         <option value=""        {% if not type_loc %}selected{% endif %}>Tous</option>
-                        <option value="corridor" {% if type_loc == 'corridor' %}selected{% endif %}>Corridor</option>
-                        <option value="port"     {% if type_loc == 'port' %}selected{% endif %}>Port</option>
-                        <option value="aeroport" {% if type_loc == 'aeroport' %}selected{% endif %}>Aéroport</option>
+                        <option value="corridor" {% if type_loc == 'corridor' %}selected{% endif %}>Corridor de transit</option>
+                        <option value="port"     {% if type_loc == 'port' %}selected{% endif %}>Port maritime</option>
+                        <option value="aeroport" {% if type_loc == 'aeroport' %}selected{% endif %}>Aéroport international</option>
+                        <option value="localite" {% if type_loc == 'localite' %}selected{% endif %}>Localité (ville / village)</option>
                     </select>
                 </span>
             </div>
@@ -191,6 +192,18 @@
                 <div class="corridor-kpi-label">Aéroport{{ kpis.nb_aeroports > 1 ? 's' : '' }}</div>
                 {% if kpis.total > 0 %}
                 <div class="corridor-kpi-pct">{{ (kpis.nb_aeroports / kpis.total * 100)|round(1) }}%</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="corridor-kpi-card">
+            <div class="corridor-kpi-icon" style="background:rgba(251,146,60,0.1);color:#fb923c">
+                <i class="bi bi-pin-map-fill"></i>
+            </div>
+            <div>
+                <div class="corridor-kpi-value">{{ kpis.nb_localites|default(0) }}</div>
+                <div class="corridor-kpi-label">Localité{{ kpis.nb_localites|default(0) > 1 ? 's' : '' }}</div>
+                {% if kpis.total > 0 %}
+                <div class="corridor-kpi-pct">{{ ((kpis.nb_localites|default(0)) / kpis.total * 100)|round(1) }}%</div>
                 {% endif %}
             </div>
         </div>

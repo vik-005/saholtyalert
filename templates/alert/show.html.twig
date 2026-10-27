@@ -183,31 +183,28 @@
     </div>
     {% endif %}
 
-    {# ── PARCOURS DES PAYS — indépendant des marchés GEI ── #}
-    {% set parcoursCountries = alert.parcoursCountries|default([]) %}
-    {% if parcoursCountries|length > 0 %}
+    {# ── PARCOURS DES PAYS & MARCHÉS — Ordre chronologique strict de saisie ── #}
+    {% set parcours = alert.getOrderedParcours(countryNames|default({})) %}
+    {% if parcours|length > 1 or (alert.parcoursCountries|default([])|length > 0) %}
     <div class="show-section show-route-section mt-3">
         <div class="show-route-heading">
             <div>
                 <h3 class="show-section-title mb-1">
-                    <i class="bi bi-signpost-2 me-1.5 text-emerald-400"></i>Parcours de l'alerte
+                    <i class="bi bi-signpost-2 me-1.5 text-emerald-400"></i>Parcours &amp; Transit opérationnel
                 </h3>
-                <p class="show-route-help">Marché principal et pays associés, dans l'ordre du trajet.</p>
+                <p class="show-route-help">Ordre chronologique de saisie du transit : Marché émetteur et pays/marchés associés.</p>
             </div>
-            <span class="status-pill status-pill-route">{{ parcoursCountries|length }} pays</span>
+            <span class="status-pill status-pill-route">{{ parcours|length }} étapes</span>
         </div>
-        <div class="show-route-track" aria-label="Parcours {{ alert.market.nom }}">
-            <div class="show-route-node show-route-node-main">
-                <span class="show-route-dot"></span>
-                <strong>{{ alert.market.nom }}</strong>
-                <small>Principal · {{ alert.market.codeIso3 }}</small>
-            </div>
-            {% for countryCode in parcoursCountries %}
-                <span class="show-route-line" aria-hidden="true"></span>
-                <div class="show-route-node">
+        <div class="show-route-track" aria-label="Parcours de l'alerte">
+            {% for step in parcours %}
+                {% if not loop.first %}
+                    <span class="show-route-line" aria-hidden="true"></span>
+                {% endif %}
+                <div class="show-route-node {% if step.isPrincipal %}show-route-node-main{% endif %}">
                     <span class="show-route-dot"></span>
-                    <strong>{{ countryNames[countryCode]|default(countryCode) }}</strong>
-                    <small>Étape {{ loop.index }} · {{ countryCode }}</small>
+                    <strong>{{ step.name }}</strong>
+                    <small>{% if step.isPrincipal %}<span class="text-amber-400 font-semibold">Origine</span> · {{ step.code }}{% else %}Étape {{ loop.index - 1 }} · {{ step.code }}{% endif %}</small>
                 </div>
             {% endfor %}
         </div>

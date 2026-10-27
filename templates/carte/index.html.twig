@@ -1606,6 +1606,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     ...route,
                     occurrences: 0,
                     corridors: new Set(),
+                    localites: new Set(),
                     categories: new Set(),
                     alerts: [],
                     maxPriority: 'faible',
@@ -1614,12 +1615,15 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             const item = uniqueRoutes.get(key);
             item.occurrences += 1;
             if (route.portCorridor && route.portCorridor !== '—') item.corridors.add(route.portCorridor);
+            if (route.localite) item.localites.add(route.localite);
             if (route.categorie) item.categories.add(route.categorie);
             item.alerts.push({
                 id: route.id,
                 codeGei: route.codeGei,
                 priorite: route.priorite,
                 portCorridor: route.portCorridor,
+                localite: route.localite || null,
+                typeLocalisation: route.typeLocalisation || null,
             });
             const prioRanks = { critique: 4, eleve: 3, modere: 2, faible: 1 };
             if ((prioRanks[route.priorite] || 1) > (prioRanks[item.maxPriority] || 1)) {
@@ -1675,8 +1679,16 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             }).addTo(routeLayer);
 
             const corridorNames = [...route.corridors].join(', ');
+            const localiteNames = [...(route.localites || [])].join(', ');
             const catsList = [...route.categories].slice(0, 4).map(c => `<span class="popup-cat">${escHtml(categorieLabel(c))}</span>`).join('');
             const routeLabel = (route.markets || []).join(' ➔ ');
+
+            // Icône selon le type de localisation du 1er item
+            const firstAlert = route.alerts?.[0];
+            const typeLocIcon = firstAlert?.typeLocalisation === 'port' ? 'bi-anchor'
+                : firstAlert?.typeLocalisation === 'aeroport' ? 'bi-airplane'
+                : firstAlert?.typeLocalisation === 'localite' ? 'bi-pin-map-fill'
+                : 'bi-signpost-2';
 
             const tooltipHtml = `
                 <div style="font-size:11.5px;line-height:1.45;padding:2px;">
@@ -1684,8 +1696,9 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                         <span class="corridor-badge-prio ${prio}">${style.label}</span>
                         <span style="font-size:10px;color:#64748b;font-weight:700;">${route.occurrences} alerte${route.occurrences > 1 ? 's' : ''}</span>
                     </div>
-                    <div style="font-weight:800;color:${style.line};"><i class="bi bi-geo-alt-fill me-1"></i>${escHtml(routeLabel)}</div>
-                    ${corridorNames ? `<div style="font-size:10.5px;color:#475569;margin-top:2px;"><i class="bi bi-bezier2 me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                    <div style="font-weight:800;color:${style.line};"><i class="bi bi-arrow-right-circle me-1"></i>${escHtml(routeLabel)}</div>
+                    ${corridorNames ? `<div style="font-size:10.5px;color:#60a5fa;margin-top:2px;"><i class="bi ${typeLocIcon} me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                    ${localiteNames ? `<div style="font-size:10.5px;color:#fbbf24;margin-top:1px;"><i class="bi bi-pin-map-fill me-1"></i>${escHtml(localiteNames)}</div>` : ''}
                 </div>`;
 
             line.bindTooltip(tooltipHtml, { sticky: true });
@@ -1700,7 +1713,8 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                         <i class="bi bi-arrow-right-circle text-emerald-600"></i>
                         <span>${escHtml(routeLabel)}</span>
                     </div>
-                    ${corridorNames ? `<div class="corridor-popup-sub"><i class="bi bi-signpost-split me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                    ${corridorNames ? `<div class="corridor-popup-sub"><i class="bi ${typeLocIcon} me-1"></i>${escHtml(corridorNames)}</div>` : ''}
+                    ${localiteNames ? `<div class="corridor-popup-sub" style="color:#fbbf24"><i class="bi bi-pin-map-fill me-1"></i>${escHtml(localiteNames)}</div>` : ''}
                     ${catsList ? `<div class="corridor-popup-cats">${catsList}</div>` : ''}
                     <button type="button" class="corridor-popup-btn" onclick="openDrawerForCorridorGroup(${rIndex}); return false;">
                         <i class="bi bi-layout-sidebar-reverse"></i>Voir les alertes de ce transit

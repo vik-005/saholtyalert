@@ -199,14 +199,34 @@ class CarteController extends AbstractController
     public function apiAlertes(
         Request         $request,
         AlertRepository $alertRepo,
+        MarketRepository $marketRepo,
     ): JsonResponse {
         $user = $this->getUser();
         if (!$user instanceof \App\Entity\User) {
             return new JsonResponse([], 403);
         }
 
+        $marketFilter = $request->query->get('marketId') ?: $request->query->get('market');
+        $routeCountries = [];
+        if (is_scalar($marketFilter) && ctype_digit((string) $marketFilter)) {
+            $market = $marketRepo->find((int) $marketFilter);
+            if ($market instanceof Market) {
+                $routeCountries[] = $market->getCodeIso3();
+                $routeCountries[] = $market->getNom();
+                try {
+                    $alpha2 = Countries::getAlpha2Code($market->getCodeIso3());
+                    $routeCountries[] = $alpha2;
+                    $routeCountries[] = Countries::getName($alpha2, 'fr');
+                    $routeCountries[] = Countries::getName($alpha2, 'en');
+                } catch (\Symfony\Component\Intl\Exception\MissingResourceException) {
+                    // Keep the market name and ISO3 fallback for non-standard market codes.
+                }
+            }
+        }
+
         $filters = [
-            'market'         => $request->query->get('marketId') ?: $request->query->get('market'),
+            'market'         => $marketFilter,
+            'routeCountries'  => array_values(array_unique(array_filter($routeCountries))),
             'categorie'      => $request->query->get('categorie'),
             'niveauPriorite' => $request->query->get('priorite') ?: $request->query->get('niveauPriorite'),
             'statut'         => $request->query->get('statut'),
@@ -315,7 +335,7 @@ class CarteController extends AbstractController
         $whereSql = implode(' AND ', $whereClauses);
 
         $rows = $em->getConnection()->fetchAllAssociative(
-            "SELECT a.id, a.code_gei, a.port_corridor, a.categorie, a.parcours_countries,
+            "SELECT a.id, a.code_gei, a.port_corridor, a.localite, a.type_localisation, a.categorie, a.parcours_countries,
                     COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) AS niveau_priorite,
                     COALESCE(a.score_surcharge, a.score_gei) AS score,
                     principal.id AS principal_id, principal.nom AS principal, principal.code_iso3 AS principal_iso3,
@@ -392,6 +412,8 @@ class CarteController extends AbstractController
                     'id'            => $id,
                     'codeGei'       => $row['code_gei'] ?? 'BROUILLON',
                     'portCorridor'  => $row['port_corridor'] ?? null,
+                    'localite'      => $row['localite'] ?? null,
+                    'typeLocalisation' => $row['type_localisation'] ?? null,
                     'categorie'     => $row['categorie'] ?? null,
                     'priorite'      => $row['niveau_priorite'] ?? 'faible',
                     'score'         => (int) ($row['score'] ?? 0),

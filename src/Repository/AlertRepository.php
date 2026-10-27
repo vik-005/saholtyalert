@@ -170,8 +170,17 @@ class AlertRepository extends ServiceEntityRepository
 
         if (!empty($filters['market'])) {
             $qb->leftJoin('a.alertMarkets', 'am')
-               ->andWhere('am.market = :filterMarket OR a.market = :filterMarket')
                ->setParameter('filterMarket', $filters['market'] instanceof Market ? $filters['market'] : $this->getEntityManager()->getReference(Market::class, (int) $filters['market']));
+            $marketCriteria = $qb->expr()->orX(
+                'am.market = :filterMarket',
+                'a.market = :filterMarket',
+            );
+            foreach (($filters['routeCountries'] ?? []) as $index => $country) {
+                $parameter = 'routeCountry' . $index;
+                $marketCriteria->add('LOWER(a.parcoursCountries) LIKE :' . $parameter);
+                $qb->setParameter($parameter, '%"' . mb_strtolower(trim((string) $country)) . '"%');
+            }
+            $qb->andWhere($marketCriteria);
         }
 
         if (!empty($filters['categorie'])) {

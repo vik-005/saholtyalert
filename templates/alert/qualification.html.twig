@@ -256,6 +256,60 @@
 
                     {{ form_start(form, {'attr': {'class': 'qualify-form', 'id': 'qualificationForm'}}) }}
 
+                    {# Qualification juridique : Licite vs Illicite & Type source (Manager) #}
+                    <div class="qualify-row-2 mb-4">
+                        <div class="qualify-field">
+                            {{ form_label(form.legalStatus, 'Statut juridique de l\'alerte', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.legalStatus, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_legalStatus'}}) }}
+                            {{ form_errors(form.legalStatus) }}
+                            <p class="text-xs text-slate-500 mt-1">Licite = score 1 (Faible). Illicite = score calculé sur les critères.</p>
+                        </div>
+                        <div class="qualify-field">
+                            {{ form_label(form.typeSource, 'Type de source', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.typeSource, {'attr': {'class': 'form-select'}}) }}
+                            {{ form_errors(form.typeSource) }}
+                        </div>
+                    </div>
+
+                    {# Critères d'évaluation Annexe C (ajustables par le Manager si illicite) #}
+                    <div id="managerCriteresBlock" class="p-3 mb-4 rounded border border-slate-700/50 bg-slate-900/60">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-amber-400 mb-2 flex items-center gap-1.5">
+                            <i class="bi bi-sliders"></i>Critères de scoring Annexe C (ajustement ponctuel Manager)
+                        </p>
+                        <div class="qualify-field mb-3">
+                            {{ form_label(form.fiabiliteSource, 'Fiabilité de la source', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.fiabiliteSource, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_fiabiliteSource'}}) }}
+                            {{ form_errors(form.fiabiliteSource) }}
+                        </div>
+                        <div class="qualify-field mb-3">
+                            {{ form_label(form.credibiliteContenu, 'Crédibilité du contenu', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.credibiliteContenu, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_credibiliteContenu'}}) }}
+                            {{ form_errors(form.credibiliteContenu) }}
+                        </div>
+                        <div class="qualify-row-3">
+                            <div class="qualify-field">
+                                {{ form_label(form.urgence, 'Urgence', {'label_attr': {'class': 'qualify-label'}}) }}
+                                {{ form_widget(form.urgence, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_urgence'}}) }}
+                                {{ form_errors(form.urgence) }}
+                            </div>
+                            <div class="qualify-field">
+                                {{ form_label(form.impact, 'Impact', {'label_attr': {'class': 'qualify-label'}}) }}
+                                {{ form_widget(form.impact, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_impact'}}) }}
+                                {{ form_errors(form.impact) }}
+                            </div>
+                            <div class="qualify-field">
+                                {{ form_label(form.exploitabilite, 'Exploitabilité', {'label_attr': {'class': 'qualify-label'}}) }}
+                                {{ form_widget(form.exploitabilite, {'attr': {'class': 'form-select js-score-trigger', 'id': 'qualification_exploitabilite'}}) }}
+                                {{ form_errors(form.exploitabilite) }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="managerLiciteNotice" class="hidden p-3 mb-4 rounded border border-emerald-500/30 bg-emerald-950/30 text-emerald-300 text-xs flex items-center gap-2">
+                        <i class="bi bi-shield-check text-base"></i>
+                        <span>Alerte qualifiée comme <strong>LICITE</strong> : le score GEI est fixé forfaitairement à <strong>1 / 25 (Priorité Faible)</strong>. Les critères de criminalité ne sont pas requis.</span>
+                    </div>
+
                     {# Hypothèses analytiques (Annexe A §5) — affinables par le Manager #}
                     <div class="qualify-field mb-4">
                         {{ form_label(form.hypothesesAnalytiques, 'Hypothèses analytiques & prospective (Annexe A §5)', {'label_attr': {'class': 'qualify-label'}}) }}
@@ -371,8 +425,26 @@
 
                 <div class="qualify-section">
                     <p class="qualify-section-label">
-                        <span class="form-section-num">4</span>Critères de qualification — Annexe C
+                        <span class="form-section-num">4</span>Statut juridique &amp; Critères Annexe C
                     </p>
+
+                    <div class="qualify-row-2 mb-3">
+                        <div class="qualify-field">
+                            {{ form_label(form.legalStatus, 'Statut juridique de l\'alerte', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.legalStatus, {'attr': {'class': 'form-select js-score-trigger', 'id': 'agent_legalStatus'}}) }}
+                            {{ form_errors(form.legalStatus) }}
+                        </div>
+                        <div class="qualify-field">
+                            {{ form_label(form.typeSource, 'Type de source', {'label_attr': {'class': 'qualify-label'}}) }}
+                            {{ form_widget(form.typeSource, {'attr': {'class': 'form-select'}}) }}
+                            {{ form_errors(form.typeSource) }}
+                        </div>
+                    </div>
+
+                    <div id="agentLiciteNotice" class="hidden p-3 mb-3 rounded border border-emerald-500/30 bg-emerald-950/30 text-emerald-300 text-xs flex items-center gap-2">
+                        <i class="bi bi-shield-check text-base"></i>
+                        <span>Alerte qualifiée comme <strong>LICITE</strong> : score GEI fixé à <strong>1 / 25</strong>.</span>
+                    </div>
 
                     <div class="qualify-field">
                         {{ form_label(form.fiabiliteSource, null, {'label_attr': {'class': 'qualify-label'}}) }}
@@ -773,13 +845,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updatePreview() {
+        const legalEl = document.getElementById('qualification_legalStatus') || document.getElementById('agent_legalStatus');
+        const legalVal = legalEl?.value || '';
+
+        const managerCriteres = document.getElementById('managerCriteresBlock');
+        const managerNotice = document.getElementById('managerLiciteNotice');
+        const agentNotice = document.getElementById('agentLiciteNotice');
+
+        if (legalVal === 'licite') {
+            if (managerCriteres) managerCriteres.style.display = 'none';
+            if (managerNotice) managerNotice.classList.remove('hidden');
+            if (agentNotice) agentNotice.classList.remove('hidden');
+
+            renderScore(1, 'faible', 'Faible', 'Statut LICITE : score forfaitaire fixé à 1');
+            return;
+        } else {
+            if (managerCriteres) managerCriteres.style.display = '';
+            if (managerNotice) managerNotice.classList.add('hidden');
+            if (agentNotice) agentNotice.classList.add('hidden');
+        }
+
         const fiabEl  = document.getElementById('qualification_fiabiliteSource');
         const credEl  = document.getElementById('qualification_credibiliteContenu');
         const urgEl   = document.getElementById('qualification_urgence');
         const impEl   = document.getElementById('qualification_impact');
         const expEl   = document.getElementById('qualification_exploitabilite');
 
-        if (!fiabEl && !credEl) return; // pas de formulaire Agent sur cet écran
+        if (!fiabEl && !credEl) return;
 
         const fiabilite      = fiabEl?.value  || '{{ alert.fiabiliteSource ? alert.fiabiliteSource.value : "C" }}';
         const credibilite    = credEl?.value  || '';
@@ -813,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('{{ path("app_alert_preview_score") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fiabilite, credibilite, urgence, impact, exploitabilite })
+            body: JSON.stringify({ fiabilite, credibilite, urgence, impact, exploitabilite, legalStatus: legalVal || 'illicite' })
         })
         .then(r => r.ok && r.headers.get('Content-Type')?.includes('application/json') ? r.json() : null)
         .then(data => { if (data?.score !== undefined) renderScore(data.score, data.niveau, data.niveau_label, formula); })

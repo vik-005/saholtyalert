@@ -5,11 +5,13 @@ namespace App\Controller\Alert;
 use App\Entity\Alert;
 use App\Entity\AlertStatusHistory;
 use App\Entity\User;
+use App\Enum\AlertLegality;
 use App\Enum\AlertStatut;
 use App\Enum\NiveauPriorite;
 use App\Form\QualificationType;
 use App\Repository\AlertRepository;
 use App\Service\CryptoService;
+use App\Service\EscalationRuleEngine;
 use App\Service\NotificationService;
 use App\Service\ScoreCalculatorService;
 use App\Voter\AlertVoter;
@@ -60,6 +62,7 @@ class QualificationController extends AbstractController
         ScoreCalculatorService $scoreCalculator,
         EntityManagerInterface $em,
         NotificationService $notificationService,
+        EscalationRuleEngine $escalationEngine,
     ): Response {
         $alert = $this->resolveAlertToken($token, $alertRepository);
         $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
@@ -165,13 +168,24 @@ class QualificationController extends AbstractController
             $ancienStatut = $alert->getStatut();
 
             $em->wrapInTransaction(function () use (
-                $alert, $scoreCalculator, $em, $canDecide, $scoreBeforeManagerEdit,
+                $alert, $scoreCalculator, $escalationEngine, $em, $canDecide, $scoreBeforeManagerEdit,
                 $notificationService, $ancienStatut, $currentUser
             ) {
                 $userLabel = $currentUser instanceof User ? $currentUser->getNomComplet() : 'Manager';
 
-                // Calcul du score Annexe C (toujours recalculé à la soumission)
-                $scoreCalculator->calculate($alert);
+                // Gestion Licite vs Illicite
+                if ($alert->getLegalStatus() === AlertLegality::LICITE) {
+                    $alert->setScoreGei(1);
+                    $alert->setNiveauPriorite(NiveauPriorite::FAIBLE);
+                    $alert->setFiabiliteSource(null);
+                    $alert->setCredibiliteContenu(null);
+                    $alert->setUrgence(null);
+                    $alert->setImpact(null);
+                    $alert->setExploitabilite(null);
+                } else {
+                    // Calcul du score Annexe C (toujours recalculé à la soumission)
+                    $scoreCalculator->calculate($alert);
+                }
 
                 if ($scoreBeforeManagerEdit !== $alert->getScoreGei()) {
                     $em->persist($scoreCalculator->createHistoryEntry($alert, $userLabel, $scoreBeforeManagerEdit));
@@ -192,6 +206,9 @@ class QualificationController extends AbstractController
                     // Traçabilité nominative (Partie B) + horodatage (Partie D)
                     $alert->setValidatedBy($currentUser instanceof User ? $currentUser : null);
                     $alert->setDateValidation(new \DateTime());
+
+                    // Évaluation immédiate de l'escalade (dont Urgence 72h automatique si score élevé ou urgent)
+                    $escalationEngine->evaluate($alert);
 
                     // ── INCRÉMENTATION DU COMPTEUR DE REQUALIFICATIONS ──────────────
                     // Chaque validation par un Manager (PFT) consomme une requalification,
@@ -383,12 +400,18 @@ class QualificationController extends AbstractController
         }
 
         try {
+            $legalStatus = null;
+            if (!empty($data['legalStatus'])) {
+                $legalStatus = AlertLegality::tryFrom((string) $data['legalStatus']);
+            }
+
             $result = $scoreCalculator->computeFromValues(
                 fiabilite:     $data['fiabilite']     ?? 'C',
                 credibilite:   (int) ($data['credibilite']   ?? 3),
                 urgence:       $data['urgence']       ?? 'routine',
                 impact:        $data['impact']        ?? 'moyen',
                 exploitabilite: $data['exploitabilite'] ?? 'a_completer',
+                legalStatus:   $legalStatus,
             );
 
             return new JsonResponse($result);

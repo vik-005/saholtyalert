@@ -59,7 +59,7 @@ final class CorridorFilterDTO
 
         // ── Type de localisation ──────────────────────────────────────────────
         $type = $request->query->get('type_loc', '');
-        $dto->typeLoc = in_array($type, ['corridor', 'port', 'aeroport'], true) ? $type : null;
+        $dto->typeLoc = in_array($type, ['corridor', 'port', 'aeroport', 'localite'], true) ? $type : null;
 
         return $dto;
     }
@@ -89,6 +89,7 @@ final class CorridorFilterDTO
             'corridor' => 'Corridor',
             'port'     => 'Port',
             'aeroport' => 'Aéroport',
+            'localite' => 'Localité',
             default    => 'Tous',
         };
     }
@@ -102,7 +103,8 @@ final class CorridorFilterDTO
             'corridor' => 'Corridors de transit',
             'port'     => 'Ports',
             'aeroport' => 'Aéroports',
-            default    => 'Corridors, Ports & Aéroports',
+            'localite' => 'Localités stratégiques',
+            default    => 'Corridors, Ports, Aéroports & Localités',
         };
     }
 
@@ -115,6 +117,7 @@ final class CorridorFilterDTO
             'corridor' => 'Analyse des corridors de transit',
             'port'     => 'Analyse des ports',
             'aeroport' => 'Analyse des aéroports',
+            'localite' => 'Analyse des localités, villes et centres logistiques',
             default    => 'Analyse globale des alertes',
         };
     }
@@ -128,7 +131,8 @@ final class CorridorFilterDTO
             'corridor' => 'Top corridors de transit',
             'port'     => 'Top ports',
             'aeroport' => 'Top aéroports',
-            default    => 'Top corridors, ports & aéroports',
+            'localite' => 'Top localités stratégiques',
+            default    => 'Top corridors, ports, aéroports & localités',
         };
     }
 
@@ -141,6 +145,7 @@ final class CorridorFilterDTO
             'corridor' => 'Fréquence des alertes par corridor',
             'port'     => 'Fréquence des alertes par port',
             'aeroport' => 'Fréquence des alertes par aéroport',
+            'localite' => 'Fréquence des alertes par localité',
             default    => 'Fréquence des alertes (tous types confondus)',
         };
     }
@@ -154,6 +159,7 @@ final class CorridorFilterDTO
             'corridor' => 'corridor',
             'port'     => 'port',
             'aeroport' => 'aéroport',
+            'localite' => 'localité',
             default    => 'élément',
         };
     }
@@ -167,6 +173,7 @@ final class CorridorFilterDTO
             'corridor' => 'bi-signpost-2',
             'port'     => 'bi-anchor',
             'aeroport' => 'bi-airplane',
+            'localite' => 'bi-pin-map-fill',
             default    => 'bi-map',
         };
     }

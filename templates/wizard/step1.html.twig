@@ -83,7 +83,8 @@
                                {% if currentTypeLoc == 'port' %}checked{% endif %} required>
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-anchor text-cyan-400" aria-hidden="true"></i>
                                 <span class="radio-option-title">Port maritime</span>
                             </div>
                         </div>
@@ -93,7 +94,8 @@
                                {% if currentTypeLoc == 'corridor' %}checked{% endif %}>
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-signpost-2 text-emerald-400" aria-hidden="true"></i>
                                 <span class="radio-option-title">Corridor de transit</span>
                             </div>
                         </div>
@@ -103,7 +105,8 @@
                                {% if currentTypeLoc == 'aeroport' %}checked{% endif %}>
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-airplane text-indigo-400" aria-hidden="true"></i>
                                 <span class="radio-option-title">Aéroport international</span>
                             </div>
                         </div>
@@ -113,7 +116,8 @@
                                {% if currentTypeLoc == 'localite' %}checked{% endif %}>
                         <div class="flex items-center gap-3">
                             <span class="radio-disc"><span class="radio-disc-dot"></span></span>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
+                                <i class="bi bi-pin-map-fill text-amber-400" aria-hidden="true"></i>
                                 <span class="radio-option-title">Localité (ville / village)</span>
                             </div>
                         </div>
@@ -126,7 +130,8 @@
             </div>
 
             {# Champ 4 — Nom (label dynamique) #}
-            <div class="form-field wizard-field-wide" id="portCorridorField">
+            <div class="form-field wizard-field-wide" id="portCorridorField"
+                 {% if currentTypeLoc == 'localite' %}style="display:none"{% endif %}>
                 <label class="form-label" for="w_corridor" id="label_corridor">
                     Nom <span class="text-red-400">*</span>
                 </label>
@@ -137,7 +142,8 @@
                 <p class="form-help" id="help_corridor">Nom du port, corridor ou aéroport concerné.</p>
             </div>
 
-            <div class="form-field wizard-field-wide" id="localiteFields" hidden>
+            <div class="form-field wizard-field-wide" id="localiteFields"
+                 {% if currentTypeLoc != 'localite' %}style="display:none"{% endif %}>
                 <label class="form-label" for="w_localite">Nom de la localité <span class="text-red-400">*</span></label>
                 <input type="text" name="alert[localite]" id="w_localite" class="form-input"
                        maxlength="150" placeholder="Ex. Cotonou, Kandi, Dapaong"
