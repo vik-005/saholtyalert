@@ -52,6 +52,8 @@ class CorridorsController extends AbstractController
             'type_icon'        => $dto->typeIcon(),
             // Données statistiques (toutes préparées côté service)
             'top_localisations' => $dashboard['top_localisations'],
+            'localites'          => $dashboard['localites'],
+            'localite_counts'    => $dashboard['localite_counts'],
             'volume_par_pays'   => $dashboard['volume_par_pays'],
             'loc_type_stats'    => $dashboard['loc_type_stats'],
             'kpis'              => $dashboard['kpis'],

@@ -60,7 +60,7 @@ class CorridorStatisticsTest extends TestCase
         $dto->marketIds = [1]; // Bénin uniquement
         $dto->typeLoc = null;  // Tous
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->will($this->returnCallback(function ($sql, $params) {
                 // Vérifier que la condition SQL filtre strictement sur le marché 1
@@ -111,7 +111,7 @@ class CorridorStatisticsTest extends TestCase
         $dto->marketIds = [1, 2];
         $dto->typeLoc = 'port';
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->will($this->returnCallback(function ($sql, $params) {
                 // Doit filtrer sur typeLoc = 'port' pour le classement, le volume par pays et les KPIs
@@ -159,7 +159,7 @@ class CorridorStatisticsTest extends TestCase
         $dto->marketIds = [2]; // Togo
         $dto->typeLoc = 'corridor';
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->will($this->returnCallback(function ($sql, $params) {
                 $this->assertStringContainsString('a.market_id IN (2)', $sql);
@@ -203,7 +203,7 @@ class CorridorStatisticsTest extends TestCase
         $dto->marketIds = [1, 2, 3]; // 3 marchés
         $dto->typeLoc = null;
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->will($this->returnCallback(function ($sql, $params) {
                 // La requête doit nativement exclure les zéros via HAVING COUNT > 0
@@ -250,7 +250,7 @@ class CorridorStatisticsTest extends TestCase
         $dto->marketIds = [1, 2];
         $dto->typeLoc = null;
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->willReturn([]); // Aucune alerte en base
 
@@ -309,7 +309,7 @@ class CorridorStatisticsTest extends TestCase
             ['pays' => 'Togo', 'iso3' => 'TGO', 'nb' => 16],  // 12 + 4 = 16
         ];
 
-        $this->conn->expects($this->exactly(4))
+        $this->conn->expects($this->exactly(5))
             ->method('fetchAllAssociative')
             ->will($this->returnCallback(function ($sql) use ($localisations, $volume) {
                 if (str_contains($sql, 'a.port_corridor AS corridor') || str_contains($sql, 'a.port_corridor                           AS corridor')) {
@@ -333,5 +333,35 @@ class CorridorStatisticsTest extends TestCase
             $totalBarresGraphique,
             'Le total du panneau Volume par pays doit être strictement égal à la somme des barres du graphique quand Type = Tous'
         );
+    }
+
+    public function testLocalityDashboardGroupsCitiesAndVillagesWithAlertCounts(): void
+    {
+        $dto = new CorridorFilterDTO();
+        $dto->dateDebut = '2026-01-01';
+        $dto->dateFin = '2026-03-31';
+        $dto->marketIds = [1];
+        $dto->typeLoc = null;
+
+        $this->conn->expects($this->exactly(5))
+            ->method('fetchAllAssociative')
+            ->willReturnCallback(static function (string $sql): array {
+                if (str_contains($sql, 'MAX(TRIM(a.localite))')) {
+                    return [
+                        ['localite' => 'Cotonou', 'type' => 'ville', 'pays' => 'Bénin', 'nb' => '4'],
+                        ['localite' => 'Kpankou', 'type' => 'village', 'pays' => 'Bénin', 'nb' => '2'],
+                    ];
+                }
+
+                return [];
+            });
+
+        $dashboard = $this->service->getCorridorDashboard($dto);
+
+        self::assertSame(1, $dashboard['localite_counts']['ville']);
+        self::assertSame(1, $dashboard['localite_counts']['village']);
+        self::assertSame(6, $dashboard['localite_counts']['total_alertes']);
+        self::assertTrue($dashboard['has_data']);
+        self::assertSame(4, $dashboard['localites'][0]['nb']);
     }
 }

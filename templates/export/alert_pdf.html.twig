@@ -390,7 +390,7 @@
                     {% set pPdf = alert.getOrderedParcours(countryNames|default({})) %}
                     {% if pPdf|length > 1 %}
                         {% for step in pPdf %}
-                            <strong>{{ step.name }}</strong> ({{ step.code }}){% if step.isPrincipal %} <em>[Origine]</em>{% endif %}{% if not loop.last %} → {% endif %}
+                            <strong>{{ step.name }}</strong> ({{ step.code }}){% if step.isPrincipal %} <em>[Origine]</em>{% endif %}{% if not loop.last %} &gt; {% endif %}
                         {% endfor %}
                     {% elseif alert.market %}
                         <strong>{{ alert.market.nom }}</strong> ({{ alert.market.codeIso3 }}) <em>[Origine]</em>

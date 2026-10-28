@@ -685,14 +685,16 @@ class StatistiquesService
         if (empty($dto->marketIds)) {
             return [
                 'top_localisations' => [],
+                'localites'         => [],
+                'localite_counts'   => ['ville' => 0, 'village' => 0, 'total_alertes' => 0],
                 'volume_par_pays'   => [],
                 'loc_type_stats'    => [],
-                'kpis'              => ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0, 'top_element' => null],
+                'kpis'              => ['total' => 0, 'nb_corridors' => 0, 'nb_ports' => 0, 'nb_aeroports' => 0, 'nb_localites' => 0, 'top_element' => null],
                 'has_data'          => false,
             ];
         }
 
-        $key = 'corridor_dashboard_' . md5(
+        $key = 'corridor_dashboard_v2_' . md5(
             $dto->dateDebut . $dto->dateFin .
             implode(',', $dto->marketIds) .
             ($dto->typeLoc ?? '')
@@ -709,6 +711,42 @@ class StatistiquesService
                 $typeWhere = 'AND ' . ImportService::sqlTypeLocalisationFallbackCondition($dto->typeLoc);
                 $params['typeLoc'] = $dto->typeLoc;
             }
+
+            $localites = $this->conn()->fetchAllAssociative(
+                "SELECT MAX(TRIM(a.localite)) AS localite,
+                        CASE LOWER(TRIM(COALESCE(a.type_localite, '')))
+                            WHEN 'ville' THEN 'ville'
+                            WHEN 'village' THEN 'village'
+                            ELSE 'autre'
+                        END AS type,
+                        m.nom AS pays,
+                        COUNT(a.id) AS nb
+                 FROM alert a
+                 JOIN market m ON m.id = a.market_id
+                 WHERE (a.type_localisation = 'localite' OR a.type_localisation IS NULL)
+                   AND a.localite IS NOT NULL
+                   AND TRIM(a.localite) != ''
+                   AND a.date_creation BETWEEN :debut AND :fin {$where}
+                 GROUP BY LOWER(TRIM(a.localite)),
+                          CASE LOWER(TRIM(COALESCE(a.type_localite, '')))
+                              WHEN 'ville' THEN 'ville'
+                              WHEN 'village' THEN 'village'
+                              ELSE 'autre'
+                          END,
+                          m.id, m.nom
+                 HAVING COUNT(a.id) > 0
+                 ORDER BY nb DESC, localite ASC",
+                ['debut' => $dto->dateDebut . ' 00:00:00', 'fin' => $dto->dateFin . ' 23:59:59']
+            );
+            $localiteCounts = ['ville' => 0, 'village' => 0, 'total_alertes' => 0];
+            foreach ($localites as &$localite) {
+                $localite['nb'] = (int) $localite['nb'];
+                $localiteCounts['total_alertes'] += $localite['nb'];
+                if (isset($localiteCounts[$localite['type']])) {
+                    $localiteCounts[$localite['type']]++;
+                }
+            }
+            unset($localite);
 
             $typeExpression = "CASE
                 WHEN a.type_localisation IS NULL
@@ -825,10 +863,12 @@ class StatistiquesService
 
             return [
                 'top_localisations' => $topLocalisations,
+                'localites'         => $localites,
+                'localite_counts'   => $localiteCounts,
                 'volume_par_pays'   => $volumeParPays,
                 'loc_type_stats'    => $locTypeStats,
                 'kpis'              => $kpis,
-                'has_data'          => !empty($topLocalisations) && !empty($volumeParPays),
+                'has_data'          => (!empty($topLocalisations) && !empty($volumeParPays)) || !empty($localites),
             ];
         });
     }

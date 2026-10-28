@@ -190,6 +190,25 @@ class AlertRepository extends ServiceEntityRepository
             $qb->andWhere($marketCriteria);
         }
 
+        if (!empty($filters['markets']) && is_array($filters['markets'])) {
+            $marketIds = array_values(array_unique(array_filter(array_map('intval', $filters['markets']))));
+            if ($marketIds !== []) {
+                $qb->andWhere('a.market IN (:filterMarkets)')
+                   ->setParameter('filterMarkets', $marketIds);
+            }
+        }
+
+        if (($filters['typeLocalisation'] ?? null) === 'localite') {
+            $qb->andWhere("(a.typeLocalisation = :typeLocalite OR (a.typeLocalisation IS NULL AND a.localite IS NOT NULL AND TRIM(a.localite) != ''))")
+               ->setParameter('typeLocalite', \App\Enum\TypeLocalisation::LOCALITE);
+        } elseif (!empty($filters['typeLocalisation'])) {
+            $type = \App\Enum\TypeLocalisation::tryFrom((string) $filters['typeLocalisation']);
+            if ($type !== null) {
+                $qb->andWhere('a.typeLocalisation = :typeLocalisation')
+                   ->setParameter('typeLocalisation', $type);
+            }
+        }
+
         if (!empty($filters['categorie'])) {
             $qb->andWhere('a.categorie = :categorie')
                ->setParameter('categorie', $filters['categorie']);

@@ -131,16 +131,26 @@ class ExportController extends AbstractController
             $market = reset($market);
         }
 
+        $query = $request->query->all();
+        $markets = $query['markets'] ?? [];
+        if (is_string($markets)) {
+            $markets = $markets === '' ? [] : explode(',', $markets);
+        }
+        $markets = is_array($markets) ? array_values(array_filter(array_map('intval', $markets))) : [];
+
         return array_filter([
             'statut'         => $request->query->get('statut'),
             'niveauPriorite' => $request->query->get('priorite'),
             'market'         => $market,
+            'markets'        => $markets,
             'search'         => $request->query->get('search') ?: $request->query->get('q'),
             'categorie'      => $request->query->get('categorie'),
             'urgence'        => $request->query->get('urgence'),
             'typeAlerte'     => $request->query->get('typeAlerte'),
+            'typeLocalisation' => $request->query->get('type_loc'),
+            'dateDebut'      => $request->query->get('debut'),
+            'dateFin'        => $request->query->get('fin'),
         ], fn($v) => $v !== null && $v !== '');
     }
 }
-
 
