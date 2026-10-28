@@ -24,6 +24,9 @@ class ListeReferenceValeur
     #[ORM\Column(type: 'string', length: 150)]
     private string $libelle;
 
+    #[ORM\Column(type: 'string', length: 150, nullable: true)]
+    private ?string $valeur = null;
+
     #[ORM\Column(type: 'boolean')]
     private bool $actif = true;
 
@@ -76,6 +79,17 @@ class ListeReferenceValeur
     public function setLibelle(string $libelle): static
     {
         $this->libelle = $libelle;
+        return $this;
+    }
+
+    public function getValeur(): ?string
+    {
+        return $this->valeur;
+    }
+
+    public function setValeur(?string $valeur): static
+    {
+        $this->valeur = $valeur;
         return $this;
     }
 

@@ -57,9 +57,14 @@ class AutomationsController extends AbstractController
 
         $libelle = trim((string) $request->request->get('libelle', ''));
         $ordre = (int) $request->request->get('ordre_affichage', 0);
+        $actif = (string) $request->request->get('actif', '1');
 
         if ($libelle === '') {
             $this->addFlash('danger', 'Le nom de l\'institution de transition est obligatoire.');
+            return $this->redirectToRoute('app_admin_automations');
+        }
+        if (!in_array($actif, ['0', '1'], true)) {
+            $this->addFlash('danger', 'Le statut de l\'institution est invalide.');
             return $this->redirectToRoute('app_admin_automations');
         }
 
@@ -76,7 +81,7 @@ class AutomationsController extends AbstractController
         $item->setTypeListe('institution_transmission');
         $item->setLibelle($libelle);
         $item->setOrdreAffichage($ordre);
-        $item->setActif(true);
+        $item->setActif($actif === '1');
         $user = $this->getUser();
         if ($user instanceof \App\Entity\User) {
             $item->setCreePar($user);
@@ -87,13 +92,17 @@ class AutomationsController extends AbstractController
         $auditLogger->log(\App\Entity\AccessLog::ACTION_CREATION, 'institution_transmission', $item->getId());
         $em->flush();
 
-        $this->addFlash('success', sprintf('Institution de transition « %s » ajoutée avec succès.', $libelle));
+        $this->addFlash('success', sprintf('Institution de transition « %s » ajoutée (%s).', $libelle, $item->isActif() ? 'active' : 'inactive'));
         return $this->redirectToRoute('app_admin_automations');
     }
 
     #[Route('/institution/{id}/toggle', name: 'app_admin_automation_institution_toggle', methods: ['POST'])]
     public function toggleInstitution(Request $request, ListeReferenceValeur $institution, EntityManagerInterface $em, AdminAuditLogger $auditLogger): Response
     {
+        if ($institution->getTypeListe() !== 'institution_transmission') {
+            throw $this->createNotFoundException('Institution de transmission introuvable.');
+        }
+
         if (!$this->isCsrfTokenValid('toggle_institution_' . $institution->getId(), (string) $request->request->get('_token'))) {
             $this->addFlash('danger', 'Jeton CSRF invalide.');
             return $this->redirectToRoute('app_admin_automations');

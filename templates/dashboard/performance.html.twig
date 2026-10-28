@@ -1,0 +1,188 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Performance des profils · GEI{% endblock %}
+{% block header_title %}Performance des profils{% endblock %}
+
+{% block body %}
+<div class="db-wrapper performance-page">
+    <header class="performance-header">
+        <div>
+            <p class="page-eyebrow"><i class="bi bi-bar-chart-line me-1.5"></i>Pilotage confidentiel · SUPERADMIN</p>
+            <h1 class="page-title">Performance par profil et agence</h1>
+            <p class="page-subtitle">Suivez les alertes soumises, les décisions de validation et l’activité de chaque équipe.</p>
+        </div>
+        <a href="{{ path('app_dashboard_superadmin') }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-arrow-left me-1.5"></i>Console admin
+        </a>
+    </header>
+
+    <section class="performance-kpis" aria-label="Indicateurs globaux">
+        {% set metrics = [
+            {label: 'Comptes suivis', value: summary.users, icon: 'bi-people', color: 'teal'},
+            {label: 'Alertes soumises', value: summary.submitted, icon: 'bi-file-earmark-plus', color: 'blue'},
+            {label: 'Validées', value: summary.validated, icon: 'bi-check2-circle', color: 'emerald'},
+            {label: 'À compléter / rejetées', value: summary.rejected, icon: 'bi-arrow-return-left', color: 'red'},
+            {label: 'En attente', value: summary.pending, icon: 'bi-hourglass-split', color: 'amber'},
+            {label: 'Décisions Manager', value: summary.managerReviewed, icon: 'bi-person-check', color: 'purple'}
+        ] %}
+        {% for metric in metrics %}
+            <article class="kpi-card performance-kpi-card" data-kpi-color="{{ metric.color }}">
+                <div class="kpi-card-top">
+                    <div><p class="kpi-label">{{ metric.label }}</p><p class="kpi-value">{{ metric.value|number_format(0, ',', ' ') }}</p></div>
+                    <span class="kpi-icon-wrap kpi-icon-{{ metric.color }}"><i class="bi {{ metric.icon }}" aria-hidden="true"></i></span>
+                </div>
+                <span class="kpi-trend-label">Périmètre global · hors alertes supprimées</span>
+            </article>
+        {% endfor %}
+    </section>
+
+    <section class="performance-section" aria-labelledby="agencyStatsTitle">
+        <div class="performance-section-heading">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-building me-1.5"></i>Vue par agence</p>
+                <h2 class="db-card-title" id="agencyStatsTitle">Activité des équipes</h2>
+            </div>
+            <span class="performance-section-count">{{ agencies|length }} agence(s)</span>
+        </div>
+        <div class="performance-agency-grid">
+            {% for agency in agencies %}
+                <article class="performance-agency-card">
+                    <div class="performance-agency-top">
+                        <span class="performance-agency-icon"><i class="bi bi-building" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <h3>{{ agency.name }}</h3>
+                            <p>{{ agency.users }} profil{{ agency.users > 1 ? 's' : '' }}</p>
+                        </div>
+                    </div>
+                    <div class="performance-agency-metrics">
+                        <span><strong>{{ agency.submitted }}</strong> soumise(s)</span>
+                        <span><strong>{{ agency.validated }}</strong> validée(s)</span>
+                        <span><strong>{{ agency.rejected }}</strong> à compléter</span>
+                        <span><strong>{{ agency.reviewed }}</strong> décision(s)</span>
+                    </div>
+                </article>
+            {% else %}
+                <p class="performance-empty">Aucune agence ou aucun profil n’est disponible.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="performance-section" aria-labelledby="roleStatsTitle">
+        <div class="performance-section-heading">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-shield-check me-1.5"></i>Vue par rôle</p>
+                <h2 class="db-card-title" id="roleStatsTitle">Charge et décisions par profil</h2>
+            </div>
+        </div>
+        <div class="performance-role-grid">
+            {% for role in roleStats %}
+                <article class="performance-role-card">
+                    <h3>{{ role.label }}</h3>
+                    <p>{{ role.users }} compte{{ role.users > 1 ? 's' : '' }}</p>
+                    <div class="performance-agency-metrics">
+                        <span><strong>{{ role.submitted }}</strong> soumise(s)</span>
+                        <span><strong>{{ role.validated }}</strong> validée(s)</span>
+                        <span><strong>{{ role.rejected }}</strong> à compléter</span>
+                        <span><strong>{{ role.reviewed }}</strong> décision(s)</span>
+                    </div>
+                </article>
+            {% else %}
+                <p class="performance-empty">Aucune statistique par rôle disponible.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="performance-section" aria-labelledby="profileStatsTitle">
+        <div class="performance-section-heading">
+            <div>
+                <p class="db-card-eyebrow"><i class="bi bi-person-lines-fill me-1.5"></i>Vue individuelle</p>
+                <h2 class="db-card-title" id="profileStatsTitle">Performance par utilisateur</h2>
+            </div>
+            <label class="performance-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" id="performanceSearch" placeholder="Rechercher un nom, rôle ou agence…" aria-label="Rechercher un utilisateur">
+            </label>
+        </div>
+        <p class="performance-note">
+            Les décisions Manager sont attribuées à l’utilisateur enregistré comme validateur. Les alertes soumises restent attribuées à leur émetteur.
+        </p>
+        <div class="performance-table-scroll">
+            <table class="performance-table">
+                <thead>
+                    <tr>
+                        <th>Profil</th>
+                        <th>Rôle / agence</th>
+                        <th>Soumises</th>
+                        <th>Validées</th>
+                        <th>À compléter</th>
+                        <th>En attente</th>
+                        <th>Transmises</th>
+                        <th>Décisions Manager</th>
+                        <th>Score moyen</th>
+                        <th>Délai moyen</th>
+                    </tr>
+                </thead>
+                <tbody id="performanceRows">
+                    {% for profile in profiles %}
+                        {% set fullName = profile.prenom ~ ' ' ~ profile.nom %}
+                        <tr class="performance-row" data-search="{{ (fullName ~ ' ' ~ (roleLabels[profile.role]|default(profile.role)) ~ ' ' ~ (profile.agency|default('Profil régional')))|lower }}">
+                            <td>
+                                <div class="performance-profile-cell">
+                                    <span class="performance-avatar">
+                                        {% if profile.photoProfil %}
+                                            <img src="{{ path('app_account_photo', {v: profile.photoProfil}) }}" alt="" width="40" height="40" loading="lazy" decoding="async">
+                                        {% else %}
+                                            {{ profile.prenom|slice(0, 1) }}{{ profile.nom|slice(0, 1) }}
+                                        {% endif %}
+                                    </span>
+                                    <span class="performance-profile-name">{{ fullName }}</span>
+                                    {% if not profile.actif %}<span class="performance-inactive">Inactif</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="performance-role">{{ roleLabels[profile.role]|default(profile.role) }}</span>
+                                <span class="performance-agency-name">{{ profile.agency|default('Profil régional') }}</span>
+                            </td>
+                            <td>{{ profile.submitted }}</td>
+                            <td>{{ profile.validated }}</td>
+                            <td>{{ profile.rejected }}</td>
+                            <td>{{ profile.pending }}</td>
+                            <td>{{ profile.transmitted }}</td>
+                            <td>
+                                <strong>{{ profile.reviewed }}</strong>
+                                <span class="performance-decision-detail">{{ profile.managerValidated }} validée(s) · {{ profile.managerRejected }} à compléter</span>
+                            </td>
+                            <td>{{ profile.averageScore > 0 ? profile.averageScore|number_format(1, ',', ' ') : '—' }}</td>
+                            <td>{{ profile.averageDelayHours is not null ? profile.averageDelayHours|number_format(1, ',', ' ') ~ ' h' : '—' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="10" class="performance-empty">Aucun utilisateur enregistré.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="performance-empty hidden" id="performanceNoResults">Aucun profil ne correspond à la recherche.</p>
+    </section>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+(() => {
+    const search = document.getElementById('performanceSearch');
+    const rows = [...document.querySelectorAll('.performance-row')];
+    const noResults = document.getElementById('performanceNoResults');
+    search?.addEventListener('input', () => {
+        const query = search.value.trim().toLocaleLowerCase('fr-FR');
+        let visible = 0;
+        rows.forEach(row => {
+            const matches = !query || row.dataset.search.includes(query);
+            row.hidden = !matches;
+            if (matches) visible++;
+        });
+        noResults.classList.toggle('hidden', visible > 0 || rows.length === 0);
+    });
+})();
+</script>
+{% endblock %}

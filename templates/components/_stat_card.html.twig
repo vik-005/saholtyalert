@@ -13,7 +13,7 @@
 {% set iconClass = icon starts with 'bi-' ? ('bi ' ~ icon) : (icon starts with 'bi ' ? icon : ('bi bi-' ~ icon)) %}
 {% set colorClass = 'kpi-icon-' ~ (color|default('teal')) %}
 
-<div class="kpi-card">
+<div class="kpi-card" data-kpi-color="{{ color|default('teal') }}">
     <div class="kpi-card-top">
         <div>
             <p class="kpi-label">{{ title }}</p>

@@ -26,10 +26,10 @@
                     <label class="form-label text-center" for="lr_type">Type de liste <span class="text-red-400">*</span></label>
                     <select name="type_liste" id="lr_type" class="form-select" required onchange="toggleLocalityFields(this.value)">
                         <option value="">Sélectionnez un type…</option>
-                        <option value="categorie">Catégorie de produit / marchandise</option>
-                        <option value="type_source">Type de source d'information</option>
-                        <option value="localite">Localité stratégique (Port, Corridor, Aéroport, Ville)</option>
-                        <option value="institution_transmission">Institution de transition / transmission</option>
+                        <option value="categorie" {% if selectedTypeListe|default('') == 'categorie' %}selected{% endif %}>Catégorie de produit / marchandise</option>
+                        <option value="type_source" {% if selectedTypeListe|default('') == 'type_source' %}selected{% endif %}>Type de source d'information</option>
+                        <option value="localite" {% if selectedTypeListe|default('') == 'localite' %}selected{% endif %}>Localité stratégique (Port, Corridor, Aéroport, Ville)</option>
+                        <option value="institution_transmission" {% if selectedTypeListe|default('') == 'institution_transmission' %}selected{% endif %}>Institution de transition / transmission</option>
                     </select>
                 </div>
 
@@ -59,6 +59,14 @@
                     <p class="form-help text-center">Plus le numéro est petit, plus la valeur apparaît en haut (0 = auto).</p>
                 </div>
 
+                <div class="form-field mb-4" id="field_institution_status" style="display:none;">
+                    <label class="form-label text-center" for="lr_actif">Disponibilité dans les transmissions</label>
+                    <select name="actif" id="lr_actif" class="form-select">
+                        <option value="1" {% if selectedActif|default('1') == '1' %}selected{% endif %}>Active — proposée dans les choix</option>
+                        <option value="0" {% if selectedActif|default('1') == '0' %}selected{% endif %}>Inactive — conservée, mais masquée des choix</option>
+                    </select>
+                </div>
+
                 <div class="d-flex gap-3 justify-content-center">
                     <a href="{{ path('app_admin_liste_reference_index') }}" class="db-btn db-btn-ghost">Annuler</a>
                     <button type="submit" class="db-btn db-btn-amber">
@@ -71,9 +79,16 @@
 
 </div>
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const typeSelect = document.getElementById('lr_type');
+    toggleLocalityFields(typeSelect.value);
+});
+
 function toggleLocalityFields(val) {
     const natField = document.getElementById('field_nature_localite');
+    const institutionStatusField = document.getElementById('field_institution_status');
     const libelleHelp = document.getElementById('libelle_help');
+    institutionStatusField.style.display = val === 'institution_transmission' ? 'block' : 'none';
     if (val === 'localite') {
         natField.style.display = 'block';
         libelleHelp.textContent = 'Nom de l\'infrastructure ou de la ville (ex: Port Autonome de Cotonou). Le type sélectionné ci-dessus sera préfixé automatiquement si nécessaire.';

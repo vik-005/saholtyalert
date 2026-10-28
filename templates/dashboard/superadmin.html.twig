@@ -12,9 +12,14 @@
             <h2 class="page-title">Console d'administration</h2>
             <p class="page-subtitle">Gestion des utilisateurs, règles de scoring et journal d'audit.</p>
         </div>
-        <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber">
-            <i class="bi bi-person-plus me-1.5"></i>Créer un utilisateur
-        </a>
+        <div class="header-actions-group">
+            <a href="{{ path('app_dashboard_superadmin_performance') }}" class="db-btn db-btn-ghost">
+                <i class="bi bi-bar-chart-line me-1.5"></i>Performance des profils
+            </a>
+            <a href="{{ path('app_admin_user_new') }}" class="db-btn db-btn-amber">
+                <i class="bi bi-person-plus me-1.5"></i>Créer un utilisateur
+            </a>
+        </div>
     </div>
 
     {# ── Tableau Utilisateurs ── #}

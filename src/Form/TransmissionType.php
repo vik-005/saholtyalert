@@ -18,21 +18,9 @@ class TransmissionType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $choices = [
-            'Direction Générale des Douanes (DGD)' => 'DGD',
-            'Police Nationale / Interpol' => 'POLICE',
-            'Gendarmerie Nationale' => 'GENDARMERIE',
-            'Administration Fiscale / Impôts' => 'FISC',
-            'Partenaire International (Interpol / WCO)' => 'PARTENAIRE_INT',
-            'Autorité Portuaire / Maritime' => 'PORT',
-            'Autre autorité compétente' => 'AUTRE',
-        ];
-
-        // Institutions de transition / transmission configurées manuellement par l'admin
-        $customInstitutions = $this->lrRepo->findActivesByType('institution_transmission');
-        foreach ($customInstitutions as $inst) {
-            $label = $inst->getLibelle();
-            $choices[$label] = $label;
+        $choices = [];
+        foreach ($this->lrRepo->findActivesByType('institution_transmission') as $institution) {
+            $choices[$institution->getLibelle()] = $institution->getValeur() ?? $institution->getLibelle();
         }
 
         $builder

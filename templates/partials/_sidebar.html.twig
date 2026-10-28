@@ -28,7 +28,7 @@
 
         {% set isAlertesActive = (route starts with 'app_alert' or route starts with 'app_wizard' or route == 'app_export_registre' or route == 'app_dashboard_urgence' or route starts with 'app_transmission') %}
         {% set isStatsActive = (route == 'app_dashboard_kpi' or route starts with 'app_carte' or route == 'app_dashboard_corridors' or route == 'app_dashboard_statistiques' or route starts with 'app_audit' or route == 'app_dashboard_general') %}
-        {% set isAdminActive = (route starts with 'app_admin' or route == 'app_dashboard_superadmin') %}
+        {% set isAdminActive = (route starts with 'app_admin' or route == 'app_dashboard_superadmin' or route == 'app_dashboard_superadmin_performance') %}
         {% set isEspaceActive = (route == 'app_notifications_list' or route == 'app_account_settings' or route == 'app_2fa_settings' or route starts with 'app_notification' or route == 'app_privacy_policy' or route == 'app_terms_of_use') %}
 
         {# ════════════════════════════════════════════════════
@@ -182,6 +182,11 @@
                class="sidebar-sublink {% if route == 'app_dashboard_superadmin' %}active{% endif %}"
                data-turbo="false">
                 <i class="bi bi-speedometer me-1.5"></i>Tableau de bord admin
+            </a>
+            <a href="{{ path('app_dashboard_superadmin_performance') }}" rel="noopener"
+               class="sidebar-sublink {% if route == 'app_dashboard_superadmin_performance' %}active{% endif %}"
+               data-turbo="false">
+                <i class="bi bi-bar-chart-line me-1.5"></i>Performance des profils
             </a>
             <a href="{{ path('app_admin_user_index') }}" rel="noopener"
                class="sidebar-sublink {% if route starts with 'app_admin_user' %}active{% endif %}"

@@ -174,6 +174,13 @@
                     <label class="form-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Ordre d'affichage (optionnel)</label>
                     <input type="number" name="ordre_affichage" class="form-input" value="10" min="0" style="width:100%;padding:8px 12px;">
                 </div>
+                <div class="mb-4">
+                    <label class="form-label" style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Disponibilité dans les transmissions</label>
+                    <select name="actif" class="form-select" style="width:100%;padding:8px 12px;">
+                        <option value="1" selected>Active — proposée dans les choix</option>
+                        <option value="0">Inactive — conservée, mais masquée des choix</option>
+                    </select>
+                </div>
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="document.getElementById('addInstModal').classList.add('hidden')">Annuler</button>
                     <button type="submit" class="db-btn db-btn-emerald db-btn-sm"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>

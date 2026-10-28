@@ -71,6 +71,11 @@
                     {% endfor %}
                 {% endfor %}
 
+                {% set currentRoute = app.request.attributes.get('_route')|default('') %}
+                {% if currentRoute starts with 'app_dashboard_' or currentRoute == 'app_agent_dashboard' %}
+                    {% include 'components/_dashboard_greeting.html.twig' %}
+                {% endif %}
+
                 {% block body %}{% endblock %}
             </main>
         </div>

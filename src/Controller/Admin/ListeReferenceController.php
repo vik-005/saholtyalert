@@ -93,6 +93,7 @@ class ListeReferenceController extends AbstractController
             $libelle   = trim((string) $request->request->get('libelle', ''));
             $ordre     = (int) $request->request->get('ordre_affichage', 0);
             $nature    = trim((string) $request->request->get('nature_localite', ''));
+            $actif     = (string) $request->request->get('actif', '1');
 
             // Si c'est une localité avec une nature précisée (ex: Port, Corridor), préfixer ou formater si non présent
             if ($typeListe === 'localite' && $nature !== '' && !str_starts_with($libelle, '[')) {
@@ -115,13 +116,16 @@ class ListeReferenceController extends AbstractController
                     $errors[] = "Le libellé « {$libelle} » existe déjà dans cette liste.";
                 }
             }
+            if ($typeListe === 'institution_transmission' && !in_array($actif, ['0', '1'], true)) {
+                $errors[] = 'Le statut de l\'institution est invalide.';
+            }
 
             if (empty($errors)) {
                 $item = new ListeReferenceValeur();
                 $item->setTypeListe($typeListe);
                 $item->setLibelle($libelle);
                 $item->setOrdreAffichage($ordre);
-                $item->setActif(true);
+                $item->setActif($typeListe !== 'institution_transmission' || $actif === '1');
                 $item->setCreePar($user);
                 $em->persist($item);
                 $em->flush();
@@ -137,7 +141,12 @@ class ListeReferenceController extends AbstractController
             }
         }
 
-        return $this->render('admin/liste_reference/new.html.twig');
+        return $this->render('admin/liste_reference/new.html.twig', [
+            'selectedTypeListe' => $request->isMethod('POST')
+                ? (string) $request->request->get('type_liste', '')
+                : (string) $request->query->get('type', ''),
+            'selectedActif' => (string) $request->request->get('actif', '1'),
+        ]);
     }
 
     #[Route('/{id}/toggle', name: 'app_admin_liste_reference_toggle', methods: ['POST'])]
