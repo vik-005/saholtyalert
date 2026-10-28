@@ -211,11 +211,11 @@ class QualificationController extends AbstractController
                     $escalationEngine->evaluate($alert);
 
                     // ── INCRÉMENTATION DU COMPTEUR DE REQUALIFICATIONS ──────────────
-                    // Chaque validation par un Manager (PFT) consomme une requalification,
-                    // que le score ait changé ou non. SUPERADMIN/SAHOLTY sont illimités
-                    // et n'incrémentent pas le compteur (vérifiable via canBeRequalifiedBy).
+                    // La qualification initiale ne consomme pas une requalification.
+                    // Les validations suivantes par un Manager (PFT) sont limitées à trois.
                     if ($currentUser instanceof User
-                        && $currentUser->getRole() === \App\Enum\UserRoleEnum::PFT) {
+                        && $currentUser->getRole() === \App\Enum\UserRoleEnum::PFT
+                        && $scoreBeforeManagerEdit !== null) {
                         $alert->incrementRequalificationCount();
                     }
 

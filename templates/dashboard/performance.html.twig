@@ -130,7 +130,7 @@
                                 <div class="performance-profile-cell">
                                     <span class="performance-avatar">
                                         {% if profile.photoProfil %}
-                                            <img src="{{ path('app_account_photo', {v: profile.photoProfil}) }}" alt="" width="40" height="40" loading="lazy" decoding="async">
+                                            <img src="{{ path('app_admin_user_photo', {id: profile.id, v: profile.photoProfil}) }}" alt="" width="40" height="40" loading="lazy" decoding="async">
                                         {% else %}
                                             {{ profile.prenom|slice(0, 1) }}{{ profile.nom|slice(0, 1) }}
                                         {% endif %}

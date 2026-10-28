@@ -8,11 +8,14 @@ use App\Enum\UserRoleEnum;
 use App\Form\UserType;
 use App\Repository\UserRepository;
 use App\Service\AdminAuditLogger;
+use App\Service\ProfilePhotoStorageService;
 use App\Voter\UserVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -21,6 +24,35 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_PFT')]
 class UserController extends AbstractController
 {
+    #[Route('/{id}/photo', name: 'app_admin_user_photo', methods: ['GET'])]
+    public function photo(User $user, ProfilePhotoStorageService $photoStorage, Request $request): Response
+    {
+        $this->denyAccessUnlessGranted(UserVoter::VIEW, $user);
+
+        $storedPath = $user->getPhotoProfil();
+        if ($storedPath === null || $user->getId() === null) {
+            throw $this->createNotFoundException('Aucune photo de profil disponible.');
+        }
+
+        $path = $photoStorage->resolveOptimized($storedPath, $user->getId());
+        if ($path === null) {
+            throw $this->createNotFoundException('La photo de profil est indisponible.');
+        }
+
+        $response = new BinaryFileResponse($path);
+        $response->headers->set('Content-Type', $photoStorage->mimeType($storedPath));
+        $response->headers->set('X-Content-Type-Options', 'nosniff');
+        $response->setPrivate();
+        $response->setMaxAge(31_536_000);
+        $response->setImmutable();
+        $response->setEtag(hash('sha256', $user->getId() . '|' . $storedPath));
+        $response->setLastModified((new \DateTimeImmutable())->setTimestamp((int) filemtime($path)));
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, 'profile.webp');
+        $response->isNotModified($request);
+
+        return $response;
+    }
+
     #[Route('/', name: 'app_admin_user_index', methods: ['GET'])]
     public function index(UserRepository $userRepository, AdminAuditLogger $auditLogger): Response
     {

@@ -72,7 +72,11 @@
                         <td>
                             <div class="adm-user-cell">
                                 <div class="profile-avatar adm-avatar">
-                                    {{ u.prenom|slice(0,1) }}{{ u.nom|slice(0,1) }}
+                                    {% if u.photoProfil %}
+                                        <img src="{{ path('app_admin_user_photo', {id: u.id, v: u.photoProfil}) }}" alt="" width="32" height="32" loading="lazy" decoding="async">
+                                    {% else %}
+                                        {{ u.prenom|slice(0,1) }}{{ u.nom|slice(0,1) }}
+                                    {% endif %}
                                 </div>
                                 <div>
                                     <span class="adm-user-name">{{ u.nomComplet }}</span>

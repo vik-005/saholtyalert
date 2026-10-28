@@ -91,24 +91,32 @@ class AlertScoreSubscriber
                 continue;
             }
 
-            if (!$entity->isScoreable()) {
-                continue;
+            if ($entity->isScoreable()) {
+                $oldScore = $entity->getScoreGei();
+                $changed = $this->scoreCalculator->calculate($entity);
+
+                if ($changed) {
+                    $classMetadata = $em->getClassMetadata(Alert::class);
+                    $uow->recomputeSingleEntityChangeSet($classMetadata, $entity);
+
+                    $entry     = $this->scoreCalculator->createHistoryEntry($entity, 'system', $oldScore);
+                    $em->persist($entry);
+                    $entryMeta = $em->getClassMetadata(get_class($entry));
+                    $uow->computeChangeSet($entryMeta, $entry);
+                }
             }
 
-            $oldScore = $entity->getScoreGei();
-            $changed = $this->scoreCalculator->calculate($entity);
-
-            if ($changed) {
-                $classMetadata = $em->getClassMetadata(Alert::class);
-                $uow->recomputeSingleEntityChangeSet($classMetadata, $entity);
-
-                $entry     = $this->scoreCalculator->createHistoryEntry($entity, 'system', $oldScore);
-                $em->persist($entry);
-                $entryMeta = $em->getClassMetadata(get_class($entry));
-                $uow->computeChangeSet($entryMeta, $entry);
-            }
-
+            $hasUrgenceCase = $entity->getUrgence72hCase() !== null;
             $this->escalationEngine->evaluate($entity);
+
+            $urgenceCase = $entity->getUrgence72hCase();
+            if (!$hasUrgenceCase && $urgenceCase !== null) {
+                // Entities created from onFlush need explicit changesets to be inserted in this flush.
+                $uow->computeChangeSet($em->getClassMetadata(\App\Entity\Urgence72hCase::class), $urgenceCase);
+                foreach ($urgenceCase->getPhases() as $phase) {
+                    $uow->computeChangeSet($em->getClassMetadata(\App\Entity\Urgence72hPhase::class), $phase);
+                }
+            }
 
             // Notification Agent si le statut a changé
             $changeSet = $uow->getEntityChangeSet($entity);

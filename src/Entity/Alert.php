@@ -815,6 +815,13 @@ class Alert
         return $this;
     }
 
+    public function hasBeenTransmitted(): bool
+    {
+        return $this->transmission === TransmissionStatut::OUI
+            || $this->statut === AlertStatut::TRANSMIS
+            || !$this->transmissions->isEmpty();
+    }
+
     public function getActionsEnCours(): ?string
     {
         return $this->actionsEnCours;
@@ -1275,9 +1282,9 @@ class Alert
 
     /**
      * Garde-fou métier serveur pour l'espace opérationnel Urgence 72h.
-     * Un score critique ou une URL directe ne suffisent jamais.
+     * Une priorité élevée ou une urgence explicite ne suffit jamais avant validation.
      */
-    public function isEligibleForUrgence72h(): bool
+    public function isEligibleForUrgence72h(int $minimumScore = 14): bool
     {
         if ($this->statut !== AlertStatut::VALIDEE) {
             return false;
@@ -1285,8 +1292,8 @@ class Alert
 
         return $this->urgence === AlertUrgence::SOIXANTE_DOUZE_H
             || $this->urgence === AlertUrgence::IMMEDIAT
-            || ($this->getEffectiveScore() !== null && $this->getEffectiveScore() >= 18)
-            || $this->getEffectiveNiveauPriorite() === \App\Enum\NiveauPriorite::CRITIQUE;
+            || ($this->getEffectiveScore() !== null && $this->getEffectiveScore() >= $minimumScore)
+            || in_array($this->getEffectiveNiveauPriorite(), [NiveauPriorite::ELEVE, NiveauPriorite::CRITIQUE], true);
     }
 
     public function __toString(): string

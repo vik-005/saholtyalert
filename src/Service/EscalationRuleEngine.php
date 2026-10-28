@@ -49,12 +49,13 @@ class EscalationRuleEngine
     }
 
     /**
-     * Règle 1 : une procédure 72h n'est créée qu'après validation Manager,
-     * et uniquement pour une urgence explicitement classée 72h.
+     * Règle 1 : une procédure 72h est créée après validation Manager
+     * pour toute alerte au moins élevée, critique ou explicitement urgente.
      */
     private function regle1_CritiqueCree72h(Alert $alert): void
     {
-        if ($alert->isEligibleForUrgence72h() && null === $alert->getUrgence72hCase()) {
+        $minimumScore = $this->getConfig('score_eleve_min', 14);
+        if ($alert->isEligibleForUrgence72h($minimumScore) && null === $alert->getUrgence72hCase()) {
             $case = new Urgence72hCase();
             $case->setAlert($alert);
             $case->setDateActivation(new \DateTimeImmutable());

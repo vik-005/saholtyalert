@@ -5,6 +5,7 @@
 
 {% block body %}
 {% set alertToken = encrypt_id(alert.id, 'alert') %}
+{% set alertAlreadyTransmitted = alert.hasBeenTransmitted %}
 <div class="db-wrapper">
 
     {# ── BANDEAU ÉTAT — workflow visible ── #}
@@ -72,7 +73,7 @@
             <a href="{{ path('app_alert_edit', {token: alertToken}) }}" class="db-btn db-btn-ghost">
                 <i class="bi bi-pencil-square me-1.5"></i>Modifier
             </a>
-            {% if is_granted('ALERT_QUALIFY', alert) %}
+            {% if alert.statut.value == 'a_valider_saholty' and is_granted('ALERT_QUALIFY', alert) and alert.canBeRequalifiedBy(app.user) %}
                 <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="db-btn db-btn-amber">
                     <i class="bi bi-star-half me-1.5"></i>
                     {% if alert.scoreGei %}Requalifier{% else %}Qualifier{% endif %}
@@ -80,7 +81,7 @@
             {% endif %}
             {% if is_granted('ROLE_PFT') and is_granted('ALERT_TRANSMIT', alert) and alert.scoreGei %}
                 <a href="{{ path('app_alert_transmit', {token: alertToken}) }}" class="db-btn db-btn-ghost">
-                    <i class="bi bi-send me-1.5"></i>Transmettre
+                    <i class="bi bi-send me-1.5"></i>{{ alertAlreadyTransmitted ? 'Ajouter une transmission' : 'Transmettre' }}
                 </a>
             {% endif %}
             {% if is_granted('ALERT_DECIDE', alert) %}
@@ -183,32 +184,10 @@
     </div>
     {% endif %}
 
-    {# ── PARCOURS DES PAYS & MARCHÉS — Ordre chronologique strict de saisie ── #}
+    {# ── Marché d'origine et étapes de transit ── #}
     {% set parcours = alert.getOrderedParcours(countryNames|default({})) %}
     {% if parcours|length > 1 or (alert.parcoursCountries|default([])|length > 0) %}
-    <div class="show-section show-route-section mt-3">
-        <div class="show-route-heading">
-            <div>
-                <h3 class="show-section-title mb-1">
-                    <i class="bi bi-signpost-2 me-1.5 text-emerald-400"></i>Parcours &amp; Transit opérationnel
-                </h3>
-                <p class="show-route-help">Ordre chronologique de saisie du transit : Marché émetteur et pays/marchés associés.</p>
-            </div>
-            <span class="status-pill status-pill-route">{{ parcours|length }} étapes</span>
-        </div>
-        <div class="show-route-track" aria-label="Parcours de l'alerte">
-            {% for step in parcours %}
-                {% if not loop.first %}
-                    <span class="show-route-line" aria-hidden="true"></span>
-                {% endif %}
-                <div class="show-route-node {% if step.isPrincipal %}show-route-node-main{% endif %}">
-                    <span class="show-route-dot"></span>
-                    <strong>{{ step.name }}</strong>
-                    <small>{% if step.isPrincipal %}<span class="text-amber-400 font-semibold">Origine</span> · {{ step.code }}{% else %}Étape {{ loop.index - 1 }} · {{ step.code }}{% endif %}</small>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
+        {% include 'components/_market_journey.html.twig' with {journey: parcours} only %}
     {% endif %}
 
     {% if alert.pieceJointes|length > 0 %}

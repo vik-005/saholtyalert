@@ -1,0 +1,29 @@
+{% set origin = journey|filter(step => step.isPrincipal)|first %}
+{% set transitSteps = journey|filter(step => not step.isPrincipal) %}
+
+<section class="market-journey" aria-label="Marché principal et parcours de transit">
+    <header class="market-journey-header">
+        <p class="market-journey-eyebrow"><i class="bi bi-signpost-2" aria-hidden="true"></i> Parcours opérationnel</p>
+        <h3>Marché principal et pays de transit</h3>
+    </header>
+
+    <div class="market-journey-origin">
+        <span class="market-journey-origin-icon" aria-hidden="true"><i class="bi bi-geo-alt-fill"></i></span>
+        <span>
+            <small>Marché principal · origine</small>
+            <strong>{{ origin.name|default('Marché non renseigné') }}</strong>
+        </span>
+    </div>
+
+    <div class="market-journey-stages" aria-label="Étapes de transit">
+        {% for step in transitSteps %}
+            <article class="market-journey-stage">
+                <span class="market-journey-stage-number">Étape {{ loop.index }}</span>
+                <strong>{{ step.name }}</strong>
+                <small>Pays de transit</small>
+            </article>
+        {% else %}
+            <p class="market-journey-empty"><i class="bi bi-info-circle" aria-hidden="true"></i> Aucun pays de transit supplémentaire.</p>
+        {% endfor %}
+    </div>
+</section>

@@ -9,6 +9,7 @@ use App\Enum\AlertImpact;
 use App\Enum\AlertStatut;
 use App\Enum\AlertUrgence;
 use App\Enum\FiabiliteSource;
+use App\Enum\NiveauPriorite;
 use App\Message\AlertEscalationMessage;
 use App\Repository\RuleConfigRepository;
 use App\Service\EscalationRuleEngine;
@@ -46,7 +47,7 @@ class EscalationRuleEngineTest extends TestCase
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Règle 1 : Score ≥ 18 → Urgence 72h activée
+    // Règle 1 : alerte élevée ou critique validée → Urgence 72h activée
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
@@ -82,14 +83,39 @@ class EscalationRuleEngineTest extends TestCase
      * @test
      * Score < 18 ne doit PAS déclencher la règle 1.
      */
-    public function testRegle1_ScoreInferieurA18_PasDeUrgence(): void
+    public function testRegle1_AlertNonValideeNeDeclenchePasLaProcedure(): void
     {
         $alert = $this->buildScoredAlert(scoreGei: 17);
 
         $engine = $this->buildEngine();
         $engine->evaluate($alert);
 
-        $this->assertNull($alert->getUrgence72hCase(), 'Règle 1 : Pas d\'Urgence72hCase pour score < 18');
+        $this->assertNull($alert->getUrgence72hCase(), 'Une alerte élevée ne démarre pas la procédure avant validation.');
+        $this->assertNotDispatchedType('urgence_72h_created');
+    }
+
+    public function testRegle1_ScoreEleveValideeCreeProcedure(): void
+    {
+        $alert = $this->buildScoredAlert(scoreGei: 17, urgence: AlertUrgence::ROUTINE);
+        $alert->setNiveauPriorite(NiveauPriorite::ELEVE);
+        $alert->setStatut(AlertStatut::VALIDEE);
+
+        $this->buildEngine()->evaluate($alert);
+
+        $case = $alert->getUrgence72hCase();
+        $this->assertNotNull($case, 'Une alerte de priorité élevée validée doit ouvrir un dossier Urgence 72h.');
+        $this->assertCount(3, $case->getPhases());
+        $this->assertDispatchedType('urgence_72h_created');
+    }
+
+    public function testRegle1_ScoreModereValideeNeCreePasProcedure(): void
+    {
+        $alert = $this->buildScoredAlert(scoreGei: 13, urgence: AlertUrgence::ROUTINE);
+        $alert->setStatut(AlertStatut::VALIDEE);
+
+        $this->buildEngine()->evaluate($alert);
+
+        $this->assertNull($alert->getUrgence72hCase());
         $this->assertNotDispatchedType('urgence_72h_created');
     }
 

@@ -13,8 +13,12 @@
             <p class="page-eyebrow">
                 <i class="bi bi-send me-1.5"></i>Transmission institutionnelle
             </p>
-            <h2 class="page-title">Transmettre {{ alert.codeGei }}</h2>
-            <p class="page-subtitle">Transmettre l'information qualifiée aux autorités compétentes.</p>
+            <h2 class="page-title">{{ alert.hasBeenTransmitted ? 'Ajouter une transmission' : 'Transmettre' }} {{ alert.codeGei }}</h2>
+            <p class="page-subtitle">
+                {{ alert.hasBeenTransmitted
+                    ? 'Sélectionnez une institution supplémentaire depuis la fiche du registre des alertes.'
+                    : 'Transmettre l’information qualifiée à une institution compétente.' }}
+            </p>
         </div>
         <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost">
             <i class="bi bi-arrow-left me-1.5"></i>Retour à la fiche
@@ -30,7 +34,7 @@
                     <i class="bi bi-send fa-xs"></i>
                 </div>
                 <div>
-                    <p class="form-section-title">Décision de transmission</p>
+                    <p class="form-section-title">{{ alert.hasBeenTransmitted ? 'Nouvelle institution destinataire' : 'Décision de transmission' }}</p>
                     <p class="form-section-sub">Renseignez le destinataire et la note d'accompagnement.</p>
                 </div>
             </div>

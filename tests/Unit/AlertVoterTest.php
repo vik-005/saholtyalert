@@ -3,9 +3,11 @@
 namespace App\Tests\Unit;
 
 use App\Entity\Alert;
+use App\Entity\AlertTransmission;
 use App\Entity\Market;
 use App\Entity\User;
 use App\Enum\AlertStatut;
+use App\Enum\TransmissionStatut;
 use App\Enum\UserRoleEnum;
 use App\Voter\AlertVoter;
 use PHPUnit\Framework\TestCase;
@@ -74,5 +76,46 @@ class AlertVoterTest extends TestCase
         // Agent trying to qualify alert => DENIED
         $result = $voter->vote($token, $alert, [AlertVoter::QUALIFY]);
         $this->assertEquals(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    public function testManagerCanQualifyAndTransmitAnAlertThatWasAlreadyTransmitted(): void
+    {
+        $voter = new AlertVoter();
+        $manager = new User();
+        $manager->setRole(UserRoleEnum::PFT);
+
+        $alert = new Alert();
+        $alert->setStatut(AlertStatut::VALIDEE);
+        $alert->setTransmission(TransmissionStatut::OUI);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($manager);
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $voter->vote($token, $alert, [AlertVoter::QUALIFY]));
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $voter->vote($token, $alert, [AlertVoter::TRANSMIT]));
+    }
+
+    public function testTransmissionRecordCountsAsAlreadyTransmitted(): void
+    {
+        $alert = new Alert();
+        $alert->getTransmissions()->add(new AlertTransmission());
+
+        self::assertTrue($alert->hasBeenTransmitted());
+    }
+
+    public function testManagerHasThreeRequalificationsAndSuperadminIsUnlimited(): void
+    {
+        $alert = new Alert();
+        $manager = new User();
+        $manager->setRole(UserRoleEnum::PFT);
+        $superadmin = new User();
+        $superadmin->setRole(UserRoleEnum::SUPERADMIN);
+
+        $alert->setRequalificationCount(2);
+        self::assertTrue($alert->canBeRequalifiedBy($manager));
+
+        $alert->setRequalificationCount(3);
+        self::assertFalse($alert->canBeRequalifiedBy($manager));
+        self::assertTrue($alert->canBeRequalifiedBy($superadmin));
     }
 }

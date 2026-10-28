@@ -72,7 +72,13 @@
                 {% endfor %}
 
                 {% set currentRoute = app.request.attributes.get('_route')|default('') %}
-                {% if currentRoute starts with 'app_dashboard_' or currentRoute == 'app_agent_dashboard' %}
+                {% if currentRoute in [
+                    'app_dashboard_operationnel',
+                    'app_dashboard_general',
+                    'app_dashboard_superadmin',
+                    'app_dashboard_kpi',
+                    'app_agent_dashboard'
+                ] %}
                     {% include 'components/_dashboard_greeting.html.twig' %}
                 {% endif %}
 

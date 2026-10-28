@@ -8,16 +8,9 @@
 {% endif %}
 
 <section class="dashboard-welcome" aria-label="Accueil personnalisé">
-    <div class="dashboard-welcome-avatar">
-        {% if app.user.photoProfil %}
-            <img src="{{ path('app_account_photo', {v: app.user.photoProfil}) }}" alt="" width="48" height="48" decoding="async">
-        {% else %}
-            <span aria-hidden="true">{{ app.user.prenom|slice(0, 1) }}{{ app.user.nom|slice(0, 1) }}</span>
-        {% endif %}
-    </div>
     <div class="dashboard-welcome-copy">
-        <p class="dashboard-welcome-eyebrow">{{ 'now'|date('d/m/Y') }}</p>
+        <p class="dashboard-welcome-eyebrow">{{ 'now'|date('d/m/Y') }} · Espace GEI</p>
         <h2>{{ greeting }}, {{ app.user.prenom }}</h2>
-        <p>{{ app.user.role.label() }} · Votre espace de suivi GEI</p>
+        <p>{{ app.user.role.label() }} <span aria-hidden="true">·</span> Votre espace de suivi</p>
     </div>
 </section>

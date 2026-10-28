@@ -24,7 +24,7 @@ use Twig\Environment;
  * et crée les notifications en base + entrées de log pour chaque règle.
  *
  * Partie D — Cycle Soumission → Notification → Validation :
- *   - urgence_72h_created     : Règle 1 — Score ≥ 18
+ *  - urgence_72h_created     : Règle 1 — alerte élevée ou critique validée
  *   - transmission_prioritaire : Règle 2 — Urgence Immédiat + Impact Élevé
  *   - tache_analyse_rapide     : Règle 3 — Exploitabilité Actionnable + Crédibilité ≥ 2
  *   - multi_corridor_comite_ait: Règle 4 — Multi-pays/corridor
@@ -88,13 +88,13 @@ class AlertEscalationHandler
     }
 
     /**
-      * Règle 1 : Score ≥ 18 → notification urgence critique à TOUS les PFT + SAHOLTY du marché.
+      * Règle 1 : alerte élevée ou critique validée → notification aux PFT + SAHOLTY du marché.
       */
     private function handleUrgence72h(Alert $alert, array $details): void
     {
         $managers = $this->getManagersForAlert($alert);
         $contenu  = sprintf(
-            ' CRITIQUE — Alerte %s — Score %d — Procédure urgence 72h activée automatiquement.',
+            'ALERTE PRIORITAIRE — Alerte %s — Score %d — Procédure Urgence 72h activée automatiquement.',
             $alert->getCodeGei() ?? '#' . $alert->getId(),
             $details['score'] ?? $alert->getScoreGei()
         );
