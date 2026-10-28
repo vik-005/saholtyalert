@@ -437,7 +437,11 @@ class Alert
         if (!empty($this->parcoursCountries)) {
             foreach ($this->parcoursCountries as $countryCode) {
                 $code = strtoupper(trim((string) $countryCode));
-                if ($code === '' || ($principal !== null && (strtoupper($principal->getCodeIso3()) === $code || strtoupper($principal->getCodeIso2() ?? '') === $code))) {
+                $isPrincipalMarket = $principal !== null && (
+                    strtoupper($principal->getCodeIso3()) === $code
+                    || strtoupper(trim($countryNames[$code] ?? '')) === strtoupper(trim($principal->getNom()))
+                );
+                if ($code === '' || $isPrincipalMarket) {
                     continue;
                 }
                 $name = $countryNames[$code] ?? $code;

@@ -265,17 +265,6 @@ class WizardController extends AbstractController
             if (!in_array($data['typeLocalite'] ?? null, ['ville', 'village'], true)) {
                 return 'Précisez si la localité est une ville ou un village.';
             }
-            $latitude = $data['localiteLatitude'] ?? '';
-            $longitude = $data['localiteLongitude'] ?? '';
-            if (($latitude !== '' && $longitude === '') || ($latitude === '' && $longitude !== '')) {
-                return 'Renseignez la latitude et la longitude ensemble pour afficher la localité sur la carte.';
-            }
-            if ($latitude !== '' && (!is_numeric($latitude) || (float) $latitude < -90 || (float) $latitude > 90)) {
-                return 'La latitude doit être comprise entre -90 et 90.';
-            }
-            if ($longitude !== '' && (!is_numeric($longitude) || (float) $longitude < -180 || (float) $longitude > 180)) {
-                return 'La longitude doit être comprise entre -180 et 180.';
-            }
         } elseif (empty($data['portCorridor'])) {
             return 'Le nom du port ou corridor est obligatoire.';
         }
@@ -616,13 +605,17 @@ class WizardController extends AbstractController
 
         // Merge intelligent : ne jamais écraser une valeur existante non-vide
         // par une valeur vide provenant d'un champ caché absent ou vide (ex. step6 hidden inputs).
+        unset(
+            $data['alert[localiteLatitude]'],
+            $data['alert[localiteLongitude]'],
+            $existing['alert[localiteLatitude]'],
+            $existing['alert[localiteLongitude]'],
+        );
         $merged = $existing;
         $locationFields = [
             'alert[portCorridor]',
             'alert[localite]',
             'alert[typeLocalite]',
-            'alert[localiteLatitude]',
-            'alert[localiteLongitude]',
         ];
         foreach ($data as $key => $value) {
             $currentValue = $existing[$key] ?? null;
@@ -758,17 +751,10 @@ class WizardController extends AbstractController
             }
         }
 
-        if (array_key_exists('localiteLatitude', $alertData)) {
-            $latitude = trim((string) $alertData['localiteLatitude']);
-            $alert->setLocaliteLatitude($latitude === '' ? null : (float) $latitude);
-        }
-        if (array_key_exists('localiteLongitude', $alertData)) {
-            $longitude = trim((string) $alertData['localiteLongitude']);
-            $alert->setLocaliteLongitude($longitude === '' ? null : (float) $longitude);
-        }
-
         if ($alert->getTypeLocalisation() === \App\Enum\TypeLocalisation::LOCALITE) {
             $alert->setPortCorridor(null);
+            $alert->setLocaliteLatitude(null);
+            $alert->setLocaliteLongitude(null);
         } else {
             $alert->setLocalite(null);
             $alert->setTypeLocalite(null);

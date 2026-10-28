@@ -20,9 +20,13 @@ class AlertRepository extends ServiceEntityRepository
     }
 
     /**
-     * Agrégats cartographiques groupés par marché en deux requêtes au lieu de deux par marché.
+     * Agrégats cartographiques groupés par marché, sans requête supplémentaire par marché.
      *
-     * @return array<int, array{categories: array<string, int>, corridors: array<string, int>, localities: array<int, array<string, mixed>>}>
+     * @return array<int, array{
+     *     categories: array<string, int>,
+     *     corridors: array<string, int>,
+     *     localities: array<int, array{name: string, type: string, count: int, criticalCount: int, highCount: int}>
+     * }>
      */
     public function getMapStatsByMarkets(array $marketIds, array $filters = []): array
     {
@@ -105,13 +109,16 @@ class AlertRepository extends ServiceEntityRepository
         }
 
         $localities = $connection->executeQuery(
-            'SELECT a.market_id AS marketId, a.localite AS value, a.type_localite AS typeLocalite,'
-                . ' a.localite_latitude AS latitude, a.localite_longitude AS longitude, COUNT(a.id) AS cnt'
+            "SELECT a.market_id AS marketId, MIN(TRIM(a.localite)) AS value,"
+                . " COALESCE(NULLIF(LOWER(TRIM(a.type_localite)), ''), 'localite') AS typeLocalite,"
+                . ' COUNT(a.id) AS cnt,'
+                . " SUM(CASE WHEN COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'critique' THEN 1 ELSE 0 END) AS criticalCount,"
+                . " SUM(CASE WHEN COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'eleve' THEN 1 ELSE 0 END) AS highCount"
                 . ' FROM alert a WHERE ' . $where
                 . " AND (a.type_localisation = 'localite' OR (a.type_localisation IS NULL AND a.localite IS NOT NULL))"
                 . " AND a.localite IS NOT NULL AND TRIM(a.localite) != ''"
-                . ' GROUP BY a.market_id, a.localite, a.type_localite, a.localite_latitude, a.localite_longitude'
-                . ' ORDER BY a.market_id, cnt DESC',
+                . " GROUP BY a.market_id, LOWER(TRIM(a.localite)), COALESCE(NULLIF(LOWER(TRIM(a.type_localite)), ''), 'localite')"
+                . ' ORDER BY a.market_id, cnt DESC, value',
             $parameters,
         )->fetchAllAssociative();
 
@@ -120,9 +127,9 @@ class AlertRepository extends ServiceEntityRepository
             $stats[$marketId]['localities'][] = [
                 'name' => trim((string) $row['value']),
                 'type' => (string) ($row['typeLocalite'] ?? ''),
-                'latitude' => $row['latitude'] !== null ? (float) $row['latitude'] : null,
-                'longitude' => $row['longitude'] !== null ? (float) $row['longitude'] : null,
                 'count' => (int) $row['cnt'],
+                'criticalCount' => (int) $row['criticalCount'],
+                'highCount' => (int) $row['highCount'],
             ];
         }
 

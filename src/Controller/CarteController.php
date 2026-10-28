@@ -374,6 +374,7 @@ class CarteController extends AbstractController
                AND (
                    am.id IS NOT NULL
                    OR (a.parcours_countries IS NOT NULL AND JSON_LENGTH(a.parcours_countries) > 0)
+                   OR a.type_localisation IN ('port', 'aeroport')
                )
              ORDER BY a.id, am.ordre",
             $params
@@ -421,6 +422,7 @@ class CarteController extends AbstractController
                     'principal'     => $row['principal'],
                     'principalIso3' => $row['principal_iso3'],
                     'principalCoordinates' => [(float) $row['principal_lat'], (float) $row['principal_lng']],
+                    'location' => self::buildAlertMapLocation($row),
                     'storedCountries' => is_array($storedCountries) ? $storedCountries : [],
                     'associatedMarkets' => [],
                 ];
@@ -434,6 +436,7 @@ class CarteController extends AbstractController
         }
 
         $result = [];
+        $locations = [];
         foreach ($routes as $route) {
             $path = self::resolveRouteMarkets(
                 $route['storedCountries'],
@@ -445,6 +448,12 @@ class CarteController extends AbstractController
             $routeMarketIds = array_merge([$route['principalId']], array_column($path, 'id'));
             if (array_intersect($routeMarketIds, $mainIds) === []) {
                 continue;
+            }
+            if ($route['location'] !== null) {
+                $locations[$route['id']] = array_merge($route['location'], [
+                    'id' => $route['id'],
+                    'codeGei' => $route['codeGei'],
+                ]);
             }
 
             $route['points'] = [$route['principalCoordinates']];
@@ -462,13 +471,16 @@ class CarteController extends AbstractController
                 $route['iso3s'][] = $market['iso3'];
             }
 
-            unset($route['principalCoordinates'], $route['storedCountries'], $route['associatedMarkets']);
+            unset($route['principalCoordinates'], $route['storedCountries'], $route['associatedMarkets'], $route['location']);
             if (count($route['points']) > 1) {
                 $result[] = $route;
             }
         }
 
-        return new JsonResponse($result);
+        return new JsonResponse([
+            'routes' => $result,
+            'locations' => array_values($locations),
+        ]);
     }
 
     private static function fallbackMarketCoordinates(string $iso3): array
@@ -489,6 +501,48 @@ class CarteController extends AbstractController
             'AGO' => [-11.2027, 17.8739],
             default => [null, null],
         };
+    }
+
+    /**
+     * Port and airport records have no dedicated coordinates; map them at the
+     * reporting market and expose that placement as indicative, not exact.
+     */
+    private static function buildAlertMapLocation(array $row): ?array
+    {
+        $type = $row['type_localisation'] ?? null;
+        if (!in_array($type, ['port', 'aeroport'], true)) {
+            return null;
+        }
+
+        $validCoordinates = static fn(mixed $latitude, mixed $longitude): bool =>
+            is_numeric($latitude)
+            && is_numeric($longitude)
+            && (float) $latitude >= -90
+            && (float) $latitude <= 90
+            && (float) $longitude >= -180
+            && (float) $longitude <= 180;
+        $latitude = $row['principal_lat'] ?? null;
+        $longitude = $row['principal_lng'] ?? null;
+        $hasCoordinates = $validCoordinates($latitude, $longitude);
+        if (!$hasCoordinates) {
+            return null;
+        }
+
+        $name = $row['port_corridor'] ?? null;
+        if (!is_string($name) || trim($name) === '') {
+            return null;
+        }
+
+        return [
+            'type' => $type,
+            'subtype' => null,
+            'name' => trim($name),
+            'marketId' => (int) ($row['principal_id'] ?? 0),
+            'market' => (string) ($row['principal'] ?? ''),
+            'latitude' => (float) $latitude,
+            'longitude' => (float) $longitude,
+            'precise' => false,
+        ];
     }
 
     private static function buildMarketLookup(array $marketData): array

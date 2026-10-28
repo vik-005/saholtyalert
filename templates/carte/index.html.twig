@@ -301,6 +301,40 @@
     border: 2px solid #ffffff;
     box-shadow: 0 1px 6px rgba(0,0,0,.3);
 }
+.map-location-icon {
+    width: 31px;
+    height: 31px;
+    display: grid;
+    place-items: center;
+    border: 2px solid #ffffff;
+    border-radius: 10px 10px 10px 3px;
+    color: #ffffff;
+    font-size: 15px;
+    box-shadow: 0 2px 9px rgba(15, 23, 42, .42);
+    transform: rotate(-45deg);
+}
+.map-location-icon i { transform: rotate(45deg); }
+.map-location-port { background: #0369a1; }
+.map-location-aeroport { background: #7c3aed; border-radius: 50%; }
+.location-cluster-icon {
+    width: 38px; height: 38px; display: grid; place-items: center;
+    border: 3px solid #ffffff; border-radius: 50%; background: #0f766e;
+    color: #ffffff; font-size: 11px; font-weight: 850;
+    box-shadow: 0 2px 9px rgba(15, 23, 42, .38);
+}
+.map-location-popup { min-width: 190px; padding: 11px 13px; font-family: inherit; }
+.map-location-popup-title { display: flex; align-items: center; gap: 7px; color: var(--text); font-size: 12px; font-weight: 800; }
+.map-location-popup-type { margin-top: 5px; color: #475569; font-size: 10px; font-weight: 700; }
+.map-location-popup-market { margin-top: 3px; color: #64748b; font-size: 10px; }
+.map-location-popup-note { margin-top: 7px; color: #92400e; font-size: 9px; line-height: 1.4; }
+.map-location-popup-action {
+    width: 100%; margin-top: 9px; padding: 6px 8px; border: 0; border-radius: 6px;
+    background: #16856b; color: #fff; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+}
+.map-location-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.map-location-legend .legend-label { gap: 5px; }
+body.dark .map-location-popup-type { color: #cbd5e1; }
+body.dark .map-location-popup-market { color: #94a3b8; }
 
 /* ── Popup / Tooltip de corridor ultra-soigné ── */
 .corridor-popup-card {
@@ -651,6 +685,353 @@ body.dark .category-target[aria-pressed="true"] { background: rgba(22,133,107,.2
 .pays-card-iso  { font-size: 10.5px; font-mono font-bold; color: #16856b; }
 .pays-card-cats { font-size: 10.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ── Navigation et synthèse des parcours ── */
+.carte-data-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card2);
+}
+.carte-data-tab {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.carte-data-tab:hover { color: var(--text); background: var(--card); }
+.carte-data-tab[aria-selected="true"] {
+    color: #126b57;
+    background: var(--card);
+    border-color: var(--border);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+}
+.carte-data-tab-count {
+    min-width: 20px;
+    padding: 2px 6px;
+    border-radius: 99px;
+    background: var(--border);
+    color: var(--text);
+    font-size: 9px;
+    line-height: 1.2;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.carte-data-tab[aria-selected="true"] .carte-data-tab-count {
+    background: rgba(22, 133, 107, .12);
+    color: #126b57;
+}
+.route-results { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+.locality-results { flex: 1; min-height: 0; overflow-y: auto; padding: 12px; }
+.locality-search {
+    width: 100%; min-height: 36px; margin-bottom: 10px; padding: 7px 10px;
+    border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--text);
+    font: inherit; font-size: 11px;
+}
+.locality-group { margin-top: 13px; }
+.locality-group-heading {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 0 2px 6px; border-bottom: 1px solid var(--border);
+    color: var(--text); font-size: 10px; font-weight: 800;
+}
+.locality-group-heading span:last-child { color: var(--muted); font-size: 9px; font-weight: 650; }
+.locality-stat-card {
+    display: flex; align-items: center; gap: 9px; padding: 9px 3px;
+    border-bottom: 1px solid var(--border);
+}
+.locality-stat-icon {
+    width: 28px; height: 28px; flex: 0 0 28px; display: grid; place-items: center;
+    border-radius: 8px; background: rgba(15, 118, 110, .1); color: #0f766e; font-size: 13px;
+}
+.locality-stat-info { min-width: 0; flex: 1; }
+.locality-stat-name { overflow: hidden; color: var(--text); font-size: 11px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.locality-stat-market { margin-top: 2px; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.locality-stat-count {
+    flex: 0 0 auto; min-width: 29px; padding: 4px 7px; border-radius: 99px;
+    background: var(--card2); color: var(--text); font-size: 10px; font-weight: 800; text-align: center;
+}
+.locality-visual-section {
+    margin: 12px 0;
+    padding: 11px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--card);
+}
+.locality-visual-heading {
+    margin: 0 0 3px;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 850;
+}
+.locality-visual-help {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.4;
+}
+.locality-chart-row {
+    display: grid;
+    grid-template-columns: minmax(64px, 1fr) minmax(72px, 1.5fr) 22px;
+    align-items: center;
+    gap: 7px;
+    margin: 7px 0;
+}
+.locality-chart-label {
+    overflow: hidden;
+    color: var(--text);
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.locality-chart-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--card2);
+}
+.locality-chart-bar { height: 100%; min-width: 2px; border-radius: inherit; }
+.locality-chart-value { color: var(--muted); font-size: 9px; font-weight: 800; text-align: right; }
+.locality-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 9px;
+}
+.locality-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.locality-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.locality-sensitive-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 5px;
+    margin-top: 8px;
+}
+.locality-sensitive-item { min-width: 0; text-align: center; }
+.locality-sensitive-bubble {
+    display: grid;
+    place-items: center;
+    margin: 0 auto 4px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+.locality-sensitive-name {
+    display: block;
+    overflow: hidden;
+    color: var(--text);
+    font-size: 8px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.locality-sensitive-market {
+    display: block;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.locality-empty { padding: 24px 12px; color: var(--muted); font-size: 11px; line-height: 1.5; text-align: center; }
+.route-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 12px;
+}
+.route-summary-card {
+    min-width: 0;
+    padding: 9px 8px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--card);
+}
+.route-summary-value {
+    display: block;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 850;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.route-summary-label {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.25;
+}
+.route-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 1px 8px;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.route-list-item {
+    --route-accent: #16856b;
+    position: relative;
+    margin-bottom: 8px;
+    padding: 11px 11px 10px 13px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.route-list-item::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    background: var(--route-accent);
+    content: "";
+}
+.route-list-item:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--route-accent) 42%, var(--border));
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .07);
+}
+.route-list-item[data-priority="critique"] { --route-accent: #dc2626; }
+.route-list-item[data-priority="eleve"] { --route-accent: #ea580c; }
+.route-list-item[data-priority="modere"] { --route-accent: #d97706; }
+.route-list-item[data-priority="faible"] { --route-accent: #0f766e; }
+.route-list-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+.route-list-title {
+    min-width: 0;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.45;
+}
+.route-list-priority {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--route-accent) 12%, transparent);
+    color: var(--route-accent);
+    font-size: 8px;
+    font-weight: 850;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+.route-list-steps {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin: 9px 0 8px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 9px;
+    white-space: nowrap;
+}
+.route-list-step {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-weight: 700;
+    text-overflow: ellipsis;
+}
+.route-list-step:first-child::before,
+.route-list-step:last-child::after {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 5px;
+    border: 2px solid var(--route-accent);
+    border-radius: 50%;
+    content: "";
+    vertical-align: 0;
+}
+.route-list-step:last-child::after { margin: 0 0 0 5px; background: var(--route-accent); }
+.route-list-arrow { flex: 0 0 auto; color: var(--route-accent); font-size: 10px; }
+.route-list-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    color: var(--muted);
+    font-size: 9px;
+}
+.route-list-chip {
+    max-width: 100%;
+    padding: 3px 7px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    background: var(--card2);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.route-list-count { margin-left: auto; color: var(--text); font-weight: 750; }
+.route-list-actions { display: flex; gap: 6px; margin-top: 9px; }
+.route-list-action {
+    min-height: 29px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.route-list-action:hover { border-color: var(--route-accent); color: var(--route-accent); }
+.route-list-empty {
+    padding: 26px 14px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: center;
+}
+body.dark .carte-data-tabs { background: var(--navy-800); border-bottom-color: var(--border); }
+body.dark .carte-data-tab[aria-selected="true"] { color: #6ee7b7; background: var(--navy-900); }
+body.dark .carte-data-tab[aria-selected="true"] .carte-data-tab-count { background: rgba(52, 211, 153, .15); color: #6ee7b7; }
+body.dark .route-summary-card,
+body.dark .route-list-item { background: var(--navy-900); }
+body.dark .locality-search { background: var(--navy-900); border-color: var(--border); }
+body.dark .locality-stat-icon { background: rgba(52, 211, 153, .12); color: #6ee7b7; }
+body.dark .locality-stat-count { background: var(--navy-800); }
+body.dark .route-list-item:hover { box-shadow: 0 5px 14px rgba(0, 0, 0, .22); }
+body.dark .route-list-chip,
+body.dark .route-list-action { background: var(--navy-800); }
+@media(max-width: 900px) {
+    .route-results { flex: none; max-height: 60vh; }
+    .locality-results { flex: none; max-height: 60vh; }
+}
+
 /* ── Barre de filtres ── */
 .carte-filter-row { display: flex; flex-direction: column; gap: 8px; }
 
@@ -913,11 +1294,42 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             </form>
         </div>
 
+        <div class="carte-data-tabs" role="tablist" aria-label="Données cartographiques">
+            <button type="button" class="carte-data-tab" id="zonesTab" role="tab"
+                    aria-selected="true" aria-controls="paysListContainer">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>Alertes
+                <span class="carte-data-tab-count" id="zonesTabCount">0</span>
+            </button>
+            <button type="button" class="carte-data-tab" id="routesTab" role="tab"
+                    aria-selected="false" aria-controls="routeListContainer" tabindex="-1">
+                <i class="bi bi-bezier2" aria-hidden="true"></i>Parcours
+                <span class="carte-data-tab-count" id="routesTabCount">0</span>
+            </button>
+            <button type="button" class="carte-data-tab" id="localitiesTab" role="tab"
+                    aria-selected="false" aria-controls="localityListContainer" tabindex="-1">
+                <i class="bi bi-buildings" aria-hidden="true"></i>Localités
+                <span class="carte-data-tab-count" id="localitiesTabCount">0</span>
+            </button>
+        </div>
+
         {# Liste des pays avec compteurs — triés par nombre d'alertes #}
-        <div class="carte-results" id="paysListContainer">
+        <div class="carte-results" id="paysListContainer" role="tabpanel" aria-labelledby="zonesTab">
             <div class="text-center py-8 text-slate-500 text-sm" id="paysListPlaceholder">
                 <i class="bi bi-arrow-repeat bi-spin text-amber-400 bi-lg block mb-2"></i>
                 Chargement des données…
+            </div>
+        </div>
+        <div class="route-results" id="routeListContainer" role="tabpanel" aria-labelledby="routesTab" hidden>
+            <div class="route-list-empty">
+                <i class="bi bi-bezier2" style="display:block;margin-bottom:8px;font-size:22px;"></i>
+                Les parcours transfrontaliers apparaîtront ici lorsqu’ils seront disponibles.
+            </div>
+        </div>
+        <div class="locality-results" id="localityListContainer" role="tabpanel" aria-labelledby="localitiesTab" hidden>
+            <input type="search" class="locality-search" id="localitySearch" placeholder="Rechercher une ville, un village ou un marché…" aria-label="Rechercher une localité">
+            <div id="localitySummary"></div>
+            <div id="localityStatsList">
+                <div class="locality-empty">Les statistiques des villes et villages apparaîtront ici.</div>
             </div>
         </div>
 
@@ -977,6 +1389,9 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             <button type="button" id="marketToggle" aria-label="Afficher ou masquer les alertes par marché" title="Alertes par marché" aria-pressed="true">
                 <i class="bi bi-geo-alt"></i>Alertes
             </button>
+            <button type="button" id="locationToggle" aria-label="Afficher ou masquer les ports, aéroports, villes et villages" title="Ports, aéroports, villes et villages" aria-pressed="true" disabled>
+                <i class="bi bi-pin-map"></i>Lieux <span id="locationCount">0</span>
+            </button>
             <button type="button" id="routeToggle" aria-label="Afficher ou masquer les parcours transfrontaliers" title="Parcours transfrontaliers" aria-pressed="true" disabled>
                 <i class="bi bi-bezier2"></i>Parcours
             </button>
@@ -1015,6 +1430,14 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Couches de la carte</p>
                     <span class="legend-label"><i class="bi bi-geo-alt-fill me-1" style="color:#16856b"></i>Alertes par marché</span><br>
                     <span class="legend-label"><i class="bi bi-bezier2 me-1" style="color:#2563eb"></i>Parcours transfrontaliers</span>
+                </div>
+                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
+                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Repères de lieux</p>
+                    <div class="map-location-legend">
+                        <span class="legend-label"><i class="bi bi-anchor" style="color:#0369a1"></i>Port</span>
+                        <span class="legend-label"><i class="bi bi-airplane" style="color:#7c3aed"></i>Aéroport</span>
+                    </div>
+                    <p style="margin:6px 0 0;color:var(--muted);font-size:9px;line-height:1.4;">Repères indicatifs au niveau du marché, pas à l’emplacement exact. Villes et villages : statistiques par nom dans l’onglet Localités, sans point sur la carte.</p>
                 </div>
                 <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
                     <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Volume : taille du point</p>
@@ -1081,8 +1504,9 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 (function() {
     'use strict';
 
-    let map, markersLayer, targetZonesLayer, routeLayer, currentTileLayer;
+    let map, markersLayer, targetZonesLayer, routeLayer, locationLayer, currentTileLayer;
     let allZones = [];
+    let currentLocalityStats = [];
     let activeLoadController = null;
     const marketInputs = document.querySelectorAll('#fMarche input[name="marche[]"]');
     const marketCount = document.getElementById('carteMarketSelectionCount');
@@ -1101,6 +1525,50 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         const selected = [...marketInputs].filter(input => input.checked).length;
         marketCount.textContent = selected ? `${selected} marché${selected > 1 ? 's' : ''} sélectionné${selected > 1 ? 's' : ''}` : 'Tous les marchés';
     }
+
+    function activateDataTab(tabName, moveFocus = false) {
+        const tabs = [
+            { name: 'zones', button: document.getElementById('zonesTab'), panel: document.getElementById('paysListContainer') },
+            { name: 'routes', button: document.getElementById('routesTab'), panel: document.getElementById('routeListContainer') },
+            { name: 'localities', button: document.getElementById('localitiesTab'), panel: document.getElementById('localityListContainer') },
+        ];
+        tabs.forEach(tab => {
+            const active = tab.name === tabName;
+            tab.button.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.button.tabIndex = active ? 0 : -1;
+            tab.panel.hidden = !active;
+            if (active && moveFocus) tab.button.focus();
+        });
+    }
+
+    const dataTabs = [
+        { name: 'zones', button: document.getElementById('zonesTab') },
+        { name: 'routes', button: document.getElementById('routesTab') },
+        { name: 'localities', button: document.getElementById('localitiesTab') },
+    ];
+    dataTabs.forEach(tab => tab.button.addEventListener('click', () => activateDataTab(tab.name)));
+    document.querySelector('.carte-data-tabs')?.addEventListener('keydown', event => {
+        const currentIndex = dataTabs.findIndex(tab => tab.button === document.activeElement);
+        if (currentIndex < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const nextIndex = event.key === 'Home' ? 0
+            : event.key === 'End' ? dataTabs.length - 1
+            : (currentIndex + (event.key === 'ArrowRight' ? 1 : dataTabs.length - 1)) % dataTabs.length;
+        activateDataTab(dataTabs[nextIndex].name, true);
+    });
+    document.getElementById('localitySearch').addEventListener('input', () => renderLocalityStatsList());
+
+    document.getElementById('routeListContainer').addEventListener('click', event => {
+        const button = event.target.closest('[data-route-action]');
+        if (!button) return;
+        const routeIndex = Number(button.dataset.routeIndex);
+        if (!Number.isInteger(routeIndex)) return;
+        if (button.dataset.routeAction === 'focus') {
+            focusCorridorGroup(routeIndex);
+        } else if (button.dataset.routeAction === 'alerts') {
+            openDrawerForCorridorGroup(routeIndex);
+        }
+    });
 
     marketInputs.forEach(input => input.addEventListener('change', () => {
         updateMarketCount();
@@ -1170,6 +1638,8 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
 
         if (targetZonesLayer && typeof targetZonesLayer.bringToBack === 'function') targetZonesLayer.bringToBack();
         if (markersLayer && typeof markersLayer.bringToFront === 'function') markersLayer.bringToFront();
+        if (routeLayer && typeof routeLayer.bringToFront === 'function') routeLayer.bringToFront();
+        if (locationLayer && typeof locationLayer.bringToFront === 'function') locationLayer.bringToFront();
     }
 
     function destroyMap() {
@@ -1181,6 +1651,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             markersLayer = null;
             targetZonesLayer = null;
             routeLayer = null;
+            locationLayer = null;
             currentTileLayer = null;
         }
     }
@@ -1232,6 +1703,19 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             : L.layerGroup().addTo(map);
         targetZonesLayer = L.layerGroup().addTo(map);
         routeLayer = L.featureGroup();
+        locationLayer = typeof L.markerClusterGroup === 'function'
+            ? L.markerClusterGroup({
+                maxClusterRadius: 32,
+                showCoverageOnHover: false,
+                spiderfyOnMaxZoom: true,
+                iconCreateFunction: cluster => L.divIcon({
+                    html: `<span class="location-cluster-icon">${cluster.getChildCount() > 99 ? '99+' : cluster.getChildCount()}</span>`,
+                    className: '',
+                    iconSize: [38, 38],
+                    iconAnchor: [19, 19],
+                }),
+            }).addTo(map)
+            : L.layerGroup().addTo(map);
 
         setTileMode(isDark ? 'sombre' : 'plan');
 
@@ -1247,6 +1731,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             loadZones();
         });
         document.getElementById('marketToggle').addEventListener('click', toggleMarkets);
+        document.getElementById('locationToggle').addEventListener('click', toggleLocations);
         document.getElementById('routeToggle').addEventListener('click', toggleRoutes);
         document.getElementById('routeFit').addEventListener('click', fitRoutes);
         document.getElementById('mapReset').addEventListener('click', () => {
@@ -1324,16 +1809,18 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 return r.json();
             });
         const routesRequest = fetch('/carte/api/parcours?' + params.toString(), requestOptions)
-            .then(response => response.ok ? response.json() : []);
+            .then(response => response.ok ? response.json() : ({ routes: [], locations: [] }));
 
         Promise.all([zonesRequest, routesRequest])
-            .then(([zones, routes]) => {
+            .then(([zones, routeData]) => {
                 allZones = zones;
                 updateCategoryTargets(zones);
                 renderMarkers(zones);
                 renderSidePanel(zones);
                 updateStats(zones);
-                renderRoutes(routes);
+                renderLocalityStats(zones);
+                renderRoutes(routeData.routes || []);
+                renderMapLocations(routeData.locations || []);
                 history.replaceState(null, '', '/carte?' + params.toString());
             })
             .catch(error => {
@@ -1395,25 +1882,6 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         const bounds = [];
 
         zones.forEach(zone => {
-            (zone.localities || []).forEach(locality => {
-                const localityLat = Number(locality.latitude);
-                const localityLng = Number(locality.longitude);
-                if (!Number.isFinite(localityLat) || !Number.isFinite(localityLng)) return;
-
-                bounds.push([localityLat, localityLng]);
-                const localityMarker = L.circleMarker([localityLat, localityLng], {
-                    radius: 7,
-                    color: '#ffffff',
-                    weight: 2,
-                    fillColor: '#f59e0b',
-                    fillOpacity: 0.95,
-                }).addTo(targetZonesLayer);
-                localityMarker.bindPopup(
-                    `<strong>${escHtml(locality.name)}</strong> · ${escHtml(locality.type || 'Localité')}<br>${locality.count} alerte(s)<br>${escHtml(zone.nom)}`,
-                    { maxWidth: 240 }
-                );
-            });
-
             const count = parseInt(zone.alertCount) || 0;
             // RÈGLE STRICTE : les marchés avec 0 alerte disparaissent de la carte
             if (count <= 0) return;
@@ -1624,6 +2092,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 portCorridor: route.portCorridor,
                 localite: route.localite || null,
                 typeLocalisation: route.typeLocalisation || null,
+                typeLocalite: route.typeLocalite || null,
             });
             const prioRanks = { critique: 4, eleve: 3, modere: 2, faible: 1 };
             if ((prioRanks[route.priorite] || 1) > (prioRanks[item.maxPriority] || 1)) {
@@ -1677,6 +2146,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 lineCap: 'round',
                 lineJoin: 'round',
             }).addTo(routeLayer);
+            route._line = line;
 
             const corridorNames = [...route.corridors].join(', ');
             const localiteNames = [...(route.localites || [])].join(', ');
@@ -1808,14 +2278,18 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                     ).addTo(routeLayer);
                 }
             });
+
         });
 
         window.currentCorridorGroups = validRoutes;
+        renderRoutePanel(validRoutes);
 
         const count = validRoutes.length;
         const countLabel = document.getElementById('routeCount');
         const toggle = document.getElementById('routeToggle');
         const fit = document.getElementById('routeFit');
+        const routesTabCount = document.getElementById('routesTabCount');
+        if (routesTabCount) routesTabCount.textContent = count;
         if (countLabel) countLabel.textContent = `${count} parcours indicatif${count > 1 ? 's' : ''}`;
         if (toggle) toggle.disabled = count === 0;
         if (fit) fit.disabled = count === 0;
@@ -1829,6 +2303,328 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             }
             if (toggle) toggle.setAttribute('aria-pressed', 'true');
         }
+    }
+
+    function renderRoutePanel(routes) {
+        const container = document.getElementById('routeListContainer');
+        const rank = { critique: 4, eleve: 3, modere: 2, faible: 1 };
+        const totalAlerts = routes.reduce((sum, route) => sum + route.occurrences, 0);
+        const highPriority = routes
+            .filter(route => ['critique', 'eleve'].includes(route.maxPriority))
+            .reduce((sum, route) => sum + route.occurrences, 0);
+
+        if (routes.length === 0) {
+            container.innerHTML = `<div class="route-list-empty">
+                <i class="bi bi-bezier2" style="display:block;margin-bottom:8px;font-size:22px;"></i>
+                Aucun parcours transfrontalier ne correspond aux filtres actuels.
+                <div style="margin-top:5px;font-size:9px;">Les parcours affichés sont indicatifs et issus des alertes multi-marchés.</div>
+            </div>`;
+            return;
+        }
+
+        const orderedRoutes = routes
+            .map((route, index) => ({ ...route, routeIndex: index }))
+            .sort((a, b) => (rank[b.maxPriority] || 0) - (rank[a.maxPriority] || 0) || b.occurrences - a.occurrences);
+        const cards = orderedRoutes.map(route => {
+            const routeLabel = (route.markets || []).join(' → ');
+            const steps = (route.markets || []).map((market, index) =>
+                `${index ? '<i class="bi bi-chevron-right route-list-arrow" aria-hidden="true"></i>' : ''}<span class="route-list-step">${escHtml(market)}</span>`
+            ).join('');
+            const priorityLabel = route.maxPriority === 'eleve' ? 'Élevée'
+                : route.maxPriority === 'modere' ? 'Modérée'
+                : route.maxPriority === 'critique' ? 'Critique' : 'Faible';
+            const location = [...route.corridors, ...route.localites].slice(0, 2)
+                .map(item => `<span class="route-list-chip">${escHtml(item)}</span>`).join('');
+            const categories = [...route.categories].slice(0, 1)
+                .map(item => `<span class="route-list-chip">${escHtml(categorieLabel(item))}</span>`).join('');
+
+            return `<article class="route-list-item" data-priority="${escHtml(route.maxPriority)}">
+                <div class="route-list-head">
+                    <div class="route-list-title" title="${escHtml(routeLabel)}">${escHtml(routeLabel)}</div>
+                    <span class="route-list-priority">${priorityLabel}</span>
+                </div>
+                <div class="route-list-steps" aria-label="Étapes du parcours">${steps}</div>
+                <div class="route-list-meta">
+                    ${location}${categories}
+                    <span class="route-list-count">${route.occurrences} alerte${route.occurrences > 1 ? 's' : ''}</span>
+                </div>
+                <div class="route-list-actions">
+                    <button type="button" class="route-list-action" data-route-action="focus" data-route-index="${route.routeIndex}">
+                        <i class="bi bi-crosshair2" aria-hidden="true"></i>Voir le parcours
+                    </button>
+                    <button type="button" class="route-list-action" data-route-action="alerts" data-route-index="${route.routeIndex}">
+                        <i class="bi bi-list-ul" aria-hidden="true"></i>Alertes
+                    </button>
+                </div>
+            </article>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="route-summary" aria-label="Synthèse des parcours">
+                <div class="route-summary-card"><span class="route-summary-value">${routes.length}</span><span class="route-summary-label">parcours distincts</span></div>
+                <div class="route-summary-card"><span class="route-summary-value">${totalAlerts}</span><span class="route-summary-label">alertes associées</span></div>
+                <div class="route-summary-card"><span class="route-summary-value">${highPriority}</span><span class="route-summary-label">alertes prioritaires</span></div>
+            </div>
+            <div class="route-list-heading"><span>Parcours suivis</span><span>Priorité · volume</span></div>
+            ${cards}
+            <div style="padding:4px 2px;color:var(--muted);font-size:9px;line-height:1.45;">
+                <i class="bi bi-info-circle me-1" aria-hidden="true"></i>Visualisation indicative des marchés associés ; le tracé ne représente pas un itinéraire réel.
+            </div>`;
+    }
+
+    function renderLocalityStats(zones) {
+        const grouped = new Map();
+        zones.forEach(zone => {
+            (zone.localities || []).forEach(locality => {
+                const name = String(locality.name || '').trim();
+                if (!name) return;
+
+                const rawType = String(locality.type || '').trim().toLocaleLowerCase('fr-FR');
+                const type = ['ville', 'village'].includes(rawType) ? rawType : 'autre';
+                const normalizedName = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr-FR');
+                const marketId = Number(zone.marketId || zone.id);
+                const key = `${marketId}|${type}|${normalizedName}`;
+                const current = grouped.get(key);
+                if (current) {
+                    current.alerts += Number(locality.count) || 0;
+                    if (name.localeCompare(current.name, 'fr', { sensitivity: 'base' }) < 0) current.name = name;
+                } else {
+                    grouped.set(key, {
+                        marketId,
+                        market: zone.nom || 'Marché',
+                        name,
+                        type,
+                        alerts: Number(locality.count) || 0,
+                        criticalAlerts: Number(locality.criticalCount) || 0,
+                        highAlerts: Number(locality.highCount) || 0,
+                    });
+                }
+                if (current) {
+                    current.criticalAlerts += Number(locality.criticalCount) || 0;
+                    current.highAlerts += Number(locality.highCount) || 0;
+                }
+            });
+        });
+
+        currentLocalityStats = [...grouped.values()];
+        const cityCount = currentLocalityStats.filter(item => item.type === 'ville').length;
+        const villageCount = currentLocalityStats.filter(item => item.type === 'village').length;
+        const alertCount = currentLocalityStats.reduce((sum, item) => sum + item.alerts, 0);
+        document.getElementById('localitiesTabCount').textContent = currentLocalityStats.length;
+        document.getElementById('localitySummary').innerHTML = `
+            <div class="route-summary" aria-label="Synthèse des localités">
+                <div class="route-summary-card"><span class="route-summary-value">${cityCount}</span><span class="route-summary-label">villes distinctes</span></div>
+                <div class="route-summary-card"><span class="route-summary-value">${villageCount}</span><span class="route-summary-label">villages distincts</span></div>
+                <div class="route-summary-card"><span class="route-summary-value">${alertCount}</span><span class="route-summary-label">alertes localisées par nom</span></div>
+            </div>
+            <div style="margin:0 1px 9px;color:var(--muted);font-size:9px;line-height:1.45;">
+                <i class="bi bi-info-circle me-1" aria-hidden="true"></i>Comptage par nom, type et marché. Aucun emplacement géographique n’est déduit.
+            </div>`;
+        renderLocalityStatsList();
+    }
+
+    function renderLocalityStatsList() {
+        const container = document.getElementById('localityStatsList');
+        if (currentLocalityStats.length === 0) {
+            container.innerHTML = `<div class="locality-empty">
+                <i class="bi bi-buildings" style="display:block;margin-bottom:8px;font-size:22px;"></i>
+                Aucune ville ou aucun village ne correspond aux filtres actuels.
+            </div>`;
+            return;
+        }
+
+        const search = document.getElementById('localitySearch').value.trim().toLocaleLowerCase('fr-FR');
+        const filtered = currentLocalityStats.filter(locality =>
+            !search || `${locality.name} ${locality.market}`.toLocaleLowerCase('fr-FR').includes(search)
+        );
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="locality-empty">Aucune localité ne correspond à cette recherche.</div>';
+            return;
+        }
+
+        const groups = [
+            { type: 'ville', title: 'Villes', icon: 'bi-buildings', color: '#15803d' },
+            { type: 'village', title: 'Villages', icon: 'bi-house', color: '#b45309' },
+            { type: 'autre', title: 'Autres localités', icon: 'bi-pin-map-fill', color: '#64748b' },
+        ];
+        const typeStyles = Object.fromEntries(groups.map(group => [group.type, group]));
+        const topByVolume = [...filtered]
+            .sort((a, b) => b.alerts - a.alerts || a.name.localeCompare(b.name, 'fr'))
+            .slice(0, 8);
+        const maxAlerts = Math.max(1, ...topByVolume.map(locality => locality.alerts));
+        const volumeChart = `<section class="locality-visual-section" aria-label="Graphique du nombre d'alertes par localité">
+            <h3 class="locality-visual-heading">Alertes par localité</h3>
+            <p class="locality-visual-help">Top ${topByVolume.length} par volume · données selon les filtres actifs</p>
+            ${topByVolume.map(locality => {
+                const style = typeStyles[locality.type] || typeStyles.autre;
+                const width = Math.max(3, Math.round(locality.alerts / maxAlerts * 100));
+                return `<div class="locality-chart-row" title="${escHtml(locality.name)} · ${locality.alerts} alerte(s)">
+                    <span class="locality-chart-label">${escHtml(locality.name)}</span>
+                    <span class="locality-chart-track" aria-hidden="true"><span class="locality-chart-bar" style="display:block;width:${width}%;background:${style.color}"></span></span>
+                    <span class="locality-chart-value">${locality.alerts}</span>
+                </div>`;
+            }).join('')}
+            <div class="locality-legend" aria-label="Légende des types de localité">
+                ${groups.map(group => `<span class="locality-legend-item"><span class="locality-legend-dot" style="background:${group.color}"></span>${group.title}</span>`).join('')}
+            </div>
+        </section>`;
+        const sensitive = [...filtered]
+            .map(locality => ({ ...locality, sensitiveAlerts: locality.criticalAlerts + locality.highAlerts }))
+            .filter(locality => locality.sensitiveAlerts > 0)
+            .sort((a, b) => b.sensitiveAlerts - a.sensitiveAlerts || b.alerts - a.alerts || a.name.localeCompare(b.name, 'fr'))
+            .slice(0, 5);
+        const maxSensitive = Math.max(1, ...sensitive.map(locality => locality.sensitiveAlerts));
+        const sensitiveChart = `<section class="locality-visual-section" aria-label="Localités avec le plus d'alertes prioritaires">
+            <h3 class="locality-visual-heading">Points de vigilance</h3>
+            <p class="locality-visual-help">Cercles dimensionnés selon le nombre d'alertes élevées ou critiques · sans position géographique</p>
+            ${sensitive.length ? `<div class="locality-sensitive-grid">${sensitive.map(locality => {
+                const style = typeStyles[locality.type] || typeStyles.autre;
+                const size = 34 + Math.round(locality.sensitiveAlerts / maxSensitive * 20);
+                return `<div class="locality-sensitive-item" title="${escHtml(locality.name)} · ${locality.sensitiveAlerts} alerte(s) élevée(s) ou critique(s)">
+                    <span class="locality-sensitive-bubble" style="width:${size}px;height:${size}px;color:${style.color};background:${style.color}18" aria-label="${locality.sensitiveAlerts} alertes prioritaires">${locality.sensitiveAlerts}</span>
+                    <span class="locality-sensitive-name">${escHtml(locality.name)}</span>
+                    <span class="locality-sensitive-market">${escHtml(locality.market)}</span>
+                </div>`;
+            }).join('')}</div>` : '<div class="locality-empty" style="padding:10px 0;">Aucune alerte élevée ou critique pour les localités affichées.</div>'}
+            <div class="locality-legend" aria-label="Légende des cercles de sensibilité">
+                ${groups.map(group => `<span class="locality-legend-item"><span class="locality-legend-dot" style="background:${group.color}"></span>${group.title}</span>`).join('')}
+            </div>
+        </section>`;
+        container.innerHTML = volumeChart + sensitiveChart + groups.map(group => {
+            const localities = filtered
+                .filter(locality => locality.type === group.type)
+                .sort((a, b) => b.alerts - a.alerts || a.name.localeCompare(b.name, 'fr'));
+            if (localities.length === 0) return '';
+
+            const alerts = localities.reduce((sum, locality) => sum + locality.alerts, 0);
+            return `<section class="locality-group" aria-label="${group.title}">
+                <h3 class="locality-group-heading">
+                    <span><i class="bi ${group.icon}" style="color:${group.color};margin-right:5px;" aria-hidden="true"></i>${group.title}</span>
+                    <span>${localities.length} nom(s) · ${alerts} alerte(s)</span>
+                </h3>
+                ${localities.map(locality => `<div class="locality-stat-card">
+                    <span class="locality-stat-icon" style="color:${group.color}" aria-hidden="true"><i class="bi ${group.icon}"></i></span>
+                    <span class="locality-stat-info">
+                        <span class="locality-stat-name">${escHtml(locality.name)}</span>
+                        <span class="locality-stat-market">${escHtml(locality.market)}</span>
+                    </span>
+                    <span class="locality-stat-count" aria-label="${locality.alerts} alertes">${locality.alerts}</span>
+                </div>`).join('')}
+            </section>`;
+        }).join('');
+    }
+
+    function renderMapLocations(locations) {
+        if (!locationLayer) return;
+        locationLayer.clearLayers();
+
+        const config = {
+            port: { icon: 'bi-anchor', label: 'Port', color: '#0369a1' },
+            aeroport: { icon: 'bi-airplane', label: 'Aéroport', color: '#7c3aed' },
+        };
+        const grouped = new Map();
+        locations.forEach(location => {
+            const subtype = location.type;
+            const style = config[subtype];
+            const latitude = Number(location.latitude);
+            const longitude = Number(location.longitude);
+            if (!style || !Number.isFinite(latitude) || !Number.isFinite(longitude)
+                || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return;
+
+            const key = [subtype, location.name, latitude, longitude].join('|');
+            const current = grouped.get(key);
+            if (current) {
+                current.count += 1;
+            } else {
+                grouped.set(key, { ...location, subtype, latitude, longitude, count: 1 });
+            }
+        });
+
+        grouped.forEach(location => {
+            const style = config[location.subtype];
+            const exact = location.precise === true;
+            const exactnessLabel = exact
+                ? 'Coordonnées précises renseignées.'
+                : `Position indicative au niveau du marché (${location.market || 'marché déclarant'}) ; coordonnées propres au lieu non renseignées.`;
+            const marker = L.marker([location.latitude, location.longitude], {
+                icon: L.divIcon({
+                    className: 'map-location-marker',
+                    html: `<span class="map-location-icon map-location-${location.subtype}" aria-hidden="true"><i class="bi ${style.icon}"></i></span>`,
+                    iconSize: [35, 35],
+                    iconAnchor: [17, 30],
+                    popupAnchor: [0, -27],
+                }),
+                title: `${style.label} : ${location.name}`,
+                riseOnHover: true,
+            });
+            marker.bindTooltip(
+                `<strong>${style.label} · ${escHtml(location.name)}</strong><br>${exact ? 'Localisation précise' : 'Position indicative · ' + escHtml(location.market || 'marché déclarant')}${location.count > 1 ? `<br>${location.count} alertes` : ''}`,
+                { direction: 'top', offset: [0, -22] }
+            );
+            marker.bindPopup(`
+                <div class="map-location-popup">
+                    <div class="map-location-popup-title"><i class="bi ${style.icon}" style="color:${style.color}"></i>${escHtml(location.name)}</div>
+                    <div class="map-location-popup-type">${style.label}</div>
+                    <div class="map-location-popup-market">Marché : ${escHtml(location.market || '—')}</div>
+                    ${location.count > 1 ? `<div class="map-location-popup-market">${location.count} alertes associées</div>` : ''}
+                    <div class="map-location-popup-note"><i class="bi bi-info-circle me-1"></i>${escHtml(exactnessLabel)}</div>
+                    <button type="button" class="map-location-popup-action">Voir les alertes du marché</button>
+                </div>`,
+                { maxWidth: 260 }
+            );
+            marker.on('popupopen', event => {
+                event.popup.getElement()?.querySelector('.map-location-popup-action')?.addEventListener('click', () => {
+                    openDrawerForMarket(Number(location.marketId), location.market || 'Marché');
+                });
+            });
+            locationLayer.addLayer(marker);
+        });
+
+        const count = grouped.size;
+        const toggle = document.getElementById('locationToggle');
+        const countLabel = document.getElementById('locationCount');
+        const totals = { port: 0, aeroport: 0 };
+        grouped.forEach(location => { totals[location.subtype] += 1; });
+        const summary = `${totals.port} port(s), ${totals.aeroport} aéroport(s)`;
+        if (countLabel) countLabel.textContent = count;
+        if (toggle) {
+            toggle.title = `Lieux : ${summary}`;
+            toggle.setAttribute('aria-label', `Afficher ou masquer les lieux : ${summary}`);
+            toggle.disabled = count === 0;
+            if (count === 0) {
+                toggle.setAttribute('aria-pressed', 'false');
+                if (map.hasLayer(locationLayer)) map.removeLayer(locationLayer);
+            } else {
+                if (!map.hasLayer(locationLayer)) locationLayer.addTo(map);
+                toggle.setAttribute('aria-pressed', 'true');
+            }
+        }
+    }
+
+    function toggleLocations() {
+        if (!map || !locationLayer) return;
+        const button = document.getElementById('locationToggle');
+        const visible = button?.getAttribute('aria-pressed') === 'true';
+        if (visible) {
+            map.removeLayer(locationLayer);
+            button.setAttribute('aria-pressed', 'false');
+        } else {
+            locationLayer.addTo(map);
+            button.setAttribute('aria-pressed', 'true');
+        }
+    }
+
+    function focusCorridorGroup(index) {
+        const route = window.currentCorridorGroups?.[index];
+        if (!map || !route || !Array.isArray(route.points) || route.points.length < 2) return;
+
+        activateDataTab('routes');
+        if (routeLayer && !map.hasLayer(routeLayer)) {
+            routeLayer.addTo(map);
+            document.getElementById('routeToggle')?.setAttribute('aria-pressed', 'true');
+        }
+        map.fitBounds(L.latLngBounds(route.points), { padding: [70, 70], maxZoom: 7 });
+        route._line?.openPopup();
     }
 
     function toggleMarkets() {
@@ -1908,6 +2704,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
         const total = activeZones.reduce((s, z) => s + (parseInt(z.alertCount) || 0), 0);
         document.getElementById('totalPays').textContent    = activeZones.length;
         document.getElementById('totalAlertes').textContent = total;
+        document.getElementById('zonesTabCount').textContent = activeZones.length;
     }
 
     function updateCategoryTargets(zones) {
@@ -2212,6 +3009,7 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
     window.loadAlertesList = loadAlertesList;
     window.openDrawerForMarket = openDrawerForMarket;
     window.openDrawerForCorridorGroup = openDrawerForCorridorGroup;
+    window.focusCorridorGroup = focusCorridorGroup;
     window.closeDrawer     = closeDrawer;
     window.focusZone       = focusZone;
     window.toggleLegend    = function() {

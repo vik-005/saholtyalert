@@ -159,20 +159,8 @@
                             <option value="village" {% if currentTypeLocalite == 'village' %}selected{% endif %}>Village</option>
                         </select>
                     </div>
-                    <div class="form-field">
-                        <label class="form-label" for="w_localite_latitude">Latitude (facultative)</label>
-                        <input type="number" name="alert[localiteLatitude]" id="w_localite_latitude" class="form-input"
-                               min="-90" max="90" step="any"
-                               value="{{ draftData['alert[localiteLatitude]']|default(alert.localiteLatitude|default('')) }}">
-                    </div>
-                    <div class="form-field">
-                        <label class="form-label" for="w_localite_longitude">Longitude (facultative)</label>
-                        <input type="number" name="alert[localiteLongitude]" id="w_localite_longitude" class="form-input"
-                               min="-180" max="180" step="any"
-                               value="{{ draftData['alert[localiteLongitude]']|default(alert.localiteLongitude|default('')) }}">
-                    </div>
                 </div>
-                <p class="form-help">Pour afficher la localité précisément sur la carte, renseignez latitude et longitude.</p>
+                <p class="form-help">Aucune coordonnée n’est demandée : les villes et villages sont suivis par leur nom dans les statistiques, sans position cartographique supposée.</p>
             </div>
 
         </div>

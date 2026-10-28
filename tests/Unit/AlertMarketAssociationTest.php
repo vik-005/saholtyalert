@@ -31,4 +31,23 @@ class AlertMarketAssociationTest extends TestCase
             $alert->getAlertMarkets()->toArray()
         ));
     }
+
+    public function testOrderedParcoursDoesNotRepeatPrincipalMarketForIso2CountryCode(): void
+    {
+        $benin = new Market();
+        $benin->setCodeIso3('BEN');
+        $benin->setNom('Bénin');
+
+        $alert = new Alert();
+        $alert->setMarket($benin);
+        $alert->setParcoursCountries(['BJ', 'TG']);
+
+        $parcours = $alert->getOrderedParcours([
+            'BJ' => 'Bénin',
+            'TG' => 'Togo',
+        ]);
+
+        $this->assertSame(['BEN', 'TG'], array_column($parcours, 'code'));
+        $this->assertSame(['Bénin', 'Togo'], array_column($parcours, 'name'));
+    }
 }
