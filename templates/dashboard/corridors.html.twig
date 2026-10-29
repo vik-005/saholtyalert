@@ -20,17 +20,9 @@
                 <strong style="color:var(--amber)">{{ fin|date('d/m/Y') }}</strong>
             </p>
         </div>
-        <div class="header-actions-group">
-            {% if selected_markets|length > 0 %}
-            <a href="{{ path('app_export_registre', {debut: debut, fin: fin, markets: selected_markets, type_loc: type_loc}) }}"
-               class="db-btn db-btn-amber">
-                <i class="bi bi-file-earmark-excel me-1.5"></i>Exporter les alertes
-            </a>
-            {% endif %}
-            <a href="{{ path('app_dashboard_statistiques') }}" class="db-btn db-btn-ghost">
-                <i class="bi bi-bar-chart me-1.5"></i>Statistiques complètes
-            </a>
-        </div>
+        <a href="{{ path('app_dashboard_statistiques') }}" class="db-btn db-btn-ghost">
+            <i class="bi bi-bar-chart me-1.5"></i>Statistiques complètes
+        </a>
     </div>
 
     {# ── Filtres ── #}
