@@ -74,7 +74,23 @@
     {# ── Tableau des transmissions ── #}
     <div class="db-card">
         {% if transmissions|length > 0 %}
-        <div class="table-responsive transmission-table-wrap">
+        <div class="transmission-table-toolbar" aria-label="Navigation dans le tableau des transmissions">
+            <p><i class="bi bi-info-circle me-1"></i>Sur écran étroit, faites défiler horizontalement pour consulter toutes les colonnes.</p>
+            <div class="transmission-scroll-controls">
+                <button type="button" class="transmission-scroll-btn"
+                        aria-label="Défiler le tableau vers la gauche"
+                        onclick="document.getElementById('transmissionTableScroll').scrollBy({left:-480,behavior:'smooth'})">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i><span>Précédent</span>
+                </button>
+                <button type="button" class="transmission-scroll-btn"
+                        aria-label="Défiler le tableau vers la droite"
+                        onclick="document.getElementById('transmissionTableScroll').scrollBy({left:480,behavior:'smooth'})">
+                    <span>Suivant</span><i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+        <div id="transmissionTableScroll" class="table-responsive transmission-table-wrap"
+             tabindex="0" role="region" aria-label="Tableau des transmissions, défilement horizontal disponible">
             <table id="trTransmissions" class="db-table transmission-table">
                 <thead>
                     <tr class="transmission-thead-row">
@@ -269,10 +285,95 @@
 ════════════════════════════════════════════════════ */
 
 /* ── Structure de la table ── */
+.transmission-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card2);
+}
+.transmission-table-toolbar p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 11px;
+}
+.transmission-scroll-controls {
+    display: flex;
+    flex-shrink: 0;
+    gap: 6px;
+}
+.transmission-scroll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+.transmission-scroll-btn:hover {
+    border-color: var(--border2);
+    background: var(--card);
+}
+.transmission-scroll-btn:focus-visible {
+    outline: 3px solid var(--amber);
+    outline-offset: 2px;
+}
+.transmission-table-wrap {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: auto;
+    scrollbar-color: var(--border2) var(--card2);
+    scroll-behavior: smooth;
+}
+.transmission-table-wrap::-webkit-scrollbar { height: 11px; }
+.transmission-table-wrap::-webkit-scrollbar-track { background: var(--card2); }
+.transmission-table-wrap::-webkit-scrollbar-thumb {
+    border: 2px solid var(--card2);
+    border-radius: 99px;
+    background: var(--border2);
+}
 .transmission-table {
-    min-width: 900px;
+    min-width: 1240px;
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
+}
+.transmission-table th:nth-child(1),
+.transmission-table td:nth-child(1) { width: 190px; }
+.transmission-table th:nth-child(2),
+.transmission-table td:nth-child(2) { width: 180px; }
+.transmission-table th:nth-child(3),
+.transmission-table td:nth-child(3) { width: 280px; }
+.transmission-table th:nth-child(4),
+.transmission-table td:nth-child(4) { width: 130px; }
+.transmission-table th:nth-child(5),
+.transmission-table td:nth-child(5) { width: 120px; }
+.transmission-table th:nth-child(6),
+.transmission-table td:nth-child(6) { width: 150px; }
+.transmission-table th:nth-child(7),
+.transmission-table td:nth-child(7) { width: 190px; }
+.transmission-table th:first-child,
+.transmission-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--card);
+    box-shadow: 5px 0 9px -8px rgba(15, 23, 42, .65);
+}
+.transmission-table th:first-child {
+    z-index: 3;
+    background: var(--card2);
 }
 .transmission-thead-row {
     border-bottom: 1px solid var(--border);
@@ -286,6 +387,7 @@
     transition: background .15s ease;
 }
 .transmission-row:hover { background: var(--card2); }
+.transmission-row:hover td:first-child { background: var(--card2); }
 .transmission-table td {
     padding: 13px 14px;
     vertical-align: middle;
@@ -449,10 +551,11 @@ body.dark .tr-btn-close { color: #fff; }
 ════════════════════ */
 @media (max-width: 768px) {
     .transmission-header-actions { width: 100%; justify-content: flex-start; }
+    .transmission-table-toolbar { display: none; }
     .transmission-table-wrap { overflow: visible; }
 
     /* Transformer table → cartes */
-    .transmission-table     { display: block; min-width: 0; }
+    .transmission-table     { display: block; min-width: 0; table-layout: auto; }
     .transmission-table thead {
         position: absolute;
         width: 1px; height: 1px;
@@ -472,6 +575,7 @@ body.dark .tr-btn-close { color: #fff; }
 
     /* Chaque cellule = ligne label + valeur */
     .transmission-table td {
+        position: static;
         display: grid;
         grid-template-columns: minmax(90px, 28%) 1fr;
         align-items: start;
@@ -482,7 +586,10 @@ body.dark .tr-btn-close { color: #fff; }
         border-bottom: 1px solid var(--border);
         white-space: normal;
         overflow-wrap: anywhere;
+        box-shadow: none;
+        background: var(--card);
     }
+    .transmission-table td:nth-child(n) { width: 100%; }
     .transmission-table td::before {
         content: attr(data-label);
         color: var(--muted);
@@ -544,6 +651,11 @@ body.dark .tr-btn-close { color: #fff; }
     .tr-btn { height: 48px; font-size: 13px; }
     .transmission-search { flex-direction: column; align-items: stretch; }
     .transmission-search-input { width: 100%; }
+}
+body.dark .transmission-table th:first-child { background: var(--card2); }
+body.dark .transmission-table td:first-child { background: var(--card); }
+@media (max-width: 768px) {
+    body.dark .transmission-table td:first-child { background: var(--card); }
 }
 </style>
 
