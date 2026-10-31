@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Alert;
+use App\Entity\Urgence72hCase;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Component\Intl\Countries;
@@ -62,6 +63,27 @@ class PdfExportService
 
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return $dompdf->output();
+    }
+
+    public function generateUrgence72hPdf(Urgence72hCase $case): string
+    {
+        $options = new Options();
+        $options->set('defaultFont', 'Helvetica');
+        $options->set('isRemoteEnabled', true);
+        $options->set('isHtml5ParserEnabled', true);
+
+        $dompdf = new Dompdf($options);
+        $html = $this->twig->render('export/urgence_72h_pdf.html.twig', [
+            'case' => $case,
+            'date_impression' => new \DateTimeImmutable(),
+            'platform_name' => 'Plateforme GEI',
+        ]);
+
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         return $dompdf->output();

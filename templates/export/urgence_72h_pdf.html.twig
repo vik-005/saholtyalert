@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Suivi urgence 72h · {{ case.alert.codeGei }}</title>
+    <style>
+        @page { margin: 34px 38px; }
+        body { font-family: Helvetica, Arial, sans-serif; color: #23332d; font-size: 11px; line-height: 1.5; }
+        .eyebrow { color: #16856b; font-size: 9px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
+        h1 { margin: 5px 0 4px; color: #12392e; font-size: 22px; }
+        .subtitle { color: #66756e; margin: 0 0 20px; }
+        .meta { width: 100%; border-collapse: collapse; margin: 0 0 18px; }
+        .meta td { width: 50%; padding: 8px 10px; border: 1px solid #dce7e1; vertical-align: top; }
+        .label { display: block; color: #66756e; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+        .value { display: block; margin-top: 2px; font-weight: bold; }
+        h2 { margin: 20px 0 9px; padding-bottom: 5px; border-bottom: 1px solid #dce7e1; color: #16856b; font-size: 14px; }
+        .summary { padding: 10px 12px; background: #f3f7f5; border-left: 3px solid #16856b; white-space: pre-wrap; }
+        .phase { margin: 0 0 12px; padding: 11px 12px; border: 1px solid #dce7e1; border-radius: 4px; page-break-inside: avoid; }
+        .phase-head { margin-bottom: 5px; font-size: 12px; font-weight: bold; }
+        .phase-sla { float: right; color: #16856b; font-size: 10px; }
+        .phase-meta { color: #66756e; font-size: 9px; }
+        .observation { margin-top: 8px; padding: 8px 10px; background: #f3f7f5; white-space: pre-wrap; }
+        .empty { color: #829088; font-style: italic; }
+        .footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #dce7e1; color: #829088; font-size: 9px; }
+    </style>
+</head>
+<body>
+    {% set alert = case.alert %}
+    <div class="eyebrow">{{ platform_name }} · Rapport de suivi</div>
+    <h1>Suivi opérationnel Urgence 72 h</h1>
+    <p class="subtitle">Compte rendu du dossier {{ alert.codeGei }}</p>
+
+    <table class="meta">
+        <tr>
+            <td><span class="label">Référence GEI</span><span class="value">{{ alert.codeGei }}</span></td>
+            <td><span class="label">Marché</span><span class="value">{{ alert.market ? alert.market.nom : 'Non renseigné' }}</span></td>
+        </tr>
+        <tr>
+            <td><span class="label">Statut du dossier</span><span class="value">{{ case.statutCase == 'cloturee' ? 'Clôturé' : 'En cours' }}</span></td>
+            <td><span class="label">Responsable PFT</span><span class="value">{{ case.pftResponsable ? case.pftResponsable.nomComplet : 'Non renseigné' }}</span></td>
+        </tr>
+        <tr>
+            <td><span class="label">Activation (T0)</span><span class="value">{{ case.dateActivation|date('d/m/Y à H:i') }}</span></td>
+            <td><span class="label">Clôture</span><span class="value">{{ case.dateCloture ? case.dateCloture|date('d/m/Y à H:i') : 'Non clôturé' }}</span></td>
+        </tr>
+    </table>
+
+    {% if alert.resumeExecutif %}
+        <h2>Synthèse de l’alerte</h2>
+        <div class="summary">{{ alert.resumeExecutif }}</div>
+    {% endif %}
+
+    <h2>Phases et observations</h2>
+    {% for phase in case.sortedPhases %}
+        <div class="phase">
+            <div class="phase-head">
+                {{ phase.phase.phaseNumero() }} · {{ phase.phase.label() }}
+                <span class="phase-sla">{{ phase.phase.slaLabel() }}</span>
+            </div>
+            <div class="phase-meta">
+                Statut : {{ phase.isTerminee ? (phase.isTermineeAvecRetard ? 'Terminée avec retard' : 'Terminée') : (phase.isEnRetard ? 'En retard' : 'En cours') }}
+                · Échéance : {{ phase.slaHeureLimite|date('d/m/Y à H:i') }}
+                {% if phase.dateDebut %} · Début : {{ phase.dateDebut|date('d/m/Y à H:i') }}{% endif %}
+                {% if phase.dateFin %} · Fin : {{ phase.dateFin|date('d/m/Y à H:i') }}{% endif %}
+                {% if phase.responsable %} · Responsable : {{ phase.responsable.nomComplet }}{% endif %}
+            </div>
+            {% if phase.commentaire %}
+                <div class="observation"><strong>Observation</strong><br>{{ phase.commentaire }}</div>
+            {% else %}
+                <div class="observation empty">Aucune observation enregistrée.</div>
+            {% endif %}
+        </div>
+    {% else %}
+        <p class="empty">Aucune phase n’est enregistrée pour ce dossier.</p>
+    {% endfor %}
+
+    {% if case.enseignements %}
+        <h2>Enseignements de clôture</h2>
+        <div class="summary">{{ case.enseignements }}</div>
+    {% endif %}
+
+    <div class="footer">Document généré le {{ date_impression|date('d/m/Y à H:i') }} · Usage interne — informations sensibles</div>
+</body>
+</html>

@@ -3,11 +3,13 @@
 namespace App\Controller\Urgence;
 
 use App\Entity\Alert;
+use App\Entity\AccessLog;
 use App\Entity\Urgence72hCase;
 use App\Entity\Urgence72hPhase;
 use App\Enum\PhaseUrgence;
 use App\Repository\AlertRepository;
 use App\Service\CryptoService;
+use App\Service\PdfExportService;
 use App\Voter\AlertVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -114,20 +116,20 @@ class UrgenceController extends AbstractController
             return $this->redirectToRoute('app_dashboard_urgence');
         }
 
+        $case = $phase->getUrgenceCase();
+        $alert = $case?->getAlert();
+
+        if (!$case || !$case->isActive() || !$alert || !$alert->isEligibleForUrgence72h() || $phase->isTerminee()) {
+            throw $this->createAccessDeniedException('Ce cas n’est plus éligible au processus opérationnel Urgence 72h.');
+        }
+
+        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
+
         $now = new \DateTimeImmutable();
         $phase->setDateFin($now);
         if ($now > $phase->getSlaHeureLimite()) {
             $phase->setEnRetard(true);
         }
-
-        $case = $phase->getUrgenceCase();
-        $alert = $case?->getAlert();
-
-        if (!$case || !$alert || !$alert->isEligibleForUrgence72h()) {
-            throw $this->createAccessDeniedException('Ce cas n’est plus éligible au processus opérationnel Urgence 72h.');
-        }
-
-        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
 
         // Si phase COORDINATION terminée -> démarrer la phase SUIVI
         if ($phase->getPhase() === PhaseUrgence::COORDINATION) {
@@ -150,5 +152,104 @@ class UrgenceController extends AbstractController
         $this->addFlash('success', sprintf('Phase "%s" validée et marquée comme complétée.', $phase->getPhase()->label()));
 
         return $this->redirectToRoute('app_dashboard_urgence');
+    }
+
+    #[Route('/phase/{id}/observation', name: 'app_urgence_phase_observation', methods: ['POST'])]
+    public function savePhaseObservation(Request $request, Urgence72hPhase $phase, EntityManagerInterface $em): Response
+    {
+        $case = $phase->getUrgenceCase();
+        $alert = $case?->getAlert();
+
+        if (
+            !$case
+            || !$case->isActive()
+            || !$alert
+            || !$alert->isEligibleForUrgence72h()
+            || !in_array($phase->getPhase(), [PhaseUrgence::COORDINATION, PhaseUrgence::SUIVI], true)
+        ) {
+            throw $this->createAccessDeniedException('Ce cas n’est plus éligible au processus opérationnel Urgence 72h.');
+        }
+
+        $this->denyAccessUnlessGranted(AlertVoter::DECIDE, $alert);
+
+        if (!$this->isCsrfTokenValid('phase-observation-' . $phase->getId(), $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Jeton de sécurité invalide.');
+            return $this->redirectToRoute('app_dashboard_urgence');
+        }
+
+        $commentaire = $request->request->get('commentaire');
+        if (!is_string($commentaire) || strlen($commentaire) > 20000) {
+            $this->addFlash('danger', 'L’observation est invalide ou dépasse la taille maximale autorisée.');
+            return $this->redirectToRoute('app_dashboard_urgence');
+        }
+
+        $commentaire = trim($commentaire);
+        $ancienneObservation = $phase->getCommentaire();
+        $nouvelleObservation = $commentaire === '' ? null : $commentaire;
+
+        if ($ancienneObservation !== $nouvelleObservation) {
+            $phase->setCommentaire($nouvelleObservation);
+
+            $user = $this->getUser();
+            if ($user instanceof \App\Entity\User) {
+                $log = new AccessLog();
+                $log->setAction(AccessLog::ACTION_MODIFICATION);
+                $log->setUser($user);
+                $log->setAlert($alert);
+                $log->setDetails(sprintf('Observation de la phase « %s » du dossier Urgence 72h #%d', $phase->getPhase()->label(), $case->getId()));
+                $log->setDiffData([
+                    'before' => ['observation' => $ancienneObservation],
+                    'after' => ['observation' => $nouvelleObservation],
+                ]);
+                $log->setIpAdresse($request->getClientIp());
+                $userAgent = $request->headers->get('User-Agent');
+                $log->setUserAgent($userAgent !== null ? substr($userAgent, 0, 255) : null);
+                $em->persist($log);
+            }
+
+            $em->flush();
+            $this->addFlash('success', 'Observation enregistrée.');
+        } else {
+            $this->addFlash('info', 'Aucune modification à enregistrer.');
+        }
+
+        return $this->redirectToRoute('app_dashboard_urgence');
+    }
+
+    #[Route('/dossier/{id}/pdf', name: 'app_urgence_case_pdf', methods: ['GET'])]
+    public function exportCasePdf(
+        Urgence72hCase $case,
+        PdfExportService $pdfService,
+        EntityManagerInterface $em,
+        Request $request,
+    ): Response {
+        $alert = $case->getAlert();
+        if (!$alert) {
+            throw $this->createNotFoundException('Alerte associée au dossier introuvable.');
+        }
+
+        $this->denyAccessUnlessGranted(AlertVoter::EXPORT, $alert);
+        $pdfContent = $pdfService->generateUrgence72hPdf($case);
+
+        $user = $this->getUser();
+        if ($user instanceof \App\Entity\User) {
+            $log = new AccessLog();
+            $log->setAction(AccessLog::ACTION_EXPORT);
+            $log->setUser($user);
+            $log->setAlert($alert);
+            $log->setDetails(sprintf('Export PDF du dossier Urgence 72h #%d', $case->getId()));
+            $log->setIpAdresse($request->getClientIp());
+            $userAgent = $request->headers->get('User-Agent');
+            $log->setUserAgent($userAgent !== null ? substr($userAgent, 0, 255) : null);
+            $em->persist($log);
+            $em->flush();
+        }
+
+        $code = preg_replace('/[^A-Za-z0-9_-]/', '_', $alert->getCodeGei() ?? 'Dossier') ?: 'Dossier';
+
+        return new Response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('attachment; filename="Suivi_72h_%s.pdf"', $code),
+        ]);
     }
 }

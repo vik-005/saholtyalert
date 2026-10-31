@@ -50,8 +50,13 @@
                     Activé le {{ case.dateActivation|date('d/m/Y à H:i') }}
                 </span>
             </div>
-            {# Timer SLA temps réel #}
-            {% include 'components/_sla_timer.html.twig' with {case: case} %}
+            <div class="case-header-actions">
+                <a href="{{ path('app_urgence_case_pdf', {id: case.id}) }}" class="db-btn db-btn-export" title="Télécharger le rapport PDF de ce dossier">
+                    <i class="bi bi-file-earmark-pdf"></i><span>Exporter le suivi PDF</span>
+                </a>
+                {# Timer SLA temps réel #}
+                {% include 'components/_sla_timer.html.twig' with {case: case} %}
+            </div>
         </div>
 
         {# Phases SLA — grille responsive ordonnée chronologiquement #}
@@ -70,6 +75,30 @@
 
                         {# Titre de la phase : dénomination nette et professionnelle sans tiret vibecoder #}
                         <h4 class="phase-card-title">{{ phase.phase.label() }}</h4>
+
+                        {% if phase.phase.value in ['coordination', 'suivi'] %}
+                            {% if phase.commentaire %}
+                                <div class="phase-observation">
+                                    <span class="phase-observation-label"><i class="bi bi-chat-left-text me-1"></i>Observation</span>
+                                    <p>{{ phase.commentaire }}</p>
+                                </div>
+                            {% endif %}
+                            <details class="phase-observation-editor" {% if not phase.commentaire %}open{% endif %}>
+                                <summary>
+                                    <i class="bi bi-pencil-square me-1"></i>
+                                    {{ phase.commentaire ? 'Modifier l’observation' : 'Ajouter une observation' }}
+                                </summary>
+                                <form method="post" action="{{ path('app_urgence_phase_observation', {id: phase.id}) }}">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('phase-observation-' ~ phase.id) }}">
+                                    <label for="observation-{{ phase.id }}" class="visually-hidden">Observation — {{ phase.phase.label() }}</label>
+                                    <textarea id="observation-{{ phase.id }}" name="commentaire" rows="3" maxlength="5000"
+                                              placeholder="Décrire les faits observés, décisions ou points de vigilance…">{{ phase.commentaire }}</textarea>
+                                    <button type="submit" class="db-btn db-btn-validate-step db-btn-sm">
+                                        <i class="bi bi-check2 me-1"></i>Enregistrer
+                                    </button>
+                                </form>
+                            </details>
+                        {% endif %}
 
                         {# Séparateur subtil #}
                         <div class="phase-card-sep"></div>
@@ -158,6 +187,48 @@
 
     {% endfor %}
 
+    {% if closed_cases is not empty %}
+        <section class="closed-cases-section" aria-labelledby="closed-cases-title">
+            <div class="closed-cases-heading">
+                <div>
+                    <p class="page-eyebrow"><i class="bi bi-archive me-1"></i>Historique</p>
+                    <h3 id="closed-cases-title">Suivis clôturés</h3>
+                    <p>Les derniers dossiers clôturés et leurs observations restent consultables et exportables.</p>
+                </div>
+                <span class="closed-cases-count">{{ closed_cases|length }} dossier{{ closed_cases|length > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="closed-cases-list">
+                {% for case in closed_cases %}
+                    <article class="closed-case-card">
+                        <div class="closed-case-main">
+                            <div class="closed-case-title">
+                                <a href="{{ path('app_alert_show', {token: encrypt_id(case.alert.id, 'alert')}) }}" class="code-gei-link">
+                                    {{ case.alert.codeGei }}
+                                </a>
+                                <span>{{ case.alert.market.nom }}</span>
+                            </div>
+                            <p class="closed-case-date">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Clôturé le {{ case.dateCloture ? case.dateCloture|date('d/m/Y à H:i') : case.dateActivation|date('d/m/Y à H:i') }}
+                            </p>
+                            {% for phase in case.sortedPhases %}
+                                {% if phase.phase.value in ['coordination', 'suivi'] and phase.commentaire %}
+                                    <div class="closed-case-observation">
+                                        <strong>Observation · {{ phase.phase.label() }}</strong>
+                                        <p>{{ phase.commentaire }}</p>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <a href="{{ path('app_urgence_case_pdf', {id: case.id}) }}" class="db-btn db-btn-export" title="Télécharger le rapport PDF de ce dossier">
+                            <i class="bi bi-file-earmark-pdf"></i><span>Exporter le PDF</span>
+                        </a>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
 </div>
 {% endblock %}
 
@@ -169,6 +240,43 @@
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.case-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.db-btn-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 11px;
+    border: 1px solid #d5e4dd;
+    border-radius: 7px;
+    background: #f5faf7;
+    color: #17654f;
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+.db-btn-export:hover {
+    background: #e6f5ef;
+    border-color: #9dcdb8;
+    color: #0c5c48;
+    transform: translateY(-1px);
+}
+
+.db-btn-export:focus-visible,
+.phase-observation-editor summary:focus-visible {
+    outline: 3px solid rgba(22, 133, 107, .3);
+    outline-offset: 2px;
 }
 
 /* Badge 1 cas actif en vert institutionnel moderne */
@@ -374,6 +482,170 @@
     margin-top: auto;
 }
 
+.phase-observation {
+    padding: 8px 9px;
+    border-left: 3px solid #16856b;
+    border-radius: 0 5px 5px 0;
+    background: rgba(22, 133, 107, .07);
+}
+
+.phase-observation-label {
+    color: #17654f;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.phase-observation p,
+.closed-case-observation p {
+    margin: 3px 0 0;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.phase-observation-editor {
+    margin-top: 2px;
+    color: var(--muted);
+}
+
+.phase-observation-editor summary {
+    width: fit-content;
+    color: #17654f;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+}
+
+.phase-observation-editor summary::-webkit-details-marker {
+    display: none;
+}
+
+.phase-observation-editor summary::after {
+    content: '⌄';
+    margin-left: 5px;
+}
+
+.phase-observation-editor[open] summary::after {
+    content: '⌃';
+}
+
+.phase-observation-editor form {
+    display: grid;
+    gap: 7px;
+    margin-top: 7px;
+}
+
+.phase-observation-editor textarea {
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.phase-observation-editor textarea:focus {
+    border-color: #16856b;
+    outline: 2px solid rgba(22, 133, 107, .15);
+}
+
+.phase-observation-editor button {
+    justify-self: start;
+}
+
+.closed-cases-section {
+    margin: 28px 0 10px;
+}
+
+.closed-cases-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.closed-cases-heading h3 {
+    margin: 3px 0 4px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 750;
+}
+
+.closed-cases-heading > div > p:last-child {
+    margin: 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.closed-cases-count {
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.closed-cases-list {
+    display: grid;
+    gap: 10px;
+}
+
+.closed-case-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+}
+
+.closed-case-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.closed-case-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.closed-case-title > span,
+.closed-case-date {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.closed-case-date {
+    margin: 5px 0 0;
+}
+
+.closed-case-observation {
+    margin-top: 9px;
+    padding: 7px 9px;
+    border-left: 3px solid #16856b;
+    background: rgba(22, 133, 107, .06);
+}
+
+.closed-case-observation strong {
+    color: #17654f;
+    font-size: 10px;
+}
+
 /* Bouton de validation d'étape en vert institutionnel */
 .db-btn-validate-step {
     background: #16856b;
@@ -470,6 +742,52 @@ body.dark .urgence-progress-wrapper {
 
 body.dark .urgence-progress-track {
     background: #1b2b22;
+}
+
+body.dark .db-btn-export {
+    border-color: #2e4d3c;
+    background: rgba(52, 211, 153, .08);
+    color: #68d9a8;
+}
+
+body.dark .db-btn-export:hover {
+    border-color: #3b8f71;
+    background: rgba(52, 211, 153, .15);
+    color: #8de5ba;
+}
+
+body.dark .phase-observation {
+    background: rgba(52, 211, 153, .08);
+}
+
+body.dark .phase-observation-label,
+body.dark .phase-observation-editor summary,
+body.dark .closed-case-observation strong {
+    color: #68d9a8;
+}
+
+body.dark .closed-case-observation {
+    background: rgba(52, 211, 153, .06);
+}
+
+@media(max-width: 640px) {
+    .case-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .closed-case-card {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .closed-case-card > .db-btn-export {
+        align-self: flex-start;
+    }
+
+    .closed-cases-heading {
+        align-items: flex-start;
+    }
 }
 </style>
 {% endblock %}
