@@ -1,10 +1,62 @@
-{# Alias de rétrocompatibilité pointant vers _stat_card.html.twig #}
-{% include 'components/_stat_card.html.twig' with {
-    title: title|default(''),
-    value: value|default(0),
-    icon: icon|default('bi-clipboard-data'),
-    color: color|default('teal'),
-    trend_val: trend_val|default(subtitle|default('')),
-    trend_label: trend_label|default(''),
-    trend_dir: trend_dir|default('up')
-} %}
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - KPI Card Component
+   Professional key performance indicator card with icon, value, trend
+───────────────────────────────────────────────────────────────────────── #}
+
+{# Macro pour carte KPI réutilisable #}
+{% macro kpi_card(label, value, icon = null, trend = null, trendLabel = null, color = 'teal') %}
+  {% set colorClass = 'kpi-icon-' ~ color %}
+  <div class="kpi-card" data-kpi-color="{{ color }}">
+    <div class="kpi-card-header">
+      <div class="kpi-card-content">
+        <p class="kpi-label">{{ label }}</p>
+        <p class="kpi-value">
+          {%- if value is iterable and value is not string -%}
+            {{ value|join(', ') }}
+          {%- else -%}
+            {{ value }}
+          {%- endif -%}
+        </p>
+      </div>
+      {% if icon %}
+        <div class="kpi-icon-wrapper {{ colorClass }}">
+          {% if icon starts with 'bi-' %}
+            <i class="bi {{ icon }}" aria-hidden="true"></i>
+          {% else %}
+            {{ icon|raw }}
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    
+    {% if trend is not null or trendLabel %}
+      <div class="kpi-card-footer">
+        {% if trend is not null %}
+          <span class="kpi-trend {% if trend > 0 %}kpi-trend-up{% elseif trend < 0 %}kpi-trend-down{% else %}kpi-trend-flat{% endif %}">
+            {% if trend > 0 %}
+              <i class="bi bi-arrow-up" aria-hidden="true"></i>
+              <span>+{{ trend }}%</span>
+            {% elseif trend < 0 %}
+              <i class="bi bi-arrow-down" aria-hidden="true"></i>
+              <span>{{ trend }}%</span>
+            {% else %}
+              <i class="bi bi-dash" aria-hidden="true"></i>
+              <span>0%</span>
+            {% endif %}
+          </span>
+        {% endif %}
+        {% if trendLabel %}
+          <span class="kpi-trend-label">{{ trendLabel }}</span>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# Simplified version for inline use #}
+{% macro kpi_badge(label, value, color = 'amber') %}
+  <div class="kpi-badge" data-color="{{ color }}">
+    <span class="kpi-badge-label">{{ label }}</span>
+    <span class="kpi-badge-value">{{ value }}</span>
+  </div>
+{% endmacro %}

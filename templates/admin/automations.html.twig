@@ -56,7 +56,15 @@
                 <div class="form-section" style="margin-bottom:0">
                     <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
                         <div class="d-flex align-items-center gap-2">
-                            <code style="font-size:11px;font-weight:700;color:var(--amber)">{{ rule.cle }}</code>
+                            {% set ruleLabels = {
+                                score_critique: 'Seuil de priorité critique',
+                                score_eleve_min: 'Seuil de priorité élevée',
+                                score_modere_min: 'Seuil de priorité modérée',
+                                sla_72h_heures: 'Durée du suivi urgence'
+                            } %}
+                            <strong class="automation-rule-name">
+                                {{ ruleLabels[rule.cle]|default(rule.cle|replace({'_': ' '})|capitalize) }}
+                            </strong>
                             {% if rule.isActif %}
                                 <span class="status-pill status-active" style="font-size:9px"><span class="status-dot"></span>ACTIF</span>
                             {% else %}
@@ -73,9 +81,9 @@
                     <p style="font-size:11px;color:var(--dim);line-height:1.6;text-align:center">{{ rule.description }}</p>
 
                     <form method="post" action="{{ path('app_admin_automation_rule_update', {id: rule.id}) }}" class="d-flex align-items-center gap-2 justify-content-center">
-                        <label style="font-size:10px;color:var(--muted);font-weight:600">Seuil :</label>
-                        <input type="text" name="valeur" value="{{ rule.valeur }}" class="form-input" style="width:80px;padding:4px 8px;font-size:11px;font-family:monospace;text-align:center">
-                        <button type="submit" class="db-btn db-btn-amber db-btn-sm">
+                        <label for="automation-rule-{{ rule.id }}" class="automation-threshold-label">Valeur</label>
+                        <input id="automation-rule-{{ rule.id }}" type="number" min="1" step="1" name="valeur" value="{{ rule.valeur }}" class="form-input automation-threshold-input" inputmode="numeric">
+                        <button type="submit" class="db-btn db-btn-amber db-btn-sm" aria-label="Enregistrer {{ ruleLabels[rule.cle]|default(rule.cle|replace({'_': ' '})|capitalize) }}">
                             <i class="bi bi-save"></i>
                         </button>
                     </form>
@@ -183,7 +191,7 @@
                 </div>
                 <div class="d-flex justify-content-end gap-2">
                     <button type="button" class="db-btn db-btn-ghost db-btn-sm" onclick="document.getElementById('addInstModal').classList.add('hidden')">Annuler</button>
-                    <button type="submit" class="db-btn db-btn-emerald db-btn-sm"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+                    <button type="submit" class="db-btn db-btn-emerald db-btn-sm"><i class="bi bi-save me-1"></i>Enregistrer</button>
                 </div>
             </form>
         </div>

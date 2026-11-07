@@ -20,8 +20,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-    {# ══ Bootstrap Icons 1.11 ══ #}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    {# ══ Bootstrap et Bootstrap Icons servis localement ══ #}
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/font/bootstrap-icons.min.css') }}">
 
     {# ── Chart.js ── #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -48,6 +49,16 @@
             {# Contenu #}
             <main class="gei-content">
 
+                {% for welcomeMessage in app.flashes('login_welcome') %}
+                    <div class="login-welcome-message" role="status" aria-live="polite">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span>{{ welcomeMessage }}</span>
+                        <button type="button" class="login-welcome-dismiss" aria-label="Fermer le message de bienvenue">
+                            <i class="bi bi-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+
                 {# Flash messages #}
                 {% for label, messages in app.flashes %}
                     {% for message in messages %}
@@ -72,13 +83,7 @@
                 {% endfor %}
 
                 {% set currentRoute = app.request.attributes.get('_route')|default('') %}
-                {% if currentRoute in [
-                    'app_dashboard_operationnel',
-                    'app_dashboard_general',
-                    'app_dashboard_superadmin',
-                    'app_dashboard_kpi',
-                    'app_agent_dashboard'
-                ] %}
+                {% if currentRoute starts with 'app_dashboard' or currentRoute starts with 'app_agent_dashboard' %}
                     {% include 'components/_dashboard_greeting.html.twig' %}
                 {% endif %}
 
@@ -119,8 +124,7 @@
 
 {{ importmap('app') }}
 
-{# ── Turbo Drive est désactivé dans app.js via Turbo.session.drive = false ── #}
-{# Le meta tag ci-dessus prévient le cache. L'inclusion d'app.js désactive Drive avant toute navigation. ── #}
+{# Turbo Drive accélère les navigations internes ; les PDF et exports restent en chargement classique. #}
 
 {# ── Scripts globaux ── #}
 <script>
@@ -298,15 +302,16 @@ async function pollNotifications() {
             if (list && data.notifications.length > 0) {
                 list.innerHTML = data.notifications.map(n => {
                     const is72h = n.type === 'sla_proche' || n.urgence === '72h';
-                    const isUrgent = Number(n.priorite) > 0 || n.type === 'urgence' || n.type === 'escalade';
-                    const iconClass = is72h ? 'notif-icon-amber' : isUrgent ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
+                    const isUrgent = is72h || Number(n.priorite) > 0 || n.type === 'urgence' || n.type === 'escalade';
+                    const iconClass = isUrgent ? 'notif-icon-red' : n.type === 'tache' ? 'notif-icon-amber' : 'notif-icon-emerald';
                     const icon = is72h ? 'bi-clock-history' : isUrgent ? 'bi-exclamation-triangle' : n.type === 'tache' ? 'bi-clipboard-check' : n.type === 'escalade' ? 'bi-arrow-up-right-square' : n.type === 'validation' ? 'bi-check-circle' : n.type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
-                    const category = is72h ? 'Urgence 72 h' : isUrgent ? 'Prioritaire' : 'Information';
+                    const category = is72h ? 'Urgence 72 h' : isUrgent ? 'Urgence' : 'Information';
+                    const categoryClass = isUrgent ? 'notif-category-urgent' : is72h ? 'notif-category-72h' : '';
                     const href = `/notification/${encodeURIComponent(n.id)}/read`;
                     return `<a href="${href}" class="notif-item ${n.lu ? '' : 'notif-unread'} ${isUrgent ? 'notif-item-urgent' : ''} ${is72h ? 'notif-item-72h' : ''}">
                         <span class="notif-icon-wrap ${iconClass}"><i class="bi ${icon}"></i></span>
                         <div class="notif-body">
-                            <span class="notif-category">${category}</span>
+                            <span class="notif-category ${categoryClass}">${category}</span>
                             <p class="notif-title">${escapeHtml(n.contenu ? n.contenu.replace(/<[^>]*>/g, '').slice(0, 70) : '—')}</p>
                             <span class="notif-meta">${n.codeGei ? escapeHtml(n.codeGei) + ' · ' : ''}${escapeHtml(n.date)}</span>
                         </div>
@@ -363,14 +368,16 @@ function showToast(contenu, type, alertRef) {
     if (!container) return;
 
     const is72h = type === 'sla_proche';
+    const isUrgent = type === 'urgence' || type === 'escalade' || is72h;
     const toast = document.createElement('div');
     toast.className = `gei-toast toast-${type || 'info'}`;
     const icon = is72h ? 'bi-clock-history' : type === 'urgence' ? 'bi-exclamation-triangle' : type === 'tache' ? 'bi-clipboard-check' : type === 'escalade' ? 'bi-arrow-up-right-square' : type === 'validation' ? 'bi-check-circle' : type === 'statut_change' ? 'bi-arrow-clockwise' : 'bi-info-circle';
+    const category = is72h ? 'Urgence 72 h' : isUrgent ? 'Urgence' : '';
     const href = alertRef ? `/alert/${encodeURIComponent(alertRef)}` : '/notifications';
     toast.innerHTML = `
         <a href="${href}" class="gei-toast-link">
             <span class="gei-toast-icon"><i class="bi ${icon}"></i></span>
-            <span class="gei-toast-text">${is72h ? '<strong class="gei-toast-category">Urgence 72 h · </strong>' : ''}${escapeHtml(contenu)}</span>
+            <span class="gei-toast-text">${category ? `<strong class="gei-toast-category">${category} · </strong>` : ''}${escapeHtml(contenu)}</span>
         </a>
         <button class="gei-toast-close" onclick="this.parentElement.remove()"><i class="bi bi-x"></i></button>
     `;

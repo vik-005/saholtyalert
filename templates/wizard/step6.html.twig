@@ -13,13 +13,10 @@
 
     {# Section 1 : Identification #}
     <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-clipboard-check me-1.5 text-emerald-400"></i>
-                Étape 6 sur 6 — Récapitulatif avant soumission
-            </p>
-            <p class="text-xs text-slate-500">Vérifiez toutes les informations avant d'envoyer la fiche au Manager.</p>
-        </div>
+        {% include 'components/_wizard_step_header.html.twig' with {
+            step: 6, title: 'Récapitulatif avant soumission', icon: 'bi-clipboard-check',
+            context: "Vérifiez toutes les informations avant d'envoyer la fiche au Manager."
+        } %}
         <div class="db-card-body">
 
             {# Section 1 : Identification #}

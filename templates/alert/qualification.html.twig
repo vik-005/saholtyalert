@@ -43,17 +43,17 @@
 
     {# ── BANDEAU URGENCE 72h — affiché si score critique et cas actif ───────── #}
     {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
-    <div class="workflow-banner workflow-banner-red">
-        <span class="urgence-pulse"></span>
-        <i class="bi bi-stopwatch text-red-400 fa-lg flex-shrink-0"></i>
-        <div>
-            <p class="workflow-banner-title">⚠️ URGENCE 72h ACTIVE — {{ alert.urgence72hCase.heuresRestantes }} h restantes</p>
-            <p class="workflow-banner-sub">Procédure d'urgence déclenchée automatiquement (score ≥ 18). Suivi requis par le Manager.</p>
+    <div class="card border mb-3">
+        <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+            <i class="bi bi-stopwatch text-danger fs-4 flex-shrink-0" aria-hidden="true"></i>
+            <div class="flex-grow-1">
+                <h2 class="h6 mb-1">Urgence 72 h active — {{ alert.urgence72hCase.heuresRestantes }} h restantes</h2>
+                <p class="mb-0 text-body-secondary small">Procédure déclenchée automatiquement (score ≥ 18). Suivi requis par le Manager.</p>
+            </div>
+            <a href="{{ path('app_dashboard_urgence') }}" class="btn btn-danger btn-sm rounded-2">
+                <i class="bi bi-clock-history me-1"></i>Tableau de bord Urgence
+            </a>
         </div>
-        <a href="{{ path('app_dashboard_urgence') }}" class="db-btn flex-shrink-0"
-           style="background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.2)">
-            <i class="bi bi-stopwatch me-1.5"></i>Tableau de bord Urgence
-        </a>
     </div>
     {% endif %}
 
@@ -66,9 +66,9 @@
             <div>
                 <p class="workflow-banner-title" style="color: rgb(251,191,36);">
                     {% if requalRestantes == 0 %}
-                        ⚠️ LIMITE ATTEINTE — Aucune requalification restante
+                        LIMITE ATTEINTE — Aucune requalification restante
                     {% else %}
-                        ⚠️ DERNIÈRE REQUALIFICATION — {{ requalRestantes }} modification restante
+                        DERNIÈRE REQUALIFICATION — {{ requalRestantes }} modification restante
                     {% endif %}
                 </p>
                 <p class="workflow-banner-sub">
@@ -627,10 +627,10 @@
                         <label class="qualify-label">Priorité surchargée</label>
                         <select name="priorite_surcharge" class="form-select">
                             <option value="">Automatique (calculée)</option>
-                            <option value="critique" {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'critique' %}selected{% endif %}>🔴 Critique</option>
-                            <option value="eleve"    {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'eleve'    %}selected{% endif %}>🟠 Élevé</option>
-                            <option value="modere"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'modere'   %}selected{% endif %}>🟡 Modéré</option>
-                            <option value="faible"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'faible'   %}selected{% endif %}>🟢 Faible</option>
+                            <option value="critique" {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'critique' %}selected{% endif %}>Critique</option>
+                            <option value="eleve"    {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'eleve'    %}selected{% endif %}>Élevé</option>
+                            <option value="modere"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'modere'   %}selected{% endif %}>Modéré</option>
+                            <option value="faible"   {% if alert.niveauPrioriteSurcharge and alert.niveauPrioriteSurcharge.value == 'faible'   %}selected{% endif %}>Faible</option>
                         </select>
                     </div>
                     <div class="qualify-field">

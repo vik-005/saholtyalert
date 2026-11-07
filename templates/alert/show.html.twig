@@ -9,7 +9,7 @@
 <div class="db-wrapper">
 
     {# ── BANDEAU ÉTAT — workflow visible ── #}
-    <div class="show-header-card">
+    <div class="card flex-row show-header-card">
         <div class="show-header-left">
             <h2 class="show-code">
                 <i class="bi bi-shield-check me-2 text-amber-400"></i>
@@ -70,29 +70,29 @@
 
         {# Boutons d'action #}
         <div class="show-actions">
-            <a href="{{ path('app_alert_edit', {token: alertToken}) }}" class="db-btn db-btn-ghost">
+            <a href="{{ path('app_alert_edit', {token: alertToken}) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-pencil-square me-1.5"></i>Modifier
             </a>
             {% if alert.statut.value == 'a_valider_saholty' and is_granted('ALERT_QUALIFY', alert) and alert.canBeRequalifiedBy(app.user) %}
-                <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="db-btn db-btn-amber">
+                <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="btn btn-success">
                     <i class="bi bi-star-half me-1.5"></i>
                     {% if alert.scoreGei %}Requalifier{% else %}Qualifier{% endif %}
                 </a>
             {% endif %}
             {% if is_granted('ROLE_PFT') and is_granted('ALERT_TRANSMIT', alert) and alert.scoreGei %}
-                <a href="{{ path('app_alert_transmit', {token: alertToken}) }}" class="db-btn db-btn-ghost">
+                <a href="{{ path('app_alert_transmit', {token: alertToken}) }}" class="btn btn-primary">
                     <i class="bi bi-send me-1.5"></i>{{ alertAlreadyTransmitted ? 'Ajouter une transmission' : 'Transmettre' }}
                 </a>
             {% endif %}
             {% if is_granted('ALERT_DECIDE', alert) %}
                 <form method="post" action="{{ path('app_alert_delete', {token: alertToken}) }}" class="inline-delete-form" onsubmit="return window.confirm('Confirmer la suppression de cette alerte ?')">
                     <input type="hidden" name="_token" value="{{ csrf_token('delete') }}">
-                    <button type="submit" class="db-btn db-btn-danger delete-trigger" data-delete-url="{{ path('app_alert_delete', {token: alertToken}) }}" data-delete-token="{{ csrf_token('delete')|e('html_attr') }}">
+                    <button type="submit" class="btn btn-danger delete-trigger" data-delete-url="{{ path('app_alert_delete', {token: alertToken}) }}" data-delete-token="{{ csrf_token('delete')|e('html_attr') }}">
                         <i class="bi bi-trash me-1.5"></i>Supprimer
                     </button>
                 </form>
             {% endif %}
-            <a href="{{ path('app_alert_pdf', {token: alertToken}) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="db-btn db-btn-ghost">
+            <a href="{{ path('app_alert_pdf', {token: alertToken}) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="btn btn-outline-secondary">
                 <i class="bi bi-file-earmark-pdf me-1.5 text-red-500"></i>PDF
             </a>
         </div>
@@ -111,7 +111,7 @@
             </p>
         </div>
         {% if is_granted('ALERT_QUALIFY', alert) %}
-        <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="db-btn db-btn-amber flex-shrink-0">
+        <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="btn btn-success flex-shrink-0">
             <i class="bi bi-star-half me-1.5"></i>Qualifier maintenant
         </a>
         {% endif %}
@@ -119,22 +119,23 @@
     {% endif %}
 
     {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
-    <div class="workflow-banner workflow-banner-red">
-        <span class="urgence-pulse"></span>
-        <i class="bi bi-stopwatch text-red-500 flex-shrink-0" style="font-size: 1.25rem;"></i>
-        <div>
-            <p class="workflow-banner-title">⚠️ URGENCE 72h ACTIVE — {{ alert.urgence72hCase.heuresRestantes }} h restantes</p>
-            <p class="workflow-banner-sub">Procédure d'urgence déclenchée automatiquement (score ≥ 18). Suivi requis.</p>
+    <div class="card border mb-3">
+        <div class="card-body d-flex align-items-center gap-3 flex-wrap">
+            <i class="bi bi-stopwatch text-danger fs-4 flex-shrink-0" aria-hidden="true"></i>
+            <div class="flex-grow-1">
+                <h2 class="h6 mb-1">Urgence 72 h active — {{ alert.urgence72hCase.heuresRestantes }} h restantes</h2>
+                <p class="mb-0 text-body-secondary small">Procédure déclenchée automatiquement (score ≥ 18). Suivi requis.</p>
+            </div>
+            <a href="{{ path('app_dashboard_urgence') }}" class="btn btn-danger btn-sm rounded-2">
+                <i class="bi bi-clock-history me-1"></i>Suivi SLA
+            </a>
         </div>
-        <a href="{{ path('app_dashboard_urgence') }}" class="db-btn db-btn-red flex-shrink-0">
-            <i class="bi bi-stopwatch me-1.5"></i>Suivi SLA
-        </a>
     </div>
     {% endif %}
 
     {# ── SCORE GEI (si calculé) ── #}
     {% if alert.effectiveScore %}
-    <div class="show-score-bar">
+    <div class="card flex-row show-score-bar">
         {% set score = alert.effectiveScore %}
         <div class="show-score-main">
             <span class="show-score-label">Score GEI</span>
@@ -191,7 +192,7 @@
     {% endif %}
 
     {% if alert.pieceJointes|length > 0 %}
-    <div class="show-section mt-3">
+    <div class="card show-section mt-3">
         <h3 class="show-section-title">
             <i class="bi bi-paperclip me-1.5 text-emerald-400"></i>
             Documents justificatifs
@@ -212,7 +213,7 @@
                         <td>{{ piece.uploadedAt|date('d/m/Y H:i') }}</td>
                         <td>{{ piece.tailleOctets ? (piece.tailleOctets / 1048576)|number_format(2, ',', ' ') ~ ' Mo' : '—' }}</td>
                         <td class="text-end">
-                            <a class="db-btn db-btn-ghost db-btn-sm"
+                            <a class="btn btn-outline-secondary btn-sm"
                                href="{{ path('app_alert_attachment_download', {token: alertToken, attachToken: encrypt_id(piece.id, 'attachment')}) }}">
                                 <i class="bi bi-download me-1"></i>Télécharger
                             </a>
@@ -226,7 +227,7 @@
     {% endif %}
 
     {% if alert.qualificationHistories|length > 0 %}
-    <div class="show-section mt-3">
+    <div class="card show-section mt-3">
         <h3 class="show-section-title">
             <i class="bi bi-clock-history me-1.5 text-amber-400"></i>
             Historique des scores
@@ -255,7 +256,7 @@
         {# Colonne gauche #}
         <div class="show-col">
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">2</span>
                     Résumé Exécutif
@@ -263,7 +264,7 @@
                 <p class="show-text">{{ alert.resumeExecutif ? alert.resumeExecutif|nl2br : '—' }}</p>
             </div>
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num show-section-num-amber">4</span>
                     Éléments Factuels
@@ -271,7 +272,7 @@
                 <p class="show-text">{{ alert.elementsFactuels ? alert.elementsFactuels|nl2br : '—' }}</p>
             </div>
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">5</span>
                     Hypothèses Analytiques
@@ -280,7 +281,7 @@
             </div>
 
             {% if alert.recommandation or alert.actionsEnCours %}
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">7</span>
                     Recommandation & Actions
@@ -302,7 +303,7 @@
         {# Colonne droite — métadonnées #}
         <div class="show-col">
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">1</span>
                     Identification
@@ -325,7 +326,7 @@
                 </div>
             </div>
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">3</span>
                     Source & Fiabilité
@@ -346,7 +347,7 @@
                 </div>
             </div>
 
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <span class="show-section-num">8</span>
                     Confidentialité
@@ -366,7 +367,7 @@
             </div>
 
             {% if alert.commentaires %}
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <i class="bi bi-chat-left-dots me-1.5 text-amber-400"></i>
                     Commentaires Manager
@@ -376,7 +377,7 @@
             {% endif %}
 
             {# ── Traçabilité nominative (Partie B) ─────────────────────────── #}
-            <div class="show-section">
+            <div class="card show-section">
                 <h3 class="show-section-title">
                     <i class="bi bi-person-badge me-1.5 text-amber-400"></i>
                     Traçabilité
@@ -410,7 +411,7 @@
 
             {# Commentaire de rejet — affiché en priorité si fiche rejetée #}
             {% if alert.commentaireRejet %}
-            <div class="show-section" style="border-left: 3px solid rgba(239,68,68,.5);">
+            <div class="card show-section" style="border-left: 3px solid rgba(239,68,68,.5);">
                 <h3 class="show-section-title" style="color: #f87171;">
                     <i class="bi bi-exclamation-triangle me-1.5"></i>
                     Motif de rejet Manager
@@ -418,7 +419,7 @@
                 <p class="show-text" style="color: #fca5a5;">{{ alert.commentaireRejet }}</p>
                 {% if alert.statut.value == 'a_completer' %}
                 <div class="mt-3">
-                    <a href="{{ path('app_alert_edit', {token: alertToken}) }}" class="db-btn db-btn-amber">
+                    <a href="{{ path('app_alert_edit', {token: alertToken}) }}" class="btn btn-success">
                         <i class="bi bi-pencil-square me-1.5"></i>Corriger et resoumettre
                     </a>
                 </div>
@@ -456,16 +457,16 @@
         min-width:0;
         flex:1 1 100%;
     }
-    .show-actions > .db-btn,
+    .show-actions > .btn,
     .show-actions .inline-delete-form { width:100%; min-width:0; max-width:100%; }
     .show-actions .inline-delete-form { display:flex; margin:0; }
-    .show-actions .db-btn {
+    .show-actions .btn {
         justify-content:center;
         padding-inline:8px;
         text-align:center;
         white-space:normal;
     }
-    .show-actions .inline-delete-form > .db-btn { width:100%; }
+    .show-actions .inline-delete-form > .btn { width:100%; }
 }
 @media(max-width:360px) {
     .show-actions { grid-template-columns:1fr; }
@@ -489,7 +490,6 @@
     flex-wrap:wrap;
 }
 .workflow-banner-amber { background:rgba(251,191,36,.06); border:1px solid rgba(251,191,36,.25); }
-.workflow-banner-red   { background:rgba(239,68,68,.06);  border:1px solid rgba(239,68,68,.25); }
 .workflow-banner-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:3px; }
 .workflow-banner-sub   { font-size:11.5px; color:var(--text-muted); }
 

@@ -11,11 +11,11 @@
     <aside class="auth-brand-panel">
         <div class="auth-slide-wrap" id="authSlideWrap">
             <div class="auth-slide-item auth-slide-active"
-                 style="background-image:url('https://images.unsplash.com/photo-1557597774-9d475d030a6d?w=900&q=80&auto=format&fit=crop')"></div>
+                 style="background-image:url('{{ asset('images/auth/access-control.svg') }}')"></div>
             <div class="auth-slide-item"
-                 style="background-image:url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=900&q=80&auto=format&fit=crop')"></div>
+                 style="background-image:url('{{ asset('images/auth/traceability.svg') }}')"></div>
             <div class="auth-slide-item"
-                 style="background-image:url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80&auto=format&fit=crop')"></div>
+                 style="background-image:url('{{ asset('images/auth/incident-response.svg') }}')"></div>
         </div>
         <div class="auth-slide-overlay"></div>
         <a href="{{ path('app_login') }}" class="auth-brand">
@@ -27,9 +27,9 @@
             <p>Saisissez le code généré par votre application d'authentification pour accéder à la plateforme.</p>
         </div>
         <ul class="auth-brand-points">
-            <li><i class="bi bi-check-circle"></i>Connexion sécurisée</li>
-            <li><i class="bi bi-check-circle"></i>Code à usage unique</li>
-            <li><i class="bi bi-check-circle"></i>Données chiffrées TLS</li>
+            <li><i class="bi bi-person-lock"></i>Accès réservé aux comptes habilités</li>
+            <li><i class="bi bi-shield-check"></i>Code à usage unique</li>
+            <li><i class="bi bi-journal-check"></i>Historique des opérations sur les alertes</li>
         </ul>
         <p class="auth-brand-footer"><i class="bi bi-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
         <div class="auth-slide-dots" id="authSlideDots">

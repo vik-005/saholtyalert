@@ -2,29 +2,33 @@
 
 {% block body_login %}
 <div class="auth-shell auth-shell-pro">
-    <aside class="auth-brand-panel">
-        <a href="{{ path('app_login') }}" class="auth-brand">
-            <span><i class="bi bi-shield-lock"></i></span>GEI Platform
-        </a>
-
-        <div class="auth-brand-copy">
-            <p class="auth-brand-tag">Groupe d'échange d'informations</p>
-            <h2>Une information mieux qualifiée.<br>Une décision mieux protégée.</h2>
-            <p>Plateforme sécurisée de collecte, qualification et suivi des alertes opérationnelles.</p>
-        </div>
-
-        <ul class="auth-brand-points">
-            <li><i class="bi bi-check-circle"></i>Accès contrôlé par rôle</li>
-            <li><i class="bi bi-check-circle"></i>Traçabilité des opérations</li>
-            <li><i class="bi bi-check-circle"></i>Suivi des urgences sous 72 h</li>
-        </ul>
-
-        <p class="auth-brand-footer"><i class="bi bi-lock"></i> Dispositif GEI/AIT · Accès restreint</p>
-    </aside>
+    {% include 'components/_auth_brand_panel.html.twig' with {
+        brand_name: 'GEI System',
+        slides: [
+            {
+                image: 'images/auth/access-control.svg',
+                eyebrow: 'Accès maîtrisés',
+                title: 'Les bonnes informations, aux bons profils.',
+                text: 'Les autorisations sont organisées selon les rôles définis pour la plateforme.'
+            },
+            {
+                image: 'images/auth/traceability.svg',
+                eyebrow: 'Suivi opérationnel',
+                title: 'Chaque alerte suit un parcours clair.',
+                text: 'La qualification, les décisions et les transmissions s’appuient sur un historique opérationnel.'
+            },
+            {
+                image: 'images/auth/incident-response.svg',
+                eyebrow: 'Réactivité coordonnée',
+                title: 'Une urgence suivie dans le temps.',
+                text: 'Les dossiers éligibles disposent d’un suivi dédié selon le protocole opérationnel 72 h.'
+            }
+        ]
+    } %}
 
     <main class="auth-form-panel auth-form-panel-pro">
         <div class="auth-mobile-brand">
-            <span><i class="bi bi-shield-lock"></i></span> GEI Platform
+            <span><i class="bi bi-shield-lock"></i></span> GEI System
         </div>
         <div class="auth-form-inner">{% block auth_form %}{% endblock %}</div>
         <div class="auth-footer-note auth-legal-footer">
@@ -42,6 +46,57 @@
 {% block javascripts %}
 {{ parent() }}
 <script>
+(() => {
+    const carousel = document.querySelector('[data-auth-slideshow]');
+    if (!carousel) return;
+
+    const slides = [...carousel.querySelectorAll('[data-auth-slide]')];
+    const dots = [...carousel.querySelectorAll('[data-auth-slide-dot]')];
+    const pauseButton = carousel.querySelector('[data-auth-slide-pause]');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let activeIndex = 0;
+    let isPaused = reducedMotion;
+    let timer;
+
+    const showSlide = (nextIndex) => {
+        activeIndex = (nextIndex + slides.length) % slides.length;
+        slides.forEach((slide, index) => {
+            const active = index === activeIndex;
+            slide.classList.toggle('auth-slide-active', active);
+            slide.setAttribute('aria-hidden', String(!active));
+            dots[index].classList.toggle('auth-dot-active', active);
+            dots[index].setAttribute('aria-pressed', String(active));
+        });
+    };
+
+    const restartTimer = () => {
+        window.clearInterval(timer);
+        if (!isPaused && !carousel.matches(':hover') && !carousel.contains(document.activeElement)) {
+            timer = window.setInterval(() => showSlide(activeIndex + 1), 6000);
+        }
+    };
+
+    pauseButton?.addEventListener('click', () => {
+        isPaused = !isPaused;
+        const label = pauseButton.querySelector('span');
+        const icon = pauseButton.querySelector('i');
+        pauseButton.setAttribute('aria-pressed', String(isPaused));
+        label.textContent = isPaused ? 'Reprendre' : 'Mettre en pause';
+        icon.classList.toggle('bi-play-fill', isPaused);
+        icon.classList.toggle('bi-pause-fill', !isPaused);
+        restartTimer();
+    });
+    dots.forEach((dot) => dot.addEventListener('click', () => {
+        showSlide(Number(dot.dataset.authSlideDot));
+        restartTimer();
+    }));
+    carousel.addEventListener('mouseenter', () => window.clearInterval(timer));
+    carousel.addEventListener('mouseleave', restartTimer);
+    carousel.addEventListener('focusin', () => window.clearInterval(timer));
+    carousel.addEventListener('focusout', restartTimer);
+    restartTimer();
+})();
+
 function togglePassword(inputId, btnId) {
     const input = document.getElementById(inputId);
     const button = document.getElementById(btnId);

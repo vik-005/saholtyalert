@@ -4,13 +4,10 @@
     <input type="hidden" name="wizard_step" value="4">
 
     <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-eye-slash me-1.5 text-amber-400"></i>
-                Étape 4 sur 6 — Source
-            </p>
-            <p class="text-xs text-slate-500">Champs 11 à 12 du formulaire Agent</p>
-        </div>
+        {% include 'components/_wizard_step_header.html.twig' with {
+            step: 4, title: 'Source', icon: 'bi-eye-slash',
+            context: 'Champs 11 à 12 du formulaire Agent'
+        } %}
         <div class="db-card-body space-y-4 wizard-fields-grid">
 
             {# Champ 11 — Type de source (liste administrable) #}

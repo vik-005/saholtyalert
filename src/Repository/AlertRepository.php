@@ -412,15 +412,15 @@ class AlertRepository extends ServiceEntityRepository
     public function countByNiveauPriorite(?User $user = null): array
     {
         $qb = $this->createQueryBuilder('a')
-            ->select('a.niveauPriorite AS niveau, COUNT(a.id) AS cnt')
-            ->where('a.niveauPriorite IS NOT NULL')
+            ->select('COALESCE(a.niveauPrioriteSurcharge, a.niveauPriorite) AS niveau, COUNT(a.id) AS cnt')
+            ->where('COALESCE(a.niveauPrioriteSurcharge, a.niveauPriorite) IS NOT NULL')
             ->andWhere('a.deletedAt IS NULL');
 
         if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
             $qb->andWhere('a.emetteur = :user')->setParameter('user', $user);
         }
 
-        $rows = $qb->groupBy('a.niveauPriorite')
+        $rows = $qb->groupBy('niveau')
             ->getQuery()
             ->getArrayResult();
 
@@ -458,6 +458,45 @@ class AlertRepository extends ServiceEntityRepository
             ->getArrayResult();
 
         return array_map(fn($r) => ['nom' => $r['nom'], 'count' => (int) $r['cnt']], $rows);
+    }
+
+    /**
+     * Alert volume by weekday and hour over the last 90 days.
+     *
+     * @return array<int, array<int, int>> A 7×24 matrix, Monday first.
+     */
+    public function getActivityHeatmap(User $user): array
+    {
+        $matrix = array_fill(0, 7, array_fill(0, 24, 0));
+        $parameters = [
+            'periodStart' => (new \DateTimeImmutable('-90 days'))->format('Y-m-d H:i:s'),
+            'periodEnd' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+        ];
+        $agentCondition = '';
+
+        if ($user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
+            $agentCondition = ' AND a.emetteur_id = :userId';
+            $parameters['userId'] = $user->getId();
+        }
+
+        $rows = $this->getEntityManager()->getConnection()->executeQuery(
+            'SELECT DAYOFWEEK(a.date_creation) AS weekday, HOUR(a.date_creation) AS hour, COUNT(a.id) AS total'
+            . ' FROM alert a'
+            . ' WHERE a.deleted_at IS NULL AND a.date_creation BETWEEN :periodStart AND :periodEnd'
+            . $agentCondition
+            . ' GROUP BY weekday, hour',
+            $parameters,
+        )->fetchAllAssociative();
+
+        foreach ($rows as $row) {
+            $weekday = ((int) $row['weekday'] + 5) % 7;
+            $hour = (int) $row['hour'];
+            if ($weekday >= 0 && $weekday < 7 && $hour >= 0 && $hour < 24) {
+                $matrix[$weekday][$hour] = (int) $row['total'];
+            }
+        }
+
+        return $matrix;
     }
 
     /**

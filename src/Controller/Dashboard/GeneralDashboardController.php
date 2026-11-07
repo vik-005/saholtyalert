@@ -37,6 +37,7 @@ class GeneralDashboardController extends AbstractController
         $kpis = $alertRepository->getKpiStats($user);  // filtré par rôle
         $kpisByPrio = $alertRepository->countByNiveauPriorite($user);
         $kpisByPays = $alertRepository->countByPays($user);
+        $activityHeatmap = $alertRepository->getActivityHeatmap($user);
         $scoreMoyen = $alertRepository->getScoreMoyen($user);
         $delaiMoyenH = $alertRepository->getAvgDelaiTraitementHeures($user);
 
@@ -101,6 +102,8 @@ class GeneralDashboardController extends AbstractController
             'chartNouvelles' => $chartData['nouvelles'],
             'chartTransmises' => $chartData['transmises'],
             'chartPeriod'   => $chartPeriod,
+            'activityHeatmap' => $activityHeatmap,
+            'priorities' => $kpisByPrio,
             'alerts'        => $alerts,
             'filters'       => (array) $filterDto,
             'page'          => $filterDto->page,

@@ -1,103 +1,127 @@
 {% extends 'layout/auth_layout.html.twig' %}
-{% block title %}Connexion — Plateforme GEI{% endblock %}
+{% block title %}Connexion — GEI System{% endblock %}
 
 {% block auth_form %}
-{# ── En-tête ── #}
-<div class="auth-form-header">
-    <h1 class="auth-title">Connexion</h1>
-    <p class="auth-subtitle">
-        Accès réservé aux utilisateurs créés par l’administrateur.
-    </p>
+{# ── En-tête du formulaire ── #}
+<div class="login-header">
+    <div class="login-branding">
+        <div class="login-logo">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <h1 class="login-title">Bienvenue sur GEI System</h1>
+        <p class="login-subtitle">Plateforme de gestion opérationnelle des alertes</p>
+    </div>
 </div>
 
-{# ── Erreur ── #}
+{# ── Affichage d'erreur ── #}
 {% if error %}
-<div class="auth-error">
-    <i class="bi bi-x-circle auth-error-icon"></i>
-    <div>
-        <p class="auth-error-title">Connexion échouée</p>
-        <p class="auth-error-msg">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
+<div class="login-alert login-alert-error" role="alert">
+    <div class="login-alert-header">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span class="login-alert-title">Connexion échouée</span>
     </div>
+    <p class="login-alert-message">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
 </div>
 {% endif %}
 
-{# ── Formulaire ── #}
-<form method="post" action="{{ path('app_login') }}" class="auth-fields" novalidate>
-
-    {# Email #}
-    <div class="auth-field-wrap">
-        <label class="auth-label" for="username">
-            <i class="bi bi-envelope me-1.5 opacity-60"></i>Adresse email
+{# ── Formulaire de connexion ── #}
+<form method="post" action="{{ path('app_login') }}" class="login-form" novalidate>
+    
+    {# Champ Email #}
+    <div class="login-field">
+        <label for="username" class="login-field-label">
+            <span>Adresse email</span>
+            <span class="login-required">*</span>
         </label>
-        <div class="auth-input-wrap">
+        <div class="login-field-wrapper">
+            <i class="login-field-icon bi bi-envelope"></i>
             <input
                 type="email"
                 id="username"
                 name="_username"
                 value="{{ last_username ?? '' }}"
-                placeholder="nom@gei.org"
-                class="auth-input"
+                placeholder="votre@email.com"
+                class="login-field-input"
                 autocomplete="email"
                 required
+                aria-describedby="username-error"
             >
         </div>
     </div>
-
-    {# Mot de passe #}
-    <div class="auth-field-wrap">
-        <div class="auth-label-row">
-            <label class="auth-label" for="password">
-                <i class="bi bi-lock me-1.5 opacity-60"></i>Mot de passe
+    
+    {# Champ Mot de passe #}
+    <div class="login-field">
+        <div class="login-field-header">
+            <label for="password" class="login-field-label">
+                <span>Mot de passe</span>
+                <span class="login-required">*</span>
             </label>
-            <a href="{{ path('app_forgot_password') }}" class="auth-forgot">Mot de passe oublié ?</a>
+            <a href="{{ path('app_forgot_password') }}" class="login-forgot-link">
+                Oublié ?
+            </a>
         </div>
-        <div class="auth-input-wrap auth-input-icon-right">
+        <div class="login-field-wrapper login-field-password">
+            <i class="login-field-icon bi bi-lock"></i>
             <input
                 type="password"
                 id="password"
                 name="_password"
                 placeholder="Votre mot de passe"
-                class="auth-input"
+                class="login-field-input"
                 autocomplete="current-password"
                 required
+                aria-describedby="password-error"
             >
-                <button type="button" class="auth-input-btn" id="togglePasswordBtn"
-                    onclick="togglePassword('password', 'togglePasswordBtn')"
-                    aria-label="Afficher le mot de passe" aria-pressed="false">
+            <button
+                type="button"
+                class="login-field-toggle"
+                id="togglePasswordBtn"
+                onclick="togglePassword('password', 'togglePasswordBtn')"
+                aria-label="Afficher le mot de passe"
+                aria-pressed="false"
+                tabindex="0"
+            >
                 <i class="bi bi-eye"></i>
             </button>
         </div>
     </div>
-
+    
+    {# Token CSRF #}
     <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-    {# Bouton principal #}
-    <button type="submit" class="auth-submit-btn">
-        <i class="bi bi-box-arrow-in-right me-2"></i>
-        Se connecter
+    
+    {# Bouton de connexion #}
+    <button type="submit" class="login-button">
+        <span class="login-button-text">Se connecter</span>
+        <i class="bi bi-arrow-right" aria-hidden="true"></i>
     </button>
-
+    
 </form>
 
-{# ── Séparateur ── #}
-<div class="auth-divider">
-    <span class="auth-divider-line"></span>
-    <span class="auth-divider-text">Accès sécurisé GEI</span>
-    <span class="auth-divider-line"></span>
+{# ── Information de sécurité ── #}
+<div class="login-security">
+    <p class="login-security-title">Sécurité</p>
+    <ul class="login-security-list">
+        <li>
+            <i class="bi bi-shield-check"></i>
+            <span>Accès réservé aux comptes habilités</span>
+        </li>
+        <li>
+            <i class="bi bi-clock-history"></i>
+            <span>Authentification sécurisée avec historique</span>
+        </li>
+        <li>
+            <i class="bi bi-key"></i>
+            <span>Authentification multi-facteurs disponible</span>
+        </li>
+    </ul>
 </div>
 
-{# ── Info sécurité ── #}
-<div class="auth-security-note">
-    <div class="auth-security-item">
-        <i class="bi bi-shield-lock text-amber-400"></i>
-        <span>Accès réservé aux utilisateurs autorisés</span>
-    </div>
-    <div class="auth-security-item">
-        <i class="bi bi-clock-history text-amber-400"></i>
-        <span>Expiration automatique de session</span>
-    </div>
-    <div class="auth-security-item">
-        <i class="bi bi-eye-slash text-amber-400"></i>
-        <span>Données confidentielles</span>
-    </div>
+{# ── Pied de page légal ── #}
+<div class="login-footer">
+    <span class="login-footer-copy">© {{ 'now'|date('Y') }} · GEI System</span>
+    <nav class="login-footer-nav" aria-label="Informations légales">
+        <a href="{{ path('app_privacy_policy') }}">Confidentialité</a>
+        <a href="{{ path('app_terms_of_use') }}">Conditions d'utilisation</a>
+    </nav>
 </div>
 {% endblock %}

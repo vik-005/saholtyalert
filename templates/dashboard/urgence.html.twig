@@ -25,7 +25,7 @@
                 {{ active_cases|length }} cas actif{{ active_cases|length > 1 ? 's' : '' }}
             </span>
             {% endif %}
-            <a href="{{ path('app_dashboard_operationnel') }}" class="db-btn db-btn-top-dashboard">
+            <a href="{{ path('app_dashboard_operationnel') }}" class="btn btn-outline-secondary btn-sm rounded-2">
                 <i class="bi bi-speedometer2 me-1.5"></i>Dashboard
             </a>
         </div>
@@ -34,8 +34,8 @@
     {# Liste des cas d'urgence 72h #}
     {% for case in active_cases %}
 
-    <div class="db-card mb-4 urgence-card-container">
-        <div class="db-card-header">
+    <div class="card mb-4 urgence-card-container">
+        <div class="card-header urgence-card-header">
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
                 <a href="{{ path('app_alert_show', {token: encrypt_id(case.alert.id, 'alert')}) }}"
                    class="code-gei-link" style="font-size:15px;letter-spacing:0.02em">
@@ -51,7 +51,7 @@
                 </span>
             </div>
             <div class="case-header-actions">
-                <a href="{{ path('app_urgence_case_pdf', {id: case.id}) }}" class="db-btn db-btn-export" title="Télécharger le rapport PDF de ce dossier">
+                <a href="{{ path('app_urgence_case_pdf', {id: case.id}) }}" class="btn btn-outline-secondary btn-sm rounded-2" title="Télécharger le rapport PDF de ce dossier">
                     <i class="bi bi-file-earmark-pdf"></i><span>Exporter le suivi PDF</span>
                 </a>
                 {# Timer SLA temps réel #}
@@ -60,13 +60,11 @@
         </div>
 
         {# Phases SLA — grille responsive ordonnée chronologiquement #}
-        <div class="db-card-body p-0">
+        <div class="card-body db-card-body p-0">
             <div class="urgence-scroll-wrapper">
                 <div class="urgence-phases-grid">
                     {% for phase in case.sortedPhases %}
-                    <div class="urgence-phase-card {% if phase.isTerminee %}phase-done
-                                      {% elseif phase.isEnRetard %}phase-late
-                                      {% else %}phase-current{% endif %}">
+                    <div class="urgence-phase-card">
                         {# Header de phase : badge numéro et tag SLA sans tiret #}
                         <div class="phase-card-top">
                             <span class="phase-tag-num">{{ phase.phase.phaseNumero() }}</span>
@@ -93,8 +91,8 @@
                                     <label for="observation-{{ phase.id }}" class="visually-hidden">Observation — {{ phase.phase.label() }}</label>
                                     <textarea id="observation-{{ phase.id }}" name="commentaire" rows="3" maxlength="5000"
                                               placeholder="Décrire les faits observés, décisions ou points de vigilance…">{{ phase.commentaire }}</textarea>
-                                    <button type="submit" class="db-btn db-btn-validate-step db-btn-sm">
-                                        <i class="bi bi-check2 me-1"></i>Enregistrer
+                                    <button type="submit" class="btn btn-success btn-sm rounded-2">
+                                        <i class="bi bi-save me-1"></i>Enregistrer
                                     </button>
                                 </form>
                             </details>
@@ -121,7 +119,7 @@
                                 </span>
                                 <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}" style="display:inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('advance-phase-' ~ phase.id) }}">
-                                    <button type="submit" class="db-btn db-btn-red db-btn-sm" title="Marquer cette phase comme complétée">
+                                    <button type="submit" class="btn btn-danger btn-sm rounded-2" title="Marquer cette phase comme complétée">
                                         <i class="bi bi-check2-circle me-1"></i>Compléter
                                     </button>
                                 </form>
@@ -131,7 +129,7 @@
                                 </span>
                                 <form method="post" action="{{ path('app_urgence_phase_advance', {id: phase.id}) }}" style="display:inline">
                                     <input type="hidden" name="_token" value="{{ csrf_token('advance-phase-' ~ phase.id) }}">
-                                    <button type="submit" class="db-btn db-btn-validate-step db-btn-sm" title="Marquer cette phase comme complétée">
+                                    <button type="submit" class="btn btn-success btn-sm rounded-2" title="Marquer cette phase comme complétée">
                                         <i class="bi bi-check2-circle me-1"></i>Compléter
                                     </button>
                                 </form>
@@ -353,6 +351,16 @@
     overflow: hidden;
 }
 
+.urgence-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+}
+
 .urgence-scroll-wrapper {
     width: 100%;
     overflow-x: auto;
@@ -380,23 +388,10 @@
     flex-direction: column;
     gap: 8px;
     background: var(--card);
-    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .urgence-phase-card:last-child {
     border-right: none;
-}
-
-.urgence-phase-card.phase-done {
-    background: rgba(52, 211, 153, 0.05);
-}
-
-.urgence-phase-card.phase-late {
-    background: rgba(239, 68, 68, 0.04);
-}
-
-.urgence-phase-card.phase-current {
-    background: #ffffff;
 }
 
 /* Top bar de chaque carte : badges épurés sans tiret */
@@ -412,37 +407,13 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--muted);
-    background: var(--card2);
-    padding: 2px 7px;
-    border-radius: 5px;
-    border: 1px solid var(--border);
-}
-
-.phase-done .phase-tag-num {
-    background: rgba(52, 211, 153, 0.12);
-    border-color: rgba(52, 211, 153, 0.3);
-    color: #0d5f4c;
-}
-
-.phase-late .phase-tag-num {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #b91c1c;
 }
 
 .phase-tag-sla {
     font-size: 10.5px;
     font-weight: 700;
     font-family: 'JetBrains Mono', monospace, sans-serif;
-    color: #16856b;
-    background: #e6f5ef;
-    padding: 2px 6px;
-    border-radius: 4px;
-}
-
-.phase-late .phase-tag-sla {
-    color: #ef4444;
-    background: #fee2e2;
+    color: var(--muted);
 }
 
 /* Titre de phase : zéro trait d'union / cadratin vibecoder */
@@ -457,14 +428,6 @@
     align-items: flex-start;
     word-break: break-word;
     hyphens: auto;
-}
-
-.phase-done .phase-card-title {
-    color: #0c5c48;
-}
-
-.phase-late .phase-card-title {
-    color: #b91c1c;
 }
 
 .phase-card-sep {
@@ -718,21 +681,6 @@ body.dark .db-btn-top-dashboard:hover {
     color: #09120e !important;
     border-color: #34d399 !important;
     box-shadow: 0 3px 10px rgba(52, 211, 153, 0.3);
-}
-
-body.dark .urgence-phase-card.phase-current {
-    background: var(--card);
-}
-
-body.dark .phase-tag-num {
-    background: #1e3328;
-    border-color: #2e4d3c;
-    color: #8fa89b;
-}
-
-body.dark .phase-tag-sla {
-    color: #34d399;
-    background: rgba(52, 211, 153, 0.12);
 }
 
 body.dark .urgence-progress-wrapper {

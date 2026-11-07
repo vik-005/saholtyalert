@@ -1,0 +1,43 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Urgence 72h Alert Box Component
+   Prominent display for urgent escalation cases requiring immediate attention
+───────────────────────────────────────────────────────────────────────── #}
+
+{% macro urgence_box(alert, show_link = true) %}
+  {% if alert.scoreGei is not null and alert.scoreGei >= 14 or alert.isEligibleForUrgence72h(14) %}
+    <div class="urgence-alert-box" role="alert">
+      <div class="urgence-alert-icon" aria-hidden="true">
+        <i class="bi bi-exclamation-diamond-fill"></i>
+      </div>
+      <div class="urgence-alert-content">
+        <h3 class="urgence-alert-title">
+          <i class="bi bi-lightning-fill me-2"></i>Cas d'urgence 72h
+        </h3>
+        <p class="urgence-alert-text">
+          Cette alerte a une priorité élevée (score {{ alert.scoreGei ?? '—' }}/25) 
+          et nécessite une qualification et une transmission prioritaires.
+        </p>
+        <p class="urgence-alert-meta">
+          Seuil d'escalade: Score ≥ 14 • Délai de traitement: 72 heures
+        </p>
+        {% if show_link and alert.id %}
+          <div style="margin-top: 8px;">
+            <a href="{{ path('app_urgence_detail', {id: alert.id}) }}" class="btn btn-sm btn-primary">
+              <i class="bi bi-arrow-right me-1"></i>Voir le dossier
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{# Inline urgence tag for tables and lists #}
+{% macro urgence_tag(alert) %}
+  {% if alert.scoreGei is not null and alert.scoreGei >= 14 or alert.isEligibleForUrgence72h(14) %}
+    <span class="urgence-tag" title="Cas d'urgence 72h - priorité élevée">
+      <i class="bi bi-exclamation-diamond-fill"></i>
+      <span>URGENCE 72h</span>
+    </span>
+  {% endif %}
+{% endmacro %}

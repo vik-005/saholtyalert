@@ -1,0 +1,50 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Flash Message / System Alert Component
+   Professional system notifications for success, error, warning, info
+───────────────────────────────────────────────────────────────────────── #}
+
+{% macro flash(type, title, message = null, dismissible = true, icon = null) %}
+  {% set icons = {
+    success: 'bi-check-circle-fill',
+    error: 'bi-exclamation-circle-fill',
+    danger: 'bi-exclamation-circle-fill',
+    warning: 'bi-exclamation-triangle-fill',
+    info: 'bi-info-circle-fill'
+  } %}
+  
+  {% set defaultIcon = icon ?? icons[type] ?? 'bi-info-circle-fill' %}
+  
+  <div class="flash-alert flash-alert-{{ type }}" role="alert">
+    <i class="bi {{ defaultIcon }} flash-icon" aria-hidden="true"></i>
+    <div class="flash-content">
+      <strong class="flash-title">{{ title }}</strong>
+      {% if message %}
+        <p class="flash-message">{{ message }}</p>
+      {% endif %}
+    </div>
+    {% if dismissible %}
+      <button type="button" class="flash-close" onclick="this.parentElement.remove()" 
+              aria-label="Fermer ce message">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# Display all Symfony flash messages #}
+{% macro display_flashes() %}
+  {% set flashMessages = app.flashes %}
+  {% if flashMessages %}
+    <div class="flash-messages">
+      {% for type, messages in flashMessages %}
+        {% for message in messages %}
+          {% set title = message is iterable ? (message.title ?? 'Message') : message %}
+          {% set text = message is iterable ? (message.text ?? null) : null %}
+          {% set dismissible = message is iterable ? (message.dismissible ?? true) : true %}
+          
+          {{ _self.flash(type, title, text, dismissible) }}
+        {% endfor %}
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,69 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Progress Indicator Component
+   Multi-step wizard progress display with visual hierarchy
+───────────────────────────────────────────────────────────────────────── #}
+
+{# Macro for wizard step progress indicator #}
+{% macro wizard_progress(steps, current_step = 1) %}
+  <div class="wizard-progress" role="progressbar" aria-valuenow="{{ current_step }}" aria-valuemin="1" aria-valuemax="{{ steps|length }}" aria-label="Form progress">
+    
+    {% for index, step in steps %}
+      {% set stepNumber = index + 1 %}
+      {% set isCompleted = stepNumber < current_step %}
+      {% set isActive = stepNumber == current_step %}
+      {% set isFuture = stepNumber > current_step %}
+      
+      <div class="wizard-step-item {% if isCompleted %}completed{% elseif isActive %}active{% else %}future{% endif %}" data-step="{{ stepNumber }}">
+        
+        <div class="step-connector-wrapper">
+          <div class="step-indicator">
+            {% if isCompleted %}
+              <div class="step-number step-completed" aria-hidden="true">
+                <i class="bi bi-check2" role="img"></i>
+              </div>
+            {% else %}
+              <div class="step-number {% if isActive %}step-active{% endif %}" aria-hidden="true">
+                {{ stepNumber }}
+              </div>
+            {% endif %}
+          </div>
+          
+          {# Connector line between steps #}
+          {% if stepNumber < steps|length %}
+            <div class="step-connector {% if isCompleted %}completed{% endif %}" aria-hidden="true"></div>
+          {% endif %}
+        </div>
+        
+        <div class="step-content">
+          <h3 class="step-title">{{ step.title ?? 'Step ' ~ stepNumber }}</h3>
+          {% if step.description %}
+            <p class="step-description">{{ step.description }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+    
+  </div>
+{% endmacro %}
+
+{# Compact progress bar #}
+{% macro progress_bar(current, total, label = null) %}
+  <div class="progress-bar-wrapper">
+    {% if label %}
+      <div class="progress-label">{{ label }}</div>
+    {% endif %}
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: {{ (current / total * 100)|round }}%"></div>
+    </div>
+    <div class="progress-text">{{ current }} / {{ total }}</div>
+  </div>
+{% endmacro %}
+
+{# Linear progress indicator #}
+{% macro progress_linear(percentage, status = 'in-progress') %}
+  <div class="progress-linear {% if status %}progress-{{ status }}{% endif %}">
+    <div class="progress-track">
+      <div class="progress-fill" style="width: {{ percentage }}%"></div>
+    </div>
+  </div>
+{% endmacro %}

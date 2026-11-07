@@ -3,6 +3,11 @@
 {% block title %}Dashboard Général — GEI{% endblock %}
 {% block header_title %}Dashboard Général{% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
 {% block body %}
 <div class="db-wrapper">
 
@@ -105,20 +110,20 @@
             <div class="notif-list notif-list-scroll">
                 {% for notif in notifications %}
                 {% set is72hNotification = notif.type == 'sla_proche' or (notif.alert and notif.alert.urgence and notif.alert.urgence.value == '72h') %}
+                {% set isUrgentNotification = is72hNotification or notif.urgente or notif.type in ['urgence', 'escalade'] %}
                 <div class="notif-list-item notif-item-container
                     {% if not notif.lu %}notif-list-item-unread{% endif %}
-                    {% if notif.urgente and not is72hNotification %}notif-list-item-urgente{% endif %}
+                    {% if isUrgentNotification %}notif-list-item-urgente{% endif %}
                     {% if is72hNotification %}notif-list-item-72h{% endif %}">
                     <div class="notif-icon-wrap
-                        {% if is72hNotification %}notif-icon-amber
-                        {% elseif notif.urgente or notif.type == 'urgence' %}notif-icon-red
+                        {% if isUrgentNotification %}notif-icon-red
                         {% elseif notif.type == 'rejet' or notif.type == 'danger' %}notif-icon-red
                         {% elseif notif.type == 'warning' %}notif-icon-amber
                         {% elseif notif.type == 'validation' or notif.type == 'success' %}notif-icon-emerald
                         {% else %}notif-icon-blue{% endif %}">
                         {% if is72hNotification %}
                             <i class="bi bi-clock-history"></i>
-                        {% elseif notif.urgente or notif.type == 'urgence' %}
+                        {% elseif isUrgentNotification %}
                             <i class="bi bi-broadcast-pin"></i>
                         {% elseif notif.type == 'rejet' %}
                             <i class="bi bi-x-circle"></i>
@@ -131,9 +136,9 @@
                         {% endif %}
                     </div>
                     <div class="notif-text-wrapper">
-                        <p class="notif-text-title{% if notif.urgente and not is72hNotification %} notif-text-title-urgent{% endif %}">
+                        <p class="notif-text-title{% if isUrgentNotification %} notif-text-title-urgent{% endif %}">
                             {% if is72hNotification %}<span class="notif-list-category notif-category-72h">Urgence 72 h</span>
-                            {% elseif notif.urgente %}<i class="bi bi-exclamation-triangle me-1 text-red-400"></i>{% endif %}
+                            {% elseif isUrgentNotification %}<i class="bi bi-exclamation-triangle me-1 text-red-400"></i>{% endif %}
                             {{ notif.contenu|slice(0, 90) }}{% if notif.contenu|length > 90 %}…{% endif %}
                         </p>
                         <span class="notif-meta">
@@ -145,8 +150,8 @@
                             {% endif %}
                         </span>
                     </div>
-                    {% if notif.urgente %}
-                        <span class="notif-badge-urgent">URGENT</span>
+                    {% if isUrgentNotification %}
+                        <span class="notif-badge-urgent">{{ is72hNotification ? 'Urgence 72 h' : 'Urgent' }}</span>
                     {% elseif not notif.lu %}
                         <span class="notif-badge-new">Nouveau</span>
                     {% else %}
@@ -164,6 +169,76 @@
         </div>
 
     </div>
+
+    <section class="dashboard-insights" aria-label="Analyses des alertes">
+        <article class="dashboard-insight-card dashboard-map-card">
+            <header class="dashboard-insight-heading">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-globe-africa me-1"></i>Répartition géographique</p>
+                    <h2 class="db-card-title">Alertes par zone</h2>
+                </div>
+                <a href="{{ path('app_carte_index') }}" class="btn btn-outline-secondary btn-sm rounded-2">
+                    <i class="bi bi-map me-1" aria-hidden="true"></i>Ouvrir la carte
+                </a>
+            </header>
+            <p class="dashboard-insight-note">Les zones sont colorées selon le nombre d’alertes enregistrées.</p>
+            <div id="dashboardAlertMap" class="dashboard-alert-map" data-zones-url="{{ path('app_carte_zones_api') }}" role="img" aria-label="Carte des alertes par zone"></div>
+            <p class="dashboard-map-status" id="dashboardMapStatus" role="status">Chargement de la carte…</p>
+        </article>
+
+        <article class="dashboard-insight-card dashboard-priority-card">
+            <header class="dashboard-insight-heading">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1"></i>Répartition</p>
+                    <h2 class="db-card-title">Alertes par priorité</h2>
+                </div>
+            </header>
+            <div class="dashboard-priority-chart">
+                <canvas id="generalPriorityChart" aria-label="Répartition des alertes par priorité"></canvas>
+            </div>
+            <p class="dashboard-insight-note">Répartition calculée à partir des priorités attribuées aux alertes.</p>
+        </article>
+
+        <article class="dashboard-insight-card dashboard-heatmap-card">
+            <header class="dashboard-insight-heading">
+                <div>
+                    <p class="db-card-eyebrow"><i class="bi bi-calendar-week me-1"></i>Rythme d’activité</p>
+                    <h2 class="db-card-title">Périodes de forte activité</h2>
+                </div>
+                <span class="dashboard-insight-period">90 derniers jours</span>
+            </header>
+            <p class="dashboard-insight-note">Nombre d’alertes enregistrées par jour de la semaine et heure.</p>
+            <div class="dashboard-heatmap-scroll">
+                <div class="dashboard-heatmap" role="grid" aria-label="Activité des alertes par jour et par heure">
+                    <span class="heatmap-axis-label" role="columnheader">Jour</span>
+                    {% for hour in 0..23 %}
+                        <span class="heatmap-hour" role="columnheader">{{ '%02d'|format(hour) }}</span>
+                    {% endfor %}
+                    {% set weekdays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'] %}
+                    {% set heatmapMaximum = 0 %}
+                    {% for weekday in 0..6 %}
+                        {% for hour in 0..23 %}
+                            {% set heatmapMaximum = max(heatmapMaximum, activityHeatmap[weekday][hour]|default(0)) %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% for weekday in 0..6 %}
+                        <span class="heatmap-day" role="rowheader">{{ weekdays[weekday] }}</span>
+                        {% for hour in 0..23 %}
+                            {% set activityCount = activityHeatmap[weekday][hour]|default(0) %}
+                            {% set heatmapOpacity = heatmapMaximum > 0 and activityCount > 0 ? (0.12 + 0.78 * activityCount / heatmapMaximum) : 0.04 %}
+                            <span class="heatmap-cell" role="gridcell"
+                                  style="--heat-opacity: {{ heatmapOpacity|number_format(2, '.', '') }}"
+                                  title="{{ weekdays[weekday] }} à {{ '%02d'|format(hour) }} h : {{ activityCount }} alerte{{ activityCount > 1 ? 's' : '' }}"
+                                  aria-label="{{ weekdays[weekday] }} à {{ '%02d'|format(hour) }} heures : {{ activityCount }} alerte{{ activityCount > 1 ? 's' : '' }}"></span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="dashboard-heatmap-legend" aria-hidden="true">
+                <span>Moins d’activité</span><i></i><i></i><i></i><i></i><span>Plus d’activité</span>
+            </div>
+        </article>
+    </section>
 
     {# ── LIGNE 3 : SCORE GEI + RÉPARTITION PAYS + ACTIVITÉS ─────────────── #}
     <div class="db-bottom-row">
@@ -228,20 +303,7 @@
                         <span class="country-pct">{{ kpis.total > 0 ? ((stat.count / kpis.total) * 100)|round : 0 }}%</span>
                     </div>
                     {% else %}
-                    {% for m in markets|slice(0,5) %}
-                    <div class="country-item">
-                        <span class="country-label">
-                            <i class="bi bi-geo-alt bi-xs me-1.5 text-amber-400"></i>
-                            {{ m.nom }}
-                        </span>
-                        <div class="country-bar-wrap">
-                            <div class="country-bar-track">
-                                <div class="country-bar-fill" style="width: {{ (20 - loop.index * 2) }}%"></div>
-                            </div>
-                        </div>
-                        <span class="country-pct">{{ (20 - loop.index * 2) }}%</span>
-                    </div>
-                    {% endfor %}
+                    <p class="dashboard-insight-note">Aucune alerte enregistrée par marché sur la période.</p>
                     {% endfor %}
                 </div>
             </div>
@@ -445,28 +507,141 @@
 ═══════════════════════════════════════════════════════════════════════════ #}
 {% block javascripts %}
 {{ parent() }}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+function initializeDashboardMap() {
+    const mapElement = document.getElementById('dashboardAlertMap');
+    const status = document.getElementById('dashboardMapStatus');
+    if (!mapElement || !status) return;
+    if (typeof L === 'undefined') {
+        status.textContent = 'La carte est indisponible pour le moment.';
+        console.error('La bibliothèque Leaflet n’a pas pu être chargée.');
+        return;
+    }
+
+    if (window.geiDashboardAlertMap) {
+        window.geiDashboardAlertMap.remove();
+    }
+
+    const map = L.map(mapElement, { scrollWheelZoom: false, zoomControl: true }).setView([10, 0], 3);
+    window.geiDashboardAlertMap = map;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 12,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+    const zoneLayer = L.featureGroup().addTo(map);
+
+    const splitGroups = (value) => {
+        const groups = [];
+        let depth = 0;
+        let start = -1;
+        for (let index = 0; index < value.length; index += 1) {
+            if (value[index] === '(') {
+                if (depth === 0) start = index + 1;
+                depth += 1;
+            } else if (value[index] === ')') {
+                depth -= 1;
+                if (depth === 0 && start >= 0) {
+                    groups.push(value.slice(start, index));
+                    start = -1;
+                }
+            }
+        }
+        return groups;
+    };
+
+    const parseWktPolygons = (wkt) => {
+        const open = wkt.indexOf('(');
+        const body = open >= 0 ? wkt.slice(open + 1, wkt.lastIndexOf(')')) : '';
+        const groups = splitGroups(body);
+        const polygonGroups = wkt.trim().toUpperCase().startsWith('MULTIPOLYGON')
+            ? groups.flatMap(splitGroups)
+            : groups;
+
+        return polygonGroups.map((ring) => ring.split(',').map((point) => {
+            const [longitude, latitude] = point.trim().split(/\s+/).map(Number);
+            return Number.isFinite(latitude) && Number.isFinite(longitude) ? [latitude, longitude] : null;
+        }).filter(Boolean)).filter((ring) => ring.length >= 3);
+    };
+
+    fetch(mapElement.dataset.zonesUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then((response) => {
+            if (!response.ok) throw new Error(`Le service cartographique a répondu HTTP ${response.status}.`);
+            return response.json();
+        })
+        .then((zones) => {
+            if (!Array.isArray(zones)) throw new Error('Le service cartographique a renvoyé un format inattendu.');
+            const maxAlerts = Math.max(1, ...zones.map((zone) => Number(zone.alertCount) || 0));
+            zones.forEach((zone) => {
+                const count = Number(zone.alertCount) || 0;
+                const opacity = count > 0 ? 0.18 + (0.65 * count / maxAlerts) : 0.08;
+                const tooltip = document.createElement('span');
+                tooltip.textContent = `${zone.nom || 'Zone'} : ${count} alerte${count > 1 ? 's' : ''}`;
+                const polygons = typeof zone.polygonWkt === 'string' ? parseWktPolygons(zone.polygonWkt) : [];
+
+                if (polygons.length > 0) {
+                    polygons.forEach((polygon) => {
+                        L.polygon(polygon, {
+                            color: '#0b5b49',
+                            weight: 1,
+                            fillColor: '#16856b',
+                            fillOpacity: opacity,
+                        }).bindTooltip(tooltip.cloneNode(true)).addTo(zoneLayer);
+                    });
+                } else if (Number.isFinite(Number(zone.latitude)) && Number.isFinite(Number(zone.longitude))) {
+                    L.circleMarker([Number(zone.latitude), Number(zone.longitude)], {
+                        radius: 5 + (8 * count / maxAlerts),
+                        color: '#0b5b49',
+                        weight: 1,
+                        fillColor: '#16856b',
+                        fillOpacity: opacity,
+                    }).bindTooltip(tooltip.cloneNode(true)).addTo(zoneLayer);
+                }
+            });
+
+            if (zoneLayer.getLayers().length > 0) {
+                map.fitBounds(zoneLayer.getBounds(), { padding: [18, 18], maxZoom: 6 });
+                status.textContent = `${zones.length} zone${zones.length > 1 ? 's' : ''} chargée${zones.length > 1 ? 's' : ''}.`;
+            } else {
+                status.textContent = 'Aucune zone géographique disponible pour les marchés configurés.';
+            }
+            window.setTimeout(() => map.invalidateSize(), 0);
+        })
+        .catch((error) => {
+            status.textContent = 'Impossible de charger la carte des alertes.';
+            console.error('Échec du chargement des zones cartographiques.', error);
+        });
+}
+
+function initializeGeneralDashboard() {
+const evolutionCanvas = document.getElementById('alertEvolutionChart');
+if (!evolutionCanvas || window.geiDashboardInitializedElement === evolutionCanvas) return;
+window.geiDashboardInitializedElement = evolutionCanvas;
+window.geiDashboardResizeObserver?.disconnect();
+
 /* ─── Données injectées depuis le contrôleur ─── */
 const chartData = {
-    labels:      {{ chartLabels|default(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'])|json_encode|raw }},
-    nouvelles:   {{ chartNouvelles|default([3,5,2,8,6,4,7])|json_encode|raw }},
-    transmises:  {{ chartTransmises|default([1,2,1,3,2,2,3])|json_encode|raw }},
+    labels:      {{ chartLabels|default([])|json_encode|raw }},
+    nouvelles:   {{ chartNouvelles|default([])|json_encode|raw }},
+    transmises:  {{ chartTransmises|default([])|json_encode|raw }},
+    priorites:   {{ priorities|json_encode|raw }},
 };
-document.getElementById('chartPeriodSelect')?.addEventListener('change', event => {
-    updateChartPeriod(event.currentTarget.value);
-});
+const periodSelect = document.getElementById('chartPeriodSelect');
+if (periodSelect) periodSelect.onchange = event => updateChartPeriod(event.currentTarget.value);
+initializeDashboardMap();
 
 /* ─── Defaults Chart.js ─── */
 const isDarkChart = document.body.classList.contains('dark');
+if (typeof Chart === 'undefined') {
+    console.error('Les graphiques du tableau de bord ne peuvent pas être chargés : Chart.js est indisponible.');
+    return;
+}
 Chart.defaults.color          = isDarkChart ? '#a8c4b8' : '#94a3b8';
 Chart.defaults.borderColor    = isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
 Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
 Chart.defaults.font.size      = 11;
 
 /* ─── Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
-const evolutionCanvas = document.getElementById('alertEvolutionChart');
-if (!evolutionCanvas || typeof Chart === 'undefined') return;
 Chart.getChart(evolutionCanvas)?.destroy();
 const evolutionCtx = evolutionCanvas.getContext('2d');
 
@@ -551,29 +726,75 @@ new Chart(evolutionCtx, {
         }
     }
 });
+const priorityCanvas = document.getElementById('generalPriorityChart');
+if (priorityCanvas) {
+    Chart.getChart(priorityCanvas)?.destroy();
+    new Chart(priorityCanvas.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Critique', 'Élevée', 'Modérée', 'Faible'],
+            datasets: [{
+                data: [
+                    Number(chartData.priorites.critique) || 0,
+                    Number(chartData.priorites.eleve) || 0,
+                    Number(chartData.priorites.modere) || 0,
+                    Number(chartData.priorites.faible) || 0,
+                ],
+                backgroundColor: ['#c62828', '#d97706', '#eab308', '#16856b'],
+                borderWidth: 0,
+                hoverOffset: 4,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '68%',
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
+                tooltip: { callbacks: { label: (context) => ` ${context.label} : ${context.parsed}` } },
+            },
+        },
+    });
+}
 
-/* ─── Mise à jour de la période (démo) ─── */
+/* ─── Mise à jour de la période ─── */
 function updateChartPeriod(days) {
     const period = Number(days);
     if (![7, 30, 90].includes(period)) return;
     const url = new URL(window.location.href);
     url.searchParams.set('period', String(period));
-    window.location.assign(url);
+    if (window.Turbo && typeof window.Turbo.visit === 'function') {
+        window.Turbo.visit(url.toString());
+    } else {
+        window.location.assign(url);
+    }
 }
 
 /* ─── Stabiliser le redimensionnement du graphique ─── */
 if (window.ResizeObserver) {
     const chartCanvas = document.getElementById('alertEvolutionChart');
     if (chartCanvas) {
-        new ResizeObserver(() => {
+        window.geiDashboardResizeObserver = new ResizeObserver(() => {
             const ctx = chartCanvas.getContext('2d');
             const chart = Chart.getChart(ctx);
             if (chart) chart.resize();
-        }).observe(chartCanvas.parentElement);
+        });
+        window.geiDashboardResizeObserver.observe(chartCanvas.parentElement);
     }
 }
 
-}); // END DOMContentLoaded
+}
+
+window.geiInitializeGeneralDashboard = initializeGeneralDashboard;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => window.geiInitializeGeneralDashboard?.(), { once: true });
+} else {
+    window.geiInitializeGeneralDashboard();
+}
+if (!window.geiDashboardEventsBound) {
+    document.addEventListener('turbo:load', () => window.geiInitializeGeneralDashboard?.());
+    window.geiDashboardEventsBound = true;
+}
 </script>
 {% endblock %}
 {% endblock %}

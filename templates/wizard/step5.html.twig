@@ -4,13 +4,10 @@
     <input type="hidden" name="wizard_step" value="5">
 
     <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-star-half me-1.5 text-amber-400"></i>
-                Étape 5 sur 6 — Qualification GEI (Annexe C)
-            </p>
-            <p class="text-xs text-slate-500">Champs 13 à 17 — Le score se calcule automatiquement</p>
-        </div>
+        {% include 'components/_wizard_step_header.html.twig' with {
+            step: 5, title: 'Qualification GEI (Annexe C)', icon: 'bi-star-half',
+            context: 'Champs 13 à 17 — Le score se calcule automatiquement'
+        } %}
         <div class="db-card-body space-y-4 wizard-fields-grid">
 
             <fieldset class="form-field">

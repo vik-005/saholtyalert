@@ -1,0 +1,18 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Wizard Step Header Component
+   Displays step title, icon, and description
+───────────────────────────────────────────────────────────────────────── #}
+
+{% macro step_header(step, title, description = null, icon = 'bi-pencil-square') %}
+  <div class="wizard-step-header">
+    <div class="wizard-step-icon" aria-hidden="true">
+      <i class="bi {{ icon }}"></i>
+    </div>
+    <div class="wizard-step-info">
+      <h3>Étape {{ step }}: {{ title }}</h3>
+      {% if description %}
+        <p class="wizard-step-context">{{ description }}</p>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}

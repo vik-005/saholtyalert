@@ -1,0 +1,97 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Form Field Component
+   Professional form control wrapper with label, validation, help text
+───────────────────────────────────────────────────────────────────────── #}
+
+{# Wrapper for form field with label and validation #}
+{% macro form_field(form_field, label = null, help_text = null, required = false, type = 'text') %}
+  {% set fieldName = form_field.vars.name %}
+  {% set fieldId = form_field.vars.id %}
+  {% set hasError = form_field.vars.errors|length > 0 %}
+  {% set fieldValue = form_field.vars.value %}
+  
+  <div class="form-group {% if hasError %}has-error{% endif %}" data-field="{{ fieldName }}">
+    
+    {% if label or required %}
+      <label for="{{ fieldId }}" class="form-label">
+        <span class="label-text">{{ label ?? fieldName|replace('_', ' ')|capitalize }}</span>
+        {% if required or form_field.vars.required %}
+          <span class="label-required" aria-label="required" title="This field is required">*</span>
+        {% endif %}
+      </label>
+    {% endif %}
+    
+    <div class="form-control-wrapper">
+      {% if type == 'textarea' %}
+        {{ form_widget(form_field, {
+          attr: {
+            class: 'form-control' ~ (hasError ? ' is-invalid' : ''),
+            placeholder: form_field.vars.attr.placeholder ?? ''
+          }
+        }) }}
+      {% elseif type == 'select' %}
+        {{ form_widget(form_field, {
+          attr: {
+            class: 'form-select' ~ (hasError ? ' is-invalid' : '')
+          }
+        }) }}
+      {% else %}
+        {{ form_widget(form_field, {
+          attr: {
+            class: 'form-control' ~ (hasError ? ' is-invalid' : ''),
+            type: type,
+            placeholder: form_field.vars.attr.placeholder ?? ''
+          }
+        }) }}
+      {% endif %}
+      
+      {% if hasError %}
+        <div class="form-error-icon" aria-hidden="true">
+          <i class="bi bi-exclamation-circle-fill"></i>
+        </div>
+      {% endif %}
+    </div>
+    
+    {% if hasError %}
+      <div class="form-error-message" role="alert">
+        {% for error in form_field.vars.errors %}
+          <span class="error-text">{{ error.message }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    
+    {% if help_text and not hasError %}
+      <div class="form-help-text">
+        {{ help_text }}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# Compact field without label wrapper (for inline forms) #}
+{% macro form_control(form_field, type = 'text', placeholder = null) %}
+  <div class="form-control-inline {% if form_field.vars.errors|length > 0 %}has-error{% endif %}">
+    {% if type == 'textarea' %}
+      {{ form_widget(form_field, {
+        attr: {
+          class: 'form-control',
+          placeholder: placeholder ?? form_field.vars.attr.placeholder ?? ''
+        }
+      }) }}
+    {% elseif type == 'select' %}
+      {{ form_widget(form_field, {
+        attr: {
+          class: 'form-select'
+        }
+      }) }}
+    {% else %}
+      {{ form_widget(form_field, {
+        attr: {
+          class: 'form-control',
+          type: type,
+          placeholder: placeholder ?? form_field.vars.attr.placeholder ?? ''
+        }
+      }) }}
+    {% endif %}
+  </div>
+{% endmacro %}

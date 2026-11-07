@@ -4,13 +4,10 @@
     <input type="hidden" name="wizard_step" value="1">
 
     <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-geo-alt me-1.5 text-amber-400"></i>
-                Étape 1 sur 6 — Identification
-            </p>
-            <p class="text-xs text-slate-500">Champs 1 à 4 du formulaire Agent</p>
-        </div>
+        {% include 'components/_wizard_step_header.html.twig' with {
+            step: 1, title: 'Identification', icon: 'bi-geo-alt',
+            context: 'Champs 1 à 4 du formulaire Agent'
+        } %}
         <div class="db-card-body space-y-4 wizard-fields-grid">
 
             {# Champ 1 — Date de réception #}

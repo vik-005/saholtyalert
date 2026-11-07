@@ -1,0 +1,72 @@
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Welcome Animation Component
+   Displays after successful authentication (400ms max duration)
+   Auto-dismisses and redirects to dashboard
+───────────────────────────────────────────────────────────────────────── #}
+
+<div id="welcomeOverlay" class="welcome-overlay" role="status" aria-live="polite" aria-label="Welcome message">
+  <div class="welcome-container">
+    <div class="welcome-icon" aria-hidden="true">
+      <i class="bi bi-check-circle"></i>
+    </div>
+    <h1 class="welcome-message">Bienvenue sur GEI System</h1>
+    <p class="welcome-subtitle">Connexion réussie • Redirection en cours…</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  // Configuration
+  const WELCOME_DURATION = 400; // milliseconds
+  const FADE_OUT_DELAY = 200; // milliseconds before fade out
+  const CHECK_REDUCE_MOTION = true;
+  
+  const overlay = document.getElementById('welcomeOverlay');
+  if (!overlay) return;
+  
+  // Respect user's motion preferences
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const duration = prefersReducedMotion ? 100 : WELCOME_DURATION;
+  
+  // Auto-dismiss animation after delay
+  const dismissTimeout = window.setTimeout(() => {
+    if (overlay) {
+      overlay.classList.add('auto-dismiss');
+      
+      // Allow animation to complete before removal
+      const removalDelay = prefersReducedMotion ? 50 : 200;
+      window.setTimeout(() => {
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      }, removalDelay);
+    }
+  }, duration + FADE_OUT_DELAY);
+  
+  // Allow manual click to dismiss
+  overlay.addEventListener('click', () => {
+    window.clearTimeout(dismissTimeout);
+    if (overlay && overlay.parentNode) {
+      overlay.classList.add('auto-dismiss');
+      window.setTimeout(() => {
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      }, 100);
+    }
+  });
+  
+  // Keyboard escape to dismiss
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay && overlay.parentNode) {
+      window.clearTimeout(dismissTimeout);
+      overlay.classList.add('auto-dismiss');
+      window.setTimeout(() => {
+        if (overlay && overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      }, 100);
+    }
+  });
+})();
+</script>

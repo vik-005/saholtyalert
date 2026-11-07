@@ -1,0 +1,44 @@
+<aside class="auth-brand-panel">
+    <a href="{{ path('app_login') }}" class="auth-brand">
+        <span><i class="bi bi-shield-lock" aria-hidden="true"></i></span>{{ brand_name|default('GEI System') }}
+    </a>
+
+    <div class="auth-slideshow" data-auth-slideshow aria-roledescription="carrousel">
+        <div class="auth-slides" aria-live="polite">
+            {% for slide in slides %}
+                <article class="auth-slide-item{% if loop.first %} auth-slide-active{% endif %}"
+                         style="--auth-slide-image: url('{{ asset(slide.image) }}')"
+                         data-auth-slide
+                         role="group"
+                         aria-roledescription="diapositive"
+                         aria-label="{{ loop.index }} sur {{ loop.length }}"
+                         aria-hidden="{{ loop.first ? 'false' : 'true' }}">
+                    <img class="auth-slide-illustration" src="{{ asset(slide.image) }}" alt="" aria-hidden="true">
+                    <p class="auth-brand-tag">{{ slide.eyebrow }}</p>
+                    <h2>{{ slide.title }}</h2>
+                    <p>{{ slide.text }}</p>
+                </article>
+            {% endfor %}
+        </div>
+        <div class="auth-slide-dots" role="group" aria-label="Choisir une présentation">
+            {% for slide in slides %}
+                <button type="button" class="auth-slide-dot{% if loop.first %} auth-dot-active{% endif %}"
+                        data-auth-slide-dot="{{ loop.index0 }}"
+                        aria-label="Afficher la présentation {{ loop.index }}"
+                        aria-pressed="{{ loop.first ? 'true' : 'false' }}"></button>
+            {% endfor %}
+            <button type="button" class="auth-slide-pause" data-auth-slide-pause aria-pressed="false">
+                <i class="bi bi-pause-fill" aria-hidden="true"></i>
+                <span>Mettre en pause</span>
+            </button>
+        </div>
+    </div>
+
+    <ul class="auth-brand-points">
+        <li><i class="bi bi-person-lock" aria-hidden="true"></i>Accès réservé aux comptes habilités</li>
+        <li><i class="bi bi-speedometer2" aria-hidden="true"></i>Limitation des tentatives de connexion</li>
+        <li><i class="bi bi-journal-check" aria-hidden="true"></i>Historique des opérations sur les alertes</li>
+    </ul>
+
+    <p class="auth-brand-footer"><i class="bi bi-lock" aria-hidden="true"></i> GEI · Accès réservé</p>
+</aside>

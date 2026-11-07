@@ -2,10 +2,43 @@
 // a Windows path-separator bug in AssetMapper's JavaScriptImportPathCompiler.
 import * as Turbo from '@hotwired/turbo';
 
-// Désactiver Turbo Drive — il interceptait les redirects 302 (accès refusé → login)
-// et les affichait inline, donnant l'impression d'une déconnexion.
-// On garde Turbo pour les Streams (notifications Mercure) mais pas Drive.
-Turbo.session.drive = false;
+Turbo.session.drive = true;
+Turbo.setProgressBarDelay(800);
+
+document.addEventListener('click', (event) => {
+    const dismissButton = event.target.closest('.login-welcome-dismiss');
+    dismissButton?.closest('.login-welcome-message')?.remove();
+});
+
+document.addEventListener('turbo:before-render', ({ detail }) => {
+    const sidebar = document.getElementById('gei-sidebar');
+    const nextSidebar = detail.newBody.querySelector('#gei-sidebar');
+    if (!sidebar || !nextSidebar) return;
+
+    sidebar.querySelectorAll('.sidebar-sublink, .sidebar-link[aria-controls]').forEach((item) => {
+        const selector = item.matches('.sidebar-sublink')
+            ? '.sidebar-sublink'
+            : '.sidebar-link[aria-controls]';
+        const nextItem = [...nextSidebar.querySelectorAll(selector)].find((candidate) => {
+            return item.matches('.sidebar-sublink')
+                ? candidate.getAttribute('href') === item.getAttribute('href')
+                : candidate.getAttribute('aria-controls') === item.getAttribute('aria-controls');
+        });
+
+        item.classList.toggle('active', Boolean(nextItem?.classList.contains('active')));
+    });
+
+    sidebar.querySelectorAll('.sidebar-link[aria-controls]').forEach((item) => {
+        if (!item.classList.contains('active')) return;
+
+        const submenuId = item.getAttribute('aria-controls');
+        const submenu = document.getElementById(submenuId);
+        const arrow = item.querySelector('.sidebar-submenu-arrow');
+        submenu?.classList.remove('hidden');
+        arrow?.classList.add('rotated');
+        item.setAttribute('aria-expanded', 'true');
+    });
+});
 
 console.log('Plateforme GEI - Renseignement Opérationnel initialisé.');
 

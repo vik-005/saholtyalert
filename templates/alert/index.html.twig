@@ -19,7 +19,7 @@
     </div>
     <div class="reg-header-actions">
         {% if is_granted('ROLE_PFT') %}
-        <a href="{{ path('app_alert_import') }}" class="db-btn db-btn-ghost">
+        <a href="{{ path('app_alert_import') }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-arrow-up me-1.5"></i><span class="btn-label">Importer</span>
         </a>
         <a href="{{ path('app_export_registre', {
@@ -29,7 +29,7 @@
                 search:   filters.search          ?? '',
                 categorie: filters.categorie      ?? '',
                 urgence:  filters.urgence         ?? ''
-            }) }}" class="db-btn db-btn-ghost">
+            }) }}" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-spreadsheet me-1.5"></i><span class="btn-label">Excel</span>
         </a>
         <a href="{{ path('app_export_registre_pdf', {
@@ -38,11 +38,11 @@
                 market:   filters.market          ?? '',
                 search:   filters.search          ?? '',
                 categorie: filters.categorie      ?? ''
-            }) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="db-btn db-btn-ghost">
+            }) }}" target="_blank" rel="noopener noreferrer" data-turbo="false" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-file-earmark-pdf me-1.5 text-red-400"></i><span class="btn-label">PDF</span>
         </a>
         {% endif %}
-        <a href="{{ path('app_alert_new') }}" class="db-btn db-btn-amber">
+        <a href="{{ path('app_alert_new') }}" class="btn btn-success btn-sm">
             <i class="bi bi-plus-lg me-1.5"></i><span>Nouvelle alerte</span>
         </a>
     </div>
@@ -171,7 +171,7 @@
 {# ══════════════════════════════════════
    TABLEAU
 ══════════════════════════════════════ #}
-<div class="db-table-card">
+<div class="db-table-card card">
     <div class="reg-table-scroll">
         <table class="reg-table" id="regTable">
             <thead>
@@ -223,7 +223,9 @@
                             {{ alert.codeGei ?? 'BROUILLON' }}
                         </a>
                         {% if alert.urgence72hCase and alert.urgence72hCase.isActive() %}
-                            <span class="reg-urgence-dot" title="Urgence 72h active"></span>
+                            <span class="reg-urgence-label" title="Urgence 72 h active">
+                                <i class="bi bi-clock-history" aria-hidden="true"></i>Urgence 72 h
+                            </span>
                         {% endif %}
                     </td>
 
@@ -283,13 +285,13 @@
                         {% if prio %}
                             <span class="reg-prio reg-prio-{{ prio.value }}">
                                 {% if prio.value == 'critique' %}
-                                    <span class="reg-prio-dot"></span>Critique
+                                    Critique
                                 {% elseif prio.value == 'eleve' %}
-                                    <span class="reg-prio-dot"></span>Élevé
+                                    Élevé
                                 {% elseif prio.value == 'modere' %}
-                                    <span class="reg-prio-dot"></span>Modéré
+                                    Modéré
                                 {% else %}
-                                    <span class="reg-prio-dot"></span>Faible
+                                    Faible
                                 {% endif %}
                             </span>
                         {% else %}
@@ -300,8 +302,24 @@
                     {# Statut #}
                     <td class="reg-td">
                         {% if alert.statut %}
+                            {% set statutIcons = {
+                                nouveau: 'bi-stars',
+                                ouvert: 'bi-folder2-open',
+                                en_cours: 'bi-arrow-repeat',
+                                en_cours_analyse: 'bi-search',
+                                a_completer: 'bi-pencil-square',
+                                a_investiguer: 'bi-binoculars',
+                                ouvert_prioritaire: 'bi-exclamation-circle-fill',
+                                a_valider_saholty: 'bi-hourglass-split',
+                                validee: 'bi-check-circle-fill',
+                                transmis: 'bi-send-check-fill',
+                                suivi: 'bi-eye-fill',
+                                archive: 'bi-archive-fill',
+                                clos: 'bi-check2-circle'
+                            } %}
                             <span class="status-pill status-{{ alert.statut.value }}">
-                                <span class="status-dot"></span>{{ alert.statut.label() }}
+                                <i class="bi {{ statutIcons[alert.statut.value]|default('bi-circle-fill') }}" aria-hidden="true"></i>
+                                {{ alert.statut.label() }}
                             </span>
                         {% else %}
                             <span class="reg-empty">—</span>
@@ -312,12 +330,12 @@
                     <td class="reg-td reg-col-actions">
                         <div class="reg-actions">
                             <a href="{{ path('app_alert_show', {token: alertToken}) }}"
-                               class="reg-action-btn" title="Consulter">
+                               class="btn btn-outline-secondary btn-sm reg-action-btn" title="Consulter">
                                 <i class="bi bi-eye"></i>
                             </a>
                             {% if is_granted('ALERT_QUALIFY', alert) %}
                             <a href="{{ path('app_alert_qualify', {token: alertToken}) }}"
-                               class="reg-action-btn reg-action-qualify" title="Qualifier">
+                               class="btn btn-outline-success btn-sm reg-action-btn reg-action-qualify" title="Qualifier">
                                 <i class="bi bi-pencil-square"></i>
                             </a>
                             {% endif %}
@@ -360,11 +378,11 @@
                                 </div>
                             </div>
                             <div class="reg-detail-footer">
-                                <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="db-btn db-btn-ghost" style="font-size:11px;padding:5px 12px">
+                                <a href="{{ path('app_alert_show', {token: alertToken}) }}" class="btn btn-outline-secondary btn-sm">
                                     <i class="bi bi-arrow-right me-1"></i>Voir la fiche complète
                                 </a>
                                 {% if is_granted('ALERT_QUALIFY', alert) %}
-                                <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="db-btn db-btn-amber" style="font-size:11px;padding:5px 12px">
+                                <a href="{{ path('app_alert_qualify', {token: alertToken}) }}" class="btn btn-success btn-sm">
                                     <i class="bi bi-pencil-square me-1"></i>Qualifier
                                 </a>
                                 {% endif %}
@@ -393,8 +411,8 @@
         <div class="db-card-footer" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--border);">
             <span style="font-size:11px;color:var(--muted);">Page {{ page }} / {{ totalPages }} — {{ total }} alerte{{ total > 1 ? 's' : '' }}</span>
             <div style="display:flex;gap:6px;">
-                {% if page > 1 %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page - 1})) }}" class="db-btn db-btn-ghost db-btn-sm"><i class="bi bi-chevron-left"></i> Précédent</a>{% endif %}
-                {% if page < totalPages %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page + 1})) }}" class="db-btn db-btn-amber db-btn-sm">Suivant <i class="bi bi-chevron-right"></i></a>{% endif %}
+                {% if page > 1 %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page - 1})) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-chevron-left"></i> Précédent</a>{% endif %}
+                {% if page < totalPages %}<a href="{{ path('app_alert_index', app.request.query.all|merge({page: page + 1})) }}" class="btn btn-success btn-sm">Suivant <i class="bi bi-chevron-right"></i></a>{% endif %}
             </div>
         </div>
         {% endif %}
@@ -552,16 +570,9 @@ function clearSearch() {
 .reg-td-toggle { padding: 0 0 0 8px; width: 36px; }
 
 /* ── Ligne ── */
-.reg-row { transition: background .12s; cursor: default; }
-.reg-row:hover td { background: rgba(255,255,255,0.025); }
-.reg-row-expanded td { background: rgba(251,191,36,0.04) !important; }
-
-/* Indicateur latéral coloré selon priorité */
-.reg-row td:first-child { position: relative; }
-.reg-row-critique td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
-.reg-row-eleve    td:first-child { box-shadow: inset 3px 0 0 #fb923c; }
-.reg-row-modere   td:first-child { box-shadow: inset 3px 0 0 #fbbf24; }
-.reg-row-faible   td:first-child { box-shadow: inset 3px 0 0 #34d399; }
+.reg-row { cursor: default; }
+.reg-row:hover td,
+.reg-row-expanded td { background: var(--card2); }
 
 /* ── Cellules ── */
 .reg-code-link {
@@ -572,15 +583,10 @@ function clearSearch() {
 }
 .reg-code-link:hover { text-decoration: underline; }
 
-.reg-urgence-dot {
-    display: inline-block; width: 6px; height: 6px;
-    background: #ef4444; border-radius: 50%;
-    animation: pulse-red 1.5s infinite;
-    vertical-align: middle; margin-left: 4px;
-}
-@keyframes pulse-red {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: .5; transform: scale(1.3); }
+.reg-urgence-label {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: 6px; color: var(--red); font-size: 10px; font-weight: 600;
+    white-space: nowrap;
 }
 
 .reg-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
@@ -619,57 +625,22 @@ function clearSearch() {
 /* ── Score ── */
 .reg-score {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 26px; border-radius: 7px;
-    font-size: 12px; font-weight: 800; border: 1px solid;
+    font-size: 12px; font-weight: 700;
 }
-.reg-score-critique { background: rgba(239,68,68,.1);   color: #f87171; border-color: rgba(239,68,68,.25); }
-.reg-score-eleve    { background: rgba(251,146,60,.1);  color: #fb923c; border-color: rgba(251,146,60,.25); }
-.reg-score-modere   { background: rgba(251,191,36,.1);  color: #fbbf24; border-color: rgba(251,191,36,.25); }
-.reg-score-faible   { background: rgba(52,211,153,.1);  color: #34d399; border-color: rgba(52,211,153,.25); }
+.reg-score-critique { color: #dc2626; }
+.reg-score-eleve    { color: #c2410c; }
+.reg-score-modere   { color: #a16207; }
+.reg-score-faible   { color: #047857; }
 .reg-score-na       { color: var(--text-muted); opacity: .4; font-size: 14px; }
 
-/* ── Badges priorité — design MANUEL (pas IA) ── */
+/* ── Priorité en texte simple ── */
 .reg-prio {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 10px; border-radius: 6px; font-size: 11px;
-    font-weight: 700; border: 1px solid; white-space: nowrap;
-    letter-spacing: .02em;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
 }
-.reg-prio-dot {
-    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-}
-
-/* Critique — rouge vif, marquage intense */
-.reg-prio-critique {
-    background: rgba(239,68,68,.12); color: #f87171;
-    border-color: rgba(239,68,68,.3);
-}
-.reg-prio-critique .reg-prio-dot {
-    background: #ef4444;
-    box-shadow: 0 0 5px rgba(239,68,68,.7);
-    animation: pulse-red 1.5s infinite;
-}
-
-/* Élevé — orange */
-.reg-prio-eleve {
-    background: rgba(251,146,60,.1); color: #fb923c;
-    border-color: rgba(251,146,60,.25);
-}
-.reg-prio-eleve .reg-prio-dot { background: #fb923c; }
-
-/* Modéré — amber */
-.reg-prio-modere {
-    background: rgba(251,191,36,.1); color: #fbbf24;
-    border-color: rgba(251,191,36,.25);
-}
-.reg-prio-modere .reg-prio-dot { background: #fbbf24; }
-
-/* Faible — vert #}*/
-.reg-prio-faible {
-    background: rgba(52,211,153,.1); color: #34d399;
-    border-color: rgba(52,211,153,.25);
-}
-.reg-prio-faible .reg-prio-dot { background: #34d399; }
+.reg-prio-critique { color: #dc2626; }
+.reg-prio-eleve    { color: #c2410c; }
+.reg-prio-modere   { color: #a16207; }
+.reg-prio-faible   { color: #047857; }
 
 /* ── Expand bouton ── */
 .reg-expand-btn {
@@ -685,7 +656,7 @@ function clearSearch() {
 .reg-detail-row td { padding: 0; border-bottom: 2px solid var(--border); }
 .reg-detail-body {
     background: var(--card2); padding: 16px 20px 12px;
-    border-top: 1px solid rgba(251,191,36,.15);
+    border-top: 1px solid var(--border);
 }
 .reg-detail-grid {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;

@@ -9,10 +9,6 @@
     {# ── En-tête #}
     <div class="page-header-row mb-4">
         <div>
-            <p class="page-eyebrow">
-                <i class="bi bi-shield-file me-1.5 text-amber-400"></i>
-                {{ is_editing ? 'Modification d’une alerte' : 'Création d’une alerte' }} — marché principal et parcours
-            </p>
             <h2 class="page-title">{{ is_editing ? 'Modifier une alerte GEI' : 'Créer une alerte GEI' }}</h2>
             <p class="page-subtitle">Choisissez d’abord le marché principal, puis ajoutez les pays du parcours si nécessaire.</p>
         </div>
@@ -37,11 +33,7 @@
                         aria-current="{{ currentStep == i ? 'step' : 'false' }}">
                         <a href="{{ path('app_wizard_new', {step: i }) }}" class="wps-link" title="Étape {{ i }} : {{ stepLabels[i - 1] }}">
                             <span class="wps-num">
-                                {% if currentStep > i %}
-                                    <i class="bi bi-check-lg"></i>
-                                {% else %}
-                                    {{ i }}
-                                {% endif %}
+                                {{ i }}
                             </span>
                             <span class="wps-label">{{ stepLabels[i - 1] }}</span>
                         </a>

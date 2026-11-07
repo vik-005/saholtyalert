@@ -120,7 +120,7 @@
                     <div class="form-field"><label class="form-label" for="fonction">Fonction</label><input class="form-input" id="fonction" name="fonction" form="accountProfileForm" value="{{ user.fonction ?? '' }}" autocomplete="organization-title" maxlength="150" placeholder="Ex. Responsable régional"></div>
                 </div>
                 <div class="account-readonly"><i class="bi bi-envelope-at-fill" aria-hidden="true"></i><div><span>Adresse email professionnelle</span><strong>{{ user.email }}</strong></div><small>Modifiable par l’administrateur</small></div>
-                <button class="account-submit" type="submit" name="action" value="profile" form="accountProfileForm"><i class="bi bi-check2-circle" aria-hidden="true"></i>Enregistrer mon profil</button>
+                <button class="account-submit" type="submit" name="action" value="profile" form="accountProfileForm"><i class="bi bi-save" aria-hidden="true"></i>Enregistrer mon profil</button>
             </div>
         </section>
 

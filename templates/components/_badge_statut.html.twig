@@ -1,38 +1,71 @@
-{# Macro pour badges de statut/priorité avec design system unifié #}
+{# ─────────────────────────────────────────────────────────────────────────
+   SAHOTLY SYSTEM - Status & Priority Badge Components
+   Professional badges for alert statuts and priority levels
+   Completely non-technical labels (no database enums shown to users)
+───────────────────────────────────────────────────────────────────────── #}
+
+{# Macro pour badges de statut d'alerte avec design cohérent #}
 {% macro badge_statut(statut, label = null) %}
   {% set statutValue = statut is iterable ? statut.value : (statut ?: 'nouveau') %}
   {% set labels = {
     nouveau: 'Nouveau',
     en_cours: 'En cours',
     a_investiguer: 'À investiguer',
-    suivi: 'Suivi',
+    suivi: 'En suivi',
     ouvert: 'Ouvert',
-    clos: 'Clos',
-    archive: 'Archivé',
-    transmis: 'Transmis',
+    clos: 'Fermée',
+    archive: 'Archivée',
+    transmis: 'Transmise',
     validee: 'Validée',
-    a_valider_saholty: 'En attente de validation Manager',
+    a_valider_saholty: 'En attente de validation',
     brouillon: 'Brouillon',
-    soumis: 'Soumis',
+    soumis: 'Soumise',
     en_qualification: 'En qualification',
-    en_attente_complement: 'En attente complément',
-    actionnable: 'Actionnable'
+    a_completer: 'À compléter',
+    en_attente_complement: 'En attente d''informations',
+    actionnable: 'Exploitable',
+    en_cours_analyse: 'En analyse',
+    ouvert_prioritaire: 'Prioritaire'
   } %}
-  <span class="status-pill status-{{ statutValue }}">
-    <span class="status-dot"></span>
-    {{ label ?? labels[statutValue] ?? statutValue|capitalize }}
+  <span class="status-pill status-{{ statutValue }}" title="{{ label ?? labels[statutValue] ?? statutValue }}">
+    <span class="status-dot" aria-hidden="true"></span>
+    <span class="status-text">{{ label ?? labels[statutValue] ?? statutValue|capitalize }}</span>
   </span>
 {% endmacro %}
 
-{# Macro pour badges de priorité #}
+{# Macro pour badges de priorité avec design hiérarchique #}
 {% macro badge_priorite(priorite, label = null) %}
   {% set labels = {
     critique: 'Critique',
-    eleve: 'Élevé',
-    modere: 'Modéré',
+    eleve: 'Élevée',
+    modere: 'Modérée',
     faible: 'Faible'
   } %}
-  <span class="priority-badge priority-{{ priorite }}">
-    {{ label ?? labels[priorite] ?? priorite|capitalize }}
+  <span class="priority-badge priority-{{ priorite }}" title="{{ label ?? labels[priorite] ?? priorite }}">
+    <span class="priority-badge-dot" aria-hidden="true"></span>
+    <span class="priority-badge-text">{{ label ?? labels[priorite] ?? priorite|capitalize }}</span>
+  </span>
+{% endmacro %}
+
+{# Macro pour badges d'urgence 72h (traitement prioritaire) #}
+{% macro badge_urgence_72h(hasUrgence = false) %}
+  {% if hasUrgence %}
+    <span class="urgence-badge urgence-72h" title="Cas d'urgence 72h">
+      <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+      <span class="urgence-text">Urgence 72h</span>
+    </span>
+  {% endif %}
+{% endmacro %}
+
+{# Macro pour badges de transmission #}
+{% macro badge_transmission(statut, label = null) %}
+  {% set labels = {
+    non_transmise: 'Non transmise',
+    en_attente: 'En attente',
+    transmise: 'Transmise',
+    rejetee: 'Rejetée'
+  } %}
+  <span class="transmission-badge transmission-{{ statut }}" title="{{ label ?? labels[statut] ?? statut }}">
+    {{ label ?? labels[statut] ?? statut|capitalize }}
   </span>
 {% endmacro %}

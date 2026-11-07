@@ -4,13 +4,10 @@
     <input type="hidden" name="wizard_step" value="2">
 
     <div class="db-card mb-4">
-        <div class="db-card-header">
-            <p class="db-card-eyebrow">
-                <i class="bi bi-file-text me-1.5 text-amber-400"></i>
-                Étape 2 sur 6 — Contenu de l'alerte
-            </p>
-            <p class="text-xs text-slate-500">Champs 5 à 8 du formulaire Agent</p>
-        </div>
+        {% include 'components/_wizard_step_header.html.twig' with {
+            step: 2, title: "Contenu de l'alerte", icon: 'bi-file-text',
+            context: 'Champs 5 à 8 du formulaire Agent'
+        } %}
         <div class="db-card-body space-y-4">
 
             {# Champ 5 — Référence documentaire / numéro du conteneur #}
