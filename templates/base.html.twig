@@ -537,15 +537,21 @@ function closeProfileMenu() {
     document.getElementById('profileMenu')?.classList.add('hidden');
     document.getElementById('userMenuBtn')?.setAttribute('aria-expanded', 'false');
 }
-document.getElementById('userMenuBtn')?.addEventListener('click', toggleProfileMenu);
-document.getElementById('userMenuBtn')?.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowDown') {
+document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest('#userMenuBtn')) return;
+    toggleProfileMenu();
+});
+document.addEventListener('keydown', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest('#userMenuBtn');
+    if (button && event.key === 'ArrowDown') {
         event.preventDefault();
         if (document.getElementById('profileMenu')?.classList.contains('hidden')) toggleProfileMenu();
         document.querySelector('#profileMenu a, #profileMenu button')?.focus();
+        return;
     }
-});
-document.getElementById('profileMenu')?.addEventListener('keydown', (event) => {
+
+    if (!event.target.closest('#profileMenu')) return;
     if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
     const items = [...document.querySelectorAll('#profileMenu a[href], #profileMenu button:not([disabled])')];
     if (!items.length) return;
@@ -575,33 +581,29 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ─── Dark / Night mode ─── */
-(function() {
-    if (localStorage.getItem('gei-dark') === '1') {
-        document.documentElement.classList.add('dark');
-        document.body.classList.add('dark');
-    }
-})();
-document.addEventListener('DOMContentLoaded', function() {
-    const btn  = document.getElementById('darkModeBtn');
+function initializeDarkMode() {
+    const isDark = localStorage.getItem('gei-dark') === '1';
+    document.documentElement.classList.toggle('dark', isDark);
+    document.body.classList.toggle('dark', isDark);
     const icon = document.getElementById('darkModeIcon');
-    if (!btn) return;
-    function applyDark(on) {
-        document.documentElement.classList.toggle('dark', on);
-        document.body.classList.toggle('dark', on);
-        if (icon) {
-            icon.className = on ? 'bi bi-sun' : 'bi bi-moon';
-        }
-        localStorage.setItem('gei-dark', on ? '1' : '0');
-        // Notifier les autres composants (ex: carte Leaflet, Chart.js)
-        document.dispatchEvent(new CustomEvent('dark-mode-changed', { detail: { dark: on } }));
-    }
-    // Init icon on page load
-    const isDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
     if (icon) icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon';
-    btn.addEventListener('click', function() {
-        const currentlyDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
-        applyDark(!currentlyDark);
-    });
+    document.getElementById('darkModeBtn')?.setAttribute('aria-pressed', String(isDark));
+}
+function applyDarkMode(on) {
+    document.documentElement.classList.toggle('dark', on);
+    document.body.classList.toggle('dark', on);
+    const icon = document.getElementById('darkModeIcon');
+    if (icon) icon.className = on ? 'bi bi-sun' : 'bi bi-moon';
+    document.getElementById('darkModeBtn')?.setAttribute('aria-pressed', String(on));
+    localStorage.setItem('gei-dark', on ? '1' : '0');
+    document.dispatchEvent(new CustomEvent('dark-mode-changed', { detail: { dark: on } }));
+}
+initializeDarkMode();
+document.addEventListener('turbo:load', initializeDarkMode);
+document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element) || !event.target.closest('#darkModeBtn')) return;
+    const currentlyDark = document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
+    applyDarkMode(!currentlyDark);
 });
 
 /* ─── Modale confirm (générale) ─── */

@@ -12,6 +12,10 @@
 
 <div class="db-wrapper">
 
+    {% if loginAlertSummary is not null %}
+        {% include 'components/_login_alert_summary.html.twig' with {summary: loginAlertSummary} %}
+    {% endif %}
+
     {# ── LIGNE 1 : 5 KPI CARDS (Composant réutilisable _stat_card) ────────────────── #}
     <div class="db-kpi-row">
         {# Card 1 — Total alertes #}

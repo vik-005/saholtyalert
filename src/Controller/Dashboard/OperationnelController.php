@@ -40,6 +40,11 @@ class OperationnelController extends AbstractController
             return $this->redirectToRoute('app_alert_index');
         }
 
+        $showLoginSummary = $request->getSession()->getFlashBag()->get('login_alert_summary') !== [];
+        $loginAlertSummary = $showLoginSummary
+            ? $alertRepository->getLoginAlertSummary($user)
+            : null;
+
         // --- Filtres multi-critères (normalisés) ---
         $market = $request->query->get('market');
         if (is_array($market)) {
@@ -101,6 +106,7 @@ class OperationnelController extends AbstractController
             'chartLabels'  => $chartData['labels'],
             'chartNouvelles'  => $chartData['nouvelles'],
             'chartTransmises' => $chartData['transmises'],
+            'loginAlertSummary' => $loginAlertSummary,
         ]);
     }
 }

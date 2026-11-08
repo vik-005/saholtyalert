@@ -5,6 +5,9 @@ namespace App\Repository;
 use App\Entity\Alert;
 use App\Entity\Market;
 use App\Entity\User;
+use App\Enum\AlertStatut;
+use App\Enum\AlertUrgence;
+use App\Enum\TransmissionStatut;
 use App\Enum\UserRoleEnum;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -403,6 +406,44 @@ class AlertRepository extends ServiceEntityRepository
             'critiques'   => $critiques,
             'actionnables'=> $actionnables,
             'transmis'    => $transmis,
+        ];
+    }
+
+    /**
+     * Résumé des dossiers à traiter à l'arrivée d'un Manager ou d'un administrateur.
+     *
+     * @return array{toValidate: int, urgent: int, transmittedOpen: int}
+     */
+    public function getLoginAlertSummary(User $user): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->select(
+                'SUM(CASE WHEN a.statut = :toValidate THEN 1 ELSE 0 END) AS toValidate',
+                'SUM(CASE WHEN (a.urgence = :immediate OR a.urgence = :seventyTwoHours)'
+                    . ' AND a.statut != :closedStatus AND a.statut != :archivedStatus THEN 1 ELSE 0 END) AS urgent',
+                'SUM(CASE WHEN (a.transmission = :transmitted OR a.statut = :transmittedStatus)'
+                    . ' AND a.statut != :closedStatus AND a.statut != :archivedStatus THEN 1 ELSE 0 END) AS transmittedOpen',
+            )
+            ->where('a.deletedAt IS NULL')
+            ->setParameter('toValidate', AlertStatut::A_VALIDER_SAHOLTY)
+            ->setParameter('immediate', AlertUrgence::IMMEDIAT)
+            ->setParameter('seventyTwoHours', AlertUrgence::SOIXANTE_DOUZE_H)
+            ->setParameter('transmitted', TransmissionStatut::OUI)
+            ->setParameter('transmittedStatus', AlertStatut::TRANSMIS)
+            ->setParameter('closedStatus', AlertStatut::CLOS)
+            ->setParameter('archivedStatus', AlertStatut::ARCHIVE);
+
+        if ($user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
+            $qb->andWhere('a.emetteur = :currentUser')
+                ->setParameter('currentUser', $user);
+        }
+
+        $summary = $qb->getQuery()->getSingleResult();
+
+        return [
+            'toValidate' => (int) $summary['toValidate'],
+            'urgent' => (int) $summary['urgent'],
+            'transmittedOpen' => (int) $summary['transmittedOpen'],
         ];
     }
 

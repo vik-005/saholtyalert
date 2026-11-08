@@ -90,44 +90,45 @@ if (dropdown && dropdownButton) {
     });
 }
 
-const modal = document.getElementById('confirmModal');
-const deleteForm = document.getElementById('deleteConfirmForm');
-const deleteTokenInput = document.getElementById('deleteTokenInput');
-const modalCloseButtons = document.querySelectorAll('.modal-close');
+const closeDeleteModal = () => {
+    const modal = document.getElementById('confirmModal');
+    modal?.classList.add('hidden');
+    modal?.classList.remove('flex');
+};
 
-if (modal && deleteForm && deleteTokenInput) {
-    const closeModal = () => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    };
+document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
 
-    document.addEventListener('click', (event) => {
-        const button = event.target.closest('[data-delete-url]');
-        if (!button) return;
+    const closeButton = event.target.closest('.modal-close');
+    if (closeButton) {
+        closeDeleteModal();
+        return;
+    }
 
-        event.preventDefault();
-        const url = button.dataset.deleteUrl;
-        if (!url) return;
+    const modal = document.getElementById('confirmModal');
+    if (modal && event.target === modal) {
+        closeDeleteModal();
+        return;
+    }
 
-        deleteForm.setAttribute('action', url);
-        deleteTokenInput.value = button.dataset.deleteToken || '';
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    });
+    const button = event.target.closest('[data-delete-url]');
+    if (!button) return;
 
-    modalCloseButtons.forEach((button) => {
-        button.addEventListener('click', closeModal);
-    });
+    const url = button.dataset.deleteUrl;
+    const deleteForm = document.getElementById('deleteConfirmForm');
+    const deleteTokenInput = document.getElementById('deleteTokenInput');
+    if (!url || !modal || !deleteForm || !deleteTokenInput) return;
 
-    modal.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
-    });
+    event.preventDefault();
+    deleteForm.setAttribute('action', url);
+    deleteTokenInput.value = button.dataset.deleteToken || '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+});
 
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
-        }
-    });
-}
+document.addEventListener('keydown', (event) => {
+    const modal = document.getElementById('confirmModal');
+    if (event.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        closeDeleteModal();
+    }
+});

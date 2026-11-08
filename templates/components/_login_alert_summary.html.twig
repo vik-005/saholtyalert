@@ -1,0 +1,36 @@
+<section class="login-alert-summary" aria-labelledby="login-alert-summary-title" role="status">
+    <div class="login-alert-summary-heading">
+        <div>
+            <p class="login-alert-summary-eyebrow"><i class="bi bi-clipboard2-check me-1"></i>Point de situation</p>
+            <h2 id="login-alert-summary-title">Vos dossiers à suivre</h2>
+        </div>
+        <span class="login-alert-summary-date">{{ 'now'|date('d/m/Y H:i') }}</span>
+    </div>
+
+    <div class="login-alert-summary-grid">
+        <article class="login-alert-summary-card">
+            <span class="login-alert-summary-icon is-amber"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+            <div>
+                <strong>{{ summary.toValidate }}</strong>
+                <span>À valider</span>
+                <small>En attente de validation Manager</small>
+            </div>
+        </article>
+        <article class="login-alert-summary-card">
+            <span class="login-alert-summary-icon is-red"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i></span>
+            <div>
+                <strong>{{ summary.urgent }}</strong>
+                <span>Urgentes en cours</span>
+                <small>Immédiates ou sous 72 h, non clôturées</small>
+            </div>
+        </article>
+        <article class="login-alert-summary-card">
+            <span class="login-alert-summary-icon is-blue"><i class="bi bi-send-check" aria-hidden="true"></i></span>
+            <div>
+                <strong>{{ summary.transmittedOpen }}</strong>
+                <span>Transmises, non clôturées</span>
+                <small>Hors dossiers clos ou archivés</small>
+            </div>
+        </article>
+    </div>
+</section>
