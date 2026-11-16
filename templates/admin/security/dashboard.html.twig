@@ -237,224 +237,244 @@
 
 {% block javascripts %}
 {{ parent() }}
-{# ECharts — version 5 complète depuis CDN #}
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>
 (function () {
     'use strict';
 
-    // ── Palette commune ──────────────────────────────────────────────────
-    const COLORS = {
-        success   : '#22c55e',
-        danger    : '#ef4444',
-        warning   : '#f59e0b',
-        info      : '#3b82f6',
-        forbidden : '#f97316',
-        neutral   : '#94a3b8',
-    };
+    let initializedRoot = null;
+    let charts = [];
 
-    const RISK_COLORS = {
-        normal    : '#22c55e',
-        suspicious: '#f59e0b',
-        probable  : '#f97316',
-        threat    : '#ef4444',
-    };
+    function initializeDashboardCharts() {
+            const root = document.getElementById('chart-activity');
+            if (!root || root === initializedRoot || typeof echarts === 'undefined') return;
 
-    const fontFamily = 'Inter, sans-serif';
+            initializedRoot = root;
+            charts = [];
 
-    // ── Helpers ──────────────────────────────────────────────────────────
-    function initChart(id) {
-        const el = document.getElementById(id);
-        if (!el) return null;
-        return echarts.init(el, null, { renderer: 'canvas' });
+        // ── Palette commune ──────────────────────────────────────────────────
+        const COLORS = {
+            success   : '#22c55e',
+            danger    : '#ef4444',
+            warning   : '#f59e0b',
+            info      : '#3b82f6',
+            forbidden : '#f97316',
+            neutral   : '#94a3b8',
+        };
+
+        const RISK_COLORS = {
+            normal    : '#22c55e',
+            suspicious: '#f59e0b',
+            probable  : '#f97316',
+            threat    : '#ef4444',
+        };
+
+        const fontFamily = 'Inter, sans-serif';
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+        function initChart(id) {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const chart = echarts.init(el, null, { renderer: 'canvas' });
+            charts.push(chart);
+            return chart;
+        }
+
+        // ── 1. Graphique d'activité (ligne empilée) ──────────────────────────
+        (function buildActivityChart() {
+            const chart = initChart('chart-activity');
+            if (!chart) return;
+
+            const dates        = {{ chartData.dates|json_encode|raw }};
+            const logins       = {{ chartData.logins|json_encode|raw }};
+            const failedLogins = {{ chartData.failedLogins|json_encode|raw }};
+            const forbidden    = {{ chartData.forbidden|json_encode|raw }};
+            const errors       = {{ chartData.errors|json_encode|raw }};
+
+            chart.setOption({
+                tooltip : { trigger: 'axis', textStyle: { fontFamily } },
+                legend  : { bottom: 0, textStyle: { fontFamily, fontSize: 11 } },
+                grid    : { top: 16, left: 50, right: 20, bottom: 40 },
+                xAxis   : {
+                    type: 'category',
+                    data: dates,
+                    axisLabel: { fontFamily, fontSize: 11 },
+                    axisLine : { lineStyle: { color: '#e2e8f0' } },
+                },
+                yAxis   : {
+                    type: 'value',
+                    axisLabel: { fontFamily, fontSize: 11 },
+                    splitLine: { lineStyle: { color: '#f1f5f9' } },
+                },
+                series: [
+                    {
+                        name: 'Connexions réussies',
+                        type: 'line', smooth: true,
+                        data: logins,
+                        itemStyle: { color: COLORS.success },
+                        areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+                            colorStops: [{ offset:0, color:'rgba(34,197,94,.25)' }, { offset:1, color:'rgba(34,197,94,.02)' }] }},
+                        lineStyle : { width: 2 },
+                        symbol    : 'circle', symbolSize: 5,
+                    },
+                    {
+                        name: 'Échecs connexion',
+                        type: 'line', smooth: true,
+                        data: failedLogins,
+                        itemStyle: { color: COLORS.danger },
+                        areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+                            colorStops: [{ offset:0, color:'rgba(239,68,68,.20)' }, { offset:1, color:'rgba(239,68,68,.02)' }] }},
+                        lineStyle : { width: 2 },
+                        symbol    : 'circle', symbolSize: 5,
+                    },
+                    {
+                        name: 'Accès refusés',
+                        type: 'bar',
+                        data: forbidden,
+                        itemStyle : { color: COLORS.forbidden, borderRadius: [3,3,0,0] },
+                        barMaxWidth: 20,
+                    },
+                    {
+                        name: 'Erreurs HTTP',
+                        type: 'bar',
+                        data: errors,
+                        itemStyle : { color: COLORS.warning, borderRadius: [3,3,0,0] },
+                        barMaxWidth: 20,
+                    },
+                ],
+            });
+
+        })();
+
+        // ── 2. Graphique risque (donut) ──────────────────────────────────────
+        (function buildRiskChart() {
+            const chart = initChart('chart-risk');
+            if (!chart) return;
+
+            // Construire les données depuis les niveaux de risque Symfony
+            const rawRiskData = {{ riskData|json_encode|raw }};
+            const labelMap = {
+                normal    : 'Normal (0-30)',
+                suspicious: 'Suspect (31-60)',
+                probable  : 'Probable (61-80)',
+                threat    : 'Menace (81-100)',
+            };
+            const seriesData = rawRiskData.map(r => ({
+                name  : labelMap[r.riskLevel] ?? r.riskLevel,
+                value : parseInt(r.count),
+                itemStyle: { color: RISK_COLORS[r.riskLevel] ?? COLORS.neutral },
+            }));
+
+            chart.setOption({
+                tooltip : {
+                    trigger    : 'item',
+                    formatter  : '{b}: {c} ({d}%)',
+                    textStyle  : { fontFamily },
+                },
+                legend  : { orient: 'vertical', right: 0, top: 'center', textStyle: { fontFamily, fontSize: 11 } },
+                series  : [{
+                    type        : 'pie',
+                    radius      : ['42%', '72%'],
+                    center      : ['38%', '50%'],
+                    avoidLabelOverlap: false,
+                    data        : seriesData.length ? seriesData : [{ name: 'Aucune donnée', value: 1, itemStyle: { color: '#e2e8f0' } }],
+                    label       : { show: false },
+                    emphasis    : { label: { show: true, fontSize: 13, fontFamily, fontWeight: 600 } },
+                }],
+            });
+
+        })();
+
+        // ── 3. Types d'alertes (barres horizontales) ──────────────────────────
+        (function buildAlertTypesChart() {
+            const chart = initChart('chart-alert-types');
+            if (!chart) return;
+
+            const rawData  = {{ alertTypes|json_encode|raw }};
+            const typeLabels = {
+                brute_force         : 'Brute Force',
+                scanning            : 'Scanning',
+                automated           : 'Automatisé',
+                suspicious_behavior : 'Comportement suspect',
+                lateral_movement    : 'Mouvement latéral',
+                unauthorized_access : 'Accès non autorisé',
+            };
+            const typeColors = ['#ef4444','#f97316','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+
+            const labels  = rawData.map((r,i) => typeLabels[r.alertType] ?? r.alertType);
+            const values  = rawData.map(r => parseInt(r.count));
+            const colors  = rawData.map((_, i) => typeColors[i % typeColors.length]);
+
+            chart.setOption({
+                tooltip : { trigger: 'axis', textStyle: { fontFamily } },
+                grid    : { left: 120, right: 20, top: 10, bottom: 30 },
+                xAxis   : { type: 'value', axisLabel: { fontFamily, fontSize: 11 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+                yAxis   : { type: 'category', data: labels, axisLabel: { fontFamily, fontSize: 11, width: 110, overflow: 'truncate' } },
+                series  : [{
+                    type: 'bar',
+                    data: values.map((v, i) => ({ value: v, itemStyle: { color: colors[i], borderRadius: [0,4,4,0] } })),
+                    label: { show: true, position: 'right', fontFamily, fontSize: 11 },
+                    barMaxWidth: 24,
+                }],
+            });
+
+        })();
+
+        // ── 4. Top routes (barres verticales) ────────────────────────────────
+        (function buildTopRoutesChart() {
+            const chart = initChart('chart-top-routes');
+            if (!chart) return;
+
+            const labels = {{ topRoutes.labels|json_encode|raw }};
+            const values = {{ topRoutes.values|json_encode|raw }};
+
+            // Tronquer les labels longs
+            const shortLabels = labels.map(l => (l && l.length > 28) ? '…' + l.slice(-25) : (l ?? '—'));
+
+            chart.setOption({
+                tooltip : {
+                    trigger  : 'axis',
+                    textStyle: { fontFamily },
+                    formatter: (params) => {
+                        const idx = params[0].dataIndex;
+                        return `<b>${labels[idx] ?? '—'}</b><br/>${params[0].value} requêtes`;
+                    },
+                },
+                grid    : { top: 16, left: 50, right: 20, bottom: 70 },
+                xAxis   : {
+                    type    : 'category',
+                    data    : shortLabels,
+                    axisLabel: { fontFamily, fontSize: 10, rotate: 28, interval: 0 },
+                    axisLine: { lineStyle: { color: '#e2e8f0' } },
+                },
+                yAxis   : {
+                    type      : 'value',
+                    axisLabel : { fontFamily, fontSize: 11 },
+                    splitLine : { lineStyle: { color: '#f1f5f9' } },
+                },
+                series  : [{
+                    type     : 'bar',
+                    data     : values,
+                    itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
+                    label    : { show: true, position: 'top', fontFamily, fontSize: 10 },
+                    barMaxWidth: 36,
+                }],
+            });
+
+        })();
+        }
+
+    window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+    document.addEventListener('turbo:before-cache', () => {
+        charts.forEach(chart => chart.dispose());
+        charts = [];
+        initializedRoot = null;
+    });
+    document.addEventListener('turbo:load', initializeDashboardCharts);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeDashboardCharts, { once: true });
+    } else {
+        initializeDashboardCharts();
     }
-
-    // ── 1. Graphique d'activité (ligne empilée) ──────────────────────────
-    (function buildActivityChart() {
-        const chart = initChart('chart-activity');
-        if (!chart) return;
-
-        const dates        = {{ chartData.dates|json_encode|raw }};
-        const logins       = {{ chartData.logins|json_encode|raw }};
-        const failedLogins = {{ chartData.failedLogins|json_encode|raw }};
-        const forbidden    = {{ chartData.forbidden|json_encode|raw }};
-        const errors       = {{ chartData.errors|json_encode|raw }};
-
-        chart.setOption({
-            tooltip : { trigger: 'axis', textStyle: { fontFamily } },
-            legend  : { bottom: 0, textStyle: { fontFamily, fontSize: 11 } },
-            grid    : { top: 16, left: 50, right: 20, bottom: 40 },
-            xAxis   : {
-                type: 'category',
-                data: dates,
-                axisLabel: { fontFamily, fontSize: 11 },
-                axisLine : { lineStyle: { color: '#e2e8f0' } },
-            },
-            yAxis   : {
-                type: 'value',
-                axisLabel: { fontFamily, fontSize: 11 },
-                splitLine: { lineStyle: { color: '#f1f5f9' } },
-            },
-            series: [
-                {
-                    name: 'Connexions réussies',
-                    type: 'line', smooth: true,
-                    data: logins,
-                    itemStyle: { color: COLORS.success },
-                    areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
-                        colorStops: [{ offset:0, color:'rgba(34,197,94,.25)' }, { offset:1, color:'rgba(34,197,94,.02)' }] }},
-                    lineStyle : { width: 2 },
-                    symbol    : 'circle', symbolSize: 5,
-                },
-                {
-                    name: 'Échecs connexion',
-                    type: 'line', smooth: true,
-                    data: failedLogins,
-                    itemStyle: { color: COLORS.danger },
-                    areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
-                        colorStops: [{ offset:0, color:'rgba(239,68,68,.20)' }, { offset:1, color:'rgba(239,68,68,.02)' }] }},
-                    lineStyle : { width: 2 },
-                    symbol    : 'circle', symbolSize: 5,
-                },
-                {
-                    name: 'Accès refusés',
-                    type: 'bar',
-                    data: forbidden,
-                    itemStyle : { color: COLORS.forbidden, borderRadius: [3,3,0,0] },
-                    barMaxWidth: 20,
-                },
-                {
-                    name: 'Erreurs HTTP',
-                    type: 'bar',
-                    data: errors,
-                    itemStyle : { color: COLORS.warning, borderRadius: [3,3,0,0] },
-                    barMaxWidth: 20,
-                },
-            ],
-        });
-
-        window.addEventListener('resize', () => chart.resize());
-    })();
-
-    // ── 2. Graphique risque (donut) ──────────────────────────────────────
-    (function buildRiskChart() {
-        const chart = initChart('chart-risk');
-        if (!chart) return;
-
-        // Construire les données depuis les niveaux de risque Symfony
-        const rawRiskData = {{ riskData|json_encode|raw }};
-        const labelMap = {
-            normal    : 'Normal (0-30)',
-            suspicious: 'Suspect (31-60)',
-            probable  : 'Probable (61-80)',
-            threat    : 'Menace (81-100)',
-        };
-        const seriesData = rawRiskData.map(r => ({
-            name  : labelMap[r.riskLevel] ?? r.riskLevel,
-            value : parseInt(r.count),
-            itemStyle: { color: RISK_COLORS[r.riskLevel] ?? COLORS.neutral },
-        }));
-
-        chart.setOption({
-            tooltip : {
-                trigger    : 'item',
-                formatter  : '{b}: {c} ({d}%)',
-                textStyle  : { fontFamily },
-            },
-            legend  : { orient: 'vertical', right: 0, top: 'center', textStyle: { fontFamily, fontSize: 11 } },
-            series  : [{
-                type        : 'pie',
-                radius      : ['42%', '72%'],
-                center      : ['38%', '50%'],
-                avoidLabelOverlap: false,
-                data        : seriesData.length ? seriesData : [{ name: 'Aucune donnée', value: 1, itemStyle: { color: '#e2e8f0' } }],
-                label       : { show: false },
-                emphasis    : { label: { show: true, fontSize: 13, fontFamily, fontWeight: 600 } },
-            }],
-        });
-
-        window.addEventListener('resize', () => chart.resize());
-    })();
-
-    // ── 3. Types d'alertes (barres horizontales) ──────────────────────────
-    (function buildAlertTypesChart() {
-        const chart = initChart('chart-alert-types');
-        if (!chart) return;
-
-        const rawData  = {{ alertTypes|json_encode|raw }};
-        const typeLabels = {
-            brute_force         : 'Brute Force',
-            scanning            : 'Scanning',
-            automated           : 'Automatisé',
-            suspicious_behavior : 'Comportement suspect',
-            lateral_movement    : 'Mouvement latéral',
-            unauthorized_access : 'Accès non autorisé',
-        };
-        const typeColors = ['#ef4444','#f97316','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
-
-        const labels  = rawData.map((r,i) => typeLabels[r.alertType] ?? r.alertType);
-        const values  = rawData.map(r => parseInt(r.count));
-        const colors  = rawData.map((_, i) => typeColors[i % typeColors.length]);
-
-        chart.setOption({
-            tooltip : { trigger: 'axis', textStyle: { fontFamily } },
-            grid    : { left: 120, right: 20, top: 10, bottom: 30 },
-            xAxis   : { type: 'value', axisLabel: { fontFamily, fontSize: 11 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
-            yAxis   : { type: 'category', data: labels, axisLabel: { fontFamily, fontSize: 11, width: 110, overflow: 'truncate' } },
-            series  : [{
-                type: 'bar',
-                data: values.map((v, i) => ({ value: v, itemStyle: { color: colors[i], borderRadius: [0,4,4,0] } })),
-                label: { show: true, position: 'right', fontFamily, fontSize: 11 },
-                barMaxWidth: 24,
-            }],
-        });
-
-        window.addEventListener('resize', () => chart.resize());
-    })();
-
-    // ── 4. Top routes (barres verticales) ────────────────────────────────
-    (function buildTopRoutesChart() {
-        const chart = initChart('chart-top-routes');
-        if (!chart) return;
-
-        const labels = {{ topRoutes.labels|json_encode|raw }};
-        const values = {{ topRoutes.values|json_encode|raw }};
-
-        // Tronquer les labels longs
-        const shortLabels = labels.map(l => (l && l.length > 28) ? '…' + l.slice(-25) : (l ?? '—'));
-
-        chart.setOption({
-            tooltip : {
-                trigger  : 'axis',
-                textStyle: { fontFamily },
-                formatter: (params) => {
-                    const idx = params[0].dataIndex;
-                    return `<b>${labels[idx] ?? '—'}</b><br/>${params[0].value} requêtes`;
-                },
-            },
-            grid    : { top: 16, left: 50, right: 20, bottom: 70 },
-            xAxis   : {
-                type    : 'category',
-                data    : shortLabels,
-                axisLabel: { fontFamily, fontSize: 10, rotate: 28, interval: 0 },
-                axisLine: { lineStyle: { color: '#e2e8f0' } },
-            },
-            yAxis   : {
-                type      : 'value',
-                axisLabel : { fontFamily, fontSize: 11 },
-                splitLine : { lineStyle: { color: '#f1f5f9' } },
-            },
-            series  : [{
-                type     : 'bar',
-                data     : values,
-                itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
-                label    : { show: true, position: 'top', fontFamily, fontSize: 10 },
-                barMaxWidth: 36,
-            }],
-        });
-
-        window.addEventListener('resize', () => chart.resize());
-    })();
 
 })();
 </script>
