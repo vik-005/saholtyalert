@@ -60,7 +60,7 @@ class SecurityDashboardController extends AbstractController
             $riskData  = $auditLogRepo->countByRiskLevel($monthAgo, $now);
             $topRoutes = $this->buildTopRoutesData($auditLogRepo, $weekAgo, $now);
         } catch (\Throwable) {
-            $chartData = ['labels' => [], 'logins' => [], 'failedLogins' => [], 'forbidden' => [], 'errors' => []];
+            $chartData = ['dates' => [], 'logins' => [], 'failedLogins' => [], 'forbidden' => [], 'errors' => []];
             $riskData  = [];
             $topRoutes = [];
         }
