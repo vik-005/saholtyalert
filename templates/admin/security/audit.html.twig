@@ -22,21 +22,21 @@
                     <select name="eventType" class="form-select">
                         <option value="">Tous</option>
                         {% for key, label in eventTypes %}
-                            <option value="{{ key }}" {{ filters.eventType == key ? 'selected' : '' }}>{{ label }}</option>
+                            <option value="{{ key }}" {{ (filters.eventType|default('')) == key ? 'selected' : '' }}>{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Adresse IP</label>
-                    <input type="text" name="ipAddress" class="form-control" placeholder="192.168.1.1" value="{{ filters.ipAddress ?? '' }}">
+                    <input type="text" name="ipAddress" class="form-control" placeholder="192.168.1.1" value="{{ filters.ipAddress|default('') }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Du</label>
-                    <input type="date" name="dateFrom" class="form-control" value="{{ filters.dateFrom ? filters.dateFrom|date('Y-m-d') : '' }}">
+                    <input type="date" name="dateFrom" class="form-control" value="{{ filters.dateFrom|default(null) ? filters.dateFrom|date('Y-m-d') : '' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Au</label>
-                    <input type="date" name="dateTo" class="form-control" value="{{ filters.dateTo ? filters.dateTo|date('Y-m-d') : '' }}">
+                    <input type="date" name="dateTo" class="form-control" value="{{ filters.dateTo|default(null) ? filters.dateTo|date('Y-m-d') : '' }}">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">&nbsp;</label>

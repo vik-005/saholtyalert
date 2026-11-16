@@ -88,13 +88,11 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% set printed = 0 %}
-                        {% for route, stats in routes if stats.errors > 0 and printed < 5 %}
+                        {% for route, stats in errorRoutes %}
                             <li class="list-group-item d-flex justify-content-between px-3 py-2">
                                 <span class="small font-monospace text-truncate me-2" style="max-width:70%;">{{ route }}</span>
                                 <span class="badge bg-danger">{{ stats.errors }}</span>
                             </li>
-                            {% set printed = printed + 1 %}
                         {% else %}
                             <li class="list-group-item text-muted small">Aucune</li>
                         {% endfor %}
@@ -109,13 +107,11 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% set printed = 0 %}
-                        {% for route, stats in routes if stats.forbidden > 0 and printed < 5 %}
+                        {% for route, stats in forbiddenRoutes %}
                             <li class="list-group-item d-flex justify-content-between px-3 py-2">
                                 <span class="small font-monospace text-truncate me-2" style="max-width:70%;">{{ route }}</span>
                                 <span class="badge bg-warning text-dark">{{ stats.forbidden }}</span>
                             </li>
-                            {% set printed = printed + 1 %}
                         {% else %}
                             <li class="list-group-item text-muted small">Aucune</li>
                         {% endfor %}
@@ -130,13 +126,11 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% set printed = 0 %}
-                        {% for route, stats in routes if printed < 5 %}
+                        {% for route, stats in topRoutes %}
                             <li class="list-group-item d-flex justify-content-between px-3 py-2">
                                 <span class="small font-monospace text-truncate me-2" style="max-width:70%;">{{ route }}</span>
                                 <span class="badge bg-primary">{{ stats.total }}</span>
                             </li>
-                            {% set printed = printed + 1 %}
                         {% else %}
                             <li class="list-group-item text-muted small">Aucune</li>
                         {% endfor %}

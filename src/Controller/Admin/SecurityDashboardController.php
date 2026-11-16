@@ -241,7 +241,15 @@ class SecurityDashboardController extends AbstractController
     {
         $routes = $auditLogRepo->getRouteStats(7);
 
-        return $this->render('admin/security/routes.html.twig', ['routes' => $routes]);
+        $errorRoutes = array_filter($routes, static fn (array $stats): bool => $stats['errors'] > 0);
+        $forbiddenRoutes = array_filter($routes, static fn (array $stats): bool => $stats['forbidden'] > 0);
+
+        return $this->render('admin/security/routes.html.twig', [
+            'routes' => $routes,
+            'errorRoutes' => array_slice($errorRoutes, 0, 5, true),
+            'forbiddenRoutes' => array_slice($forbiddenRoutes, 0, 5, true),
+            'topRoutes' => array_slice($routes, 0, 5, true),
+        ]);
     }
 
     // ── Helpers privés ────────────────────────────────────────────────────
