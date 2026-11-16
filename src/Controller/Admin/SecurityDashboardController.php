@@ -62,7 +62,7 @@ class SecurityDashboardController extends AbstractController
         } catch (\Throwable) {
             $chartData = ['dates' => [], 'logins' => [], 'failedLogins' => [], 'forbidden' => [], 'errors' => []];
             $riskData  = [];
-            $topRoutes = [];
+            $topRoutes = ['labels' => [], 'values' => []];
         }
 
         $alertTypes = $alertRepo->countByType($monthAgo, $now);
