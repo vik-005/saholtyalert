@@ -1,0 +1,457 @@
+{% extends 'base.html.twig' %}
+{% block title %}Flux & Parcours — GEOINT GEI{% endblock %}
+
+{% block stylesheets %}{{ parent() }}
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+.flux-wrap {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 320px);
+    min-height: 380px;
+}
+@media (max-width: 767px) {
+    .flux-wrap { height: 65vw; min-height: 280px; }
+}
+
+/* Légende flottante */
+.flux-legend {
+    position: absolute; top: 12px; left: 12px; z-index: 10;
+    background: rgba(255,255,255,.97); border-radius: 8px;
+    padding: 10px 14px; box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    min-width: 165px;
+}
+.leg-line {
+    display: inline-block;
+    height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px;
+}
+.leg-dashed {
+    background: repeating-linear-gradient(
+        to right, currentColor 0, currentColor 4px, transparent 4px, transparent 8px
+    );
+}
+
+/* Panneau détail */
+#flux-sidebar {
+    position: absolute; top: 12px; right: 12px; z-index: 10;
+    width: 260px; max-height: calc(100% - 24px); overflow-y: auto;
+    background: rgba(255,255,255,.97); border-radius: 10px;
+    padding: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    display: none;
+}
+
+/* Responsive : sidebar passe en bas sur mobile */
+@media (max-width: 575px) {
+    #flux-sidebar { width: 92%; right: 4%; top: auto; bottom: 10px; max-height: 45%; }
+    .flux-legend { max-width: 140px; font-size: .75rem; }
+}
+
+/* Boutons options */
+.style-btn.active { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3 px-3 px-md-4">
+
+    {# En-tête #}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 fw-800 mb-0"><i class="bi bi-arrow-left-right me-2 text-success"></i>Flux &amp; Parcours</h1>
+            <p class="text-muted small mb-0">Corridors transfrontaliers · Relations géographiques · MapLibre GL</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <span class="badge bg-primary" id="flux-count">— flux</span>
+            <a href="{{ path('app_geo_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>GEOINT
+            </a>
+        </div>
+    </div>
+
+    {# Filtres #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body py-2">
+            {% include 'geo/_filters.html.twig' %}
+        </div>
+    </div>
+
+    {# Carte MapLibre #}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="flux-wrap">
+                <div id="flux-container" style="width:100%;height:100%;"></div>
+
+                {# Légende #}
+                <div class="flux-legend">
+                    <div class="fw-600 small mb-2">Priorité du flux</div>
+                    <div class="small mb-1">
+                        <span class="leg-line" style="width:24px;background:#ef4444;"></span>Critique
+                    </div>
+                    <div class="small mb-1">
+                        <span class="leg-line" style="width:24px;background:#f97316;"></span>Élevé
+                    </div>
+                    <div class="small mb-1">
+                        <span class="leg-line" style="width:24px;background:#f59e0b;height:2px;"></span>Modéré
+                    </div>
+                    <div class="small mb-2">
+                        <span class="leg-line" style="width:24px;background:#3b82f6;height:1px;"></span>Faible
+                    </div>
+                    <hr class="my-1">
+                    <div class="fw-600 small mb-1 mt-1">Style</div>
+                    <div class="btn-group btn-group-sm w-100">
+                        <button class="btn btn-outline-secondary style-btn active" data-style="solid">Continu</button>
+                        <button class="btn btn-outline-secondary style-btn" data-style="dashed">Pointillé</button>
+                        <button class="btn btn-outline-secondary style-btn" data-style="mixed">Mixte</button>
+                    </div>
+                    <hr class="my-1">
+                    <div class="small mb-1"><i class="bi bi-circle-fill me-1" style="color:#0891b2;font-size:.5rem;"></i>Port</div>
+                    <div class="small mb-1"><i class="bi bi-circle-fill me-1" style="color:#7c3aed;font-size:.5rem;"></i>Aéroport</div>
+                    <div class="small"><i class="bi bi-circle-fill me-1" style="color:#16a34a;font-size:.5rem;"></i>Corridor</div>
+                </div>
+
+                {# Panneau détail alerte #}
+                <div id="flux-sidebar">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="fw-700 small" id="fs-title">Détail du flux</div>
+                        <button class="btn-close" id="flux-sidebar-close" style="font-size:.65rem;"></button>
+                    </div>
+                    <table class="table table-sm mb-0" style="font-size:.8rem;">
+                        <tr><td>Code GEI</td><td class="fw-600" id="fs-code">—</td></tr>
+                        <tr><td>Priorité</td><td id="fs-priorite">—</td></tr>
+                        <tr><td>Catégorie</td><td id="fs-categorie">—</td></tr>
+                        <tr><td>Statut</td><td id="fs-statut">—</td></tr>
+                        <tr><td>Score</td><td id="fs-score">—</td></tr>
+                        <tr><td>Étapes</td><td id="fs-etapes">—</td></tr>
+                    </table>
+                    <div class="mt-2">
+                        <div class="text-muted small fw-500 mb-1">Parcours</div>
+                        <div id="fs-pays" class="small d-flex flex-wrap gap-1 align-items-center"></div>
+                    </div>
+                    <div class="text-muted mt-2" style="font-size:.68rem;line-height:1.4;">
+                        Parcours issus des associations de marchés saisies — aucun trajet calculé automatiquement.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Tableau récapitulatif des flux #}
+    <div class="card mt-3 shadow-sm">
+        <div class="card-header fw-600 d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-ul me-2"></i>Flux détectés</span>
+            <span class="badge bg-primary" id="flux-table-count">0</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height:220px;overflow-y:auto;">
+                <table class="table table-sm table-hover mb-0" style="font-size:.82rem;">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Code GEI</th>
+                            <th>Priorité</th>
+                            <th>Catégorie</th>
+                            <th>Parcours</th>
+                            <th class="text-center">Étapes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-flux">
+                        <tr><td colspan="5" class="text-center text-muted py-3">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const API = '{{ path("app_geo_api_flux") }}';
+    let map = null;
+    let mapReady    = false;
+    let pendingFlux = null;
+    let lineStyle   = 'solid'; // solid | dashed | mixed
+
+    // ── Initialisation MapLibre ───────────────────────────────────────────
+    function initMap() {
+        map = new maplibregl.Map({
+            container: 'flux-container',
+            style    : 'https://demotiles.maplibre.org/style.json',
+            center   : [5, 10],
+            zoom     : 3,
+            attributionControl: false,
+        });
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+        map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+        map.on('load', () => {
+            mapReady = true;
+            if (pendingFlux) { applyFlux(...pendingFlux); pendingFlux = null; }
+        });
+    }
+
+    // ── Chargement données ────────────────────────────────────────────────
+    function buildQuery() {
+        return new URLSearchParams(new FormData(document.getElementById('geo-filters'))).toString();
+    }
+
+    function loadFlux() {
+        fetch(API + '?' + buildQuery())
+            .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+            .then(data => {
+                const routes    = data.routes    || { type:'FeatureCollection', features:[] };
+                const locations = data.locations || { type:'FeatureCollection', features:[] };
+                if (!mapReady) { pendingFlux = [routes, locations]; return; }
+                applyFlux(routes, locations);
+            })
+            .catch(e => console.error('Flux error:', e));
+    }
+
+    // ── Application des données ───────────────────────────────────────────
+    function applyFlux(routesGeoJson, locationsGeoJson) {
+        const routes    = routesGeoJson.features    || [];
+        const locations = locationsGeoJson.features || [];
+
+        document.getElementById('flux-count').textContent      = routes.length + ' flux';
+        document.getElementById('flux-table-count').textContent= routes.length;
+        renderTable(routes);
+
+        // Sources
+        upsertSource('flux-routes',    routesGeoJson);
+        upsertSource('flux-locations', locationsGeoJson);
+
+        // Couches
+        ensureFluxLines();
+        ensureLocationLayer();
+    }
+
+    // ── Couches MapLibre ──────────────────────────────────────────────────
+    function ensureFluxLines() {
+        if (!map.getLayer('flux-casings')) {
+            // Bordure blanche pour lisibilité sur fond coloré
+            map.addLayer({
+                id    : 'flux-casings',
+                type  : 'line',
+                source: 'flux-routes',
+                paint : {
+                    'line-color'  : '#fff',
+                    'line-width'  : ['+', 2, ['get', 'width']],
+                    'line-opacity': 0.5,
+                },
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+            });
+        }
+
+        if (!map.getLayer('flux-lines')) {
+            map.addLayer({
+                id    : 'flux-lines',
+                type  : 'line',
+                source: 'flux-routes',
+                paint : buildLinePaint(),
+                layout: { 'line-cap': 'round', 'line-join': 'round' },
+            });
+
+            // Points de départ et d'arrivée (extrémités)
+            map.addLayer({
+                id    : 'flux-endpoints',
+                type  : 'circle',
+                source: 'flux-routes',
+                filter: ['literal', false], // activé via feature-state à la demande
+                paint : {
+                    'circle-radius'      : 5,
+                    'circle-color'       : ['get', 'color'],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff',
+                },
+            });
+
+            // Interactions
+            map.on('click', 'flux-lines', e => openSidebar(e.features[0].properties));
+            map.on('mouseenter','flux-lines', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave','flux-lines', () => map.getCanvas().style.cursor = '');
+        } else {
+            // Mise à jour du style de ligne seulement
+            const p = buildLinePaint();
+            Object.entries(p).forEach(([k, v]) => map.setPaintProperty('flux-lines', k, v));
+        }
+    }
+
+    function buildLinePaint() {
+        // Pattern de tirets MapLibre selon le style choisi
+        const dashCritique = lineStyle === 'solid'  ? [1]       :
+                             lineStyle === 'dashed' ? [3, 2]    : [3, 2];
+        const dashNormal   = lineStyle === 'solid'  ? [1]       :
+                             lineStyle === 'mixed'  ? [4, 3]    : [3, 2];
+
+        return {
+            'line-color'    : ['get', 'color'],
+            'line-width'    : [
+                'interpolate', ['linear'], ['zoom'],
+                3, ['get', 'width'],
+                10, ['+', 1, ['get', 'width']]
+            ],
+            'line-opacity'  : 0.85,
+            // Tirets : critique = tiret court, autres = tiret long ou continu
+            'line-dasharray': [
+                'case',
+                ['==', ['get', 'niveau_priorite'], 'critique'], ['literal', dashCritique],
+                ['literal', dashNormal]
+            ],
+        };
+    }
+
+    function ensureLocationLayer() {
+        const ICON_COLORS = { port: '#0891b2', aeroport: '#7c3aed', corridor: '#16a34a' };
+
+        if (!map.getLayer('flux-loc-circles')) {
+            map.addLayer({
+                id    : 'flux-loc-circles',
+                type  : 'circle',
+                source: 'flux-locations',
+                paint : {
+                    'circle-radius'      : 7,
+                    'circle-color'       : ['get', 'color'],
+                    'circle-stroke-width': 2,
+                    'circle-stroke-color': '#fff',
+                },
+            });
+            map.addLayer({
+                id    : 'flux-loc-labels',
+                type  : 'symbol',
+                source: 'flux-locations',
+                minzoom: 5,
+                layout: {
+                    'text-field' : ['get', 'nom'],
+                    'text-size'  : 10,
+                    'text-offset': [0, 1.5],
+                    'text-anchor': 'top',
+                },
+                paint: { 'text-color': '#1e293b', 'text-halo-color': '#fff', 'text-halo-width': 1 },
+            });
+
+            map.on('click', 'flux-loc-circles', e => {
+                const p = e.features[0].properties;
+                const icon = { port:'🚢', aeroport:'✈️', corridor:'🛣️' }[p.type] || '📍';
+                new maplibregl.Popup({ offset: 10, maxWidth: '200px' })
+                    .setLngLat(e.lngLat)
+                    .setHTML(`<b>${icon} ${p.nom ?? '—'}</b><br>${p.type ?? ''}<br>Marché : ${p.market ?? '—'}`)
+                    .addTo(map);
+            });
+            map.on('mouseenter','flux-loc-circles', () => map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave','flux-loc-circles', () => map.getCanvas().style.cursor = '');
+        }
+    }
+
+    function upsertSource(id, data) {
+        if (map.getSource(id)) map.getSource(id).setData(data);
+        else map.addSource(id, { type: 'geojson', data });
+    }
+
+    // ── Tableau récapitulatif ─────────────────────────────────────────────
+    function renderTable(routes) {
+        const BADGE = { critique:'bg-danger', eleve:'bg-warning text-dark', modere:'bg-info', faible:'bg-secondary' };
+        const tbody = document.getElementById('tbl-flux');
+
+        if (!routes.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Aucun flux transfrontalier détecté</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = routes.map(f => {
+            const p = f.properties || {};
+            // Désérialisation JSON robuste du tableau pays
+            let pays = [];
+            try {
+                pays = Array.isArray(p.pays) ? p.pays : JSON.parse(p.pays || '[]');
+            } catch { pays = []; }
+
+            const paysText = pays.length
+                ? pays.map((v, i) => `${esc(v)}${i < pays.length - 1 ? ' <i class="bi bi-arrow-right text-muted" style="font-size:.6rem;"></i> ' : ''}`)
+                       .join('')
+                : '—';
+
+            return `<tr style="cursor:pointer;" onclick="highlightRoute(${p.alert_id})">
+                <td class="fw-600">${esc(p.code_gei ?? '—')}</td>
+                <td><span class="badge ${BADGE[p.niveau_priorite] || 'bg-secondary'}" style="font-size:.65rem;">${esc(p.niveau_priorite ?? '—')}</span></td>
+                <td>${esc(p.categorie ?? '—')}</td>
+                <td class="small">${paysText}</td>
+                <td class="text-center">${p.nb_etapes ?? '—'}</td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── Panneau de détail ─────────────────────────────────────────────────
+    function openSidebar(p) {
+        const BADGE = { critique:'bg-danger', eleve:'bg-warning text-dark', modere:'bg-info' };
+
+        document.getElementById('fs-code').textContent      = p.code_gei ?? '—';
+        document.getElementById('fs-priorite').innerHTML    =
+            `<span class="badge ${BADGE[p.niveau_priorite] || 'bg-secondary'}">${p.niveau_priorite ?? '—'}</span>`;
+        document.getElementById('fs-categorie').textContent = p.categorie ?? '—';
+        document.getElementById('fs-statut').textContent    = p.statut    ?? '—';
+        document.getElementById('fs-score').textContent     = p.score     ?? '—';
+        document.getElementById('fs-etapes').textContent    = p.nb_etapes ?? '—';
+
+        // Désérialisation robuste
+        let pays = [];
+        try { pays = Array.isArray(p.pays) ? p.pays : JSON.parse(p.pays || '[]'); } catch { pays = []; }
+
+        const paysEl = document.getElementById('fs-pays');
+        paysEl.innerHTML = pays.map((v, i) =>
+            `<span class="badge bg-secondary" style="font-size:.65rem;">${esc(v)}</span>`
+            + (i < pays.length - 1 ? '<i class="bi bi-arrow-right mx-1" style="font-size:.6rem;color:#94a3b8;"></i>' : '')
+        ).join('');
+
+        document.getElementById('flux-sidebar').style.display = 'block';
+    }
+
+    document.getElementById('flux-sidebar-close')?.addEventListener('click', () => {
+        document.getElementById('flux-sidebar').style.display = 'none';
+    });
+
+    // Mise en surbrillance d'un flux depuis le tableau
+    window.highlightRoute = function(alertId) {
+        if (!map || !map.getSource('flux-routes')) return;
+        // FlyTo vers le premier point du flux correspondant
+        const data = map.getSource('flux-routes')._data;
+        const feat = (data?.features || []).find(f => f.properties?.alert_id == alertId);
+        if (feat?.geometry?.coordinates?.length) {
+            const coords = feat.geometry.coordinates;
+            const mid    = coords[Math.floor(coords.length / 2)];
+            map.flyTo({ center: mid, zoom: 5, speed: 1.2 });
+            openSidebar(feat.properties);
+        }
+    };
+
+    // ── Style de ligne ────────────────────────────────────────────────────
+    document.querySelectorAll('.style-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            lineStyle = btn.dataset.style;
+            if (map.getLayer('flux-lines')) {
+                const p = buildLinePaint();
+                Object.entries(p).forEach(([k, v]) => map.setPaintProperty('flux-lines', k, v));
+            }
+        });
+    });
+
+    // ── Filtres ───────────────────────────────────────────────────────────
+    document.getElementById('geo-filters')?.addEventListener('submit', e => { e.preventDefault(); loadFlux(); });
+    document.getElementById('btn-reset-filters')?.addEventListener('click', () => setTimeout(loadFlux, 60));
+
+    function esc(s) {
+        return String(s ?? '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Lancement ─────────────────────────────────────────────────────────
+    initMap();
+    loadFlux();
+})();
+</script>
+{% endblock %}

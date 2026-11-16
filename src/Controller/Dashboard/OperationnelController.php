@@ -25,6 +25,10 @@ class OperationnelController extends AbstractController
         Urgence72hCaseRepository $urgenceRepo,
         AlertFilterService $filterService,
     ): Response {
+        // Les dashboards historiques agrègent beaucoup de données ;
+        // sans cette marge, le serveur PHP de 30s coupe la requête avant rendu.
+        set_time_limit(120);
+
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();

@@ -1,0 +1,34 @@
+# Configuration du module d'audit de sécurité GEI
+
+parameters:
+
+    # Configuration Threat Intelligence (facultatif)
+    security_audit.threat_intel.enabled: false
+    # Decommenter pour activer les sources externes :
+    # security_audit.threat_intel.ipinfo_token: "votre_token"
+    # security_audit.threat_intel.abuseipdb_key: "votre_cle_api"
+    # security_audit.threat_intel.maxmind_license: "votre_licence"
+
+    # Configuration du scoring de risque
+    security_audit.risk_scoring.normal_max: 30
+    security_audit.risk_scoring.suspicious_max: 60
+    security_audit.risk_scoring.probable_max: 80
+
+    # Configuration du blocage IP
+    security_audit.ip_blocking.default_duration_days: 180
+    security_audit.ip_blocking.auto_block.enabled: true
+    security_audit.ip_blocking.auto_block.brute_force_threshold: 10
+    security_audit.ip_blocking.auto_block.scanning_threshold: 50
+    security_audit.ip_blocking.auto_block.high_risk_score: 80
+
+    # Rétention des journaux (jours)
+    security_audit.audit_log_retention_days: 365
+
+    # Routes à exclure de l'audit (ressources statiques)
+    security_audit.excluded_routes:
+        - "^/_wdt"
+        - "^/_profiler"
+        - "^/css/"
+        - "^/js/"
+        - "^/images/"
+        - "^/bundles/"

@@ -136,6 +136,12 @@
                     <span class="account-security-badge {{ totp_enabled ? 'is-enabled' : '' }}">{{ totp_enabled ? 'Activée' : 'Configurer' }}</span>
                     <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </a>
+                <a href="{{ path('app_webauthn_settings') }}" class="account-security-row">
+                    <span class="account-security-row-icon"><i class="bi bi-fingerprint-fill" aria-hidden="true"></i></span>
+                    <span><strong>Empreinte digitale / Passkeys</strong><small>Connexion biométrique sans mot de passe (Windows Hello, Touch ID, Android).</small></span>
+                    <span class="account-security-badge">Configurer</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
                 <a href="{{ path('app_notifications_list') }}" class="account-security-row">
                     <span class="account-security-row-icon"><i class="bi bi-bell-fill" aria-hidden="true"></i></span>
                     <span><strong>Mes notifications</strong><small>Consultez les alertes et mises à jour qui vous concernent.</small></span>

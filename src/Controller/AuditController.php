@@ -121,17 +121,7 @@ class AuditController extends AbstractController
 
     private function hasActiveFilters(AuditFilterDTO $dto): bool
     {
-        return !empty($dto->markets)
-            || $dto->dateFrom !== null
-            || $dto->dateTo !== null
-            || $dto->operateur !== ''
-            || $dto->marque !== ''
-            || !empty($dto->categories)
-            || !empty($dto->typeSources)
-            || !empty($dto->statuts)
-            || !empty($dto->niveauxPriorite)
-            || $dto->texteLibre !== ''
-            || $dto->typeAlerte !== null;
+        return $dto->hasActiveFilters();
     }
 
     private function exportCsv(AuditFilterDTO $dto, AuditService $auditService, \App\Entity\User $user): StreamedResponse

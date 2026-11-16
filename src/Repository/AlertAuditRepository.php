@@ -275,6 +275,21 @@ class AlertAuditRepository
             $sql .= ' AND a.emetteur_id = :currentUserId';
             $params['currentUserId'] = $user->getId();
         }
+        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT) {
+            $managedMarketIds = array_map(
+                static fn (\App\Entity\Market $market): int => (int) $market->getId(),
+                $user->getAllManagedMarkets()
+            );
+
+            if ($managedMarketIds === []) {
+                $sql .= ' AND 1 = 0';
+            } else {
+                $ids = implode(',', array_map('intval', $managedMarketIds));
+                $sql .= ' AND (a.market_id IN (' . $ids . ') OR EXISTS ('
+                    . 'SELECT 1 FROM alert_market am_scope WHERE am_scope.alert_id = a.id '
+                    . 'AND am_scope.market_id IN (' . $ids . ')))';
+            }
+        }
         // SUPERADMIN, SAHOLTY, COMITE_AIT, SECRETARIAT_GEI → pas de filtre scope
 
         // ── Filtres date ───────────────────────────────────────────────────────

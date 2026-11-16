@@ -136,6 +136,7 @@ class AuditFilterDTO
             || !empty($this->statuts)
             || !empty($this->urgences)
             || !empty($this->niveauxPriorite)
+            || $this->typeAlerte !== null
             || !empty($this->scoreMin)
             || !empty($this->scoreMax)
             || !empty($this->agentId)

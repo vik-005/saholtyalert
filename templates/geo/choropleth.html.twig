@@ -1,0 +1,380 @@
+{% extends 'base.html.twig' %}
+{% block title %}Carte Choroplèthe — GEOINT GEI{% endblock %}
+
+{% block stylesheets %}{{ parent() }}
+<style>
+/* Carte full responsive */
+.choropleth-wrap {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 320px);
+    min-height: 380px;
+}
+@media (max-width: 767px) {
+    .choropleth-wrap { height: 55vw; min-height: 280px; }
+}
+
+/* Panneau info survol */
+#choropleth-info {
+    position: absolute; top: 12px; right: 12px; z-index: 10;
+    background: rgba(255,255,255,.97); border-radius: 10px;
+    padding: 14px 16px; box-shadow: 0 4px 16px rgba(0,0,0,.14);
+    min-width: 220px; display: none;
+    pointer-events: none; /* ne bloque pas le survol */
+}
+#choropleth-info .ci-flag { font-size: 1.4rem; }
+
+/* Boutons actifs */
+.level-btn.active { font-weight: 700; box-shadow: 0 0 0 2px currentColor; }
+
+/* Tableau triable */
+.sortable-th { cursor: pointer; user-select: none; }
+.sortable-th:hover { background: #e9ecef; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3 px-3 px-md-4">
+
+    {# En-tête #}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 fw-800 mb-0"><i class="bi bi-map-fill me-2 text-primary"></i>Carte Choroplèthe</h1>
+            <p class="text-muted small mb-0">Densité des alertes par territoire · ECharts · Niveaux quantiles</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            {# Basculement monde / continent #}
+            <div class="btn-group btn-group-sm" role="group" aria-label="Niveau de vue">
+                <button class="btn btn-outline-primary level-btn active" data-level="world">
+                    <i class="bi bi-globe2 me-1"></i>Monde
+                </button>
+                <button class="btn btn-outline-primary level-btn" data-level="continent">
+                    <i class="bi bi-map me-1"></i>Continents
+                </button>
+            </div>
+            <a href="{{ path('app_geo_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>GEOINT
+            </a>
+        </div>
+    </div>
+
+    {# Filtres #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body py-2">
+            {% include 'geo/_filters.html.twig' %}
+        </div>
+    </div>
+
+    {# Carte ECharts #}
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center py-2">
+            <span class="fw-600 small" id="choropleth-title">Carte mondiale — Alertes par pays</span>
+            <span class="badge bg-primary" id="choropleth-nb-pays">— pays</span>
+        </div>
+        <div class="card-body p-2">
+            <div class="choropleth-wrap">
+                <div id="choropleth-container" style="width:100%;height:100%;"></div>
+
+                {# Panneau info au survol #}
+                <div id="choropleth-info">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="fw-700 fs-6" id="ci-nom">—</span>
+                    </div>
+                    <div class="text-muted small mb-2" id="ci-continent">—</div>
+                    <table class="table table-sm mb-0" style="font-size:.8rem;">
+                        <tr><td>Total</td>   <td class="fw-700 text-end" id="ci-total">—</td></tr>
+                        <tr><td>Critique</td><td class="fw-700 text-danger text-end" id="ci-critique">—</td></tr>
+                        <tr><td>Élevé</td>   <td class="fw-700 text-warning text-end" id="ci-eleve">—</td></tr>
+                        <tr><td>Transmis</td><td class="fw-700 text-success text-end" id="ci-transmis">—</td></tr>
+                        <tr><td>Score moy.</td><td class="fw-700 text-end" id="ci-score">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Tableau détaillé #}
+    <div class="card mt-3 shadow-sm">
+        <div class="card-header fw-600 d-flex align-items-center justify-content-between">
+            <span>Données détaillées</span>
+            <small class="text-muted" id="choropleth-tbl-count"></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height:240px;overflow-y:auto;">
+                <table class="table table-sm mb-0 table-hover" style="font-size:.82rem;" id="choropleth-table">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th class="sortable-th" data-col="name">Pays <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th" data-col="continent">Continent <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th text-center" data-col="total">Total <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th text-center" data-col="critique">Critique <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th text-center" data-col="eleve">Élevé <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th text-center" data-col="transmis">Transmis <i class="bi bi-chevron-expand"></i></th>
+                            <th class="sortable-th text-center" data-col="score">Score <i class="bi bi-chevron-expand"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-choropleth">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+{#
+  ECharts ne charge pas la carte monde par défaut.
+  On utilise le fichier GeoJSON de Natural Earth via jsDelivr.
+  Licence : Public Domain (naturalearth.com).
+#}
+<script>
+(function () {
+    'use strict';
+
+    const API_CHOROPLETH = '{{ path("app_geo_api_choropleth") }}';
+    const API_WORLDMAP   = '{{ path("app_geo_api_worldmap") }}';
+
+    let currentLevel  = 'world';
+    let chart         = null;
+    let currentSeries = [];
+    let sortCol       = 'total';
+    let sortAsc       = false;
+
+    // ── 1. Chargement du GeoJSON monde ───────────────────────────────────
+    const GEOJSON_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+    const GEOJSON_NE  = 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson';
+
+    // On utilise d3-compatible GeoJSON world (110m Natural Earth)
+    // Si le premier échoue, fallback sur le second
+    function loadWorldGeoJson(callback) {
+        // Essai 1 : GeoJSON direct (préféré)
+        fetch(GEOJSON_NE)
+            .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+            .then(geojson => { echarts.registerMap('world', geojson); callback(); })
+            .catch(() => {
+                // Fallback : topojson via CDN dédié ECharts
+                // ECharts 5 accepte aussi le format natif de sa lib
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/echarts@5.4.3/map/js/world.js';
+                script.onload  = callback;
+                script.onerror = () => console.warn('GeoJSON world map unavailable');
+                document.head.appendChild(script);
+            });
+    }
+
+    // ── 2. Initialisation ─────────────────────────────────────────────────
+    function init() {
+        loadWorldGeoJson(() => {
+            chart = echarts.init(
+                document.getElementById('choropleth-container'),
+                null,
+                { renderer: 'canvas' }
+            );
+            window.addEventListener('resize', () => chart.resize());
+            loadAndRender();
+        });
+    }
+
+    // ── 3. Chargement des données ─────────────────────────────────────────
+    function buildQuery() {
+        const fd = new FormData(document.getElementById('geo-filters'));
+        fd.set('level', currentLevel);
+        return new URLSearchParams(fd).toString();
+    }
+
+    function loadAndRender() {
+        fetch(API_CHOROPLETH + '?' + buildQuery())
+            .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+            .then(data => renderChoropleth(data))
+            .catch(e => console.error('Choropleth fetch error:', e));
+    }
+
+    // ── 4. Rendu ECharts ──────────────────────────────────────────────────
+    function renderChoropleth(data) {
+        currentSeries = data.series || [];
+        const vm = data.visualMap || { min: 0, max: 1, pieces: [] };
+        const isContinent = currentLevel === 'continent';
+
+        // Mise à jour du titre et du compteur
+        document.getElementById('choropleth-title').textContent = isContinent
+            ? 'Vue par continent — Alertes' : 'Carte mondiale — Alertes par pays';
+        document.getElementById('choropleth-nb-pays').textContent =
+            currentSeries.length + (isContinent ? ' continents' : ' pays');
+
+        // ECharts série
+        const seriesData = currentSeries.map(s => ({
+            name   : s.name,
+            value  : s.value,
+            iso3   : s.iso3   || null,
+            details: s.details || {},
+        }));
+
+        const option = {
+            backgroundColor: '#fafbfc',
+            tooltip: {
+                trigger: 'item',
+                formatter: p => {
+                    if (!p.data) return `<b>${p.name}</b><br>Aucune alerte`;
+                    const d = p.data.details || {};
+                    return `<b>${p.name}</b><br>`
+                        + `Total : <b>${p.value ?? 0}</b><br>`
+                        + `Critique : ${d.critique ?? 0} · Élevé : ${d.eleve ?? 0}<br>`
+                        + `Score moyen : ${d.score_moyen ?? '—'}`;
+                },
+                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 12 },
+                extraCssText: 'border-radius:8px;',
+            },
+            visualMap: {
+                type     : 'piecewise',
+                pieces   : vm.pieces && vm.pieces.length ? vm.pieces : [
+                    { min:0, max:0,    label:'Aucune',      color:'#f0f4f8' },
+                    { min:1, max:9999, label:'Données',     color:'#93c5fd' },
+                ],
+                left     : 10,
+                bottom   : 10,
+                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                itemWidth: 14, itemHeight: 10,
+                backgroundColor: 'rgba(255,255,255,.85)',
+                borderRadius: 8,
+                padding: [8,12],
+            },
+            series: [{
+                type    : 'map',
+                map     : isContinent ? 'world' : 'world',
+                roam    : true,
+                scaleLimit: { min: 0.6, max: 20 },
+                emphasis: {
+                    label    : { show: true, fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                    itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.3)' },
+                },
+                select: {
+                    label    : { show: true },
+                    itemStyle: { color: '#1d4ed8' },
+                },
+                itemStyle: {
+                    borderColor: '#fff',
+                    borderWidth: 0.6,
+                    areaColor  : '#f0f4f8',
+                },
+                data: seriesData,
+                // Correspondances noms FR/EN pour les marchés GEI
+                nameMap: {
+                    'Benin'       : 'Bénin',
+                    'Ivory Coast' : "Côte d'Ivoire",
+                    'Guinea'      : 'Guinée',
+                    'Niger'       : 'Niger',
+                    'Senegal'     : 'Sénégal',
+                    'Togo'        : 'Togo',
+                    'Mali'        : 'Mali',
+                    'Burkina Faso': 'Burkina Faso',
+                    'Cameroon'    : 'Cameroun',
+                    'Congo'       : 'Congo',
+                    'DR Congo'    : 'RD Congo',
+                    'Nigeria'     : 'Nigeria',
+                    'Ghana'       : 'Ghana',
+                    'Senegal'     : 'Sénégal',
+                },
+            }],
+        };
+
+        chart.setOption(option, true);
+        setupHoverPanel();
+        renderTable();
+    }
+
+    // ── 5. Panneau de survol ──────────────────────────────────────────────
+    function setupHoverPanel() {
+        chart.off('mouseover');
+        chart.off('mouseout');
+        chart.on('mouseover', params => {
+            const info = document.getElementById('choropleth-info');
+            if (!params.data) { info.style.display = 'none'; return; }
+            const d = params.data.details || {};
+            document.getElementById('ci-nom').textContent      = params.name;
+            document.getElementById('ci-continent').textContent= d.continent ?? '—';
+            document.getElementById('ci-total').textContent    = params.value ?? 0;
+            document.getElementById('ci-critique').textContent = d.critique ?? 0;
+            document.getElementById('ci-eleve').textContent    = d.eleve ?? 0;
+            document.getElementById('ci-transmis').textContent = d.transmis ?? 0;
+            document.getElementById('ci-score').textContent    = d.score_moyen ?? '—';
+            info.style.display = 'block';
+        });
+        chart.on('mouseout', () => {
+            document.getElementById('choropleth-info').style.display = 'none';
+        });
+    }
+
+    // ── 6. Tableau triable ────────────────────────────────────────────────
+    function renderTable() {
+        const rows = [...currentSeries].sort((a, b) => {
+            const getVal = s => {
+                const d = s.details || {};
+                switch (sortCol) {
+                    case 'total'   : return parseInt(s.value || 0);
+                    case 'critique': return parseInt(d.critique || 0);
+                    case 'eleve'   : return parseInt(d.eleve || 0);
+                    case 'transmis': return parseInt(d.transmis || 0);
+                    case 'score'   : return parseFloat(d.score_moyen || 0);
+                    case 'continent': return (d.continent || '').toLowerCase();
+                    default        : return (s.name || '').toLowerCase();
+                }
+            };
+            const va = getVal(a), vb = getVal(b);
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+
+        document.getElementById('choropleth-tbl-count').textContent = rows.length + ' territoire(s)';
+        const tbody = document.getElementById('tbl-choropleth');
+        tbody.innerHTML = rows.map(s => {
+            const d = s.details || {};
+            return `<tr>
+                <td>${esc(s.name)}</td>
+                <td><span class="badge bg-secondary" style="font-size:.6rem;">${esc(d.continent ?? '—')}</span></td>
+                <td class="text-center"><span class="badge bg-primary">${s.value ?? 0}</span></td>
+                <td class="text-center">${(d.critique > 0) ? `<span class="badge bg-danger">${d.critique}</span>` : '—'}</td>
+                <td class="text-center">${(d.eleve > 0)    ? `<span class="badge bg-warning text-dark">${d.eleve}</span>` : '—'}</td>
+                <td class="text-center">${(d.transmis > 0) ? `<span class="badge bg-success">${d.transmis}</span>` : '—'}</td>
+                <td class="text-center">${d.score_moyen ?? '—'}</td>
+            </tr>`;
+        }).join('') || '<tr><td colspan="7" class="text-center text-muted py-3">Aucune donnée</td></tr>';
+    }
+
+    // Tri au clic sur en-tête
+    document.querySelectorAll('.sortable-th').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.col;
+            if (col === sortCol) sortAsc = !sortAsc;
+            else { sortCol = col; sortAsc = false; }
+            renderTable();
+        });
+    });
+
+    // ── 7. Basculement niveau ─────────────────────────────────────────────
+    document.querySelectorAll('.level-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentLevel = btn.dataset.level;
+            loadAndRender();
+        });
+    });
+
+    // ── 8. Filtres ────────────────────────────────────────────────────────
+    document.getElementById('geo-filters')?.addEventListener('submit', e => { e.preventDefault(); loadAndRender(); });
+    document.getElementById('btn-reset-filters')?.addEventListener('click', () => setTimeout(loadAndRender, 60));
+
+    function esc(s) {
+        return String(s ?? '—').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Lancement ─────────────────────────────────────────────────────────
+    init();
+})();
+</script>
+{% endblock %}

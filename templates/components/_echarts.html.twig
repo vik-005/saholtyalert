@@ -1,0 +1,190 @@
+{# ════════════════════════════════════════════════════════════════════════════
+   Composant générique ECharts PRO pour les dashboards GEI
+   Graphiques animés, temps réel, responsive, thème dark/light, palette GEI
+   ════════════════════════════════════════════════════════════════════════════ #}
+
+{% macro echarts_container(chart_id, title = null, subtitle = null, height = '300px', className = '') %}
+<div class="echarts-card {{ className }}" data-chart-id="{{ chart_id }}" style="width:100%;height:{{ height }};">
+    {% if title %}
+        <div class="echarts-header">
+            <h3 class="echarts-title">{{ title }}</h3>
+            {% if subtitle %}
+                <p class="echarts-subtitle">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+    <div id="{{ chart_id }}" class="echarts-canvas" role="img" aria-label="{{ title ?? 'Graphique' }}"></div>
+</div>
+{% endmacro %}
+
+{# ─────────────────────────────────────────────────────────────────────────
+   Initialise un graphique ECharts
+   Paramètres JS :
+     - chartId       : id du conteneur
+     - type          : 'line' | 'bar' | 'pie' | 'gauge' | 'scatter'
+     - labels        : tableau des catégories
+     - series        : tableau de { name, data, color? }
+     - options       : options ECharts supplémentaires (merge)
+     - dark          : boolean thème sombre
+   ═══════════════════════════════════════════════════════════════════════════ #}
+{% macro echarts_script(chartId, type = 'line', labels = [], series = [], options = {}, dark = false, animate = true) %}
+<script>
+(function () {
+    const el = document.getElementById('{{ chartId }}');
+    if (!el || typeof echarts === 'undefined') return;
+
+    const isDark = {{ dark ? 'true' : 'false' }} || document.body.classList.contains('dark') || document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#a8c4b8' : '#94a3b8';
+    const gridColor = isDark ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
+
+    // Palette GEI — couleurs pro, cohérentes sur tous les graphiques
+    const GEI = {
+        teal:   '#16856b',
+        tealD:  '#0b5b49',
+        amber:  '#fbbf24',
+        amberD: '#d97706',
+        red:    '#ef4444',
+        redD:   '#c62828',
+        emerald:'#34d399',
+        blue:   '#3b82f6',
+        blueD:  '#2563eb',
+        orange: '#f97316',
+        yellow: '#eab308',
+        green:  '#10b981',
+        slate:  '#64748b',
+        purple: '#a78bfa',
+        cyan:   '#22d3ee',
+    };
+
+    const baseColors = [GEI.teal, GEI.blue, GEI.amber, GEI.emerald, GEI.purple, GEI.cyan, GEI.orange, GEI.red];
+
+    // Normaliser les séries (si data seul, envelopper)
+    const seriesNorm = {{ series|raw }}.map(function (s, i) {
+        return Object.assign({
+            name: s.name ?? 'Série ' + (i + 1),
+            type: '{{ type }}',
+            data: s.data ?? [],
+            color: s.color ?? baseColors[i % baseColors.length],
+            itemStyle: s.itemStyle ?? {},
+            lineStyle: s.lineStyle ?? { width: 2 },
+            areaStyle: s.areaStyle ?? null,
+            smooth: s.smooth ?? true,
+            symbol: s.symbol ?? 'circle',
+            symbolSize: s.symbolSize ?? 6,
+            hoverSymbolSize: s.hoverSymbolSize ?? 9,
+        }, s.extra ?? {});
+    });
+
+    /* ─── Options de base communes ─── */
+    const baseOption = {
+        backgroundColor: 'transparent',
+        animation: {{ animate ? 'true' : 'false' }},
+        animationDuration: 1200,
+        animationEasing: 'cubicOut',
+        animationDelay: function (idx) { return idx * 30; },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'cross', label: { backgroundColor: '#6b7280' } },
+            backgroundColor: isDark ? 'rgba(18,63,53,0.95)' : 'rgba(255,255,255,0.95)',
+            borderColor: 'rgba(69,227,184,0.25)',
+            borderWidth: 1,
+            padding: 12,
+            textStyle: { color: '#a8c4b8', fontSize: 11, fontFamily: 'Inter, sans-serif' },
+            extraCssText: 'border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.35);',
+        },
+        grid: {
+            left: 40,
+            right: 20,
+            top: isDark ? 36 : 30,
+            bottom: 40,
+            containLabel: true,
+            borderColor: gridColor,
+        },
+        xAxis: {
+            type: 'category',
+            data: {{ labels|raw }},
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10, fontFamily: 'Inter, sans-serif' },
+            splitLine: { show: false },
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10, fontFamily: 'Inter, sans-serif' },
+            splitLine: { lineStyle: { color: gridColor, type: 'dashed' } },
+            min: 0,
+        },
+        series: seriesNorm,
+    };
+
+    const finalOption = Object.assign({}, baseOption, {{ options|raw }});
+
+    const chart = echarts.init(el, null, { renderer: 'canvas', devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+    window.__gei_echarts = window.__gei_echarts || {};
+    window.__gei_echarts['{{ chartId }}'] = chart;
+    chart.setOption(finalOption, true);
+
+    /* Responsive + dark-mode switch */
+    function onResize() { chart.resize(); }
+    if (window.ResizeObserver) {
+        window.__gei_ro_{{ chartId }} = new ResizeObserver(onResize);
+        window.__gei_ro_{{ chartId }}.observe(el.parentElement);
+    }
+    window.addEventListener('resize', onResize);
+    document.addEventListener('dark-mode-changed', function (e) {
+        const d = Boolean(e.detail && e.detail.dark);
+        const tc = d ? '#a8c4b8' : '#94a3b8';
+        const gc = d ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
+        chart.setOption({
+            tooltip: { backgroundColor: d ? 'rgba(18,63,53,0.95)' : 'rgba(255,255,255,0.95)' },
+            grid: { borderColor: gc },
+            xAxis: { axisLabel: { color: tc } },
+            yAxis: { axisLabel: { color: tc }, splitLine: { lineStyle: { color: gc } } },
+        });
+    });
+})();
+</script>
+{% endmacro %}
+
+<style>
+/* ─── Conteneurs ECharts ─── */
+.echarts-card {
+    position: relative;
+    width: 100%;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+}
+.echarts-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+.echarts-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+.echarts-subtitle {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin: 0;
+}
+.echarts-canvas {
+    width: 100%;
+    height: 100%;
+    min-height: 180px;
+}
+
+/* Tooltip custom sur les cartes echarts */
+.echarts-card .echarts-canvas {
+    transition: height 0.25s ease;
+}
+</style>

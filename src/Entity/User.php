@@ -113,6 +113,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
     #[ORM\OrderBy(['connectedAt' => 'DESC'])]
     private Collection $connectionPositions;
 
+    /**
+     * Clés d'authentification WebAuthn (empreinte digitale / passkeys) de l'utilisateur.
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: WebauthnCredential::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    #[ORM\OrderBy(['createdAt' => 'DESC'])]
+    private Collection $webauthnCredentials;
+
     public function __construct()
     {
         $this->alertesEmises       = new ArrayCollection();
@@ -120,6 +127,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         $this->markets             = new ArrayCollection();
         $this->agentMarkets        = new ArrayCollection();
         $this->connectionPositions = new ArrayCollection();
+        $this->webauthnCredentials = new ArrayCollection();
         $this->createdAt           = new \DateTimeImmutable();
     }
 
@@ -431,10 +439,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, TwoFact
         return $this->alertesSuivies;
     }
 
-    /** @return Collection<int, ConnectionPosition> */
-    public function getConnectionPositions(): Collection
+    /** @return Collection<int, WebauthnCredential> */
+    public function getWebauthnCredentials(): Collection
     {
-        return $this->connectionPositions;
+        return $this->webauthnCredentials;
+    }
+
+    public function addWebauthnCredential(WebauthnCredential $credential): static
+    {
+        if (!$this->webauthnCredentials->contains($credential)) {
+            $this->webauthnCredentials->add($credential);
+            $credential->setUser($this);
+        }
+        return $this;
+    }
+
+    public function removeWebauthnCredential(WebauthnCredential $credential): static
+    {
+        if ($this->webauthnCredentials->removeElement($credential)) {
+            // Relation côté ManyToOne non nulle : la suppression est gérée par le cascade/ORM
+        }
+        return $this;
+    }
+
+    public function hasWebauthnCredential(): bool
+    {
+        return $this->webauthnCredentials->count() > 0;
     }
 
     public function __toString(): string

@@ -1,0 +1,91 @@
+{#
+  Barre de filtres géospatiale partagée — responsive mobile + desktop.
+  Paramètres Twig :
+    markets     : array<Market>
+    categories  : array<ListeReferenceValeur>
+    statuts     : array<AlertStatut>
+    niveaux     : array<NiveauPriorite>
+    continents  : array<string>  (optionnel)
+    typeAlertes : array<TypeAlerte> (optionnel)
+#}
+<form id="geo-filters" class="geo-filter-form" data-turbo="false">
+    <div class="row g-2 align-items-end">
+
+        {% if continents is defined and continents is not empty %}
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Continent</label>
+            <select name="continent" class="form-select form-select-sm">
+                <option value="">Tous</option>
+                {% for c in continents %}
+                    <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Marché</label>
+            <select name="markets[]" class="form-select form-select-sm"
+                    multiple size="1" style="min-height:34px;"
+                    title="Ctrl+clic pour sélection multiple">
+                {% for m in markets %}
+                    <option value="{{ m.id }}">{{ m.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if categories is defined and categories is not empty %}
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Catégorie</label>
+            <select name="categorie" class="form-select form-select-sm">
+                <option value="">Toutes</option>
+                {% for cat in categories %}
+                    {# Supporte à la fois ->getValeur() et ->valeur #}
+                    {% set catVal = cat.valeur is defined ? cat.valeur : cat.getValeur() %}
+                    <option value="{{ catVal }}">{{ catVal }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Priorité</label>
+            <select name="priorite" class="form-select form-select-sm">
+                <option value="">Toutes</option>
+                {% for n in niveaux %}
+                    <option value="{{ n.value }}">{{ n.label() }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Statut</label>
+            <select name="statut" class="form-select form-select-sm">
+                <option value="">Tous</option>
+                {% for s in statuts %}
+                    <option value="{{ s.value }}">{{ s.label() }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Du</label>
+            <input type="date" name="dateDebut" class="form-control form-control-sm">
+        </div>
+
+        <div class="col-6 col-sm-4 col-md-2">
+            <label class="form-label form-label-sm mb-1 fw-500">Au</label>
+            <input type="date" name="dateFin" class="form-control form-control-sm">
+        </div>
+
+        <div class="col-12 col-md-auto d-flex gap-2 mt-1">
+            <button type="submit" class="btn btn-sm btn-primary flex-fill flex-md-grow-0">
+                <i class="bi bi-funnel-fill me-1"></i>Filtrer
+            </button>
+            <button type="reset" class="btn btn-sm btn-outline-secondary" id="btn-reset-filters">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+    </div>
+</form>

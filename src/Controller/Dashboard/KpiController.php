@@ -21,6 +21,8 @@ class KpiController extends AbstractController
         MarketRepository $marketRepository,
         KPIService $kpiService,
     ): Response {
+        set_time_limit(120);
+
         // Période par défaut : dernière semaine
         $fin = new \DateTime();
         $debut = (clone $fin)->sub(new \DateInterval('P7D'));

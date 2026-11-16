@@ -91,7 +91,7 @@
                 <span class="db-chart-total"><strong>{{ kpis.total }}</strong> alertes suivies</span>
             </div>
             <div class="db-chart-area">
-                <canvas id="alertEvolutionChart" height="90"></canvas>
+                <div id="alertEvolutionChart" style="height:90px;"></div>
             </div>
         </div>
 
@@ -110,7 +110,7 @@
             </div>
 
             <div class="donut-wrap">
-                <canvas id="priorityDonutChart" width="160" height="160"></canvas>
+                <div id="priorityDonutChart" style="width:160px;height:160px;margin:0 auto;"></div>
                 <div class="donut-center">
                     <span class="donut-total">{{ kpis.total }}</span>
                     <span class="donut-total-label">Total</span>
@@ -641,240 +641,164 @@
 {% block javascripts %}
 {{ parent() }}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-/* ─── Données injectées depuis le contrôleur ─── */
-const chartData = {
-    labels:      {{ chartLabels|default(['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'])|json_encode|raw }},
-    nouvelles:   {{ chartNouvelles|default([3,5,2,8,6,4,7])|json_encode|raw }},
-    transmises:  {{ chartTransmises|default([1,2,1,3,2,2,3])|json_encode|raw }},
-    priorites: {
-        critique: {{ kpis.critiques }},
-        eleve:    {{ kpis.eleve ?? 0 }},
-        modere:   {{ kpis.modere ?? 0 }},
-        faible:   {{ kpis.faible ?? 0 }},
-    }
-};
+/* ═════════════════════════════════════════════════════════════════════════════
+   ECharts PRO — graphiques animés, responsive, dark/light
+   ════════════════════════════════════════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", function() {
+    const chartData = {
+        labels: {{ chartLabels|default(["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"])|json_encode|raw }},
+        nouvelles: {{ chartNouvelles|default([3,5,2,8,6,4,7])|json_encode|raw }},
+        transmises: {{ chartTransmises|default([1,2,1,3,2,2,3])|json_encode|raw }},
+        priorites: {
+            critique: {{ kpis.critiques }},
+            eleve: {{ kpis.eleve ?? 0 }},
+            modere: {{ kpis.modere ?? 0 }},
+            faible: {{ kpis.faible ?? 0 }},
+        }
+    };
 
-/* ─── Defaults Chart.js ─── */
-Chart.defaults.color          = '#94a3b8';
-Chart.defaults.borderColor    = 'rgba(148,163,184,0.08)';
-Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
-Chart.defaults.font.size      = 11;
+    const GEI = { teal: "#16856b", blue: "#3b82f6", amber: "#fbbf24", emerald: "#34d399", red: "#ef4444", orange: "#f97316" };
+    const isDark = document.body.classList.contains("dark") || document.documentElement.classList.contains("dark");
 
-/* ─── 1) Graphique évolution (line chart) ─── */
-/* ─── 1) Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
-const evolutionCanvas = document.getElementById('alertEvolutionChart');
-if (!evolutionCanvas || typeof Chart === 'undefined') return;
-Chart.getChart(evolutionCanvas)?.destroy();
-const evolutionCtx = evolutionCanvas.getContext('2d');
+    /* ─── 1) Graphique évolution (line area) ─── */
+    const evoEl = document.getElementById("alertEvolutionChart");
+    if (evoEl && typeof echarts !== "undefined") {
+        const evoChart = echarts.init(evoEl, null, { renderer: "canvas", devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+        window.__gei_echarts = window.__gei_echarts || {};
+        window.__gei_echarts["alertEvolutionChart"] = evoChart;
 
-/* Nouvelles alertes : Teal primaire (#16856b) */
-const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 200);
-gradientTeal.addColorStop(0,   'rgba(22,133,107,0.16)');
-gradientTeal.addColorStop(1,   'rgba(22,133,107,0.01)');
+        const gradTeal = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: isDark ? "rgba(22,133,107,0.35)" : "rgba(22,133,107,0.18)" },
+            { offset: 1, color: isDark ? "rgba(22,133,107,0.05)" : "rgba(22,133,107,0.02)" },
+        ]);
+        const gradBlue = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: isDark ? "rgba(59,130,246,0.30)" : "rgba(59,130,246,0.16)" },
+            { offset: 1, color: isDark ? "rgba(59,130,246,0.05)" : "rgba(59,130,246,0.02)" },
+        ]);
 
-/* Transmises : Bleu de la charte (#3b82f6) */
-const gradientBlue = evolutionCtx.createLinearGradient(0, 0, 0, 200);
-gradientBlue.addColorStop(0, 'rgba(59,130,246,0.15)');
-gradientBlue.addColorStop(1, 'rgba(59,130,246,0.01)');
-
-const evolutionChart = new Chart(evolutionCtx, {
-    type: 'line',
-    data: {
-        labels: chartData.labels,
-        datasets: [
-            {
-                label: 'Nouvelles alertes',
-                data: chartData.nouvelles,
-                borderColor:     '#16856b',
-                backgroundColor: gradientTeal,
-                borderWidth:     2,
-                pointBackgroundColor: '#16856b',
-                pointBorderColor:     '#ffffff',
-                pointBorderWidth:     2,
-                pointRadius:     3.5,
-                pointHoverRadius: 6,
-                tension: 0.35,
-                fill: true,
-            },
-            {
-                label: 'Transmises',
-                data: chartData.transmises,
-                borderColor:     '#3b82f6',
-                backgroundColor: gradientBlue,
-                borderWidth:     2,
-                pointBackgroundColor: '#3b82f6',
-                pointBorderColor:     '#ffffff',
-                pointBorderWidth:     2,
-                pointRadius:     3.5,
-                pointHoverRadius: 6,
-                tension: 0.35,
-                fill: true,
-            }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-            legend: { display: false },
+        evoChart.setOption({
+            backgroundColor: "transparent",
+            animation: true,
+            animationDuration: 1200,
+            animationEasing: "cubicOut",
             tooltip: {
-                backgroundColor: 'rgba(18,63,53,0.97)',
-                borderColor:     'rgba(69,227,184,0.25)',
-                borderWidth:     1,
-                padding:         12,
-                cornerRadius:    8,
-                titleColor:      '#e2ede8',
-                bodyColor:       '#a8c4b8',
-                titleFont:       { size: 12, weight: '700', family: 'Inter, sans-serif' },
-                bodyFont:        { size: 11, family: 'Inter, sans-serif' },
-                callbacks: {
-                    label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}`
+                trigger: "axis",
+                backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+                borderColor: "rgba(69,227,184,0.25)",
+                textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
+                formatter: function (params) {
+                    const p = params[0];
+                    return p.seriesName + " : " + p.value + "<br/>" + p.axisValue;
                 }
-            }
-        },
-        scales: {
-            x: {
-                grid: { color: 'rgba(148,163,184,0.04)', drawBorder: false },
-                ticks: {
-                    color: '#7da090',
-                    autoSkip: true,
-                    maxTicksLimit: 8,
-                    maxRotation: 0,
-                    minRotation: 0,
-                    padding: 8,
-                    font: { size: 10, family: 'Inter, sans-serif' }
+            },
+            grid: { left: 10, right: 10, top: 20, bottom: 20, containLabel: true },
+            xAxis: {
+                type: "category",
+                data: chartData.labels,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: isDark ? "#a8c4b8" : "#94a3b8", fontSize: 10 },
+                splitLine: { show: false },
+            },
+            yAxis: {
+                type: "value",
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: isDark ? "#a8c4b8" : "#94a3b8", fontSize: 10 },
+                splitLine: { lineStyle: { color: isDark ? "rgba(168,196,184,0.08)" : "rgba(148,163,184,0.08)", type: "dashed" } },
+                min: 0,
+            },
+            series: [
+                {
+                    name: "Nouvelles alertes",
+                    type: "line",
+                    smooth: true,
+                    symbol: "circle",
+                    symbolSize: 5,
+                    itemStyle: { color: GEI.teal },
+                    lineStyle: { width: 2, color: GEI.teal },
+                    areaStyle: { color: gradTeal },
+                    data: chartData.nouvelles,
                 },
-                border: { display: false }
-            },
-            y: {
-                grid: { color: 'rgba(148,163,184,0.04)', drawBorder: false },
-                ticks: { color: '#7da090', stepSize: 1, font: { size: 10, family: 'Inter, sans-serif' } },
-                border: { display: false },
-                beginAtZero: true
-            }
-        }
-    }
-});
-
-/* ─── 2) Donut priorités ─── */
-const donutCanvas = document.getElementById('priorityDonutChart');
-if (!donutCanvas) return;
-Chart.getChart(donutCanvas)?.destroy();
-const donutCtx = donutCanvas.getContext('2d');
-const donutData = [
-    chartData.priorites.critique,
-    chartData.priorites.eleve,
-    chartData.priorites.modere,
-    chartData.priorites.faible,
-];
-
-/* Éviter un donut vide si tout = 0 */
-const donutTotal = donutData.reduce((a, b) => a + b, 0);
-const finalDonutData = donutTotal > 0 ? donutData : [1, 1, 1, 1];
-
-new Chart(donutCtx, {
-    type: 'doughnut',
-    data: {
-        labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
-        datasets: [{
-            data: finalDonutData,
-            backgroundColor: [
-                'rgba(239,68,68,0.85)',
-                'rgba(251,146,60,0.85)',
-                'rgba(251,191,36,0.85)',
-                'rgba(52,211,153,0.85)',
-            ],
-            borderColor: 'transparent',
-            borderWidth: 0,
-            hoverBorderWidth: 0,
-            hoverOffset: 6,
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        cutout: '72%',
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(18,63,53,0.97)',
-                borderColor:     'rgba(69,227,184,0.25)',
-                borderWidth:     1,
-                padding:         10,
-                cornerRadius:    8,
-                titleColor:      '#e2ede8',
-                bodyColor:       '#a8c4b8',
-                titleFont:       { family: 'Inter, sans-serif' },
-                bodyFont:        { family: 'Inter, sans-serif' },
-                callbacks: {
-                    label: ctx => {
-                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                        const pct   = total > 0 ? Math.round((ctx.parsed / total) * 100) : 0;
-                        return ` ${ctx.label} : ${donutTotal > 0 ? ctx.parsed : 0} (${pct}%)`;
-                    }
+                {
+                    name: "Transmises",
+                    type: "line",
+                    smooth: true,
+                    symbol: "circle",
+                    symbolSize: 5,
+                    itemStyle: { color: GEI.blue },
+                    lineStyle: { width: 2, color: GEI.blue },
+                    areaStyle: { origin: "start", color: gradBlue },
+                    data: chartData.transmises,
                 }
+            ]
+        });
+    }
+
+    /* ─── 2) Donut priorités ─── */
+    const donutEl = document.getElementById("priorityDonutChart");
+    if (donutEl && typeof echarts !== "undefined") {
+        const donutChart = echarts.init(donutEl, null, { renderer: "canvas", devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+        window.__gei_echarts = window.__gei_echarts || {};
+        window.__gei_echarts["priorityDonutChart"] = donutChart;
+
+        const donutData = [
+            chartData.priorites.critique,
+            chartData.priorites.eleve,
+            chartData.priorites.modere,
+            chartData.priorites.faible,
+        ];
+        const donutTotal = donutData.reduce((a, b) => a + b, 0);
+
+        donutChart.setOption({
+            backgroundColor: "transparent",
+            animation: true,
+            animationDuration: 1500,
+            animationEasing: "cubicOut",
+            tooltip: {
+                trigger: "item",
+                backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+                textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
+                formatter: function (params) {
+                    const total = donutTotal || 0;
+                    const pct = total > 0 ? Math.round((params.value / total) * 100) : 0;
+                    return params.name + " : " + params.value + " (" + pct + "%)";
+                }
+            },
+            legend: {
+                orient: "horizontal",
+                bottom: 0,
+                itemGap: 24,
+                textStyle: { color: isDark ? "#a8c4b8" : "#94a3b8", fontSize: 11 },
+            },
+            series: [{
+                type: "pie",
+                radius: ["62%", "82%"],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 8, borderColor: "transparent", borderWidth: 0 },
+                label: { show: false },
+                emphasis: { label: { show: true, fontSize: 12 } },
+                labelLine: { show: false },
+                data: [
+                    { value: donutData[0], name: "Critique",  itemStyle: { color: GEI.red } },
+                    { value: donutData[1], name: "Élevé",     itemStyle: { color: GEI.orange } },
+                    { value: donutData[2], name: "Modéré",    itemStyle: { color: GEI.amber } },
+                    { value: donutData[3], name: "Faible",    itemStyle: { color: GEI.emerald } },
+                ],
+            }]
+        });
+    }
+
+    // Responsive
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (window.__gei_echarts) {
+                Object.values(window.__gei_echarts).forEach(chart => chart.resize());
             }
-        }
+        });
+        ro.observe(document.body);
     }
 });
-
-/* ─── Toggle ligne détails ─── */
-function toggleRow(id) {
-    const row  = document.getElementById('detail-' + id);
-    const icon = document.getElementById('expicon-' + id);
-    const btn  = document.getElementById('expbtn-' + id);
-
-    const isOpening = row.classList.contains('hidden');
-    if (isOpening) {
-        row.classList.remove('hidden');
-        icon.classList.replace('bi bi-plus', 'bi bi-dash');
-        btn.classList.add('expand-active');
-    } else {
-        row.classList.add('hidden');
-        icon.classList.replace('bi bi-dash', 'bi bi-plus');
-        btn.classList.remove('expand-active');
-    }
-    syncRowToggleState(row, icon, btn);
-}
-
-function syncRowToggleState(row, icon, btn) {
-    const expanded = !row.classList.contains('hidden');
-    btn.setAttribute('aria-expanded', String(expanded));
-    btn.classList.toggle('expand-active', expanded);
-    icon.classList.toggle('bi-plus', !expanded);
-    icon.classList.toggle('bi-dash', expanded);
-}
-
-document.querySelectorAll('[data-toggle-row]').forEach((button) => {
-    button.addEventListener('click', (event) => {
-        if (event.__geiRowHandled) return;
-        event.__geiRowHandled = true;
-        const now = Date.now();
-        if (button.dataset.lastToggleAt && now - Number(button.dataset.lastToggleAt) < 250) return;
-        button.dataset.lastToggleAt = String(now);
-        toggleRow(button.dataset.toggleRow);
-        window.setTimeout(() => {
-            const row = document.getElementById('detail-' + button.dataset.toggleRow);
-            const icon = document.getElementById('expicon-' + button.dataset.toggleRow);
-            if (row && icon) syncRowToggleState(row, icon, button);
-        }, 0);
-    });
-});
-
-document.querySelectorAll('.db-detail-row').forEach((row) => {
-    const id = row.id.replace('detail-', '');
-    const button = document.getElementById('expbtn-' + id);
-    const icon = document.getElementById('expicon-' + id);
-    if (!button || !icon) return;
-    new MutationObserver(() => syncRowToggleState(row, icon, button)).observe(row, {
-        attributes: true,
-        attributeFilter: ['class']
-    });
-});
-
-}); // END DOMContentLoaded
 </script>
 {% endblock %}
 {% endblock %}

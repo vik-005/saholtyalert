@@ -1,0 +1,175 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Journal d'Audit - Security Center{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-journal-text me-2"></i>Journal d'Audit
+        </h1>
+        <a href="{{ path('app_security_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+
+    {# Filters #}
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Type d'événement</label>
+                    <select name="eventType" class="form-select">
+                        <option value="">Tous</option>
+                        {% for key, label in eventTypes %}
+                            <option value="{{ key }}" {{ filters.eventType == key ? 'selected' : '' }}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Adresse IP</label>
+                    <input type="text" name="ipAddress" class="form-control" placeholder="192.168.1.1" value="{{ filters.ipAddress ?? '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Du</label>
+                    <input type="date" name="dateFrom" class="form-control" value="{{ filters.dateFrom ? filters.dateFrom|date('Y-m-d') : '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Au</label>
+                    <input type="date" name="dateTo" class="form-control" value="{{ filters.dateTo ? filters.dateTo|date('Y-m-d') : '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {# Results Table #}
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date/Heure</th>
+                            <th>IP</th>
+                            <th>Utilisateur</th>
+                            <th>Route</th>
+                            <th>Méthode</th>
+                            <th>HTTP</th>
+                            <th>Événement</th>
+                            <th>Pays</th>
+                            <th>Score</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in events %}
+                            <tr class="{{ event.riskScore >= 80 ? 'table-danger' : (event.riskScore >= 60 ? 'table-warning' : '') }}">
+                                <td class="small">{{ event.createdAt|date('d/m/Y H:i:s') }}</td>
+                                <td class="font-monospace small">{{ event.ipAddress }}</td>
+                                <td class="small">{{ event.user ? event.user.email : '-' }}</td>
+                                <td class="small" title="{{ event.urlPath }}">{{ event.routeName|default(event.urlPath|slice(0, 30)) }}</td>
+                                <td><span class="badge bg-secondary">{{ event.httpMethod }}</span></td>
+                                <td>
+                                    {% if event.httpStatusCode >= 500 %}
+                                        <span class="badge bg-danger">{{ event.httpStatusCode }}</span>
+                                    {% elseif event.httpStatusCode >= 400 %}
+                                        <span class="badge bg-warning">{{ event.httpStatusCode }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ event.httpStatusCode }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ event.eventType|replace({'_': ' '}) }}</td>
+                                <td class="small">{{ event.country ?? '-' }}</td>
+                                <td>
+                                    {% if event.riskScore >= 80 %}
+                                        <span class="badge bg-danger">{{ event.riskScore }}</span>
+                                    {% elseif event.riskScore >= 60 %}
+                                        <span class="badge bg-warning">{{ event.riskScore }}</span>
+                                    {% elseif event.riskScore >= 30 %}
+                                        <span class="badge bg-info">{{ event.riskScore }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ event.riskScore }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ event.id }}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {# Detail Modal #}
+                            <div class="modal fade" id="detailModal{{ event.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Détails de l'événement</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p><strong>ID:</strong> {{ event.correlationId }}</p>
+                                                    <p><strong>Date:</strong> {{ event.createdAt|date('Y-m-d H:i:s') }} UTC</p>
+                                                    <p><strong>IP:</strong> {{ event.ipAddress }}</p>
+                                                    <p><strong>Utilisateur:</strong> {{ event.user ? event.user.email : 'Anonyme' }}</p>
+                                                    <p><strong>Pays:</strong> {{ event.country ?? 'Inconnu' }}</p>
+                                                    <p><strong>ISP:</strong> {{ event.isp ?? '-' }}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <p><strong>Route:</strong> {{ event.routeName ?? '-' }}</p>
+                                                    <p><strong>URL:</strong> <code>{{ event.urlPath }}</code></p>
+                                                    <p><strong>Méthode:</strong> {{ event.httpMethod }}</p>
+                                                    <p><strong>Status:</strong> {{ event.httpStatusCode }}</p>
+                                                    <p><strong>VPN:</strong> {{ event.isVpn ? 'Oui' : 'Non' }}</p>
+                                                    <p><strong>Tor:</strong> {{ event.isTor ? 'Oui' : 'Non' }}</p>
+                                                </div>
+                                            </div>
+                                            <hr>
+                                            <h6>User-Agent</h6>
+                                            <p class="small font-monospace bg-light p-2">{{ event.userAgent ?? 'Inconnu' }}</p>
+                                            {% if event.riskFactors %}
+                                                <hr>
+                                                <h6>Facteurs de risque</h6>
+                                                <pre class="small">{{ event.riskFactors|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">
+                                    Aucun événement trouvé
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {# Pagination #}
+        {% if events|length >= 50 %}
+            <div class="card-footer">
+                <nav>
+                    <ul class="pagination mb-0 justify-content-center">
+                        <li class="page-item {{ page <= 1 ? 'disabled' : '' }}">
+                            <a class="page-link" href="?page={{ page - 1 }}">Précédent</a>
+                        </li>
+                        <li class="page-item active"><span class="page-link">Page {{ page }}</span></li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page + 1 }}">Suivant</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

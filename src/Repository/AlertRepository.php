@@ -370,42 +370,32 @@ class AlertRepository extends ServiceEntityRepository
 
     public function getKpiStats(?User $user = null): array
     {
-        $qb = $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
-            ->where('a.deletedAt IS NULL');
-
-        $qbCritiques = $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
-            ->where('a.niveauPriorite = :v AND a.deletedAt IS NULL')
-            ->setParameter('v', 'critique');
-
-        $qbActionnables = $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
-            ->where('a.exploitabilite = :v AND a.deletedAt IS NULL')
-            ->setParameter('v', 'actionnable');
-
-        $qbTransmis = $this->createQueryBuilder('a')
-            ->select('COUNT(a.id)')
-            ->where('a.transmission = :v AND a.deletedAt IS NULL')
-            ->setParameter('v', 'oui');
+        // Une seule requête avec SUM(CASE WHEN …) au lieu de 4 requêtes séparées.
+        $conn   = $this->getEntityManager()->getConnection();
+        $params = [];
+        $extra  = '';
 
         if ($user !== null && $user->getRole() === UserRoleEnum::EMETTEUR_TERRAIN) {
-            $qb->andWhere('a.emetteur = :user')->setParameter('user', $user);
-            $qbCritiques->andWhere('a.emetteur = :user')->setParameter('user', $user);
-            $qbActionnables->andWhere('a.emetteur = :user')->setParameter('user', $user);
-            $qbTransmis->andWhere('a.emetteur = :user')->setParameter('user', $user);
+            $extra            = ' AND a.emetteur_id = :userId';
+            $params['userId'] = (int) $user->getId();
         }
 
-        $total        = (int) $qb->getQuery()->getSingleScalarResult();
-        $critiques    = (int) $qbCritiques->getQuery()->getSingleScalarResult();
-        $actionnables = (int) $qbActionnables->getQuery()->getSingleScalarResult();
-        $transmis     = (int) $qbTransmis->getQuery()->getSingleScalarResult();
+        $row = $conn->fetchAssociative(
+            "SELECT
+                COUNT(a.id)                                                              AS total,
+                SUM(CASE WHEN COALESCE(a.niveau_priorite_surcharge, a.niveau_priorite) = 'critique' THEN 1 ELSE 0 END) AS critiques,
+                SUM(CASE WHEN a.exploitabilite = 'actionnable'                          THEN 1 ELSE 0 END) AS actionnables,
+                SUM(CASE WHEN a.transmission   = 'oui'                                 THEN 1 ELSE 0 END) AS transmis
+             FROM alert a
+             WHERE a.deleted_at IS NULL{$extra}",
+            $params,
+        );
 
         return [
-            'total'       => $total,
-            'critiques'   => $critiques,
-            'actionnables'=> $actionnables,
-            'transmis'    => $transmis,
+            'total'        => (int) ($row['total']        ?? 0),
+            'critiques'    => (int) ($row['critiques']    ?? 0),
+            'actionnables' => (int) ($row['actionnables'] ?? 0),
+            'transmis'     => (int) ($row['transmis']     ?? 0),
         ];
     }
 

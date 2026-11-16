@@ -129,6 +129,14 @@
                data-turbo="true">
                 <i class="bi bi-map me-1.5"></i>Statistics corridor
             </a>
+            {# GEOINT Center — EMETTEUR_TERRAIN explicitement exclu #}
+            {% if not is_granted('ROLE_EMETTEUR_TERRAIN') or is_granted('ROLE_PFT') %}
+            <a href="{{ path('app_geo_dashboard') }}" rel="noopener"
+               class="sidebar-sublink {% if route starts with 'app_geo' %}active{% endif %}"
+               data-turbo="true">
+                <i class="bi bi-globe-americas me-1.5"></i>GEOINT Center
+            </a>
+            {% endif %}
             {% endif %}
 
             {% if is_granted('ROLE_PFT') %}
@@ -192,6 +200,11 @@
                class="sidebar-sublink {% if route starts with 'app_admin_rule' %}active{% endif %}"
                data-turbo="true">
                 <i class="bi bi-sliders2-vertical me-1.5"></i>Règles de scoring GEI
+            </a>
+            <a href="{{ path('app_security_dashboard') }}" rel="noopener"
+               class="sidebar-sublink {% if route starts with 'app_security' %}active{% endif %}"
+               data-turbo="true">
+                <i class="bi bi-shield-check me-1.5"></i>Security Center
             </a>
             {% elseif is_granted('ROLE_PFT') %}
             <a href="{{ path('app_admin_user_index') }}" rel="noopener"

@@ -25,6 +25,8 @@ class GeneralDashboardController extends AbstractController
         MarketRepository $marketRepository,
         AlertFilterService $filterService,
     ): Response {
+        set_time_limit(120);
+
         $user = $this->getUser();
         if (!$user instanceof User) {
             throw $this->createAccessDeniedException();

@@ -1,0 +1,359 @@
+{% extends 'base.html.twig' %}
+{% block title %}Carte Thermique — GEOINT GEI{% endblock %}
+
+{% block stylesheets %}{{ parent() }}
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+/* Carte full responsive */
+.heatmap-wrap {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 320px);
+    min-height: 380px;
+}
+@media (max-width: 767px) {
+    .heatmap-wrap { height: 65vw; min-height: 280px; }
+}
+
+/* Panneaux flottants */
+.map-panel {
+    background: rgba(255,255,255,.97);
+    border-radius: 8px;
+    padding: 10px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.14);
+}
+
+.map-controls {
+    position: absolute;
+    top: 12px; left: 12px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 190px;
+}
+
+/* Sur mobile : panneaux repliés */
+@media (max-width: 575px) {
+    .map-controls { max-width: 150px; }
+    .map-panel { padding: 7px 10px; font-size: .78rem; }
+}
+
+/* Boutons mode */
+.mode-btn.active { font-weight: 700; }
+
+/* Gradient légende */
+.legend-gradient {
+    width: 100%; height: 14px;
+    background: linear-gradient(to right, #1e90ff, #00ced1, #32cd32, #ffd700, #ff4500);
+    border-radius: 3px;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-3 px-3 px-md-4">
+
+    {# En-tête #}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 fw-800 mb-0"><i class="bi bi-thermometer-high me-2 text-danger"></i>Carte Thermique</h1>
+            <p class="text-muted small mb-0">Concentration spatiale · 2 modes statistiques · MapLibre GL</p>
+        </div>
+        <a href="{{ path('app_geo_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>GEOINT
+        </a>
+    </div>
+
+    {# Filtres #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body py-2">
+            {% include 'geo/_filters.html.twig' %}
+        </div>
+    </div>
+
+    {# Carte #}
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div id="heatmap-error" class="alert alert-warning d-none m-3" role="status"></div>
+            <div class="heatmap-wrap">
+                <div id="heatmap-container" style="width:100%;height:100%;"></div>
+
+                {# Contrôles flottants #}
+                <div class="map-controls">
+                    <div class="map-panel">
+                        <div class="fw-600 small mb-2">Mode</div>
+                        <div class="btn-group btn-group-sm w-100">
+                            <button class="btn btn-outline-primary mode-btn active" data-mode="density">Densité</button>
+                            <button class="btn btn-outline-danger mode-btn" data-mode="score">Score</button>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:.7rem;" id="mode-desc">Nb alertes / zone</div>
+                    </div>
+
+                    <div class="map-panel">
+                        <div class="fw-600 small mb-1">Rayon&nbsp;<span id="lbl-radius">30</span>px</div>
+                        <input type="range" id="hm-radius" min="5" max="80" value="30" class="form-range">
+                        <div class="fw-600 small mb-1 mt-2">Intensité&nbsp;<span id="lbl-intensity">6</span></div>
+                        <input type="range" id="hm-intensity" min="1" max="20" value="6" class="form-range">
+                    </div>
+
+                    <div class="map-panel" style="font-size:.8rem;">
+                        <div class="fw-600 mb-1">Points chargés</div>
+                        <div id="hm-count" class="fw-800 text-primary" style="font-size:1.2rem;">—</div>
+                        <div class="text-muted" style="font-size:.7rem;">
+                            <span id="hm-precise">—</span> précis<br>
+                            <span id="hm-centroids">—</span> centroïdes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Légende + explication #}
+    <div class="card mt-3 shadow-sm">
+        <div class="card-body py-2">
+            <div class="row align-items-center g-3">
+                <div class="col-12 col-md-auto">
+                    <div class="fw-600 small mb-1">Légende thermique</div>
+                    <div class="legend-gradient" style="width:140px;"></div>
+                    <div class="d-flex justify-content-between" style="width:140px;font-size:.68rem;color:#64748b;">
+                        <span>Faible</span><span>Élevé</span>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="small text-muted">
+                        <strong>Mode Densité</strong> : un point par alerte, poids proportionnel au niveau de priorité.
+                        Les zones rouges indiquent une forte concentration d'alertes.
+                    </div>
+                    <div class="small text-muted mt-1">
+                        <strong>Mode Score</strong> : poids proportionnel au score GEI (1–25).
+                        Une zone peut avoir peu d'alertes mais un score élevé — ce sont deux informations différentes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    const API = '{{ path("app_geo_api_heatmap") }}';
+    let mode        = 'density';
+    let map         = null;
+    let mapReady    = false;
+    let pendingData = null;
+    let activeRequest = null;
+
+    // ── Initialisation MapLibre après DOMContentLoaded ────────────────────
+    function initMap() {
+        map = new maplibregl.Map({
+            container        : 'heatmap-container',
+            style            : 'https://demotiles.maplibre.org/style.json',
+            center           : [5, 10],
+            zoom             : 3,
+            minZoom          : 1,
+            maxZoom          : 18,
+            attributionControl: false,
+        });
+
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+        map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+        map.on('load', () => {
+            mapReady = true;
+            if (pendingData) {
+                applyHeatmap(pendingData);
+                pendingData = null;
+            }
+        });
+        map.on('error', event => {
+            console.error('Heatmap map error:', event.error);
+            const error = document.getElementById('heatmap-error');
+            error.textContent = 'Le fond de carte est momentanément indisponible. Les données géographiques restent chargées.';
+            error.classList.remove('d-none');
+        });
+    }
+
+    // ── Chargement données ────────────────────────────────────────────────
+    function buildQuery() {
+        const fd = new FormData(document.getElementById('geo-filters'));
+        fd.set('mode', mode);
+        return new URLSearchParams(fd).toString();
+    }
+
+    function loadHeatmap() {
+        activeRequest?.abort();
+        activeRequest = new AbortController();
+        const error = document.getElementById('heatmap-error');
+        error.classList.add('d-none');
+
+        fetch(API + '?' + buildQuery(), {
+            headers: { Accept: 'application/json' },
+            signal: activeRequest.signal,
+        })
+            .then(r => {
+                if (!r.ok) throw new Error(`Erreur serveur (${r.status}).`);
+                if (!r.headers.get('content-type')?.includes('application/json')) {
+                    throw new Error('La réponse du serveur n’est pas au format JSON.');
+                }
+                return r.json();
+            })
+            .then(geojson => {
+                const meta = geojson.meta || {};
+                document.getElementById('hm-count').textContent = (meta.total_points ?? 0).toLocaleString('fr-FR');
+                document.getElementById('hm-precise').textContent = meta.precise_count ?? 0;
+                document.getElementById('hm-centroids').textContent = meta.centroid_count ?? 0;
+                if (!mapReady) { pendingData = geojson; return; }
+                applyHeatmap(geojson);
+            })
+            .catch(e => {
+                if (e.name === 'AbortError') return;
+                console.error('Heatmap error:', e);
+                error.textContent = 'Impossible de charger les données géographiques. Réessayez ou modifiez les filtres.';
+                error.classList.remove('d-none');
+            });
+    }
+
+    // ── Application des données sur la carte ──────────────────────────────
+    function applyHeatmap(geojson) {
+        const meta = geojson.meta || {};
+        const r = getRadius();
+        const i = getIntensity();
+
+        if (map.getSource('heatmap-src')) {
+            map.getSource('heatmap-src').setData(geojson);
+        } else {
+            map.addSource('heatmap-src', { type: 'geojson', data: geojson });
+            addLayers(r, i);
+        }
+
+        updatePaint(r, i);
+    }
+
+    // ── Couches MapLibre ──────────────────────────────────────────────────
+    function addLayers(r, i) {
+        // Couche heatmap (zoom < 8)
+        map.addLayer({
+            id    : 'heatmap-layer',
+            type  : 'heatmap',
+            source: 'heatmap-src',
+            maxzoom: 9,
+            paint  : makePaint(r, i),
+        });
+
+        // Cercles individuels (zoom >= 7)
+        map.addLayer({
+            id     : 'heatmap-points',
+            type   : 'circle',
+            source : 'heatmap-src',
+            minzoom: 7,
+            filter : ['!', ['has', 'cluster']],
+            paint  : {
+                'circle-radius'      : [
+                    'interpolate', ['linear'], ['zoom'],
+                    7, 4, 14, 10
+                ],
+                'circle-color': [
+                    'match', ['get', 'niveau_priorite'],
+                    'critique', '#ef4444',
+                    'eleve',    '#f97316',
+                    'modere',   '#f59e0b',
+                    '#3b82f6'
+                ],
+                'circle-stroke-width' : 1.5,
+                'circle-stroke-color' : '#fff',
+                'circle-opacity'      : 0.85,
+            },
+        });
+
+        // Popup au clic sur point individuel
+        map.on('click', 'heatmap-points', e => {
+            const p = e.features[0]?.properties || {};
+            const prioBadge = { critique:'#ef4444', eleve:'#f97316', modere:'#f59e0b' }[p.niveau_priorite] || '#3b82f6';
+            new maplibregl.Popup({ offset: 10, maxWidth: '220px' })
+                .setLngLat(e.lngLat)
+                .setHTML(`
+                    <div style="font-family:Inter,sans-serif;font-size:.82rem;">
+                        <div class="fw-700 mb-1">${p.market ?? '—'}</div>
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <span style="background:${prioBadge};color:#fff;padding:1px 6px;border-radius:4px;font-size:.72rem;">
+                                ${p.niveau_priorite ?? '—'}
+                            </span>
+                        </div>
+                        ${p.id      ? `<div>Alerte #${p.id}</div>` : ''}
+                        ${p.total   ? `<div>Alertes : ${p.total}</div>` : ''}
+                        ${p.score   ? `<div>Score : ${p.score}</div>` : ''}
+                        ${p.categorie ? `<div>Catégorie : ${p.categorie}</div>` : ''}
+                    </div>`)
+                .addTo(map);
+        });
+        map.on('mouseenter', 'heatmap-points', () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', 'heatmap-points', () => map.getCanvas().style.cursor = '');
+    }
+
+    function makePaint(r, i) {
+        return {
+            'heatmap-weight'   : ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 1, 1],
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, i, 9, i * 3],
+            'heatmap-color'    : [
+                'interpolate', ['linear'], ['heatmap-density'],
+                0,   'rgba(0,0,0,0)',
+                0.15,'rgba(30,144,255,.7)',
+                0.35,'rgba(0,206,209,.85)',
+                0.55,'rgba(50,205,50,.85)',
+                0.75,'rgba(255,215,0,.9)',
+                1,   'rgba(255,69,0,1)',
+            ],
+            'heatmap-radius'   : ['interpolate', ['linear'], ['zoom'], 0, r, 9, r * 2.5],
+            'heatmap-opacity'  : ['interpolate', ['linear'], ['zoom'], 7, 0.9, 9, 0],
+        };
+    }
+
+    function updatePaint(r, i) {
+        if (!map.getLayer('heatmap-layer')) return;
+        const p = makePaint(r, i);
+        Object.entries(p).forEach(([k, v]) => map.setPaintProperty('heatmap-layer', k, v));
+    }
+
+    function getRadius()    { return parseInt(document.getElementById('hm-radius').value,    10); }
+    function getIntensity() { return parseInt(document.getElementById('hm-intensity').value, 10); }
+
+    // ── Contrôles UI ──────────────────────────────────────────────────────
+    document.getElementById('hm-radius')?.addEventListener('input', e => {
+        document.getElementById('lbl-radius').textContent = e.target.value;
+        updatePaint(getRadius(), getIntensity());
+    });
+    document.getElementById('hm-intensity')?.addEventListener('input', e => {
+        document.getElementById('lbl-intensity').textContent = e.target.value;
+        updatePaint(getRadius(), getIntensity());
+    });
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            mode = btn.dataset.mode;
+            document.getElementById('mode-desc').textContent = mode === 'score'
+                ? 'Score GEI pondéré' : 'Nb alertes / zone';
+            loadHeatmap();
+        });
+    });
+
+    document.getElementById('geo-filters')?.addEventListener('submit', e => { e.preventDefault(); loadHeatmap(); });
+    document.getElementById('btn-reset-filters')?.addEventListener('click', () => setTimeout(loadHeatmap, 60));
+
+    // ── Démarrage ─────────────────────────────────────────────────────────
+    initMap();
+    // Chargement initial sans attendre le style (si style rapide → pendingData)
+    loadHeatmap();
+})();
+</script>
+{% endblock %}

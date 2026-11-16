@@ -25,6 +25,21 @@ class AuditService
             return $dto;
         }
 
+        if ($user->getRole() === \App\Enum\UserRoleEnum::PFT && $dto->markets !== []) {
+            $managedMarketIds = array_map(
+                static fn (\App\Entity\Market $market): int => (int) $market->getId(),
+                $user->getAllManagedMarkets()
+            );
+            $dto->markets = array_values(array_intersect(
+                array_map('intval', $dto->markets),
+                $managedMarketIds
+            ));
+
+            if ($dto->markets === []) {
+                $dto->markets = [0];
+            }
+        }
+
         return $dto;
     }
 

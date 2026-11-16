@@ -1,0 +1,168 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Analyse IP - Security Center{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-globe me-2"></i>Analyse des Adresses IP
+        </h1>
+        <a href="{{ path('app_security_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Retour
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {# Suspicious IPs #}
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>IP Suspectes</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for ip in suspiciousIps|slice(0, 20) %}
+                            <a href="?ip={{ ip.ipAddress }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center {{ selectedIp == ip.ipAddress ? 'active' : '' }}">
+                                <span class="font-monospace">{{ ip.ipAddress }}</span>
+                                <span class="badge bg-danger">{{ ip.riskScore }}</span>
+                            </a>
+                        {% else %}
+                            <div class="list-group-item text-muted">Aucune IP suspecte</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Blocked IPs #}
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-danger bg-opacity-10">
+                    <h5 class="mb-0"><i class="bi bi-shield-x me-2"></i>IP Bloquées</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for ip in blockedIps|slice(0, 20) %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span class="font-monospace">{{ ip.ipAddress }}</span>
+                                <form method="post" action="{{ path('app_security_ip_unblock') }}" class="d-inline">
+                                    <input type="hidden" name="ipAddress" value="{{ ip.ipAddress }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Débloquer cette IP?')">
+                                        <i class="bi bi-unlock"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        {% else %}
+                            <div class="list-group-item text-muted">Aucune IP bloquée</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Whitelisted IPs #}
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-success bg-opacity-10">
+                    <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Liste Blanche</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for ip in whitelistedIps|slice(0, 20) %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span class="font-monospace">{{ ip.ipAddress }}</span>
+                                <span class="badge bg-success">Autorisé</span>
+                            </div>
+                        {% else %}
+                            <div class="list-group-item text-muted">Aucune IP whitelistée</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Selected IP Details #}
+    {% if selectedIp %}
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Détails: {{ selectedIp }}</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if selectedIpData %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Informations réseau</h6>
+                                    <table class="table table-sm">
+                                        <tr><th>Version</th><td>IPv{{ selectedIpData.ipVersion }}</td></tr>
+                                        <tr><th>Pays</th><td>{{ selectedIpData.country ?? 'Inconnu' }}</td></tr>
+                                        <tr><th>Région</th><td>{{ selectedIpData.region ?? '-' }}</td></tr>
+                                        <tr><th>Ville</th><td>{{ selectedIpData.city ?? '-' }}</td></tr>
+                                        <tr><th>ISP</th><td>{{ selectedIpData.isp ?? '-' }}</td></tr>
+                                        <tr><th>ASN</th><td>{{ selectedIpData.asn ?? '-' }}</td></tr>
+                                        <tr><th>Organisation</th><td>{{ selectedIpData.organization ?? '-' }}</td></tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Anonymisation</h6>
+                                    <table class="table table-sm">
+                                        <tr><th>VPN</th><td>{{ selectedIpData.isVpn ? '<span class="badge bg-warning">Oui</span>' : 'Non' }}</td></tr>
+                                        <tr><th>Proxy</th><td>{{ selectedIpData.isProxy ? '<span class="badge bg-warning">Oui</span>' : 'Non' }}</td></tr>
+                                        <tr><th>Tor</th><td>{{ selectedIpData.isTor ? '<span class="badge bg-danger">Oui</span>' : 'Non' }}</td></tr>
+                                        <tr><th>Type réseau</th><td>{{ selectedIpData.networkType ?? '-' }}</td></tr>
+                                        <tr><th>Score risque</th><td><span class="badge bg-{{ selectedIpData.riskScore >= 50 ? 'danger' : 'success' }}">{{ selectedIpData.riskScore }}</span></td></tr>
+                                        <tr><th>Dernière vérif.</th><td>{{ selectedIpData.lastCheckedAt|date('d/m/Y H:i') }}</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Aucune donnée disponible pour cette IP.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                {# Block/Unblock Form #}
+                <div class="card">
+                    <div class="card-header">Actions</div>
+                    <div class="card-body">
+                        {% if selectedIpBlock and selectedIpBlock.isActive and not selectedIpBlock.isWhitelist %}
+                            <form method="post" action="{{ path('app_security_ip_unblock') }}">
+                                <input type="hidden" name="ipAddress" value="{{ selectedIp }}">
+                                <button type="submit" class="btn btn-success w-100" onclick="return confirm('Débloquer cette IP?')">
+                                    <i class="bi bi-unlock me-1"></i>Débloquer
+                                </button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{{ path('app_security_ip_block') }}">
+                                <input type="hidden" name="ipAddress" value="{{ selectedIp }}">
+                                <div class="mb-3">
+                                    <label class="form-label">Raison</label>
+                                    <select name="reason" class="form-select">
+                                        <option value="manual">Manuel</option>
+                                        <option value="brute_force">Brute Force</option>
+                                        <option value="scanning">Scanning</option>
+                                        <option value="automated">Automatisé</option>
+                                        <option value="threat_intel">Threat Intelligence</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Durée (jours)</label>
+                                    <input type="number" name="duration" class="form-control" value="180" min="1" max="365">
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Bloquer cette IP?')">
+                                    <i class="bi bi-shield-x me-1"></i>Bloquer
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

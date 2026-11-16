@@ -89,7 +89,7 @@
                 </span>
             </div>
             <div class="db-chart-area">
-                <canvas id="alertEvolutionChart" height="90"></canvas>
+                <div id="alertEvolutionChart" style="height:90px;"></div>
             </div>
         </div>
 
@@ -194,7 +194,7 @@
                 </div>
             </header>
             <div class="dashboard-priority-chart">
-                <canvas id="generalPriorityChart" aria-label="Répartition des alertes par priorité"></canvas>
+                <div id="generalPriorityChart" style="height:200px;" aria-label="Répartition des alertes par priorité"></div>
             </div>
             <p class="dashboard-insight-note">Répartition calculée à partir des priorités attribuées aux alertes.</p>
         </article>
@@ -507,6 +507,7 @@
 ═══════════════════════════════════════════════════════════════════════════ #}
 {% block javascripts %}
 {{ parent() }}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 function initializeDashboardMap() {
@@ -630,160 +631,144 @@ const periodSelect = document.getElementById('chartPeriodSelect');
 if (periodSelect) periodSelect.onchange = event => updateChartPeriod(event.currentTarget.value);
 initializeDashboardMap();
 
-/* ─── Defaults Chart.js ─── */
-const isDarkChart = document.body.classList.contains('dark');
-if (typeof Chart === 'undefined') {
-    console.error('Les graphiques du tableau de bord ne peuvent pas être chargés : Chart.js est indisponible.');
-    return;
-}
-Chart.defaults.color          = isDarkChart ? '#a8c4b8' : '#94a3b8';
-Chart.defaults.borderColor    = isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
-Chart.defaults.font.family    = 'Inter, system-ui, sans-serif';
-Chart.defaults.font.size      = 11;
+    /* ─── Graphiques ECharts ─── */
+    const isDarkChart = document.body.classList.contains('dark');
+    if (typeof echarts === 'undefined') {
+        console.error('Les graphiques du tableau de bord ne peuvent pas être chargés : ECharts est indisponible.');
+        return;
+    }
+    const textColor   = isDarkChart ? '#a8c4b8' : '#94a3b8';
+    const gridColor   = isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.08)';
 
-/* ─── Graphique évolution (line chart) — Différenciation Teal vs Bleu ─── */
-Chart.getChart(evolutionCanvas)?.destroy();
-const evolutionCtx = evolutionCanvas.getContext('2d');
+    /* Graphique évolution (line chart) — Différenciation Teal vs Bleu */
+    if (window.geiDashboardEvolutionChart) window.geiDashboardEvolutionChart.dispose();
+    const evolutionChart = echarts.init(evolutionCanvas, null, { renderer: 'canvas' });
+    window.geiDashboardEvolutionChart = evolutionChart;
 
-/* Nouvelles alertes : Teal primaire (#16856b) */
-const gradientTeal = evolutionCtx.createLinearGradient(0, 0, 0, 300);
-gradientTeal.addColorStop(0,   isDarkChart ? 'rgba(22,133,107,0.25)' : 'rgba(22,133,107,0.16)');
-gradientTeal.addColorStop(1,   isDarkChart ? 'rgba(22,133,107,0.05)' : 'rgba(22,133,107,0.01)');
+    const gradientTeal = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDarkChart ? 'rgba(22,133,107,0.35)' : 'rgba(22,133,107,0.18)' },
+        { offset: 1, color: isDarkChart ? 'rgba(22,133,107,0.05)' : 'rgba(22,133,107,0.02)' },
+    ]);
+    const gradientBlue = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDarkChart ? 'rgba(59,130,246,0.30)' : 'rgba(59,130,246,0.16)' },
+        { offset: 1, color: isDarkChart ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.02)' },
+    ]);
 
-/* Transmises : Bleu de la charte (#3b82f6) */
-const gradientBlue = evolutionCtx.createLinearGradient(0, 0, 0, 300);
-gradientBlue.addColorStop(0, isDarkChart ? 'rgba(59,130,246,0.22)' : 'rgba(59,130,246,0.15)');
-gradientBlue.addColorStop(1, isDarkChart ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.01)');
-
-new Chart(evolutionCtx, {
-    type: 'line',
-    data: {
-        labels: chartData.labels,
-        datasets: [
+    evolutionChart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: {
+            trigger: 'axis',
+            backgroundColor: isDarkChart ? 'rgba(18,63,53,0.97)' : 'rgba(18,63,53,0.97)',
+            borderColor: 'rgba(69,227,184,0.25)',
+            borderWidth: 1,
+            textStyle: { color: '#a8c4b8', fontSize: 11 },
+            formatter: function(params) {
+                const p = params[0];
+                return `${p.seriesName} : ${p.value}<br/>${p.axisValue}`;
+            }
+        },
+        grid: { left: 10, right: 10, top: 20, bottom: 20, containLabel: true, borderColor: gridColor },
+        xAxis: {
+            type: 'category',
+            data: chartData.labels,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10 },
+            splitLine: { show: false },
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10 },
+            splitLine: { lineStyle: { color: gridColor, type: 'dashed' } },
+            min: 0,
+        },
+        series: [
             {
-                label: 'Nouvelles alertes',
+                name: 'Nouvelles alertes',
+                type: 'line',
+                smooth: true,
+                symbol: 'none',
+                itemStyle: { color: '#16856b' },
+                lineStyle: { width: 2, color: '#16856b' },
+                areaStyle: { color: gradientTeal },
                 data: chartData.nouvelles,
-                borderColor:     '#16856b',
-                backgroundColor: gradientTeal,
-                borderWidth:     2,
-                pointBackgroundColor: '#16856b',
-                pointBorderColor:     isDarkChart ? '#162219' : '#fff',
-                pointBorderWidth:     2,
-                pointRadius:     0,
-                pointHoverRadius: 5,
-                tension: 0.35,
-                fill: true,
             },
             {
-                label: 'Transmises',
+                name: 'Transmises',
+                type: 'line',
+                smooth: true,
+                symbol: 'none',
+                itemStyle: { color: '#3b82f6' },
+                lineStyle: { width: 2, color: '#3b82f6' },
+                areaStyle: { origin: 'start', color: gradientBlue },
                 data: chartData.transmises,
-                borderColor:     '#3b82f6',
-                backgroundColor: gradientBlue,
-                borderWidth:     2,
-                pointBackgroundColor: '#3b82f6',
-                pointBorderColor:     isDarkChart ? '#162219' : '#fff',
-                pointBorderWidth:     2,
-                pointRadius:     0,
-                pointHoverRadius: 5,
-                tension: 0.35,
-                fill: false,
             }
         ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-            legend: { display: false },
+    });
+
+    /* Graphique priorités (doughnut) */
+    const priorityEl = document.getElementById('generalPriorityChart');
+    if (priorityEl) {
+        if (window.geiDashboardPriorityChart) window.geiDashboardPriorityChart.dispose();
+        const priorityChart = echarts.init(priorityEl, null, { renderer: 'canvas' });
+        window.geiDashboardPriorityChart = priorityChart;
+        priorityChart.setOption({
+            backgroundColor: 'transparent',
             tooltip: {
-                backgroundColor: isDarkChart ? 'rgba(18,63,53,0.97)' : 'rgba(18,63,53,0.97)',
-                borderColor:     'rgba(69,227,184,0.25)',
-                borderWidth:     1,
-                padding:         12,
-                cornerRadius:    8,
-                titleColor:      '#e2ede8',
-                bodyColor:       '#a8c4b8',
-                titleFont:       { size: 12, weight: '700', family: 'Inter, sans-serif' },
-                bodyFont:        { size: 11, family: 'Inter, sans-serif' },
-                callbacks: {
-                    label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}`
-                }
-            }
-        },
-        scales: {
-            x: {
-                grid: { color: isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.12)', drawBorder: false },
-                ticks: { color: isDarkChart ? '#a8c4b8' : '#64748b', maxTicksLimit: 10, maxRotation: 0, font: { size: 10, family: 'Inter, sans-serif' } },
-                border: { display: false }
+                trigger: 'item',
+                formatter: '{b} : {c}',
+                textStyle: { color: '#a8c4b8', fontSize: 11 },
             },
-            y: {
-                grid: { color: isDarkChart ? 'rgba(168,196,184,0.08)' : 'rgba(148,163,184,0.12)', drawBorder: false },
-                ticks: { color: isDarkChart ? '#a8c4b8' : '#64748b', precision: 0, font: { size: 10, family: 'Inter, sans-serif' } },
-                border: { display: false },
-                beginAtZero: true
-            }
+            legend: {
+                orient: 'horizontal',
+                bottom: 10,
+                itemGap: 20,
+                textStyle: { color: textColor, fontSize: 11 },
+            },
+            series: [{
+                type: 'pie',
+                radius: ['55%', '75%'],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 6, borderColor: 'transparent', borderWidth: 0 },
+                label: { show: false },
+                emphasis: { label: { show: true, fontSize: 12 } },
+                labelLine: { show: false },
+                data: [
+                    { value: Number(chartData.priorites.critique) || 0, name: 'Critique', itemStyle: { color: '#c62828' } },
+                    { value: Number(chartData.priorites.eleve) || 0, name: 'Élevée', itemStyle: { color: '#d97706' } },
+                    { value: Number(chartData.priorites.modere) || 0, name: 'Modérée', itemStyle: { color: '#eab308' } },
+                    { value: Number(chartData.priorites.faible) || 0, name: 'Faible', itemStyle: { color: '#16856b' } },
+                ],
+            }]
+        });
+    }
+
+    /* ─── Mise à jour de la période ─── */
+    function updateChartPeriod(days) {
+        const period = Number(days);
+        if (![7, 30, 90].includes(period)) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('period', String(period));
+        if (window.Turbo && typeof window.Turbo.visit === 'function') {
+            window.Turbo.visit(url.toString());
+        } else {
+            window.location.assign(url);
         }
     }
-});
-const priorityCanvas = document.getElementById('generalPriorityChart');
-if (priorityCanvas) {
-    Chart.getChart(priorityCanvas)?.destroy();
-    new Chart(priorityCanvas.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Critique', 'Élevée', 'Modérée', 'Faible'],
-            datasets: [{
-                data: [
-                    Number(chartData.priorites.critique) || 0,
-                    Number(chartData.priorites.eleve) || 0,
-                    Number(chartData.priorites.modere) || 0,
-                    Number(chartData.priorites.faible) || 0,
-                ],
-                backgroundColor: ['#c62828', '#d97706', '#eab308', '#16856b'],
-                borderWidth: 0,
-                hoverOffset: 4,
-            }],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '68%',
-            plugins: {
-                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
-                tooltip: { callbacks: { label: (context) => ` ${context.label} : ${context.parsed}` } },
-            },
-        },
-    });
-}
 
-/* ─── Mise à jour de la période ─── */
-function updateChartPeriod(days) {
-    const period = Number(days);
-    if (![7, 30, 90].includes(period)) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set('period', String(period));
-    if (window.Turbo && typeof window.Turbo.visit === 'function') {
-        window.Turbo.visit(url.toString());
-    } else {
-        window.location.assign(url);
+    /* ─── Redimensionnement des graphiques ECharts ─── */
+    if (window.ResizeObserver) {
+        const evolutionContainer = document.getElementById('alertEvolutionChart');
+        if (evolutionContainer) {
+            window.geiDashboardResizeObserver = new ResizeObserver(() => {
+                if (window.geiDashboardEvolutionChart) window.geiDashboardEvolutionChart.resize();
+                if (window.geiDashboardPriorityChart) window.geiDashboardPriorityChart.resize();
+            });
+            window.geiDashboardResizeObserver.observe(evolutionContainer.parentElement);
+        }
     }
-}
-
-/* ─── Stabiliser le redimensionnement du graphique ─── */
-if (window.ResizeObserver) {
-    const chartCanvas = document.getElementById('alertEvolutionChart');
-    if (chartCanvas) {
-        window.geiDashboardResizeObserver = new ResizeObserver(() => {
-            const ctx = chartCanvas.getContext('2d');
-            const chart = Chart.getChart(ctx);
-            if (chart) chart.resize();
-        });
-        window.geiDashboardResizeObserver.observe(chartCanvas.parentElement);
-    }
-}
-
-}
 
 window.geiInitializeGeneralDashboard = initializeGeneralDashboard;
 if (document.readyState === 'loading') {

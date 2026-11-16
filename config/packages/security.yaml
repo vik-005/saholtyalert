@@ -16,6 +16,8 @@ security:
             lazy: true
             provider: app_user_provider
             user_checker: App\Security\UserChecker
+            custom_authenticators:
+                - App\Security\WebauthnAuthenticator
             form_login:
                 login_path: app_login
                 check_path: app_login
@@ -51,6 +53,8 @@ security:
         - { path: ^/conditions-utilisation$, roles: PUBLIC_ACCESS }
         - { path: ^/2fa, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
         - { path: ^/2fa_check, roles: IS_AUTHENTICATED_2FA_IN_PROGRESS }
+        - { path: ^/login/webauthn, roles: PUBLIC_ACCESS }
+        - { path: ^/compte/securite/webauthn, roles: ROLE_USER }
         # Les comptes sont provisionnés dans l’administration ; aucune auto-inscription publique.
         - { path: ^/register, roles: ROLE_SUPERADMIN }
         - { path: ^/compte/securite/2fa, roles: ROLE_USER }
@@ -64,6 +68,10 @@ security:
         - { path: ^/admin, roles: ROLE_SUPERADMIN }
         - { path: ^/audit, roles: ROLE_PFT }
         - { path: ^/carte, roles: ROLE_PFT }
+        # Module géospatial GEOINT — EMETTEUR_TERRAIN explicitement exclu
+        # Le Voter GeoVoter affine les permissions à l'intérieur de ROLE_PFT
+        - { path: ^/geo/api/, roles: ROLE_PFT }
+        - { path: ^/geo, roles: ROLE_PFT }
         - { path: ^/wizard, roles: ROLE_USER }
         - { path: ^/kpi, roles: ROLE_COMITE_AIT }
         - { path: ^/urgence, roles: ROLE_PFT }

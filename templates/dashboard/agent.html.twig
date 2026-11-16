@@ -316,181 +316,254 @@
    SCRIPTS Chart.js
 ═════════════════════════════════════════════════════════════════════════ #}
 <script>
-if (typeof Chart !== 'undefined') {
-    Chart.defaults.color = '#94a3b8';
-    Chart.defaults.borderColor = 'rgba(148,163,184,0.08)';
-    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
-    Chart.defaults.font.size = 11;
+/* ═════════════════════════════════════════════════════════════════════════════
+   ECharts PRO — Dashboard Agent — graphiques animés, responsive, dark/light
+   ═════════════════════════════════════════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", function() {
+    const GEI = {
+        teal:   "#16856b",
+        blue:   "#3b82f6",
+        amber:  "#fbbf24",
+        emerald:"#34d399",
+        red:    "#ef4444",
+        orange: "#f97316",
+        yellow: "#eab308",
+    };
+    const isDark = document.body.classList.contains("dark") || document.documentElement.classList.contains("dark");
+    const textColor = isDark ? "#a8c4b8" : "#94a3b8";
+    const gridColor = isDark ? "rgba(168,196,184,0.08)" : "rgba(148,163,184,0.08)";
 
-    // ─── Évolution mensuelle ───
-    const evolutionCtx = document.getElementById('evolutionMensuelleChart')?.getContext('2d');
-    if (evolutionCtx) {
-        Chart.getChart(evolutionCtx)?.destroy();
+    function initChart(elId, option) {
+        const el = document.getElementById(elId);
+        if (!el || typeof echarts === "undefined") return;
+        const chart = echarts.init(el, null, { renderer: "canvas", devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
+        window.__gei_echarts = window.__gei_echarts || {};
+        window.__gei_echarts[elId] = chart;
+        chart.setOption(option, true);
+        return chart;
+    }
 
-        const gradTeal = evolutionCtx.createLinearGradient(0, 0, 0, 200);
-        gradTeal.addColorStop(0, 'rgba(22,133,107,0.16)');
-        gradTeal.addColorStop(1, 'rgba(22,133,107,0.01)');
+    /* ─── 1) Évolution mensuelle (line area) ─── */
+    const evoLabels = {{ evolutionMensuelle.labels|json_encode|raw }};
+    const evoSoumises = {{ evolutionMensuelle.soumises|json_encode|raw }};
+    const evoValidees = {{ evolutionMensuelle.validees|json_encode|raw }};
 
-        const gradBlue = evolutionCtx.createLinearGradient(0, 0, 0, 200);
-        gradBlue.addColorStop(0, 'rgba(59,130,246,0.15)');
-        gradBlue.addColorStop(1, 'rgba(59,130,246,0.01)');
+    const gradTeal = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDark ? "rgba(22,133,107,0.35)" : "rgba(22,133,107,0.18)" },
+        { offset: 1, color: isDark ? "rgba(22,133,107,0.05)" : "rgba(22,133,107,0.02)" },
+    ]);
+    const gradBlue = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+        { offset: 0, color: isDark ? "rgba(59,130,246,0.30)" : "rgba(59,130,246,0.16)" },
+        { offset: 1, color: isDark ? "rgba(59,130,246,0.05)" : "rgba(59,130,246,0.02)" },
+    ]);
 
-        new Chart(evolutionCtx, {
-            type: 'line',
-            data: {
-                labels: {{ evolutionMensuelle.labels|json_encode|raw }},
-                datasets: [
-                    {
-                        label: 'Soumises',
-                        data: {{ evolutionMensuelle.soumises|json_encode|raw }},
-                        borderColor: '#16856b',
-                        backgroundColor: gradTeal,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#16856b',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 3,
-                        tension: 0.35,
-                        fill: true,
-                    },
-                    {
-                        label: 'Validées',
-                        data: {{ evolutionMensuelle.validees|json_encode|raw }},
-                        borderColor: '#059669',
-                        backgroundColor: gradBlue,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#059669',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 3,
-                        tension: 0.35,
-                        fill: true,
-                    }
-                ]
+    initChart("evolutionMensuelleChart", {
+        backgroundColor: "transparent",
+        animation: true,
+        animationDuration: 1200,
+        animationEasing: "cubicOut",
+        tooltip: {
+            trigger: "axis",
+            backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+            textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
+        },
+        grid: { left: 40, right: 20, top: 30, bottom: 40, containLabel: true },
+        xAxis: {
+            type: "category",
+            data: evoLabels,
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10 },
+            splitLine: { show: false },
+        },
+        yAxis: {
+            type: "value",
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { color: textColor, fontSize: 10 },
+            splitLine: { lineStyle: { color: gridColor, type: "dashed" } },
+            min: 0,
+        },
+        series: [
+            {
+                name: "Soumises",
+                type: "line",
+                smooth: true,
+                symbol: "circle",
+                symbolSize: 5,
+                itemStyle: { color: GEI.teal },
+                lineStyle: { width: 2, color: GEI.teal },
+                areaStyle: { color: gradTeal },
+                data: evoSoumises,
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { color: '#a8c4b8' } },
-                    x: { ticks: { color: '#a8c4b8' } }
+            {
+                name: "Validées",
+                type: "line",
+                smooth: true,
+                symbol: "circle",
+                symbolSize: 5,
+                itemStyle: { color: GEI.blue },
+                lineStyle: { width: 2, color: GEI.blue },
+                areaStyle: { origin: "start", color: gradBlue },
+                data: evoValidees,
+            }
+        ]
+    });
+
+    /* ─── Helpers donut ─── */
+    function donutOption(title, values, labels, colors, totalKey) {
+        const total = values.reduce((a, b) => a + b, 0) || 1;
+        return {
+            backgroundColor: "transparent",
+            animation: true,
+            animationDuration: 1500,
+            animationEasing: "cubicOut",
+            tooltip: {
+                trigger: "item",
+                backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+                textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
+                formatter: function (params) {
+                    const pct = total > 0 ? Math.round((params.value / total) * 100) : 0;
+                    return params.name + " : " + params.value + " (" + pct + "%)";
                 }
-            }
-        });
-    }
-
-    // ─── Distribution des scores ───
-    const scoreDistCtx = document.getElementById('scoreDistributionChart')?.getContext('2d');
-    if (scoreDistCtx) {
-        Chart.getChart(scoreDistCtx)?.destroy();
-        const total = ({{ scoreDistribution.critique ?? 0 }}) + ({{ scoreDistribution.eleve ?? 0 }}) + ({{ scoreDistribution.modere ?? 0 }}) + ({{ scoreDistribution.faible ?? 0 }});
-        new Chart(scoreDistCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
-                datasets: [{
-                    data: [{{ scoreDistribution.critique ?? 0 }}, {{ scoreDistribution.eleve ?? 0 }}, {{ scoreDistribution.modere ?? 0 }}, {{ scoreDistribution.faible ?? 0 }}],
-                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
-                    borderColor: 'rgba(18,34,29,0.6)',
-                    borderWidth: 2,
-                }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-            }
-        });
+            series: [{
+                type: "pie",
+                radius: ["55%", "75%"],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 8, borderColor: "transparent", borderWidth: 0 },
+                label: { show: false },
+                emphasis: { label: { show: true, fontSize: 12 } },
+                labelLine: { show: false },
+                data: values.map((v, i) => ({ value: v, name: labels[i], itemStyle: { color: colors[i] } })),
+            }]
+        };
     }
 
-    // ─── Priorités ───
-    const priorityCtx = document.getElementById('priorityChart')?.getContext('2d');
-    if (priorityCtx) {
-        Chart.getChart(priorityCtx)?.destroy();
-        new Chart(priorityCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Critique', 'Élevé', 'Modéré', 'Faible'],
-                datasets: [{
-                    data: [{{ kpis.critique ?? 0 }}, {{ kpis.eleve ?? 0 }}, {{ kpis.modere ?? 0 }}, {{ kpis.faible ?? 0 }}],
-                    backgroundColor: ['#ef4444', '#f97316', '#f59e0b', '#10b981'],
-                    borderColor: 'rgba(18,34,29,0.6)',
-                    borderWidth: 2,
-                }]
+    /* ─── 2) Distribution des scores (donut) ─── */
+    const sdValues = [
+        {{ scoreDistribution.critique ?? 0 }},
+        {{ scoreDistribution.eleve ?? 0 }},
+        {{ scoreDistribution.modere ?? 0 }},
+        {{ scoreDistribution.faible ?? 0 }},
+    ];
+    initChart("scoreDistributionChart", donutOption(
+        "Distribution des scores",
+        sdValues,
+        ["Critique", "Élevé", "Modéré", "Faible"],
+        [GEI.red, GEI.orange, GEI.amber, GEI.emerald]
+    ));
+
+    /* ─── 3) Priorités (donut) ─── */
+    const pValues = [
+        {{ kpis.critique ?? 0 }},
+        {{ kpis.eleve ?? 0 }},
+        {{ kpis.modere ?? 0 }},
+        {{ kpis.faible ?? 0 }},
+    ];
+    initChart("priorityChart", donutOption(
+        "Répartition par priorité",
+        pValues,
+        ["Critique", "Élevé", "Modéré", "Faible"],
+        [GEI.red, GEI.orange, GEI.amber, GEI.emerald]
+    ));
+
+    /* ─── 4) Catégories (bar horizontal) ─── */
+    const catStats = {{ catStats|json_encode|raw }};
+    if (Array.isArray(catStats) && catStats.length > 0) {
+        initChart("categorieChart", {
+            backgroundColor: "transparent",
+            animation: true,
+            animationDuration: 1000,
+            tooltip: {
+                trigger: "axis",
+                axisPointer: { type: "shadow" },
+                backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+                textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-            }
-        });
-    }
-
-    // ─── Catégories ───
-    const catCtx = document.getElementById('categorieChart')?.getContext('2d');
-    if (catCtx) {
-        Chart.getChart(catCtx)?.destroy();
-        const categories = {{ catStats|json_encode|raw }};
-        if (Array.isArray(categories) && categories.length > 0) {
-            new Chart(catCtx, {
-                type: 'bar',
-                data: {
-                    labels: categories.map(c => c.categorie || 'Sans catégorie'),
-                    datasets: [{
-                        label: 'Alertes',
-                        data: categories.map(c => c.count),
-                        backgroundColor: '#059669',
-                        borderColor: 'rgba(5,150,105,0.3)',
-                        borderWidth: 1,
-                    }]
+            grid: { left: 100, right: 30, top: 20, bottom: 30, containLabel: true },
+            yAxis: {
+                type: "category",
+                data: catStats.map(c => c.categorie || "Sans catégorie"),
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: textColor, fontSize: 11 },
+                inverse: true,
+            },
+            xAxis: {
+                type: "value",
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: textColor, fontSize: 10 },
+                splitLine: { lineStyle: { color: gridColor, type: "dashed" } },
+                min: 0,
+            },
+            series: [{
+                type: "bar",
+                data: catStats.map(c => c.count),
+                itemStyle: {
+                    color: GEI.teal,
+                    borderRadius: [0, 6, 6, 0],
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true, ticks: { color: '#a8c4b8' } }, y: { ticks: { color: '#a8c4b8' } } }
-                }
-            });
-        }
+                barMaxWidth: 26,
+            }]
+        });
     }
 
-    // ─── Urgences ───
-    const urgenceCtx = document.getElementById('urgenceChart')?.getContext('2d');
-    if (urgenceCtx) {
-        Chart.getChart(urgenceCtx)?.destroy();
-        const urgences = {{ urgenceStats|json_encode|raw }};
-        if (Array.isArray(urgences) && urgences.length > 0) {
-            const colors = {
-                'immediate': '#ef4444',
-                '24h': '#f97316',
-                '72h': '#fbbf24',
-                'routine': '#10b981'
-            };
-            new Chart(urgenceCtx, {
-                type: 'bar',
-                data: {
-                    labels: urgences.map(u => u.urgence || 'Sans'),
-                    datasets: [{
-                        label: 'Alertes',
-                        data: urgences.map(u => u.count),
-                        backgroundColor: urgences.map(u => colors[u.urgence] || '#94a3b8'),
-                        borderWidth: 1,
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true, ticks: { color: '#a8c4b8' } }, y: { ticks: { color: '#a8c4b8' } } }
-                }
-            });
-        }
+    /* ─── 5) Urgences (bar horizontal) ─── */
+    const urgences = {{ urgenceStats|json_encode|raw }};
+    if (Array.isArray(urgences) && urgences.length > 0) {
+        const uColors = {
+            immediate: GEI.red,
+            "24h": GEI.orange,
+            "72h": GEI.amber,
+            routine: GEI.emerald,
+        };
+        initChart("urgenceChart", {
+            backgroundColor: "transparent",
+            animation: true,
+            animationDuration: 1000,
+            tooltip: {
+                trigger: "axis",
+                axisPointer: { type: "shadow" },
+                backgroundColor: isDark ? "rgba(18,63,53,0.95)" : "rgba(255,255,255,0.95)",
+                textStyle: { color: "#a8c4b8", fontSize: 11, fontFamily: "Inter, sans-serif" },
+            },
+            grid: { left: 100, right: 30, top: 20, bottom: 30, containLabel: true },
+            yAxis: {
+                type: "category",
+                data: urgences.map(u => u.urgence || "Sans"),
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: textColor, fontSize: 11 },
+                inverse: true,
+            },
+            xAxis: {
+                type: "value",
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { color: textColor, fontSize: 10 },
+                splitLine: { lineStyle: { color: gridColor, type: "dashed" } },
+                min: 0,
+            },
+            series: [{
+                type: "bar",
+                data: urgences.map(u => ({ value: u.count, itemStyle: { color: uColors[u.urgence] || GEI.slate, borderRadius: [0, 6, 6, 0] } })),
+                barMaxWidth: 26,
+            }]
+        });
     }
-}
+
+    /* Responsive global */
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (window.__gei_echarts) {
+                Object.values(window.__gei_echarts).forEach(chart => chart.resize());
+            }
+        });
+        ro.observe(document.body);
+    }
+});
 </script>
 
 {% endblock %}

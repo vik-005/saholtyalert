@@ -1,0 +1,461 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Security Center — GEI{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+.sec-kpi-card {
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.sec-kpi-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.sec-kpi-icon { font-size: 2.4rem; opacity: .18; }
+.sec-kpi-label { font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; opacity: .8; }
+.sec-kpi-value { font-size: 1.9rem; font-weight: 700; line-height: 1; }
+.sec-chart-card { border-radius: 10px; }
+.sec-chart-card .card-header { background: transparent; border-bottom: 1px solid rgba(0,0,0,.07); font-weight: 600; font-size: .9rem; }
+.sec-event-row:hover { background: rgba(var(--bs-primary-rgb),.04); }
+.risk-badge-normal   { background: #22c55e; }
+.risk-badge-suspicious { background: #f59e0b; }
+.risk-badge-probable { background: #f97316; }
+.risk-badge-threat   { background: #ef4444; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4 px-4">
+
+    {# ── En-tête ─────────────────────────────────────────────────────────── #}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h1 class="h3 mb-0 fw-700">
+                <i class="bi bi-shield-shaded me-2 text-primary"></i>Security Center
+            </h1>
+            <p class="text-muted mb-0 small">Surveillance en temps réel · 30 derniers jours</p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ path('app_security_audit') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-journal-text me-1"></i>Journal d'audit
+            </a>
+            <a href="{{ path('app_security_ip') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-globe me-1"></i>Analyse IP
+            </a>
+            <a href="{{ path('app_security_routes') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-signpost-split me-1"></i>Routes
+            </a>
+            <a href="{{ path('app_security_alerts') }}" class="btn btn-sm btn-warning position-relative">
+                <i class="bi bi-exclamation-triangle me-1"></i>Alertes
+                {% set newAlerts = recentAlerts|filter(a => a.status == 'new')|length %}
+                {% if newAlerts > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{{ newAlerts }}</span>
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    {# ── KPI Cards ────────────────────────────────────────────────────────── #}
+    <div class="row g-3 mb-4">
+        {% set kpis = [
+            { label: 'Connexions totales', value: stats.totalConnections|number_format, icon: 'bi-people-fill', color: '#3b82f6', bg: 'rgba(59,130,246,.1)' },
+            { label: 'Réussies',           value: stats.successfulLogins|number_format, icon: 'bi-check-circle-fill', color: '#22c55e', bg: 'rgba(34,197,94,.1)' },
+            { label: 'Échouées',           value: stats.failedLogins|number_format,     icon: 'bi-x-circle-fill', color: '#ef4444', bg: 'rgba(239,68,68,.1)' },
+            { label: 'Accès refusés',      value: stats.forbiddenAccess|number_format,  icon: 'bi-slash-circle-fill', color: '#f97316', bg: 'rgba(249,115,22,.1)' },
+            { label: 'IP uniques',         value: stats.uniqueIps|number_format,        icon: 'bi-globe-fill', color: '#8b5cf6', bg: 'rgba(139,92,246,.1)' },
+            { label: 'IP bloquées',        value: stats.blockedIps,                     icon: 'bi-shield-x-fill', color: '#dc2626', bg: 'rgba(220,38,38,.1)' },
+            { label: 'Score risque moy.',  value: stats.avgRiskScore ~ '/100',          icon: 'bi-graph-up-arrow', color: '#0891b2', bg: 'rgba(8,145,178,.1)' },
+            { label: 'Activités suspectes',value: stats.suspiciousAttempts,             icon: 'bi-exclamation-octagon-fill', color: '#b45309', bg: 'rgba(180,83,9,.1)' },
+        ] %}
+        {% for kpi in kpis %}
+        <div class="col-6 col-md-3 col-xl-auto flex-xl-fill">
+            <div class="card sec-kpi-card border-0 h-100" style="background:{{ kpi.bg }};">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <i class="bi {{ kpi.icon }} sec-kpi-icon" style="color:{{ kpi.color }};"></i>
+                    <div>
+                        <div class="sec-kpi-label" style="color:{{ kpi.color }};">{{ kpi.label }}</div>
+                        <div class="sec-kpi-value" style="color:{{ kpi.color }};">{{ kpi.value }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# ── Ligne 1 : Évolution + Répartition risque ─────────────────────────── #}
+    <div class="row g-3 mb-3">
+        <div class="col-xl-8">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-activity me-2 text-primary"></i>Évolution des activités (7 jours)</span>
+                    <small class="text-muted">Connexions / Échecs / Refus / Erreurs</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-activity" style="height:280px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header">
+                    <i class="bi bi-pie-chart-fill me-2 text-warning"></i>Répartition des niveaux de risque
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-risk" style="height:280px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Ligne 2 : Types d'alertes + Top routes ────────────────────────────── #}
+    <div class="row g-3 mb-3">
+        <div class="col-xl-5">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart-fill me-2 text-danger"></i>Types d'alertes (30 jours)
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-alert-types" style="height:260px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-7">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header">
+                    <i class="bi bi-signpost-split-fill me-2 text-info"></i>Routes les plus consultées (7 jours)
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-top-routes" style="height:260px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Ligne 3 : Événements récents + Alertes récentes ──────────────────── #}
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history me-2 text-secondary"></i>Derniers événements</span>
+                    <a href="{{ path('app_security_audit') }}" class="btn btn-xs btn-outline-primary" style="font-size:.75rem;padding:2px 8px;">Voir tout</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0" style="font-size:.8rem;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Heure</th>
+                                    <th>IP</th>
+                                    <th>Événement</th>
+                                    <th>HTTP</th>
+                                    <th>Risque</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for e in recentEvents %}
+                                <tr class="sec-event-row">
+                                    <td class="text-muted">{{ e.createdAt|date('H:i:ss') }}</td>
+                                    <td class="font-monospace">{{ e.ipAddress }}</td>
+                                    <td>{{ e.eventType|replace({'_':' '}) }}</td>
+                                    <td>
+                                        <span class="badge {% if e.httpStatusCode >= 500 %}bg-danger{% elseif e.httpStatusCode >= 400 %}bg-warning text-dark{% else %}bg-success{% endif %}" style="font-size:.7rem;">
+                                            {{ e.httpStatusCode ?? '-' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if e.riskScore >= 80 %}
+                                            <span class="badge risk-badge-threat">{{ e.riskScore }}</span>
+                                        {% elseif e.riskScore >= 60 %}
+                                            <span class="badge risk-badge-probable">{{ e.riskScore }}</span>
+                                        {% elseif e.riskScore >= 30 %}
+                                            <span class="badge risk-badge-suspicious">{{ e.riskScore }}</span>
+                                        {% else %}
+                                            <span class="badge risk-badge-normal">{{ e.riskScore }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-center text-muted py-3">Aucun événement enregistré</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="card sec-chart-card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>Alertes récentes</span>
+                    <a href="{{ path('app_security_alerts') }}" class="btn btn-xs btn-outline-warning" style="font-size:.75rem;padding:2px 8px;">Voir tout</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:320px; overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0" style="font-size:.8rem;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>IP</th>
+                                    <th>Sévérité</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in recentAlerts %}
+                                <tr>
+                                    <td class="text-muted">{{ a.detectedAt|date('d/m H:i') }}</td>
+                                    <td>{{ a.alertType|replace({'_':' '})|capitalize }}</td>
+                                    <td class="font-monospace">{{ a.ipAddress ?? '—' }}</td>
+                                    <td>
+                                        {% if a.severity == 'critical' %}<span class="badge bg-danger">Critical</span>
+                                        {% elseif a.severity == 'high'  %}<span class="badge bg-warning text-dark">High</span>
+                                        {% elseif a.severity == 'medium'%}<span class="badge bg-info">Medium</span>
+                                        {% else %}<span class="badge bg-secondary">Low</span>{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if a.status == 'new' %}<span class="badge bg-danger">Nouveau</span>
+                                        {% elseif a.status == 'acknowledged' %}<span class="badge bg-warning text-dark">Reconnu</span>
+                                        {% elseif a.status == 'investigating' %}<span class="badge bg-info">En cours</span>
+                                        {% else %}<span class="badge bg-success">{{ a.status }}</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="5" class="text-center text-muted py-3">Aucune alerte</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+{# ECharts — version 5 complète depuis CDN #}
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    // ── Palette commune ──────────────────────────────────────────────────
+    const COLORS = {
+        success   : '#22c55e',
+        danger    : '#ef4444',
+        warning   : '#f59e0b',
+        info      : '#3b82f6',
+        forbidden : '#f97316',
+        neutral   : '#94a3b8',
+    };
+
+    const RISK_COLORS = {
+        normal    : '#22c55e',
+        suspicious: '#f59e0b',
+        probable  : '#f97316',
+        threat    : '#ef4444',
+    };
+
+    const fontFamily = 'Inter, sans-serif';
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function initChart(id) {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        return echarts.init(el, null, { renderer: 'canvas' });
+    }
+
+    // ── 1. Graphique d'activité (ligne empilée) ──────────────────────────
+    (function buildActivityChart() {
+        const chart = initChart('chart-activity');
+        if (!chart) return;
+
+        const dates        = {{ chartData.dates|json_encode|raw }};
+        const logins       = {{ chartData.logins|json_encode|raw }};
+        const failedLogins = {{ chartData.failedLogins|json_encode|raw }};
+        const forbidden    = {{ chartData.forbidden|json_encode|raw }};
+        const errors       = {{ chartData.errors|json_encode|raw }};
+
+        chart.setOption({
+            tooltip : { trigger: 'axis', textStyle: { fontFamily } },
+            legend  : { bottom: 0, textStyle: { fontFamily, fontSize: 11 } },
+            grid    : { top: 16, left: 50, right: 20, bottom: 40 },
+            xAxis   : {
+                type: 'category',
+                data: dates,
+                axisLabel: { fontFamily, fontSize: 11 },
+                axisLine : { lineStyle: { color: '#e2e8f0' } },
+            },
+            yAxis   : {
+                type: 'value',
+                axisLabel: { fontFamily, fontSize: 11 },
+                splitLine: { lineStyle: { color: '#f1f5f9' } },
+            },
+            series: [
+                {
+                    name: 'Connexions réussies',
+                    type: 'line', smooth: true,
+                    data: logins,
+                    itemStyle: { color: COLORS.success },
+                    areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+                        colorStops: [{ offset:0, color:'rgba(34,197,94,.25)' }, { offset:1, color:'rgba(34,197,94,.02)' }] }},
+                    lineStyle : { width: 2 },
+                    symbol    : 'circle', symbolSize: 5,
+                },
+                {
+                    name: 'Échecs connexion',
+                    type: 'line', smooth: true,
+                    data: failedLogins,
+                    itemStyle: { color: COLORS.danger },
+                    areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+                        colorStops: [{ offset:0, color:'rgba(239,68,68,.20)' }, { offset:1, color:'rgba(239,68,68,.02)' }] }},
+                    lineStyle : { width: 2 },
+                    symbol    : 'circle', symbolSize: 5,
+                },
+                {
+                    name: 'Accès refusés',
+                    type: 'bar',
+                    data: forbidden,
+                    itemStyle : { color: COLORS.forbidden, borderRadius: [3,3,0,0] },
+                    barMaxWidth: 20,
+                },
+                {
+                    name: 'Erreurs HTTP',
+                    type: 'bar',
+                    data: errors,
+                    itemStyle : { color: COLORS.warning, borderRadius: [3,3,0,0] },
+                    barMaxWidth: 20,
+                },
+            ],
+        });
+
+        window.addEventListener('resize', () => chart.resize());
+    })();
+
+    // ── 2. Graphique risque (donut) ──────────────────────────────────────
+    (function buildRiskChart() {
+        const chart = initChart('chart-risk');
+        if (!chart) return;
+
+        // Construire les données depuis les niveaux de risque Symfony
+        const rawRiskData = {{ riskData|json_encode|raw }};
+        const labelMap = {
+            normal    : 'Normal (0-30)',
+            suspicious: 'Suspect (31-60)',
+            probable  : 'Probable (61-80)',
+            threat    : 'Menace (81-100)',
+        };
+        const seriesData = rawRiskData.map(r => ({
+            name  : labelMap[r.riskLevel] ?? r.riskLevel,
+            value : parseInt(r.count),
+            itemStyle: { color: RISK_COLORS[r.riskLevel] ?? COLORS.neutral },
+        }));
+
+        chart.setOption({
+            tooltip : {
+                trigger    : 'item',
+                formatter  : '{b}: {c} ({d}%)',
+                textStyle  : { fontFamily },
+            },
+            legend  : { orient: 'vertical', right: 0, top: 'center', textStyle: { fontFamily, fontSize: 11 } },
+            series  : [{
+                type        : 'pie',
+                radius      : ['42%', '72%'],
+                center      : ['38%', '50%'],
+                avoidLabelOverlap: false,
+                data        : seriesData.length ? seriesData : [{ name: 'Aucune donnée', value: 1, itemStyle: { color: '#e2e8f0' } }],
+                label       : { show: false },
+                emphasis    : { label: { show: true, fontSize: 13, fontFamily, fontWeight: 600 } },
+            }],
+        });
+
+        window.addEventListener('resize', () => chart.resize());
+    })();
+
+    // ── 3. Types d'alertes (barres horizontales) ──────────────────────────
+    (function buildAlertTypesChart() {
+        const chart = initChart('chart-alert-types');
+        if (!chart) return;
+
+        const rawData  = {{ alertTypes|json_encode|raw }};
+        const typeLabels = {
+            brute_force         : 'Brute Force',
+            scanning            : 'Scanning',
+            automated           : 'Automatisé',
+            suspicious_behavior : 'Comportement suspect',
+            lateral_movement    : 'Mouvement latéral',
+            unauthorized_access : 'Accès non autorisé',
+        };
+        const typeColors = ['#ef4444','#f97316','#f59e0b','#8b5cf6','#ec4899','#06b6d4'];
+
+        const labels  = rawData.map((r,i) => typeLabels[r.alertType] ?? r.alertType);
+        const values  = rawData.map(r => parseInt(r.count));
+        const colors  = rawData.map((_, i) => typeColors[i % typeColors.length]);
+
+        chart.setOption({
+            tooltip : { trigger: 'axis', textStyle: { fontFamily } },
+            grid    : { left: 120, right: 20, top: 10, bottom: 30 },
+            xAxis   : { type: 'value', axisLabel: { fontFamily, fontSize: 11 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+            yAxis   : { type: 'category', data: labels, axisLabel: { fontFamily, fontSize: 11, width: 110, overflow: 'truncate' } },
+            series  : [{
+                type: 'bar',
+                data: values.map((v, i) => ({ value: v, itemStyle: { color: colors[i], borderRadius: [0,4,4,0] } })),
+                label: { show: true, position: 'right', fontFamily, fontSize: 11 },
+                barMaxWidth: 24,
+            }],
+        });
+
+        window.addEventListener('resize', () => chart.resize());
+    })();
+
+    // ── 4. Top routes (barres verticales) ────────────────────────────────
+    (function buildTopRoutesChart() {
+        const chart = initChart('chart-top-routes');
+        if (!chart) return;
+
+        const labels = {{ topRoutes.labels|json_encode|raw }};
+        const values = {{ topRoutes.values|json_encode|raw }};
+
+        // Tronquer les labels longs
+        const shortLabels = labels.map(l => (l && l.length > 28) ? '…' + l.slice(-25) : (l ?? '—'));
+
+        chart.setOption({
+            tooltip : {
+                trigger  : 'axis',
+                textStyle: { fontFamily },
+                formatter: (params) => {
+                    const idx = params[0].dataIndex;
+                    return `<b>${labels[idx] ?? '—'}</b><br/>${params[0].value} requêtes`;
+                },
+            },
+            grid    : { top: 16, left: 50, right: 20, bottom: 70 },
+            xAxis   : {
+                type    : 'category',
+                data    : shortLabels,
+                axisLabel: { fontFamily, fontSize: 10, rotate: 28, interval: 0 },
+                axisLine: { lineStyle: { color: '#e2e8f0' } },
+            },
+            yAxis   : {
+                type      : 'value',
+                axisLabel : { fontFamily, fontSize: 11 },
+                splitLine : { lineStyle: { color: '#f1f5f9' } },
+            },
+            series  : [{
+                type     : 'bar',
+                data     : values,
+                itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
+                label    : { show: true, position: 'top', fontFamily, fontSize: 10 },
+                barMaxWidth: 36,
+            }],
+        });
+
+        window.addEventListener('resize', () => chart.resize());
+    })();
+
+})();
+</script>
+{% endblock %}

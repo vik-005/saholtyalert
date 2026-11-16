@@ -1,0 +1,113 @@
+{# templates/emails/security_alert_summary.html.twig — Résumé quotidien #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport Sécurité Quotidien — GEI</title>
+    <style>
+        body  { font-family: 'Inter', system-ui, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
+        .container { max-width: 620px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .header { background: #1e293b; padding: 20px 28px; }
+        .header h1 { color: #f1f5f9; font-size: 17px; font-weight: 800; margin: 0; }
+        .header p  { color: #94a3b8; font-size: 11px; margin: 4px 0 0; }
+        .body { padding: 24px 28px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+        .kpi-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; text-align: center; }
+        .kpi-value { font-size: 28px; font-weight: 900; }
+        .kpi-label { font-size: 11px; color: #64748b; margin-top: 4px; }
+        .kpi-danger  { color: #dc2626; }
+        .kpi-warning { color: #d97706; }
+        .kpi-success { color: #16a34a; }
+        .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #64748b; margin: 0 0 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+        th { background: #f1f5f9; padding: 7px 10px; text-align: left; font-weight: 700; color: #475569; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        tr:last-child td { border-bottom: none; }
+        .badge-critical { background:#fef2f2; color:#b91c1c; padding:2px 8px; border-radius:4px; font-weight:700; }
+        .badge-high     { background:#fffbeb; color:#b45309; padding:2px 8px; border-radius:4px; font-weight:700; }
+        .btn { display:inline-block; background:#2563eb; color:#fff; font-weight:700; padding:10px 24px; border-radius:8px; text-decoration:none; font-size:13px; }
+        .footer { background:#f8fafc; border-top:1px solid #e2e8f0; text-align:center; padding:14px; font-size:11px; color:#94a3b8; }
+    </style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+    <div class="header">
+        <h1>📊 Rapport Sécurité Quotidien — GEI</h1>
+        <p>{{ period }} · Généré automatiquement · Réservé aux administrateurs</p>
+    </div>
+    <div class="body">
+
+        {# KPIs #}
+        <div class="kpi-grid">
+            <div class="kpi-item">
+                <div class="kpi-value kpi-danger">{{ stats.failedLogins }}</div>
+                <div class="kpi-label">Échecs connexion</div>
+            </div>
+            <div class="kpi-item">
+                <div class="kpi-value kpi-warning">{{ stats.blockedIps }}</div>
+                <div class="kpi-label">IP bloquées</div>
+            </div>
+            <div class="kpi-item">
+                <div class="kpi-value kpi-danger">{{ stats.highRiskEvents }}</div>
+                <div class="kpi-label">Évén. à haut risque</div>
+            </div>
+        </div>
+
+        {# Alertes critiques #}
+        {% if criticalAlerts|length > 0 %}
+        <div class="section-title">🔴 Alertes critiques non traitées ({{ criticalAlerts|length }})</div>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Type</th><th>IP</th><th>Sévérité</th></tr>
+            </thead>
+            <tbody>
+                {% for a in criticalAlerts|slice(0,10) %}
+                <tr>
+                    <td>{{ a.detectedAt|date('d/m H:i') }}</td>
+                    <td>{{ a.alertType|replace({'_':' '})|capitalize }}</td>
+                    <td style="font-family:monospace;">{{ a.ipAddress ?? '—' }}</td>
+                    <td>
+                        {% if a.severity == 'critical' %}<span class="badge-critical">Critical</span>
+                        {% else %}<span class="badge-high">High</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="font-size:13px;color:#16a34a;margin:0 0 20px;">✅ Aucune alerte critique non traitée.</p>
+        {% endif %}
+
+        {# Dernières IP bloquées #}
+        {% if recentlyBlocked|length > 0 %}
+        <div class="section-title">🛡️ IP bloquées récemment ({{ recentlyBlocked|length }})</div>
+        <table>
+            <thead>
+                <tr><th>Adresse IP</th><th>Raison</th><th>Bloquée le</th><th>Expire le</th></tr>
+            </thead>
+            <tbody>
+                {% for b in recentlyBlocked|slice(0,8) %}
+                <tr>
+                    <td style="font-family:monospace;">{{ b.ipAddress }}</td>
+                    <td>{{ b.reason|replace({'_':' '})|capitalize }}</td>
+                    <td>{{ b.blockedAt|date('d/m/Y') }}</td>
+                    <td>{{ b.expiresAt ? b.expiresAt|date('d/m/Y') : 'Permanent' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        <div style="text-align:center;margin-top:8px;">
+            <a href="{{ dashboardUrl }}" class="btn">Ouvrir le Security Center</a>
+        </div>
+    </div>
+    <div class="footer">
+        Rapport automatique quotidien · Plateforme GEI · Ne pas répondre à ce courriel.
+    </div>
+</div>
+</div>
+</body>
+</html>

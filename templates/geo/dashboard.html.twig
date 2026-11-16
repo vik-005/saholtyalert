@@ -1,0 +1,492 @@
+{% extends 'base.html.twig' %}
+{% block title %}GEOINT Center — GEI{% endblock %}
+
+{% block stylesheets %}{{ parent() }}
+<style>
+/* ── KPI cards ───────────────────────────────────────────────────────── */
+.geo-kpi { border-radius:10px; transition:transform .15s ease,box-shadow .15s ease; border:0; }
+.geo-kpi:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.12); }
+.geo-kpi-value { font-size:1.9rem; font-weight:800; line-height:1; }
+.geo-kpi-label { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; opacity:.8; }
+.geo-kpi-icon  { font-size:2.2rem; opacity:.15; }
+
+/* ── Navigation cards ────────────────────────────────────────────────── */
+.geo-nav-card { border-radius:12px; overflow:hidden; transition:transform .2s ease,box-shadow .2s ease; text-decoration:none; display:block; }
+.geo-nav-card:hover { transform:translateY(-4px); box-shadow:0 10px 30px rgba(0,0,0,.18); }
+
+/* ── Charts responsive ───────────────────────────────────────────────── */
+.geo-chart { width:100%; }
+
+/* ── Responsive heights ──────────────────────────────────────────────── */
+@media (max-width:767px) {
+  .geo-chart { height:220px !important; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4 px-3 px-md-4">
+
+    {# En-tête #}
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
+        <div>
+            <h1 class="h3 fw-800 mb-0"><i class="bi bi-globe-americas me-2 text-primary"></i>GEOINT Center</h1>
+            <p class="text-muted small mb-0">Intelligence géospatiale · Visualisation &amp; Analyse territoriale</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-primary" id="geo-total-badge" style="font-size:.9rem;">—</span>
+            <span class="text-muted small">alertes</span>
+        </div>
+    </div>
+
+    {# Filtres globaux #}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body py-3">
+            {% include 'geo/_filters.html.twig' %}
+        </div>
+    </div>
+
+    {# Alerte si aucune donnée #}
+    <div id="geo-no-data" class="alert alert-info d-none" role="alert">
+        <i class="bi bi-info-circle me-2"></i>Aucune alerte pour les filtres sélectionnés.
+    </div>
+    <div id="geo-dashboard-error" class="alert alert-danger d-none" role="alert"></div>
+
+    {# KPIs — 2 colonnes mobile, 3 md, 6 xl #}
+    <div class="row g-3 mb-4">
+        {% set kpi_defs = [
+            {id:'total',      label:'Alertes total',    icon:'bi-exclamation-circle-fill', color:'#3b82f6', bg:'rgba(59,130,246,.1)'},
+            {id:'nb_pays',    label:'Pays concernés',   icon:'bi-globe',                   color:'#8b5cf6', bg:'rgba(139,92,246,.1)'},
+            {id:'critique',   label:'Critiques',         icon:'bi-fire',                    color:'#ef4444', bg:'rgba(239,68,68,.1)'},
+            {id:'en_cours',   label:'En cours',          icon:'bi-arrow-clockwise',         color:'#f59e0b', bg:'rgba(245,158,11,.1)'},
+            {id:'validees',   label:'Validées',          icon:'bi-check-circle-fill',       color:'#22c55e', bg:'rgba(34,197,94,.1)'},
+            {id:'transmis',   label:'Transmises',        icon:'bi-send-fill',               color:'#0891b2', bg:'rgba(8,145,178,.1)'},
+        ] %}
+        {% for k in kpi_defs %}
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="card geo-kpi h-100" style="background:{{ k.bg }};">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <i class="bi {{ k.icon }} geo-kpi-icon" style="color:{{ k.color }};"></i>
+                    <div>
+                        <div class="geo-kpi-label" style="color:{{ k.color }};">{{ k.label }}</div>
+                        <div class="geo-kpi-value kpi-val" data-key="{{ k.id }}" style="color:{{ k.color }};">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Navigation cartes — 2 colonnes mobile, 4 desktop #}
+    <div class="row g-3 mb-4">
+        {% set maps = [
+            {route:'app_geo_choropleth', title:'Choroplèthe',       desc:'Densité par pays · ECharts',   icon:'bi-map-fill',        color:'#1d4ed8'},
+            {route:'app_geo_heatmap',    title:'Carte Thermique',    desc:'Zones de concentration',       icon:'bi-thermometer-high', color:'#b91c1c'},
+            {route:'app_geo_flux',       title:'Flux & Parcours',    desc:'Corridors transfrontaliers',   icon:'bi-arrow-left-right', color:'#0f766e'},
+            {route:'app_geo_worldmap',   title:'Carte Mondiale',     desc:'Vue multi-couches complète',   icon:'bi-layers-fill',      color:'#7c2d12'},
+        ] %}
+        {% for m in maps %}
+        <div class="col-6 col-xl-3">
+            <a href="{{ path(m.route) }}" class="geo-nav-card card text-white"
+               style="background:{{ m.color }};">
+                <div class="card-body py-3 py-md-4 text-center">
+                    <i class="bi {{ m.icon }} fs-1 mb-2 d-block opacity-75"></i>
+                    <div class="fw-700">{{ m.title }}</div>
+                    <div class="small opacity-75 mt-1 d-none d-md-block">{{ m.desc }}</div>
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Charts ligne 1 : Timeline (8/12) + Catégories (4/12) #}
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-xl-8">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-600 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-graph-up me-2 text-primary"></i>Évolution mensuelle</span>
+                    <small class="text-muted">12 derniers mois</small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-timeline" class="geo-chart" style="height:260px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-600">
+                    <i class="bi bi-pie-chart-fill me-2 text-info"></i>Par catégorie
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-categories" class="geo-chart" style="height:260px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Charts ligne 2 : Top pays (4/12) + Continents (4/12) + Corridors (4/12) #}
+    <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-600">
+                    <i class="bi bi-trophy-fill me-2 text-warning"></i>Top pays
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+                        <table class="table table-sm mb-0 table-hover" style="font-size:.82rem;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Pays</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Critique</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-top-markets">
+                                <tr><td colspan="3" class="text-center text-muted py-3">Chargement…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-600">
+                    <i class="bi bi-bar-chart-fill me-2 text-success"></i>Par continent
+                </div>
+                <div class="card-body p-2">
+                    <div id="chart-continents" class="geo-chart" style="height:260px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header fw-600">
+                    <i class="bi bi-signpost-split-fill me-2 text-secondary"></i>Top corridors
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height:260px;overflow-y:auto;">
+                        <table class="table table-sm mb-0 table-hover" style="font-size:.82rem;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Corridor</th>
+                                    <th>Type</th>
+                                    <th class="text-center">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbl-corridors">
+                                <tr><td colspan="3" class="text-center text-muted py-3">Chargement…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block javascripts %}{{ parent() }}
+<script>
+(function () {
+    'use strict';
+
+    const API = '{{ path("app_geo_api_dashboard") }}';
+
+    // ── Instances ECharts (une seule par conteneur) ───────────────────────
+    const charts = {};
+
+    function getChart(id) {
+        if (!charts[id]) {
+            charts[id] = echarts.init(document.getElementById(id), null, { renderer: 'canvas' });
+        }
+        return charts[id];
+    }
+
+    // Resize global (attaché une seule fois)
+    window.addEventListener('resize', () => {
+        Object.values(charts).forEach(c => c.resize());
+    });
+
+    // ── Construction des paramètres de filtre ─────────────────────────────
+    function buildQuery() {
+        const form = document.getElementById('geo-filters');
+        if (!form) return '';
+        return new URLSearchParams(new FormData(form)).toString();
+    }
+
+    // ── Chargement principal ──────────────────────────────────────────────
+    let activeRequest;
+
+    function fetchDashboard() {
+        const errorBox = document.getElementById('geo-dashboard-error');
+        const noDataBox = document.getElementById('geo-no-data');
+        errorBox.classList.add('d-none');
+        noDataBox.classList.add('d-none');
+
+        if (typeof window.echarts === 'undefined') {
+            errorBox.textContent = 'Le moteur graphique ECharts est indisponible. Rechargez la page ou vérifiez votre connexion.';
+            errorBox.classList.remove('d-none');
+            return;
+        }
+
+        activeRequest?.abort();
+        activeRequest = new AbortController();
+
+        fetch(API + '?' + buildQuery(), {
+            headers: { Accept: 'application/json' },
+            signal: activeRequest.signal,
+        })
+            .then(r => {
+                if (!r.ok) throw new Error(`Erreur serveur (${r.status}).`);
+                if (!r.headers.get('content-type')?.includes('application/json')) {
+                    throw new Error('La réponse du serveur n’est pas au format JSON.');
+                }
+                return r.json();
+            })
+            .then(renderAll)
+            .catch(err => {
+                if (err.name === 'AbortError') return;
+                console.error('GEOINT dashboard error:', err);
+                errorBox.textContent = 'Impossible de charger les données du tableau de bord. Vérifiez vos droits ou réessayez.';
+                errorBox.classList.remove('d-none');
+            });
+    }
+
+    // ── Rendu global ──────────────────────────────────────────────────────
+    function renderAll(data) {
+        renderKpis(data.kpis || {});
+        renderTopMarkets(data.topMarkets || []);
+        renderCorridors(data.topCorridors || []);
+        renderTimeline(data.timeline || {});
+        renderCategories(data.byCategorie || []);
+        renderContinents(data.byContinent || []);
+
+        const total = parseInt(data.kpis?.total || 0);
+        document.getElementById('geo-total-badge').textContent = total.toLocaleString('fr-FR');
+        if (total === 0) {
+            document.getElementById('geo-no-data').classList.remove('d-none');
+        }
+    }
+
+    // ── KPIs ──────────────────────────────────────────────────────────────
+    function renderKpis(kpis) {
+        document.querySelectorAll('.kpi-val').forEach(el => {
+            const val = kpis[el.dataset.key];
+            el.textContent = val !== undefined ? Number(val).toLocaleString('fr-FR') : '0';
+        });
+    }
+
+    // ── Top pays ──────────────────────────────────────────────────────────
+    function renderTopMarkets(markets) {
+        const tbody = document.getElementById('tbl-top-markets');
+        if (!markets.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>';
+            return;
+        }
+        tbody.innerHTML = markets.map(m => `
+            <tr>
+                <td>
+                    <span class="badge bg-secondary me-1" style="font-size:.6rem;">${esc(m.iso3)}</span>
+                    ${esc(m.nom)}
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-primary">${m.total}</span>
+                </td>
+                <td class="text-center">
+                    ${m.critique > 0
+                        ? `<span class="badge bg-danger">${m.critique}</span>`
+                        : '<span class="text-muted">—</span>'}
+                </td>
+            </tr>`
+        ).join('');
+    }
+
+    // ── Corridors ─────────────────────────────────────────────────────────
+    function renderCorridors(corridors) {
+        const tbody = document.getElementById('tbl-corridors');
+        if (!corridors.length) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">Aucune donnée</td></tr>';
+            return;
+        }
+        tbody.innerHTML = corridors.map(c => `
+            <tr>
+                <td>${esc(c.corridor ?? '—')}</td>
+                <td><span class="badge bg-secondary" style="font-size:.6rem;">${esc(c.type_localisation ?? '—')}</span></td>
+                <td class="text-center"><span class="badge bg-primary">${c.total}</span></td>
+            </tr>`
+        ).join('');
+    }
+
+    // ── Timeline (barres + lignes) ────────────────────────────────────────
+    function renderTimeline(t) {
+        const labels   = t.labels   || [];
+        const totals   = t.totals   || [];
+        const critiques= t.critiques|| [];
+        const transmis = t.transmis || [];
+
+        getChart('chart-timeline').setOption({
+            tooltip : {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 12 },
+            },
+            legend  : {
+                bottom: 0,
+                data: ['Total alertes', 'Critiques', 'Transmises'],
+                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 11 },
+            },
+            grid    : { top: 16, left: 50, right: 16, bottom: 46 },
+            xAxis   : {
+                type: 'category',
+                data: labels,
+                axisLabel: { fontFamily: 'Inter, sans-serif', fontSize: 10, rotate: labels.length > 8 ? 30 : 0 },
+                axisLine: { lineStyle: { color: '#e2e8f0' } },
+            },
+            yAxis   : {
+                type: 'value',
+                axisLabel: { fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                splitLine: { lineStyle: { color: '#f1f5f9' } },
+                minInterval: 1,
+            },
+            graphic : labels.length ? [] : [{
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: { text: 'Aucune donnée pour cette période', fill: '#64748b', fontSize: 13 },
+            }],
+            series  : [
+                {
+                    name: 'Total alertes',
+                    type: 'bar',
+                    data: totals,
+                    itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] },
+                    barMaxWidth: 32,
+                },
+                {
+                    name: 'Critiques',
+                    type: 'line',
+                    data: critiques,
+                    smooth: true,
+                    lineStyle: { color: '#ef4444', width: 2 },
+                    itemStyle: { color: '#ef4444' },
+                    symbol: 'circle', symbolSize: 5,
+                },
+                {
+                    name: 'Transmises',
+                    type: 'line',
+                    data: transmis,
+                    smooth: true,
+                    lineStyle: { color: '#22c55e', width: 2, type: 'dashed' },
+                    itemStyle: { color: '#22c55e' },
+                    symbol: 'circle', symbolSize: 5,
+                },
+            ],
+        }, true);
+    }
+
+    // ── Catégories (donut) ────────────────────────────────────────────────
+    function renderCategories(cats) {
+        const data = cats
+            .filter(c => parseInt(c.total) > 0)
+            .map(c => ({ name: c.categorie || 'Non renseignée', value: parseInt(c.total) }));
+
+        const PALETTE = ['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444','#0891b2','#f97316','#ec4899','#14b8a6'];
+
+        getChart('chart-categories').setOption({
+            tooltip  : {
+                trigger: 'item',
+                formatter: p => `<b>${p.name}</b><br>${p.value} alerte(s) · ${p.percent}%`,
+                textStyle: { fontFamily: 'Inter, sans-serif' },
+            },
+            legend   : {
+                type: 'scroll',
+                orient: 'horizontal',
+                bottom: 0,
+                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 10 },
+            },
+            graphic  : data.length ? [] : [{
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: { text: 'Aucune donnée', fill: '#64748b', fontSize: 13 },
+            }],
+            series   : [{
+                type: 'pie',
+                radius: ['40%', '72%'],
+                center: ['50%', '44%'],
+                data: data.length
+                    ? data.map((d, i) => ({ ...d, itemStyle: { color: PALETTE[i % PALETTE.length] } }))
+                    : [{ name: 'Aucune donnée', value: 1, itemStyle: { color: '#e2e8f0' }, label: { show: true } }],
+                label: { show: false },
+                labelLine: { show: false },
+                emphasis: {
+                    label: { show: true, fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700 },
+                    scaleSize: 6,
+                },
+            }],
+        }, true);
+    }
+
+    // ── Continents (barres horizontales) ─────────────────────────────────
+    function renderContinents(continents) {
+        const sorted = [...continents].sort((a, b) => parseInt(b.total) - parseInt(a.total));
+        const COLORS  = ['#3b82f6','#8b5cf6','#f59e0b','#22c55e','#ef4444','#0891b2'];
+
+        getChart('chart-continents').setOption({
+            tooltip : {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                textStyle: { fontFamily: 'Inter, sans-serif' },
+            },
+            grid    : { left: 140, right: 40, top: 8, bottom: 8 },
+            xAxis   : {
+                type: 'value',
+                axisLabel: { fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                splitLine: { lineStyle: { color: '#f1f5f9' } },
+                minInterval: 1,
+            },
+            yAxis   : {
+                type: 'category',
+                data: sorted.map(c => c.continent),
+                axisLabel: { fontFamily: 'Inter, sans-serif', fontSize: 11, width: 130, overflow: 'truncate' },
+            },
+            graphic : sorted.length ? [] : [{
+                type: 'text',
+                left: 'center',
+                top: 'middle',
+                style: { text: 'Aucune donnée', fill: '#64748b', fontSize: 13 },
+            }],
+            series  : [{
+                type: 'bar',
+                data: sorted.map((c, i) => ({
+                    value: parseInt(c.total),
+                    itemStyle: { color: COLORS[i % COLORS.length], borderRadius: [0,4,4,0] },
+                })),
+                label: { show: true, position: 'right', fontFamily: 'Inter, sans-serif', fontSize: 10 },
+                barMaxWidth: 28,
+            }],
+        }, true);
+    }
+
+    // ── Utilitaire ────────────────────────────────────────────────────────
+    function esc(s) {
+        if (s == null) return '—';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Événements ────────────────────────────────────────────────────────
+    document.getElementById('geo-filters')?.addEventListener('submit', e => {
+        e.preventDefault();
+        fetchDashboard();
+    });
+    document.getElementById('btn-reset-filters')?.addEventListener('click', () => {
+        setTimeout(fetchDashboard, 60);
+    });
+
+    // Chargement initial
+    fetchDashboard();
+})();
+</script>
+{% endblock %}

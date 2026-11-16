@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Journal Audit Sécurité — GEI</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DejaVu Sans', sans-serif; font-size:9pt; color:#1e293b; background:#fff; }
+  .page-header { background:#1e293b; color:#f1f5f9; padding:12px 18px; margin-bottom:14px; }
+  .page-header h1 { font-size:14pt; font-weight:700; margin:0; }
+  .page-header p  { font-size:8pt; opacity:.7; margin-top:2px; }
+  .meta-row { display:flex; gap:24px; margin-bottom:14px; padding:0 4px; font-size:8pt; color:#64748b; }
+  .kpi-row { display:flex; gap:10px; margin-bottom:14px; }
+  .kpi-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 12px; flex:1; text-align:center; }
+  .kpi-box .val { font-size:16pt; font-weight:800; color:#1e293b; line-height:1; }
+  .kpi-box .lbl { font-size:7pt; color:#64748b; margin-top:2px; }
+  table { width:100%; border-collapse:collapse; font-size:7.5pt; }
+  thead th { background:#1e293b; color:#f1f5f9; padding:5px 6px; text-align:left; font-weight:600; }
+  tbody tr:nth-child(even) { background:#f8fafc; }
+  tbody td { padding:4px 6px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+  .badge { display:inline-block; padding:1px 5px; border-radius:3px; font-size:6.5pt; font-weight:700; }
+  .badge-danger  { background:#fef2f2; color:#b91c1c; }
+  .badge-warning { background:#fffbeb; color:#b45309; }
+  .badge-info    { background:#eff6ff; color:#1d4ed8; }
+  .badge-success { background:#f0fdf4; color:#15803d; }
+  .badge-secondary { background:#f1f5f9; color:#475569; }
+  .truncate { max-width:140px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .footer { margin-top:14px; border-top:1px solid #e2e8f0; padding-top:6px; font-size:7pt; color:#94a3b8; text-align:center; }
+  {% if events|length > 100 %}.table-wrap { font-size:7pt; }{% endif %}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>🛡️ Journal d'Audit Sécurité — GEI Security Center</h1>
+  <p>Généré le {{ dateImpression|date('d/m/Y à H:i:s') }} UTC · Confidentiel · Usage interne uniquement</p>
+</div>
+
+<div class="meta-row">
+  <span><strong>Total événements :</strong> {{ totalEvents|number_format }}</span>
+  <span><strong>Lignes exportées :</strong> {{ events|length|number_format }}</span>
+  {% if truncated %}<span style="color:#b91c1c;font-weight:700;">⚠ Limité à 1 000 lignes — utiliser l'export CSV pour le volume complet</span>{% endif %}
+</div>
+
+{# KPIs résumé #}
+{% if stats is not empty %}
+<div class="kpi-row">
+  <div class="kpi-box"><div class="val">{{ stats.total|default(0)|number_format }}</div><div class="lbl">Total</div></div>
+  <div class="kpi-box"><div class="val">{{ stats.uniqueIps|default(0)|number_format }}</div><div class="lbl">IP Uniques</div></div>
+  <div class="kpi-box"><div class="val">{{ stats.highRiskEvents|default(0)|number_format }}</div><div class="lbl">Haut risque</div></div>
+  <div class="kpi-box"><div class="val">{{ (stats.avgRiskScore|default(0))|number_format(1) }}</div><div class="lbl">Score moyen</div></div>
+</div>
+{% endif %}
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th style="width:11%">Date/Heure UTC</th>
+      <th style="width:10%">IP</th>
+      <th style="width:11%">Utilisateur</th>
+      <th style="width:13%">Événement</th>
+      <th style="width:16%">Route / URL</th>
+      <th style="width:5%">HTTP</th>
+      <th style="width:8%">Pays</th>
+      <th style="width:9%">Réseau</th>
+      <th style="width:7%">Score</th>
+      <th style="width:10%">Motif</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for event in events %}
+    {% set rs = event.riskScore %}
+    <tr>
+      <td>{{ event.createdAt|date('d/m/Y H:i:ss') }}</td>
+      <td style="font-family:monospace;font-size:7pt;">{{ event.ipAddress }}</td>
+      <td class="truncate">{{ event.user ? event.user.email : '—' }}</td>
+      <td>
+        <span class="badge
+          {% if event.eventType in ['login_failed','unknown_account'] %}badge-warning
+          {% elseif event.eventType in ['forbidden_access','ip_blocked'] %}badge-danger
+          {% elseif event.eventType == 'login_success' %}badge-success
+          {% else %}badge-secondary{% endif %}">
+          {{ event.eventType|replace({'_':' '}) }}
+        </span>
+      </td>
+      <td class="truncate" style="font-family:monospace;font-size:6.5pt;">
+        {{ (event.routeName ?? event.urlPath)|slice(0,45) }}
+      </td>
+      <td style="text-align:center;">
+        <span class="badge
+          {% if event.httpStatusCode >= 500 %}badge-danger
+          {% elseif event.httpStatusCode >= 400 %}badge-warning
+          {% else %}badge-success{% endif %}">
+          {{ event.httpStatusCode ?? '—' }}
+        </span>
+      </td>
+      <td>{{ event.country ?? '—' }}</td>
+      <td>
+        {% if event.isTor %}
+          <span class="badge badge-danger">Tor</span>
+        {% elseif event.isVpn %}
+          <span class="badge badge-warning">VPN</span>
+        {% elseif event.isProxy %}
+          <span class="badge badge-info">Proxy</span>
+        {% else %}
+          {{ event.networkType ?? '—' }}
+        {% endif %}
+      </td>
+      <td style="text-align:center;">
+        <span class="badge
+          {% if rs >= 80 %}badge-danger
+          {% elseif rs >= 60 %}badge-warning
+          {% elseif rs >= 30 %}badge-info
+          {% else %}badge-success{% endif %}">
+          {{ rs }}
+        </span>
+      </td>
+      <td class="truncate" style="font-size:6.5pt;">{{ event.rejectionReason|slice(0,40) ?? '—' }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:16px;">Aucun événement</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<div class="footer">
+  GEI Security Center · Export PDF · Confidentiel · {{ dateImpression|date('d/m/Y') }} ·
+  {{ events|length }} / {{ totalEvents }} événements affichés
+</div>
+
+</body>
+</html>

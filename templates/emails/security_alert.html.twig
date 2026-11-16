@@ -1,0 +1,169 @@
+{# templates/emails/security_alert.html.twig #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alerte Sécurité GEI — {{ alert.title }}</title>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 24px; }
+        .card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+        /* Header */
+        .header { background: #1e293b; padding: 22px 28px; display: flex; align-items: center; gap: 12px; }
+        .header-shield { font-size: 32px; }
+        .header h1 { color: #f1f5f9; font-size: 17px; font-weight: 800; margin: 0; line-height: 1.2; }
+        .header p  { color: #94a3b8; font-size: 11px; margin: 4px 0 0; }
+
+        /* Severity banner */
+        .severity-banner { padding: 10px 28px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+        .severity-critical { background: #fef2f2; color: #b91c1c; border-bottom: 2px solid #fca5a5; }
+        .severity-high     { background: #fffbeb; color: #b45309; border-bottom: 2px solid #fcd34d; }
+        .severity-medium   { background: #eff6ff; color: #1d4ed8; border-bottom: 2px solid #93c5fd; }
+        .severity-low      { background: #f0fdf4; color: #15803d; border-bottom: 2px solid #86efac; }
+
+        /* Body */
+        .body { padding: 24px 28px; }
+        .alert-title { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 6px; }
+        .alert-desc  { font-size: 13px; color: #475569; margin: 0 0 20px; line-height: 1.6; }
+
+        /* Info grid */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .info-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; }
+        .info-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #94a3b8; margin-bottom: 4px; }
+        .info-value { font-size: 13px; font-weight: 700; color: #1e293b; word-break: break-all; }
+
+        /* Threat score */
+        .score-box { background: #0f172a; border-radius: 8px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+        .score-number { font-size: 42px; font-weight: 900; line-height: 1; }
+        .score-critical { color: #f87171; }
+        .score-high     { color: #fbbf24; }
+        .score-medium   { color: #60a5fa; }
+        .score-low      { color: #34d399; }
+        .score-label    { color: #94a3b8; font-size: 12px; }
+        .score-desc     { color: #e2e8f0; font-size: 13px; font-weight: 600; }
+
+        /* Recommended actions */
+        .actions-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; }
+        .actions-box h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #64748b; margin: 0 0 10px; }
+        .actions-box ul { margin: 0; padding-left: 18px; }
+        .actions-box li { font-size: 13px; color: #334155; margin-bottom: 5px; }
+
+        /* IP box */
+        .ip-box { background: #1e293b; border-radius: 8px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .ip-label { font-size: 11px; color: #94a3b8; font-weight: 700; }
+        .ip-value { font-size: 16px; color: #38bdf8; font-family: 'Courier New', monospace; font-weight: 700; }
+
+        /* CTA */
+        .cta-row { text-align: center; margin-top: 8px; }
+        .btn { display: inline-block; background: #2563eb; color: #ffffff; font-weight: 700; padding: 11px 28px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+        .btn-danger { background: #dc2626; }
+
+        /* Footer */
+        .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center; padding: 14px; font-size: 11px; color: #94a3b8; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+
+        {# En-tête #}
+        <div class="header">
+            <span class="header-shield">🛡️</span>
+            <div>
+                <h1>Alerte de Sécurité — {{ alert.alertType|replace({'_':' '})|upper }}</h1>
+                <p>Plateforme GEI · Security Center · Notification automatique</p>
+            </div>
+        </div>
+
+        {# Bandeau sévérité #}
+        <div class="severity-banner severity-{{ alert.severity }}">
+            {% if alert.severity == 'critical' %}🔴 CRITIQUE{% elseif alert.severity == 'high' %}🟠 ÉLEVÉ{% elseif alert.severity == 'medium' %}🔵 MOYEN{% else %}🟢 FAIBLE{% endif %}
+            &nbsp;·&nbsp; Détectée le {{ alert.detectedAt|date('d/m/Y à H:i') }} UTC
+        </div>
+
+        <div class="body">
+
+            {# Titre et description #}
+            <div class="alert-title">{{ alert.title }}</div>
+            <div class="alert-desc">{{ alert.description }}</div>
+
+            {# IP impliquée #}
+            {% if alert.ipAddress %}
+            <div>
+                <div class="ip-box">
+                    <span class="ip-label">ADRESSE IP</span>
+                    <span class="ip-value">{{ alert.ipAddress }}</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Score de confiance #}
+            <div class="score-box">
+                <div class="score-number score-{{ alert.severity }}">{{ alert.confidenceScore }}%</div>
+                <div>
+                    <div class="score-desc">Score de confiance de la détection</div>
+                    <div class="score-label">{{ alert.eventCount }} événement(s) agrégé(s) · Type : {{ alert.alertType|replace({'_':' '}) }}</div>
+                </div>
+            </div>
+
+            {# Grille d'informations #}
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Type d'alerte</div>
+                    <div class="info-value">{{ alert.alertType|replace({'_':' '})|capitalize }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Sévérité</div>
+                    <div class="info-value">{{ alert.severity|capitalize }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Utilisateur ciblé</div>
+                    <div class="info-value">{{ alert.user ? alert.user.email : 'Inconnu / Anonyme' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Ressource ciblée</div>
+                    <div class="info-value">{{ alert.targetResource ?? '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Statut</div>
+                    <div class="info-value">{{ alert.status|capitalize }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Événements liés</div>
+                    <div class="info-value">{{ alert.eventCount }}</div>
+                </div>
+            </div>
+
+            {# Actions recommandées #}
+            {% if alert.recommendedActions %}
+            <div class="actions-box">
+                <h3>⚡ Actions recommandées</h3>
+                <ul>
+                    {% for action in alert.recommendedActions %}
+                    <li>{{ action }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {# CTA #}
+            <div class="cta-row">
+                <a href="{{ dashboardUrl }}" class="btn {% if alert.severity in ['critical','high'] %}btn-danger{% endif %}">
+                    Accéder au Security Center
+                </a>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            Message automatique généré par le Security Center GEI.<br>
+            Envoyé le {{ 'now'|date('d/m/Y à H:i') }} UTC · Ne pas répondre à ce courriel.<br>
+            Pour configurer ces notifications : Administration &rarr; Security Center &rarr; Alertes.
+        </div>
+
+    </div>
+</div>
+</body>
+</html>

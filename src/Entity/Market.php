@@ -28,6 +28,10 @@ class Market
     #[ORM\Column(type: 'string', length: 50)]
     private string $region = 'Afrique de l\'Ouest';
 
+    /** Continent géographique — utilisé par les agrégations choroplèthes */
+    #[ORM\Column(type: 'string', length: 50)]
+    private string $continent = 'Afrique';
+
     #[ORM\Column(type: 'boolean')]
     private bool $actif = true;
 
@@ -70,6 +74,17 @@ class Market
     public function setRegion(string $region): static
     {
         $this->region = $region;
+        return $this;
+    }
+
+    public function getContinent(): string
+    {
+        return $this->continent;
+    }
+
+    public function setContinent(string $continent): static
+    {
+        $this->continent = $continent;
         return $this;
     }
 
