@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block body %}
-<div class="db-wrapper">
+<div class="db-wrapper dashboard-general">
 
     {# ── LIGNE 1 : 4 KPI CARDS ──────────────────────────────────────────── #}
     <div class="db-kpi-row">
@@ -63,7 +63,7 @@
     </div>
 
     {# ── LIGNE 2 : GRAPHIQUE ÉVOLUTION + NOTIFICATIONS ─────────────────── #}
-    <div class="db-mid-row">
+    <div class="db-mid-row dashboard-activity-row">
 
         {# ──── COLONNE GAUCHE : Évolution alertes (line chart) ─────────── #}
         <div class="db-chart-card db-chart-lg">
@@ -94,20 +94,21 @@
         </div>
 
         {# ──── COLONNE DROITE : Notifications ──────────────────────────── #}
-        <div class="db-chart-card db-chart-sm">
-            <div class="db-card-header">
+        <div class="db-chart-card db-chart-sm dashboard-notifications-card">
+            <div class="db-card-header dashboard-notifications-header">
                 <div>
-                    <p class="db-card-eyebrow"><i class="bi bi-bell me-1.5"></i>Notifications</p>
-                    <p class="db-card-title">15 dernières</p>
+                    <p class="db-card-eyebrow"><i class="bi bi-bell me-1.5"></i>Activité récente</p>
+                    <p class="db-card-title">Dernières notifications</p>
                 </div>
                 <div class="db-card-actions">
-                    <a href="{{ path('app_notifications_list') }}" class="db-icon-btn" title="Voir tout">
-                        <i class="bi bi-box-arrow-up-right"></i>
+                    <span class="dashboard-notification-count">{{ notifications|length }} / 15</span>
+                    <a href="{{ path('app_notifications_list') }}" class="dashboard-notifications-link">
+                        Tout voir <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>
 
-            <div class="notif-list notif-list-scroll">
+            <div class="notif-list notif-list-scroll dashboard-notification-list" aria-label="Les 15 dernières notifications">
                 {% for notif in notifications %}
                 {% set is72hNotification = notif.type == 'sla_proche' or (notif.alert and notif.alert.urgence and notif.alert.urgence.value == '72h') %}
                 {% set isUrgentNotification = is72hNotification or notif.urgente or notif.type in ['urgence', 'escalade'] %}
@@ -154,8 +155,6 @@
                         <span class="notif-badge-urgent">{{ is72hNotification ? 'Urgence 72 h' : 'Urgent' }}</span>
                     {% elseif not notif.lu %}
                         <span class="notif-badge-new">Nouveau</span>
-                    {% else %}
-                        <span class="notif-badge-read">Lu</span>
                     {% endif %}
                 </div>
                 {% else %}
@@ -189,20 +188,20 @@
         <article class="dashboard-insight-card dashboard-priority-card">
             <header class="dashboard-insight-heading">
                 <div>
-                    <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1"></i>Répartition</p>
-                    <h2 class="db-card-title">Alertes par priorité</h2>
+                    <p class="db-card-eyebrow"><i class="bi bi-pie-chart me-1"></i>Vue d’ensemble</p>
+                    <h2 class="db-card-title">Priorité des alertes</h2>
                 </div>
             </header>
             <div class="dashboard-priority-chart">
                 <div id="generalPriorityChart" aria-label="Répartition des alertes par priorité"></div>
             </div>
             <ul class="dashboard-priority-legend" aria-label="Nombre d’alertes par priorité">
-                <li><span><i class="dashboard-priority-dot" style="background:#c62828"></i>Critique</span><strong>{{ kpis.critique|number_format }}</strong></li>
-                <li><span><i class="dashboard-priority-dot" style="background:#d97706"></i>Élevée</span><strong>{{ kpis.eleve|number_format }}</strong></li>
-                <li><span><i class="dashboard-priority-dot" style="background:#eab308"></i>Modérée</span><strong>{{ kpis.modere|number_format }}</strong></li>
-                <li><span><i class="dashboard-priority-dot" style="background:#16856b"></i>Faible</span><strong>{{ kpis.faible|number_format }}</strong></li>
+                <li data-priority-key="critique"><span><i class="dashboard-priority-dot" style="background:#c62828"></i>Critique</span><strong>{{ kpis.critique|number_format }}</strong><small></small></li>
+                <li data-priority-key="eleve"><span><i class="dashboard-priority-dot" style="background:#c65d12"></i>Élevée</span><strong>{{ kpis.eleve|number_format }}</strong><small></small></li>
+                <li data-priority-key="modere"><span><i class="dashboard-priority-dot" style="background:#a87908"></i>Modérée</span><strong>{{ kpis.modere|number_format }}</strong><small></small></li>
+                <li data-priority-key="faible"><span><i class="dashboard-priority-dot" style="background:#16856b"></i>Faible</span><strong>{{ kpis.faible|number_format }}</strong><small></small></li>
             </ul>
-            <p class="dashboard-insight-note">Répartition calculée à partir des priorités attribuées aux alertes.</p>
+            <p class="dashboard-insight-note">Part de chaque niveau parmi les alertes enregistrées.</p>
         </article>
 
         <article class="dashboard-insight-card dashboard-heatmap-card">
@@ -672,20 +671,20 @@ initializeDashboardMap();
                 return `${p.seriesName} : ${p.value}<br/>${p.axisValue}`;
             }
         },
-        grid: { left: 10, right: 10, top: 20, bottom: 20, containLabel: true, borderColor: gridColor },
+        grid: { left: 12, right: 16, top: 24, bottom: 28, containLabel: true, borderColor: gridColor },
         xAxis: {
             type: 'category',
             data: chartData.labels,
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: textColor, fontSize: 10 },
+            axisLabel: { color: textColor, fontSize: 11, hideOverlap: true },
             splitLine: { show: false },
         },
         yAxis: {
             type: 'value',
             axisLine: { show: false },
             axisTick: { show: false },
-            axisLabel: { color: textColor, fontSize: 10 },
+            axisLabel: { color: textColor, fontSize: 11 },
             splitLine: { lineStyle: { color: gridColor, type: 'dashed' } },
             min: 0,
         },
@@ -694,9 +693,9 @@ initializeDashboardMap();
                 name: 'Nouvelles alertes',
                 type: 'line',
                 smooth: true,
-                symbol: 'none',
+                showSymbol: false,
                 itemStyle: { color: '#16856b' },
-                lineStyle: { width: 2, color: '#16856b' },
+                lineStyle: { width: 3, color: '#16856b' },
                 areaStyle: { color: gradientTeal },
                 data: chartData.nouvelles,
             },
@@ -704,9 +703,9 @@ initializeDashboardMap();
                 name: 'Transmises',
                 type: 'line',
                 smooth: true,
-                symbol: 'none',
+                showSymbol: false,
                 itemStyle: { color: '#3b82f6' },
-                lineStyle: { width: 2, color: '#3b82f6' },
+                lineStyle: { width: 3, color: '#3b82f6' },
                 areaStyle: { origin: 'start', color: gradientBlue },
                 data: chartData.transmises,
             }
@@ -719,29 +718,47 @@ initializeDashboardMap();
         if (window.geiDashboardPriorityChart) window.geiDashboardPriorityChart.dispose();
         const priorityChart = echarts.init(priorityEl, null, { renderer: 'canvas' });
         window.geiDashboardPriorityChart = priorityChart;
+        const priorityData = [
+            { value: Number(chartData.priorites.critique) || 0, name: 'Critique', itemStyle: { color: '#c62828' } },
+            { value: Number(chartData.priorites.eleve) || 0, name: 'Élevée', itemStyle: { color: '#c65d12' } },
+            { value: Number(chartData.priorites.modere) || 0, name: 'Modérée', itemStyle: { color: '#a87908' } },
+            { value: Number(chartData.priorites.faible) || 0, name: 'Faible', itemStyle: { color: '#16856b' } },
+        ];
+        const priorityTotal = priorityData.reduce((total, item) => total + item.value, 0);
+        document.querySelectorAll('.dashboard-priority-legend [data-priority-key]').forEach(item => {
+            const key = item.dataset.priorityKey;
+            const value = Number(chartData.priorites[key]) || 0;
+            const share = priorityTotal > 0 ? Math.round(value / priorityTotal * 100) : 0;
+            const shareLabel = item.querySelector('small');
+            if (shareLabel) shareLabel.textContent = `${share}%`;
+        });
         priorityChart.setOption({
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
-                formatter: '{b} : {c}',
+                formatter: params => `${params.name} : ${Number(params.value).toLocaleString('fr-FR')} (${params.percent} %)`,
                 textStyle: { color: '#a8c4b8', fontSize: 11 },
+            },
+            title: {
+                text: priorityTotal.toLocaleString('fr-FR'),
+                subtext: 'alertes',
+                left: 'center',
+                top: 'middle',
+                itemGap: 2,
+                textStyle: { color: isDarkChart ? '#f1f5f9' : '#18352e', fontSize: 20, fontWeight: 700 },
+                subtextStyle: { color: textColor, fontSize: 10 },
             },
             legend: { show: false },
             series: [{
                 type: 'pie',
-                radius: ['48%', '78%'],
+                radius: ['58%', '82%'],
                 center: ['50%', '50%'],
-                avoidLabelOverlap: false,
-                itemStyle: { borderRadius: 6, borderColor: 'transparent', borderWidth: 0 },
+                avoidLabelOverlap: true,
+                itemStyle: { borderRadius: 4, borderColor: isDarkChart ? '#17231f' : '#ffffff', borderWidth: 3 },
                 label: { show: false },
-                emphasis: { label: { show: true, fontSize: 12 } },
+                emphasis: { scale: true, scaleSize: 5, label: { show: false } },
                 labelLine: { show: false },
-                data: [
-                    { value: Number(chartData.priorites.critique) || 0, name: 'Critique', itemStyle: { color: '#c62828' } },
-                    { value: Number(chartData.priorites.eleve) || 0, name: 'Élevée', itemStyle: { color: '#d97706' } },
-                    { value: Number(chartData.priorites.modere) || 0, name: 'Modérée', itemStyle: { color: '#eab308' } },
-                    { value: Number(chartData.priorites.faible) || 0, name: 'Faible', itemStyle: { color: '#16856b' } },
-                ],
+                data: priorityData,
             }]
         });
     }
