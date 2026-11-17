@@ -6762,8 +6762,27 @@ html:not(.dark) body:not(.dark) .wizard-page .form-textarea:focus {
   color: var(--muted);
   font-size: 10px;
 }
-.dashboard-priority-chart { position: relative; height: 270px; }
-.dashboard-priority-chart canvas { max-width: 100%; }
+.dashboard-priority-chart { position: relative; height: 210px; min-width: 0; }
+.dashboard-evolution-chart { width: 100%; height: 260px; min-width: 0; }
+.dashboard-priority-chart > div { width: 100%; height: 100%; }
+.dashboard-priority-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.dashboard-priority-legend li,
+.dashboard-priority-legend li > span {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.dashboard-priority-legend li { justify-content: space-between; gap: 8px; color: var(--muted); font-size: 11px; }
+.dashboard-priority-legend li > span { gap: 6px; }
+.dashboard-priority-legend strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.dashboard-priority-dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; }
 .dashboard-heatmap-card { grid-column: 1 / -1; }
 .dashboard-heatmap-scroll { overflow-x: auto; padding: 4px 0; }
 .dashboard-heatmap {
@@ -6865,7 +6884,10 @@ body.dark .toast-sla_proche .gei-toast-category { color: #ff6b6b; }
 @media (max-width: 900px) {
   .dashboard-insights { grid-template-columns: 1fr; }
   .dashboard-heatmap-card { grid-column: auto; }
-  .dashboard-priority-chart { height: 230px; }
+}
+@media (max-width: 560px) {
+  .dashboard-evolution-chart { height: 220px; }
+  .dashboard-priority-legend { gap: 8px 10px; }
 }
 @media (max-width: 700px) {
   .auth-slideshow { min-height: auto; margin: 24px 0 0; }

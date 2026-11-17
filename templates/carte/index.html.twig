@@ -1049,7 +1049,7 @@ body.dark .route-list-action { background: var(--navy-800); }
 }
 .legend-label {
     display: inline-flex; align-items: center; gap: 4px;
-    font-size: 10px; color: var(--dim); font-weight: 600;
+    font-size: 11px; color: var(--dim); font-weight: 600;
 }
 .legend-dot {
     display: inline-block;
@@ -1064,6 +1064,11 @@ body.dark .route-list-action { background: var(--navy-800); }
 }
 .legend-toggle-btn:hover { color: #16856b; background: #f6faf8; }
 #legendToggleIcon { transition: transform .2s; }
+.legend-section { margin-bottom: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+.legend-section-title { margin: 0 0 6px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.legend-items { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.legend-note { margin: 6px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+.carte-legend #carteLegendBody { max-height: min(56vh, 500px); overflow-y: auto; overscroll-behavior: contain; }
 @media(max-width: 900px) {
     .carte-legend {
         left: 12px; bottom: 12px;
@@ -1072,7 +1077,7 @@ body.dark .route-list-action { background: var(--navy-800); }
     }
     .carte-legend #carteLegendBody {
         display: none;
-        max-height: min(34dvh, 210px);
+        max-height: min(38dvh, 300px);
         overflow-y: auto;
     }
     .carte-legend.legend-expanded #carteLegendBody {
@@ -1426,37 +1431,41 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 </button>
             </div>
             <div id="carteLegendBody">
-                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Couches de la carte</p>
-                    <span class="legend-label"><i class="bi bi-geo-alt-fill me-1" style="color:#16856b"></i>Alertes par marché</span><br>
-                    <span class="legend-label"><i class="bi bi-bezier2 me-1" style="color:#2563eb"></i>Parcours transfrontaliers</span>
+                <div class="legend-section">
+                    <p class="legend-section-title">Couches de la carte</p>
+                    <div class="legend-items">
+                        <span class="legend-label"><i class="bi bi-geo-alt-fill" style="color:#16856b"></i>Alertes par marché</span>
+                        <span class="legend-label"><i class="bi bi-bezier2" style="color:#2563eb"></i>Parcours transfrontaliers</span>
+                    </div>
                 </div>
-                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Repères de lieux</p>
+                <div class="legend-section">
+                    <p class="legend-section-title">Repères de lieux</p>
                     <div class="map-location-legend">
                         <span class="legend-label"><i class="bi bi-anchor" style="color:#0369a1"></i>Port</span>
                         <span class="legend-label"><i class="bi bi-airplane" style="color:#7c3aed"></i>Aéroport</span>
                     </div>
-                    <p style="margin:6px 0 0;color:var(--muted);font-size:9px;line-height:1.4;">Repères indicatifs au niveau du marché, pas à l’emplacement exact. Villes et villages : statistiques par nom dans l’onglet Localités, sans point sur la carte.</p>
+                    <p class="legend-note">Repères indicatifs au niveau du marché, pas à l’emplacement exact. Villes et villages : statistiques par nom dans l’onglet Localités, sans point sur la carte.</p>
                 </div>
-                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Volume : taille du point</p>
-                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F9A825;font-size:9px"></i>1–5 alertes</span><br>
-                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#F57C00;font-size:11px"></i>6–20 alertes</span><br>
-                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#EF6C00;font-size:13px"></i>21–50 alertes</span><br>
-                    <span class="legend-label"><i class="bi bi-circle-fill me-1" style="color:#E65100;font-size:15px"></i>Plus de 50 alertes</span>
+                <div class="legend-section">
+                    <p class="legend-section-title">Volume : taille du point</p>
+                    <div class="legend-items">
+                        <span class="legend-label"><i class="bi bi-circle-fill" style="color:#F9A825;font-size:9px"></i>1–5 alertes</span>
+                        <span class="legend-label"><i class="bi bi-circle-fill" style="color:#F57C00;font-size:11px"></i>6–20 alertes</span>
+                        <span class="legend-label"><i class="bi bi-circle-fill" style="color:#EF6C00;font-size:13px"></i>21–50 alertes</span>
+                        <span class="legend-label"><i class="bi bi-circle-fill" style="color:#E65100;font-size:15px"></i>Plus de 50 alertes</span>
+                    </div>
                 </div>
-                <div style="margin-bottom:8px;padding-top:6px;border-top:1px solid var(--border);">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Priorité dominante (couleur du marqueur)</p>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div class="legend-section">
+                    <p class="legend-section-title">Priorité dominante (couleur du marqueur)</p>
+                    <div class="legend-items">
                         <span class="legend-label"><span class="legend-dot" style="background:#ef4444"></span>Critique</span>
                         <span class="legend-label"><span class="legend-dot" style="background:#f97316"></span>Élevé</span>
                         <span class="legend-label"><span class="legend-dot" style="background:#f59e0b"></span>Modéré</span>
                         <span class="legend-label"><span class="legend-dot" style="background:#22c55e"></span>Faible</span>
                     </div>
                 </div>
-                <div id="legendActiveFilters" style="font-size:10px;color:var(--muted);border-top:1px solid var(--border);padding-top:6px;margin-top:2px">
-                    <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px;">Filtres actifs</p>
+                <div id="legendActiveFilters" class="legend-section">
+                    <p class="legend-section-title">Filtres actifs</p>
                     <div id="legendFiltersList" style="display:flex;flex-wrap:wrap;gap:4px;">
                         {% if filters.marche is iterable and filters.marche %}
                             {% for mId in filters.marche %}
@@ -1808,20 +1817,31 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
                 }
                 return r.json();
             });
-        const routesRequest = fetch('/carte/api/parcours?' + params.toString(), requestOptions)
-            .then(response => response.ok ? response.json() : ({ routes: [], locations: [] }));
-
-        Promise.all([zonesRequest, routesRequest])
-            .then(([zones, routeData]) => {
+        zonesRequest
+            .then(zones => {
+                if (!Array.isArray(zones)) {
+                    throw new Error('Le service cartographique a renvoyé un format inattendu.');
+                }
                 allZones = zones;
                 updateCategoryTargets(zones);
                 renderMarkers(zones);
                 renderSidePanel(zones);
                 updateStats(zones);
                 renderLocalityStats(zones);
-                renderRoutes(routeData.routes || []);
-                renderMapLocations(routeData.locations || []);
                 history.replaceState(null, '', '/carte?' + params.toString());
+
+                fetch('/carte/api/parcours?' + params.toString(), requestOptions)
+                    .then(response => response.ok ? response.json() : ({ routes: [], locations: [] }))
+                    .then(routeData => {
+                        renderRoutes(routeData.routes || []);
+                        renderMapLocations(routeData.locations || []);
+                    })
+                    .catch(error => {
+                        if (error.name === 'AbortError') return;
+                        console.error('Impossible de charger les parcours et repères de lieux.', error);
+                        renderRoutes([]);
+                        renderMapLocations([]);
+                    });
             })
             .catch(error => {
                 if (error.name === 'AbortError') return;
@@ -1839,7 +1859,6 @@ body.dark .popup-btn:hover { background: rgba(22,133,107,.1); }
             .finally(() => {
                 if (activeLoadController === controller) {
                     loading.classList.remove('visible');
-                    activeLoadController = null;
                 }
             });
     }

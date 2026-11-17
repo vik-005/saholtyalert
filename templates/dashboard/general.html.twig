@@ -89,7 +89,7 @@
                 </span>
             </div>
             <div class="db-chart-area">
-                <div id="alertEvolutionChart" style="height:90px;"></div>
+                <div id="alertEvolutionChart" class="dashboard-evolution-chart"></div>
             </div>
         </div>
 
@@ -194,8 +194,14 @@
                 </div>
             </header>
             <div class="dashboard-priority-chart">
-                <div id="generalPriorityChart" style="height:200px;" aria-label="Répartition des alertes par priorité"></div>
+                <div id="generalPriorityChart" aria-label="Répartition des alertes par priorité"></div>
             </div>
+            <ul class="dashboard-priority-legend" aria-label="Nombre d’alertes par priorité">
+                <li><span><i class="dashboard-priority-dot" style="background:#c62828"></i>Critique</span><strong>{{ kpis.critique|number_format }}</strong></li>
+                <li><span><i class="dashboard-priority-dot" style="background:#d97706"></i>Élevée</span><strong>{{ kpis.eleve|number_format }}</strong></li>
+                <li><span><i class="dashboard-priority-dot" style="background:#eab308"></i>Modérée</span><strong>{{ kpis.modere|number_format }}</strong></li>
+                <li><span><i class="dashboard-priority-dot" style="background:#16856b"></i>Faible</span><strong>{{ kpis.faible|number_format }}</strong></li>
+            </ul>
             <p class="dashboard-insight-note">Répartition calculée à partir des priorités attribuées aux alertes.</p>
         </article>
 
@@ -507,7 +513,6 @@
 ═══════════════════════════════════════════════════════════════════════════ #}
 {% block javascripts %}
 {{ parent() }}
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 function initializeDashboardMap() {
@@ -721,15 +726,11 @@ initializeDashboardMap();
                 formatter: '{b} : {c}',
                 textStyle: { color: '#a8c4b8', fontSize: 11 },
             },
-            legend: {
-                orient: 'horizontal',
-                bottom: 10,
-                itemGap: 20,
-                textStyle: { color: textColor, fontSize: 11 },
-            },
+            legend: { show: false },
             series: [{
                 type: 'pie',
-                radius: ['55%', '75%'],
+                radius: ['48%', '78%'],
+                center: ['50%', '50%'],
                 avoidLabelOverlap: false,
                 itemStyle: { borderRadius: 6, borderColor: 'transparent', borderWidth: 0 },
                 label: { show: false },
@@ -766,9 +767,13 @@ initializeDashboardMap();
                 if (window.geiDashboardEvolutionChart) window.geiDashboardEvolutionChart.resize();
                 if (window.geiDashboardPriorityChart) window.geiDashboardPriorityChart.resize();
             });
-            window.geiDashboardResizeObserver.observe(evolutionContainer.parentElement);
+            window.geiDashboardResizeObserver.observe(evolutionContainer);
+            const priorityContainer = document.getElementById('generalPriorityChart');
+            if (priorityContainer) window.geiDashboardResizeObserver.observe(priorityContainer);
         }
     }
+
+}
 
 window.geiInitializeGeneralDashboard = initializeGeneralDashboard;
 if (document.readyState === 'loading') {
