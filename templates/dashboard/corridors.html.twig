@@ -313,9 +313,9 @@
             {% if top_localisations|length > 0 %}
             <div class="corridor-chart-wrap" id="corridorChartWrap"
                  style="height:{{ top_localisations|length * 32 > 640 ? 640 : (top_localisations|length * 32 > 240 ? top_localisations|length * 32 : 240) }}px">
-                <canvas id="corridorsChart" role="img"
-                        aria-label="{{ chart_title }} : nombre d'alertes par localisation">
-                </canvas>
+                <div id="corridorsChart" role="img"
+                     aria-label="{{ chart_title }} : nombre d'alertes par localisation">
+                </div>
             </div>
             {% else %}
             <div class="db-empty-state" style="padding:40px">
@@ -534,13 +534,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const chart = echarts.init(el, null, { renderer: "canvas", devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2) });
     window.__gei_echarts = window.__gei_echarts || {};
     window.__gei_echarts["corridorsChart"] = chart;
-
-    const barColors = corridorsData.values.map(function (v, i) {
-        const type = corridorsData.types[i] || currentType || "default";
-        const alpha = 0.35 + (v / maxVal) * 0.55;
-        const base = GEI[type] || GEI.default;
-        return base;
-    });
 
     chart.setOption({
         backgroundColor: "transparent",

@@ -3881,7 +3881,7 @@ html body .bi {
     max-height: 640px;
     margin-top: 8px;
 }
-.corridor-chart-wrap canvas { display: block; width: 100% !important; height: 100% !important; }
+.corridor-chart-wrap > div { width: 100%; height: 100%; }
 .corridor-filter-toggle { display: none; }
 .corridor-filter-content {
     display: flex;
