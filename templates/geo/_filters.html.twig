@@ -40,9 +40,8 @@
             <select name="categorie" class="form-select form-select-sm">
                 <option value="">Toutes</option>
                 {% for cat in categories %}
-                    {# Supporte à la fois ->getValeur() et ->valeur #}
-                    {% set catVal = cat.valeur is defined ? cat.valeur : cat.getValeur() %}
-                    <option value="{{ catVal }}">{{ catVal }}</option>
+                    {% set catVal = cat.valeur|default(cat.libelle) %}
+                    <option value="{{ catVal }}">{{ cat.libelle }}</option>
                 {% endfor %}
             </select>
         </div>
