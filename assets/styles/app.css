@@ -12610,3 +12610,111 @@ body.dark .leaflet-popup-tip {
     font-size: 9px;
   }
 }
+
+/* Dark-mode surfaces for legacy Bootstrap-based pages. */
+body.dark .geo-choropleth-page,
+body.dark .security-audit-page {
+  color: var(--text);
+}
+body.dark .geo-choropleth-page .card,
+body.dark .security-audit-page .card,
+body.dark .security-audit-page .modal-content {
+  color: var(--text);
+  background-color: var(--card);
+  border-color: var(--border);
+}
+body.dark .geo-choropleth-page .card-header,
+body.dark .security-audit-page .card-header,
+body.dark .security-audit-page .card-footer,
+body.dark .security-audit-page .modal-header,
+body.dark .security-audit-page .modal-footer {
+  color: var(--text);
+  background-color: var(--card2);
+  border-color: var(--border);
+}
+body.dark .geo-choropleth-page .text-muted,
+body.dark .security-audit-page .text-muted,
+body.dark .security-audit-page .form-label,
+body.dark .security-audit-page p,
+body.dark .security-audit-page strong {
+  color: var(--dim) !important;
+}
+body.dark .security-audit-page h1,
+body.dark .security-audit-page h5,
+body.dark .security-audit-page h6,
+body.dark .security-audit-page strong {
+  color: var(--text) !important;
+}
+body.dark .geo-choropleth-page .card-header,
+body.dark .security-audit-page .card-header h1 {
+  color: var(--text) !important;
+}
+body.dark .geo-choropleth-page .form-control,
+body.dark .geo-choropleth-page .form-select,
+body.dark .security-audit-page .form-control,
+body.dark .security-audit-page .form-select {
+  color: var(--text);
+  background-color: var(--card2);
+  border-color: var(--border2);
+}
+body.dark .geo-choropleth-page .form-control:focus,
+body.dark .geo-choropleth-page .form-select:focus,
+body.dark .security-audit-page .form-control:focus,
+body.dark .security-audit-page .form-select:focus {
+  border-color: var(--amber);
+  box-shadow: var(--focus-ring);
+}
+body.dark .geo-choropleth-page .table,
+body.dark .security-audit-page .table {
+  --bs-table-color: var(--text);
+  --bs-table-bg: var(--card);
+  --bs-table-border-color: var(--border);
+  --bs-table-hover-color: var(--text);
+  --bs-table-hover-bg: var(--card2);
+  color: var(--text);
+  border-color: var(--border);
+}
+body.dark .geo-choropleth-page .table-light,
+body.dark .security-audit-page .table-light {
+  --bs-table-color: var(--text);
+  --bs-table-bg: var(--card2);
+  --bs-table-border-color: var(--border);
+  color: var(--text);
+  background-color: var(--card2);
+}
+body.dark .geo-choropleth-page .table > :not(caption) > * > *,
+body.dark .security-audit-page .table > :not(caption) > * > * {
+  color: var(--text);
+  border-bottom-color: var(--border);
+}
+body.dark .security-audit-page .table-danger > *,
+body.dark .security-audit-page .table-warning > * {
+  --bs-table-color: var(--text);
+  --bs-table-bg: var(--card2);
+}
+body.dark .security-audit-page .bg-light {
+  color: var(--text);
+  background-color: var(--card2) !important;
+}
+body.dark .security-audit-page code,
+body.dark .security-audit-page pre {
+  color: #b7efd8;
+}
+body.dark .security-audit-page .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+body.dark .geo-choropleth-page #choropleth-info {
+  color: var(--text);
+  background: rgba(18,34,27,.97);
+  border: 1px solid var(--border2);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+body.dark .geo-choropleth-page #choropleth-info .text-muted {
+  color: var(--muted) !important;
+}
+body.dark .geo-choropleth-page #choropleth-info .table {
+  --bs-table-bg: transparent;
+}
+body.dark .geo-choropleth-page .sortable-th:hover {
+  background: var(--card2);
+}

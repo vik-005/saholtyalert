@@ -1,5 +1,5 @@
 {% extends 'base.html.twig' %}
-{% block title %}Carte Choroplèthe — GEOINT GEI{% endblock %}
+{% block title %}Carte Choroplèthe — SAHOTLY ALERT SYSTEM{% endblock %}
 
 {% block stylesheets %}{{ parent() }}
 <style>
@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block body %}
-<div class="container-fluid py-3 px-3 px-md-4">
+<div class="container-fluid py-3 px-3 px-md-4 geo-choropleth-page">
 
     {# En-tête #}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -141,6 +141,7 @@
     let currentLevel  = 'world';
     let chart         = null;
     let currentSeries = [];
+    let latestData = null;
     let sortCol       = 'total';
     let sortAsc       = false;
 
@@ -195,9 +196,14 @@
 
     // ── 4. Rendu ECharts ──────────────────────────────────────────────────
     function renderChoropleth(data) {
+        latestData = data;
         currentSeries = data.series || [];
         const vm = data.visualMap || { min: 0, max: 1, pieces: [] };
         const isContinent = currentLevel === 'continent';
+        const isDark = document.body.classList.contains('dark')
+            || document.documentElement.classList.contains('dark');
+        const textColor = isDark ? '#e6f2ec' : '#334155';
+        const gridColor = isDark ? '#2c5242' : '#dbe4ea';
 
         // Mise à jour du titre et du compteur
         document.getElementById('choropleth-title').textContent = isContinent
@@ -214,7 +220,7 @@
         }));
 
         const option = {
-            backgroundColor: '#fafbfc',
+            backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
                 formatter: p => {
@@ -225,8 +231,10 @@
                         + `Critique : ${d.critique ?? 0} · Élevé : ${d.eleve ?? 0}<br>`
                         + `Score moyen : ${d.score_moyen ?? '—'}`;
                 },
-                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 12 },
-                extraCssText: 'border-radius:8px;',
+                backgroundColor: isDark ? '#12221b' : '#ffffff',
+                borderColor: isDark ? '#2c5242' : '#cbd5e1',
+                textStyle: { color: textColor, fontFamily: 'Inter, sans-serif', fontSize: 12 },
+                extraCssText: 'border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);',
             },
             visualMap: {
                 type     : 'piecewise',
@@ -236,9 +244,11 @@
                 ],
                 left     : 10,
                 bottom   : 10,
-                textStyle: { fontFamily: 'Inter, sans-serif', fontSize: 11 },
+                textStyle: { color: textColor, fontFamily: 'Inter, sans-serif', fontSize: 11 },
                 itemWidth: 14, itemHeight: 10,
-                backgroundColor: 'rgba(255,255,255,.85)',
+                backgroundColor: isDark ? 'rgba(18,34,27,.92)' : 'rgba(255,255,255,.9)',
+                borderColor: isDark ? '#2c5242' : '#dbe4ea',
+                borderWidth: 1,
                 borderRadius: 8,
                 padding: [8,12],
             },
@@ -249,16 +259,16 @@
                 scaleLimit: { min: 0.6, max: 20 },
                 emphasis: {
                     label    : { show: true, fontFamily: 'Inter, sans-serif', fontSize: 11 },
-                    itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.3)' },
+                    itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0,0,0,.35)' },
                 },
                 select: {
                     label    : { show: true },
                     itemStyle: { color: '#1d4ed8' },
                 },
                 itemStyle: {
-                    borderColor: '#fff',
+                    borderColor: isDark ? '#496858' : '#ffffff',
                     borderWidth: 0.6,
-                    areaColor  : '#f0f4f8',
+                    areaColor  : isDark ? '#1b3028' : '#f0f4f8',
                 },
                 data: seriesData,
                 // Correspondances noms FR/EN pour les marchés GEI
@@ -353,6 +363,10 @@
             else { sortCol = col; sortAsc = false; }
             renderTable();
         });
+    });
+
+    document.addEventListener('dark-mode-changed', () => {
+        if (chart && latestData) renderChoropleth(latestData);
     });
 
     // ── 7. Basculement niveau ─────────────────────────────────────────────

@@ -17,7 +17,7 @@ final class LoginWelcomeSubscriber implements EventSubscriberInterface
     public function onLoginSuccess(LoginSuccessEvent $event): void
     {
         $flashBag = $event->getRequest()->getSession()->getFlashBag();
-        $flashBag->add('login_welcome', 'Bienvenue sur GEI System');
+        $flashBag->add('login_welcome', 'Bienvenue sur SAHOTLY ALERT SYSTEM');
 
         $user = $event->getUser();
         if ($user instanceof User && in_array($user->getRole(), [

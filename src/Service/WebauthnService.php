@@ -61,7 +61,7 @@ final class WebauthnService
 
     public function getRpName(): string
     {
-        return $_ENV['WEBAUTHN_RP_NAME'] ?? $_SERVER['WEBAUTHN_RP_NAME'] ?? 'GEI System';
+        return $_ENV['WEBAUTHN_RP_NAME'] ?? $_SERVER['WEBAUTHN_RP_NAME'] ?? 'SAHOTLY ALERT SYSTEM';
     }
 
     public function getOrigin(Request $request): string

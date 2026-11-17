@@ -3,7 +3,7 @@
 {% block body_login %}
 <div class="auth-shell auth-shell-pro">
     {% include 'components/_auth_brand_panel.html.twig' with {
-        brand_name: 'GEI System',
+        brand_name: 'SAHOTLY ALERT SYSTEM',
         slides: [
             {
                 image: 'images/auth/access-control.svg',
@@ -28,11 +28,11 @@
 
     <main class="auth-form-panel auth-form-panel-pro">
         <div class="auth-mobile-brand">
-            <span><i class="bi bi-shield-lock"></i></span> GEI System
+            <span><i class="bi bi-shield-lock"></i></span> SAHOTLY ALERT SYSTEM
         </div>
         <div class="auth-form-inner">{% block auth_form %}{% endblock %}</div>
         <div class="auth-footer-note auth-legal-footer">
-            <span>© {{ 'now'|date('Y') }} · Plateforme GEI</span>
+            <span>© {{ 'now'|date('Y') }} · SAHOTLY ALERT SYSTEM</span>
             <nav aria-label="Informations légales">
                 <a href="{{ path('app_privacy_policy') }}">Confidentialité</a>
                 <a href="{{ path('app_terms_of_use') }}">Conditions d’utilisation</a>
