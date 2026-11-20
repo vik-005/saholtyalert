@@ -423,24 +423,6 @@ final class WebauthnService
         /** @var array<string, mixed> $data */
         $data = $serializer->normalize($options, 'json');
 
-        // Le challenge (octets bruts) est encodé en base64url pour le transport vers le navigateur
-        if (isset($data['challenge']) && is_string($data['challenge'])) {
-            $data['challenge'] = $this->base64urlEncode($data['challenge']);
-        }
-
-        // Les identifiants de credential sont en octets bruts : base64url pour le navigateur
-        foreach (['allowCredentials', 'excludeCredentials'] as $key) {
-            if (!isset($data[$key]) || !is_array($data[$key])) {
-                continue;
-            }
-            foreach ($data[$key] as &$descriptor) {
-                if (is_array($descriptor) && isset($descriptor['id']) && is_string($descriptor['id'])) {
-                    $descriptor['id'] = $this->base64urlEncode($descriptor['id']);
-                }
-            }
-            unset($descriptor);
-        }
-
         return $data;
     }
 
@@ -456,19 +438,6 @@ final class WebauthnService
 
         /** @var array<string, mixed> $data */
         $data = $serializer->normalize($options, 'json');
-
-        if (isset($data['challenge']) && is_string($data['challenge'])) {
-            $data['challenge'] = $this->base64urlEncode($data['challenge']);
-        }
-
-        if (isset($data['allowCredentials']) && is_array($data['allowCredentials'])) {
-            foreach ($data['allowCredentials'] as &$descriptor) {
-                if (is_array($descriptor) && isset($descriptor['id']) && is_string($descriptor['id'])) {
-                    $descriptor['id'] = $this->base64urlEncode($descriptor['id']);
-                }
-            }
-            unset($descriptor);
-        }
 
         return $data;
     }

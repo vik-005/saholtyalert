@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Psr\Log\LoggerInterface;
 
 #[Route('/compte/securite/webauthn')]
 #[IsGranted('ROLE_USER')]
@@ -23,6 +24,7 @@ final class WebauthnRegisterController extends AbstractController
         private readonly WebauthnService $webauthnService,
         private readonly EntityManagerInterface $entityManager,
         private readonly AdminAuditLogger $auditLogger,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -48,7 +50,7 @@ final class WebauthnRegisterController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if (!$this->isCsrfTokenValid('webauthn_register', (string) $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('webauthn_register', (string) $request->getPayload()->get('_token', ''))) {
             return new JsonResponse(['error' => 'Jeton de sécurité invalide.'], 403);
         }
 
@@ -65,12 +67,17 @@ final class WebauthnRegisterController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        if (!$this->isCsrfTokenValid('webauthn_register', (string) $request->request->get('_token'))) {
+        if (!$this->isCsrfTokenValid('webauthn_register', (string) $request->getPayload()->get('_token', ''))) {
             return new JsonResponse(['error' => 'Jeton de sécurité invalide.'], 403);
         }
 
-        $data = json_decode($request->getContent(), true);
-        if (!is_array($data) || !isset($data['response'], $data['name'])) {
+        $data = $request->getPayload()->all();
+        if (!isset($data['response'], $data['name'])
+            || !is_array($data['response'])
+            || !is_string($data['name'])
+            || '' === trim($data['name'])
+            || mb_strlen(trim($data['name'])) > 100
+        ) {
             return new JsonResponse(['error' => 'Données d’enregistrement WebAuthn incomplètes.'], 400);
         }
 
@@ -79,10 +86,17 @@ final class WebauthnRegisterController extends AbstractController
             $this->webauthnService->persistCredentialRecord(
                 $user,
                 $record,
-                (string) $data['name']
+                trim($data['name'])
             );
         } catch (\Throwable $throwable) {
-            return new JsonResponse(['error' => $throwable->getMessage() ?: 'Échec de l’enregistrement WebAuthn.'], 400);
+            $this->logger->warning('WebAuthn credential registration failed', [
+                'user_id' => $user->getId(),
+                'exception' => $throwable,
+            ]);
+
+            return new JsonResponse([
+                'error' => 'Impossible d’enregistrer cette clé biométrique. Vérifiez le navigateur et le domaine sécurisé, puis réessayez.',
+            ], 400);
         }
 
         $this->auditLogger->logAndFlush('webauthn_registered', 'webauthn_credential', $user->getId());

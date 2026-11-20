@@ -144,17 +144,40 @@
 {{ parent() }}
 <script>
 (function () {
-    if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.get) {
-        return;
-    }
-
     const btn = document.getElementById('webauthnLoginBtn');
     if (!btn) return;
 
     const optionsUrl = btn.dataset.webauthnOptionsUrl;
     const checkUrl = btn.dataset.webauthnCheckUrl;
+    const buttonLabel = 'Se connecter avec l’empreinte digitale';
 
-    btn.disabled = false;
+    if (!window.isSecureContext) {
+        btn.querySelector('.login-button-text').textContent = 'Connexion biométrique disponible uniquement en HTTPS.';
+        return;
+    }
+
+    if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.get) {
+        btn.querySelector('.login-button-text').textContent = 'La connexion biométrique n’est pas prise en charge par ce navigateur.';
+        return;
+    }
+
+    const platformAuthenticator = window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable;
+    if (typeof platformAuthenticator === 'function') {
+        platformAuthenticator.call(window.PublicKeyCredential)
+            .then(available => {
+                if (available) {
+                    btn.disabled = false;
+                    return;
+                }
+                btn.querySelector('.login-button-text').textContent = 'Aucun authentificateur biométrique disponible sur cet appareil.';
+            })
+            .catch(error => {
+                console.error('Vérification de la disponibilité WebAuthn impossible.', error);
+                btn.querySelector('.login-button-text').textContent = 'Impossible de vérifier la disponibilité biométrique.';
+            });
+    } else {
+        btn.disabled = false;
+    }
 
     function base64urlToBytes(str) {
         str = str.replace(/-/g, '+').replace(/_/g, '/');
@@ -223,23 +246,31 @@
                 body: JSON.stringify(body),
             });
 
-            const result = await check.json();
+            const result = await check.json().catch(() => ({}));
 
-            if (result.success) {
+            if (check.ok && result.success) {
                 window.location.href = result.redirect || '/operationnel';
             } else {
                 throw new Error(result.message || 'Échec de l’authentification par empreinte.');
             }
         } catch (error) {
             btn.disabled = false;
-            btn.querySelector('.login-button-text').textContent = 'Se connecter avec l’empreinte digitale';
-            const alert = document.querySelector('.login-alert-error');
-            if (alert) {
-                alert.querySelector('.login-alert-message').textContent = error.message;
-                alert.style.display = '';
-            } else {
-                alert(error.message);
+            btn.querySelector('.login-button-text').textContent = buttonLabel;
+            let alertBox = document.querySelector('.login-alert-error');
+            if (!alertBox) {
+                alertBox = document.createElement('div');
+                alertBox.className = 'login-alert login-alert-error';
+                alertBox.setAttribute('role', 'alert');
+                const message = document.createElement('p');
+                message.className = 'login-alert-message';
+                alertBox.appendChild(message);
+                btn.insertAdjacentElement('afterend', alertBox);
             }
+            const message = alertBox.querySelector('.login-alert-message');
+            message.textContent = error.name === 'NotAllowedError'
+                ? 'La demande a été annulée ou a expiré. Réessayez, ou connectez-vous avec votre mot de passe.'
+                : (error.message || 'La connexion biométrique a échoué. Réessayez ou utilisez votre mot de passe.');
+            alertBox.style.display = '';
         }
     });
 })();

@@ -8,7 +8,8 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: WebauthnCredentialRepository::class)]
 #[ORM\Table(name: 'webauthn_credential')]
-#[ORM\UniqueConstraint(columns: ['user_id', 'credential_id'])]
+#[ORM\Index(name: 'idx_webauthn_credential_id', columns: ['credential_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_webauthn_user_credential', columns: ['user_id', 'credential_id'])]
 class WebauthnCredential
 {
     #[ORM\Id]

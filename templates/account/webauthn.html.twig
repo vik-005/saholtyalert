@@ -119,7 +119,7 @@
                         <span class="webauthn-badge">{{ credential.name }}</span>
                     </td>
                     <td>{{ credential.createdAt|date('d/m/Y H:i') }}</td>
-                    <td>{{ credential.lastUsedAt|date('d/m/Y H:i') ?? '—' }}</td>
+                    <td>{{ credential.lastUsedAt ? credential.lastUsedAt|date('d/m/Y H:i') : '—' }}</td>
                     <td class="text-end">
                         <form method="post" action="{{ path('app_webauthn_remove') }}" onsubmit="return confirm('Supprimer cette clé d’empreinte ? Vous ne pourrez plus vous connecter avec cet appareil.')">
                             <input type="hidden" name="_token" value="{{ csrf_token('webauthn_remove') }}">
@@ -145,17 +145,21 @@
 {{ parent() }}
 <script>
 (function () {
-    if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
-        const btn = document.getElementById('webauthnRegisterBtn');
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'L’empreinte digitale n’est pas prise en charge sur ce navigateur.';
-        }
+    const btn = document.getElementById('webauthnRegisterBtn');
+    const form = document.getElementById('webauthnRegisterForm');
+    if (!btn || !form) return;
+
+    if (!window.isSecureContext) {
+        btn.textContent = 'L’enregistrement biométrique nécessite une connexion HTTPS.';
         return;
     }
 
-    const btn = document.getElementById('webauthnRegisterBtn');
-    const form = document.getElementById('webauthnRegisterForm');
+    if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create) {
+        btn.disabled = true;
+        btn.textContent = 'L’enregistrement biométrique n’est pas pris en charge par ce navigateur.';
+        return;
+    }
+
     const optionsUrl = form ? form.querySelector('[name="_token_url"]').value : null;
     const registerUrl = '{{ path('app_webauthn_register') }}';
     const nameInput = document.getElementById('webauthnCredentialName');
@@ -232,6 +236,7 @@
             const response = credential.response;
             const body = {
                 name: name,
+                _token: form.querySelector('[name="_token"]').value,
                 response: {
                     clientDataJSON: bytesToBase64url(new Uint8Array(response.clientDataJSON)),
                     attestationObject: bytesToBase64url(new Uint8Array(response.attestationObject)),
@@ -253,13 +258,17 @@
 
             window.location.reload();
         } catch (error) {
-            showError(error.message);
+            showError(error.name === 'NotAllowedError'
+                ? 'La demande a été annulée ou a expiré. Réessayez et confirmez votre identité sur l’appareil.'
+                : (error.message || 'Échec de l’enregistrement de l’empreinte.'));
         }
     });
 })();
 </script>
 {% endblock %}
 
+{% block stylesheets %}
+{{ parent() }}
 <style>
 .webauthn-grid {
     display: grid;
